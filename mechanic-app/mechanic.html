@@ -18,6 +18,7 @@
             --alert: #ff3d00;
         }
 
+        /* EXACT BODY CSS FROM YOUR WORKING FILE */
         body {
             margin: 0;
             padding: 0;
@@ -35,7 +36,7 @@
             position: absolute;
             top: 50px;
             left: 50px;
-            width: 320px; /* Slightly wider for inventory items */
+            width: 320px; /* Slightly wider for inventory names */
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -118,7 +119,7 @@
             z-index: 2;
         }
         
-        /* INVENTORY ROWS (New for Mechanic) */
+        /* INVENTORY ROWS */
         .inv-row {
             display: flex; 
             justify-content: space-between; 
@@ -185,8 +186,8 @@
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div>
-                    <div class="label">Current Level</div>
-                    <div class="value highlight" style="font-size:1.8em" id="disp-level">...</div>
+                    <div class="label">Mechanic Level</div>
+                    <div class="value highlight" style="font-size:1.6em" id="disp-level">...</div>
                 </div>
                 <div style="text-align:right;">
                     <div class="label">Current XP</div>
@@ -247,7 +248,7 @@
             </div>
         </div>
 
-        <div class="section">
+        <div class="section" style="border:none;">
             <div class="label">Target Calculator</div>
             <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 100,000):</div>
             <input type="number" id="target-input" placeholder="e.g. 100000">
@@ -260,13 +261,13 @@
 </div>
 
 <script>
-    // --- MECHANIC KEYS ---
+    // --- MECHANIC CONFIG ---
     const KEYS = {
         XP: "exp_trucking_mechanic",
         BXP: "exp_token_a|trucking|mechanic"
     };
 
-    // ITEM IDs (Keyword match)
+    // Inventory Tracking Config
     const ITEMS = {
         wrench: { key: "wrench", stock: 0, session: 0 },
         jumper: { key: "jumper", stock: 0, session: 0 },
@@ -346,6 +347,7 @@
             let qty = (typeof data === 'object') ? data.amount : data;
             let lowerID = id.toLowerCase();
 
+            // Match items by keyword in ID
             for (let type in ITEMS) {
                 if (lowerID.includes(ITEMS[type].key)) {
                     updateItemStats(type, qty);
@@ -357,6 +359,7 @@
 
     function updateBXP(val) {
         let amt = (typeof val === 'object') ? val.amount : val;
+        // Anti-flash check: only update if valid number
         if (amt >= 0) {
             STATE.currentBXP = amt;
             document.getElementById('disp-bxp').innerText = formatNum(amt);
