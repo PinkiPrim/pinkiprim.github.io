@@ -18,7 +18,6 @@
             --alert: #ff3d00;
         }
 
-        /* EXACT CSS FROM YOUR WORKING FIREFIGHTER FILE */
         body {
             margin: 0;
             padding: 0;
@@ -36,7 +35,7 @@
             position: absolute;
             top: 50px;
             left: 50px;
-            width: 320px; /* Slightly wider for inventory names */
+            width: 320px; /* Slightly wider for inventory items */
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -119,7 +118,7 @@
             z-index: 2;
         }
         
-        /* INVENTORY ROWS */
+        /* INVENTORY ROWS (New for Mechanic) */
         .inv-row {
             display: flex; 
             justify-content: space-between; 
@@ -248,7 +247,7 @@
             </div>
         </div>
 
-        <div class="section" style="border:none;">
+        <div class="section">
             <div class="label">Target Calculator</div>
             <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 100,000):</div>
             <input type="number" id="target-input" placeholder="e.g. 100000">
@@ -313,6 +312,7 @@
     // --- DATA LISTENER ---
     window.addEventListener('message', (event) => {
         let payload = event.data;
+        // Unwrap logic from your working script
         if (payload && payload.type === 'data' && payload.data) {
             payload = payload.data;
         }
@@ -470,17 +470,28 @@
     const header = document.getElementById("drag-handle");
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     
-    header.onmousedown = (e) => {
-        e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY;
-        document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
-        document.onmousemove = (e) => {
-            e.preventDefault();
-            pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
-            pos3 = e.clientX; pos4 = e.clientY;
-            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-        };
-    };
+    header.onmousedown = dragMouseDown;
+    function dragMouseDown(e) {
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+    }
+    function elementDrag(e) {
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+    }
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
+
 </script>
 </body>
 </html>
