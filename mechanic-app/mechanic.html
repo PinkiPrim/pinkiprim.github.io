@@ -6,8 +6,8 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
+        /* EXACT CSS FROM YOUR WORKING FIREFIGHTER FILE */
         :root {
-            /* MECHANIC BLUE THEME */
             --primary: #0091ea; 
             --primary-dim: #0064b7;
             --bg-glass: rgba(15, 15, 15, 0.95);
@@ -18,7 +18,6 @@
             --alert: #ff3d00;
         }
 
-        /* EXACT BODY CSS FROM YOUR WORKING FILE */
         body {
             margin: 0;
             padding: 0;
@@ -36,7 +35,7 @@
             position: absolute;
             top: 50px;
             left: 50px;
-            width: 320px; /* Slightly wider for inventory names */
+            width: 320px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -215,8 +214,15 @@
         <div class="section">
             <div class="label">Job Statistics (Session)</div>
             
+            <div class="inv-row" id="row-tire">
+                <div class="inv-name">🔘 Flat Tire</div>
+                <div class="inv-stats">
+                    <span class="inv-used" id="used-tire">+0</span>
+                </div>
+            </div>
+
             <div class="inv-row" id="row-wrench">
-                <div class="inv-name">🔧 Engine / Tire</div>
+                <div class="inv-name">🔧 Blown Engine</div>
                 <div class="inv-stats">
                     Stock: <span id="stock-wrench">--</span>
                     <span class="inv-used" id="used-wrench">+0</span>
@@ -261,18 +267,18 @@
 </div>
 
 <script>
-    // --- MECHANIC CONFIG ---
+    // --- MECHANIC KEYS ---
     const KEYS = {
         XP: "exp_trucking_mechanic",
         BXP: "exp_token_a|trucking|mechanic"
     };
 
-    // Inventory Tracking Config
+    // ITEM CONFIG
     const ITEMS = {
-        wrench: { key: "wrench", stock: 0, session: 0 },
-        jumper: { key: "jumper", stock: 0, session: 0 },
-        jerry:  { key: "jerry",  stock: 0, session: 0 },
-        hammer: { key: "hammer", stock: 0, session: 0 }
+        wrench: { keywords: ["wrench"], stock: 0, session: 0 },
+        jumper: { keywords: ["jumper", "cable"], stock: 0, session: 0 },
+        jerry:  { keywords: ["jerry", "petrol"], stock: 0, session: 0 },
+        hammer: { keywords: ["hammer"], stock: 0, session: 0 }
     };
 
     const STATE = {
@@ -313,7 +319,6 @@
     // --- DATA LISTENER ---
     window.addEventListener('message', (event) => {
         let payload = event.data;
-        // Unwrap logic from your working script
         if (payload && payload.type === 'data' && payload.data) {
             payload = payload.data;
         }
@@ -342,24 +347,28 @@
         // BXP
         if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
-        // ITEMS
-        for (let [id, data] of Object.entries(inv)) {
-            let qty = (typeof data === 'object') ? data.amount : data;
-            let lowerID = id.toLowerCase();
+        // Convert inv to array for searching
+        const invArray = Object.entries(inv).map(([id, data]) => {
+            const qty = (typeof data === 'object') ? data.amount : data;
+            return { id: id.toLowerCase(), qty: qty };
+        });
 
-            // Match items by keyword in ID
-            for (let type in ITEMS) {
-                if (lowerID.includes(ITEMS[type].key)) {
-                    updateItemStats(type, qty);
-                }
-            }
+        // Check Items
+        for (let type in ITEMS) {
+            let itemData = ITEMS[type];
+            let foundQty = 0;
+            const match = invArray.find(invItem => itemData.keywords.some(k => invItem.id.includes(k)));
+            if (match) foundQty = match.qty;
+            updateItemStats(type, foundQty);
         }
         STATE.inventoryInit = true;
+
+        // Update Flat Tires Logic
+        calculateFlatTires();
     }
 
     function updateBXP(val) {
         let amt = (typeof val === 'object') ? val.amount : val;
-        // Anti-flash check: only update if valid number
         if (amt >= 0) {
             STATE.currentBXP = amt;
             document.getElementById('disp-bxp').innerText = formatNum(amt);
@@ -388,7 +397,7 @@
         else row.classList.remove('low-stock');
     }
 
-    // --- XP LOGIC ---
+    // --- LOGIC ---
     function updateXP(newXP) {
         if (STATE.startXP === null) {
             STATE.startXP = newXP;
@@ -409,7 +418,17 @@
         }
 
         STATE.currentXP = newXP;
+        calculateFlatTires();
         renderDisplay();
+    }
+
+    function calculateFlatTires() {
+        // Flat Tires = Total XP Callouts - (Sum of all special item usages)
+        const totalSpecial = ITEMS.wrench.session + ITEMS.jumper.session + ITEMS.jerry.session + ITEMS.hammer.session;
+        // Ensure we don't show negative if data is desynced
+        const flats = Math.max(0, STATE.callouts - totalSpecial);
+        
+        document.getElementById('used-tire').innerText = `+${flats}`;
     }
 
     function renderDisplay() {
