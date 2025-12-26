@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Mechanic Helper</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
+
+        /* FORCE TRANSPARENCY */
+        html, body {
+            margin: 0; padding: 0;
+            background: transparent !important;
+            overflow: hidden;
+            width: 100vw; height: 100vh;
+        }
+
+        :root {
+            --primary: #0091ea; /* Mechanic Blue */
+            --primary-dim: #0064b7;
+            --bg-glass: rgba(15, 15, 15, 0.95);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(0, 145, 234, 0.4);
+            --green: #00e676;
+            --alert: #ff3d00;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-main);
+            user-select: none;
+        }
+
+        #app-container {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column;
+            backdrop-filter: blur(5px);
+        }
+
+        header {
+            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+            padding: 8px 12px;
+            cursor: move;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
+            border-top-left-radius: 8px; border-top-right-radius: 8px;
+        }
+
+        #content { padding: 10px; flex: 1; overflow-y: auto; }
+
+        .section {
+            margin-bottom: 10px; padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .section:last-child { border-bottom: none; }
+
+        .label {
+            font-size: 0.7em; color: var(--text-dim);
+            text-transform: uppercase; margin-bottom: 2px;
+        }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value.highlight { color: var(--primary); }
+        .value.bxp { color: var(--green); }
+
+        /* PROGRESS BAR */
+        .progress-container {
+            position: relative; height: 16px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 4px; margin: 5px 0 10px 0;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .progress-bar {
+            height: 100%; background: var(--primary);
+            width: 0%; transition: width 0.3s ease;
+        }
+        .progress-text {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.7em; text-shadow: 1px 1px 2px black;
+            font-weight: bold; z-index: 2;
+        }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .stat-box {
+            background: rgba(255,255,255,0.05); padding: 6px;
+            border-radius: 4px; text-align: center;
+        }
+
+        /* INVENTORY GRID */
+        .inv-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.3); padding: 4px 8px;
+            margin-bottom: 4px; border-radius: 4px;
+            border-left: 2px solid var(--text-dim);
+        }
+        .inv-name { font-size: 0.8em; }
+        .inv-stats { font-size: 0.8em; font-weight: bold; text-align: right; }
+        .inv-used { color: var(--primary); margin-left: 5px; }
+        
+        .inv-row.low-stock { border-left-color: var(--alert); }
+
+        /* CALCULATOR */
+        input[type="number"] {
+            width: 90%; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; color: white; padding: 5px;
+            border-radius: 4px; margin-top: 5px; font-family: inherit;
+        }
+        input:focus { outline: 1px solid var(--primary); }
+        .calc-output {
+            margin-top: 5px; font-size: 0.8em; line-height: 1.3;
+            color: var(--text-dim); word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header id="drag-handle">
+        <span>🔧 Mechanic Ops</span>
+        <span id="clock" style="font-size:0.8em">00:00</span>
+    </header>
+
+    <div id="content">
+        
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div>
+                    <div class="label">Mechanic Level</div>
+                    <div class="value highlight" style="font-size:1.6em" id="disp-level">...</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="label">Current XP</div>
+                    <div class="value" id="disp-xp" style="font-size:0.9em">0</div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="level-bar"></div>
+                <div class="progress-text" id="level-text">Waiting for data...</div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="label">BXP Tokens</div>
+                    <div class="value bxp" id="disp-bxp">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Total Callouts</div>
+                    <div class="value" id="disp-callouts">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="label">Inventory & Session Jobs</div>
+            
+            <div class="inv-row" id="row-wrench">
+                <div class="inv-name">🔧 Wrench (Engine/Tire)</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-wrench">0</span>
+                    <span class="inv-used" id="used-wrench">+0</span>
+                </div>
+            </div>
+
+            <div class="inv-row" id="row-jumper">
+                <div class="inv-name">⚡ Jumper (Battery)</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-jumper">0</span>
+                    <span class="inv-used" id="used-jumper">+0</span>
+                </div>
+            </div>
+
+            <div class="inv-row" id="row-jerry">
+                <div class="inv-name">⛽ Jerry Can (Gas)</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-jerry">0</span>
+                    <span class="inv-used" id="used-jerry">+0</span>
+                </div>
+            </div>
+
+            <div class="inv-row" id="row-hammer">
+                <div class="inv-name">🔨 Hammer (Chassis)</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-hammer">0</span>
+                    <span class="inv-used" id="used-hammer">+0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="border:none;">
+            <div class="label">Target Calculator</div>
+            <input type="number" id="target-input" placeholder="Target XP (e.g. 100,000)">
+            <div class="calc-output" id="calc-result">
+                Enter target above to calc remaining jobs...
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- CONFIG ---
+    const KEYS = {
+        XP: "exp_trucking_mechanic",
+        BXP: "exp_token_a|trucking|mechanic"
+    };
+
+    // ITEM KEYWORDS (Matches part of the ID found in game data)
+    const ITEMS = {
+        wrench: { key: "wrench", name: "Wrench", stock: 0, used: 0 },
+        jumper: { key: "jumper", name: "Jumper Cable", stock: 0, used: 0 },
+        jerry:  { key: "jerry",  name: "Jerry Can", stock: 0, used: 0 },
+        hammer: { key: "hammer", name: "Hammer", stock: 0, used: 0 }
+    };
+
+    const STATE = {
+        currentXP: 0,
+        currentBXP: 0,
+        startXP: null,
+        callouts: 0,
+        avgXP: 0
+    };
+
+    // --- FORMULAS ---
+    function getLevelFromXP(xp) {
+        return Math.floor((Math.sqrt(1 + 8 * xp / 5) - 1) / 2);
+    }
+    function getXPFromLevel(level) {
+        return Math.floor((5 * level * (level + 1)) / 2);
+    }
+    function formatNum(n) {
+        return Math.floor(n).toLocaleString("en-US");
+    }
+
+    // --- COMMS ---
+    function requestData() {
+        if(window.parent) {
+            try {
+                window.parent.postMessage({ 
+                    type: "getNamedData",
+                    keys: [KEYS.XP, KEYS.BXP, "inventory"]
+                }, "*");
+            } catch(e) {}
+        }
+    }
+    
+    requestData();
+    setInterval(requestData, 2000);
+
+    // --- MAIN LISTENER ---
+    window.addEventListener('message', (event) => {
+        let payload = event.data;
+        if (payload && payload.type === 'data' && payload.data) {
+            payload = payload.data;
+        }
+        if (!payload) return;
+
+        // 1. Process XP
+        if (typeof payload[KEYS.XP] === 'number') {
+            updateXP(payload[KEYS.XP]);
+        }
+
+        // 2. Process Inventory (BXP + Items)
+        if (payload.inventory) {
+            try {
+                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
+                processInventory(inv);
+            } catch(e){}
+        } else {
+            // Fallback: Check BXP if sent separately
+            if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
+        }
+    });
+
+    function processInventory(inv) {
+        if (!inv) return;
+
+        // A. Update BXP
+        if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
+
+        // B. Update Items (Auto-detect IDs by keyword)
+        for (let [id, data] of Object.entries(inv)) {
+            let qty = (typeof data === 'object') ? data.amount : data;
+            let lowerID = id.toLowerCase();
+
+            // Check against our item list
+            for (let type in ITEMS) {
+                if (lowerID.includes(ITEMS[type].key)) {
+                    updateItemStats(type, qty);
+                }
+            }
+        }
+    }
+
+    function updateBXP(val) {
+        let amt = (typeof val === 'object') ? val.amount : val;
+        if (amt >= 0) {
+            STATE.currentBXP = amt;
+            document.getElementById('disp-bxp').innerText = formatNum(amt);
+        }
+    }
+
+    function updateItemStats(type, newStock) {
+        const item = ITEMS[type];
+        
+        // Detect Usage (If stock dropped)
+        if (item.stock > 0 && newStock < item.stock) {
+            const diff = item.stock - newStock;
+            // Sanity check: ignore massive drops (like dropping item on ground) 
+            // We assume a job uses 1 item at a time usually
+            if(diff < 5) {
+                item.used += diff;
+            }
+        }
+
+        item.stock = newStock;
+
+        // Update DOM
+        document.getElementById(`stock-${type}`).innerText = newStock;
+        document.getElementById(`used-${type}`).innerText = `+${item.used}`;
+        
+        // Visual Alert for Low Stock
+        const row = document.getElementById(`row-${type}`);
+        if (newStock < 2) row.classList.add('low-stock');
+        else row.classList.remove('low-stock');
+    }
+
+    // --- XP LOGIC ---
+    function updateXP(newXP) {
+        if (STATE.startXP === null) {
+            STATE.startXP = newXP;
+            STATE.currentXP = newXP;
+            renderDisplay();
+            return;
+        }
+
+        if (newXP > STATE.currentXP) {
+            STATE.callouts++;
+            const gained = newXP - STATE.startXP;
+            STATE.avgXP = gained / STATE.callouts;
+            
+            // Level Up Sound
+            if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
+                window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); 
+            }
+        }
+
+        STATE.currentXP = newXP;
+        renderDisplay();
+    }
+
+    function renderDisplay() {
+        const lvl = getLevelFromXP(STATE.currentXP);
+        const nextLvlXP = getXPFromLevel(lvl + 1);
+        const prevLvlXP = getXPFromLevel(lvl);
+        const percent = Math.min(100, Math.max(0, ((STATE.currentXP - prevLvlXP) / (nextLvlXP - prevLvlXP)) * 100));
+
+        document.getElementById('disp-level').innerText = lvl;
+        document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
+        document.getElementById('level-bar').style.width = percent + "%";
+        document.getElementById('level-text').innerText = percent.toFixed(1) + "%";
+        document.getElementById('disp-callouts').innerText = STATE.callouts;
+
+        runCalculator();
+    }
+
+    // --- CALCULATOR ---
+    document.getElementById('target-input').addEventListener('input', runCalculator);
+
+    function runCalculator() {
+        const val = document.getElementById('target-input').value;
+        const el = document.getElementById('calc-result');
+        
+        if (STATE.avgXP === 0) {
+            el.innerHTML = "<i>Complete a job to enable calc...</i>";
+            return;
+        }
+        if (!val) {
+            el.innerText = "Enter target above...";
+            return;
+        }
+
+        let inputVal = parseInt(val.replace(/,/g, ''));
+        let targetXP = inputVal;
+
+        // Smart Level Detect
+        if (inputVal < 200) {
+            let lvlXP = getXPFromLevel(inputVal);
+            if (lvlXP > STATE.currentXP) targetXP = lvlXP;
+        }
+
+        if (targetXP > STATE.currentXP) {
+            const diff = targetXP - STATE.currentXP;
+            const jobs = Math.ceil(diff / STATE.avgXP);
+            el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
+                           `Callouts to go: <b>${formatNum(jobs)}</b>`;
+        } else {
+            const jobs = Math.ceil(inputVal / STATE.avgXP);
+            el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} jobs</b>`;
+        }
+    }
+
+    // --- CLOCK & DRAG ---
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }, 1000);
+
+    const elmnt = document.getElementById("app-container");
+    const header = document.getElementById("drag-handle");
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    
+    header.onmousedown = (e) => {
+        e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY;
+        document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
+        document.onmousemove = (e) => {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+            pos3 = e.clientX; pos4 = e.clientY;
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        };
+    };
+</script>
+</body>
+</html>
