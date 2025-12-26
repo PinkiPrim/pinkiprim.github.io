@@ -6,7 +6,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* EXACT CSS FROM YOUR WORKING FIREFIGHTER FILE */
+        /* EXACT CSS FROM YOUR WORKING VERSION */
         :root {
             --primary: #0091ea; 
             --primary-dim: #0064b7;
@@ -30,7 +30,6 @@
             user-select: none;
         }
 
-        /* DRAGGABLE CONTAINER */
         #app-container {
             position: absolute;
             top: 50px;
@@ -47,7 +46,6 @@
             min-height: 250px;
         }
 
-        /* HEADER */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 8px 12px;
@@ -62,7 +60,6 @@
             font-size: 1.1em;
         }
 
-        /* CONTENT */
         #content {
             padding: 12px;
             flex: 1;
@@ -91,7 +88,6 @@
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
-        /* PROGRESS BAR */
         .progress-container {
             position: relative;
             height: 18px;
@@ -118,7 +114,6 @@
             z-index: 2;
         }
         
-        /* INVENTORY ROWS */
         .inv-row {
             display: flex; 
             justify-content: space-between; 
@@ -134,7 +129,6 @@
         .inv-used { color: var(--primary); font-weight: bold; margin-left: 6px; }
         .low-stock { border-left-color: var(--alert); }
 
-        /* STAT GRID */
         .stat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -147,7 +141,6 @@
             text-align: center;
         }
 
-        /* INPUTS */
         input[type="number"] {
             width: 90%;
             background: rgba(0,0,0,0.3);
@@ -160,7 +153,6 @@
         }
         input:focus { outline: 1px solid var(--primary); }
 
-        /* ALERTS / CALCULATOR RESULT */
         .calc-output {
             margin-top: 8px;
             font-size: 0.85em;
@@ -212,10 +204,10 @@
         </div>
 
         <div class="section">
-            <div class="label">Job Statistics (Session)</div>
+            <div class="label">Session Statistics</div>
             
             <div class="inv-row" id="row-tire">
-                <div class="inv-name">🔘 Flat Tire</div>
+                <div class="inv-name">🔘 Tire / Towing</div>
                 <div class="inv-stats">
                     <span class="inv-used" id="used-tire">+0</span>
                 </div>
@@ -267,13 +259,12 @@
 </div>
 
 <script>
-    // --- MECHANIC KEYS ---
+    // --- MECHANIC CONFIG ---
     const KEYS = {
         XP: "exp_trucking_mechanic",
         BXP: "exp_token_a|trucking|mechanic"
     };
 
-    // ITEM CONFIG
     const ITEMS = {
         wrench: { keywords: ["wrench"], stock: 0, session: 0 },
         jumper: { keywords: ["jumper", "cable"], stock: 0, session: 0 },
@@ -285,23 +276,21 @@
         currentXP: 0,
         currentBXP: 0,
         startXP: null,
-        callouts: 0, // Based on XP gain
+        callouts: 0, 
         avgXP: 0,
         inventoryInit: false
     };
 
-    // --- FORMULAS ---
     function getLevelFromXP(xp) {
         return Math.floor((Math.sqrt(1 + 8 * xp / 5) - 1) / 2);
     }
     function getXPFromLevel(level) {
         return Math.floor((5 * level * (level + 1)) / 2);
     }
-    function formatNum(num) {
-        return Math.floor(num).toLocaleString("en-US");
+    function formatNum(n) {
+        return Math.floor(n).toLocaleString("en-US");
     }
 
-    // --- COMMS ---
     function requestData() {
         if(window.parent) {
             try {
@@ -312,11 +301,10 @@
             } catch(e) {}
         }
     }
-
+    
     requestData();
     setInterval(requestData, 2000);
 
-    // --- DATA LISTENER ---
     window.addEventListener('message', (event) => {
         let payload = event.data;
         if (payload && payload.type === 'data' && payload.data) {
@@ -344,7 +332,6 @@
     function processInventory(inv) {
         if (!inv) return;
 
-        // BXP
         if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
         // Convert inv to array for searching
@@ -353,7 +340,7 @@
             return { id: id.toLowerCase(), qty: qty };
         });
 
-        // Check Items
+        // Track items
         for (let type in ITEMS) {
             let itemData = ITEMS[type];
             let foundQty = 0;
@@ -363,8 +350,8 @@
         }
         STATE.inventoryInit = true;
 
-        // Update Flat Tires Logic
-        calculateFlatTires();
+        // Recalculate Remainder (Tire/Tow)
+        calculateRemainder();
     }
 
     function updateBXP(val) {
@@ -378,7 +365,7 @@
     function updateItemStats(type, newStock) {
         const item = ITEMS[type];
         
-        // Detect Usage: Only if we have initialized AND stock went DOWN
+        // Detect Usage
         if (STATE.inventoryInit && item.stock > 0 && newStock < item.stock) {
             const diff = item.stock - newStock;
             if (diff < 10) { // Ignore massive dumps
@@ -397,7 +384,6 @@
         else row.classList.remove('low-stock');
     }
 
-    // --- LOGIC ---
     function updateXP(newXP) {
         if (STATE.startXP === null) {
             STATE.startXP = newXP;
@@ -411,24 +397,23 @@
             const gained = newXP - STATE.startXP;
             STATE.avgXP = gained / STATE.callouts;
 
-            // Level Up Sound
             if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
                 window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); 
             }
         }
 
         STATE.currentXP = newXP;
-        calculateFlatTires();
+        calculateRemainder();
         renderDisplay();
     }
 
-    function calculateFlatTires() {
-        // Flat Tires = Total XP Callouts - (Sum of all special item usages)
-        const totalSpecial = ITEMS.wrench.session + ITEMS.jumper.session + ITEMS.jerry.session + ITEMS.hammer.session;
-        // Ensure we don't show negative if data is desynced
-        const flats = Math.max(0, STATE.callouts - totalSpecial);
+    function calculateRemainder() {
+        // "Tire / Towing" = Total XP Events - (Sum of all consumed items)
+        const totalItemsUsed = ITEMS.wrench.session + ITEMS.jumper.session + ITEMS.jerry.session + ITEMS.hammer.session;
+        // Ensure no negatives
+        const remainder = Math.max(0, STATE.callouts - totalItemsUsed);
         
-        document.getElementById('used-tire').innerText = `+${flats}`;
+        document.getElementById('used-tire').innerText = `+${remainder}`;
     }
 
     function renderDisplay() {
