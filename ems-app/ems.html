@@ -791,10 +791,6 @@ function updateEMSHUD() {
     document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
     document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
     
-    // NEW: XP to next level text update
-    const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
-    document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
-
     // BXP
     if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
     
@@ -812,6 +808,20 @@ function updateEMSHUD() {
         }
         emsLastXP = stats.currentExp;
     }
+    
+    // NEW: XP & Revives to next level text update (Using current Average)
+    const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
+    let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
+    
+    if (emsAvgXP > 0) {
+        const revsNeeded = Math.ceil(xpNeeded / emsAvgXP);
+        remainingText += ` <span style="opacity:0.7">(${formatNumber(revsNeeded)} revives)</span>`;
+    } else {
+        // Fallback approx if no data yet (250xp/revive assumption)
+        const revsNeeded = Math.ceil(xpNeeded / 250);
+        remainingText += ` <span style="opacity:0.5; font-size:0.9em">(~${formatNumber(revsNeeded)}?)</span>`;
+    }
+    document.getElementById('disp-xp-remaining').innerHTML = remainingText;
     
     document.getElementById('disp-callouts').innerText = emsSessionRevives;
     
