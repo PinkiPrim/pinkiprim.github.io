@@ -113,6 +113,16 @@
             border-radius: 4px; text-align: center;
         }
 
+        .inv-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.3); padding: 4px 8px;
+            margin-bottom: 4px; border-radius: 4px;
+            border-left: 3px solid var(--text-dim);
+        }
+        .inv-name { font-size: 0.8em; }
+        .inv-stats { font-size: 0.8em; font-weight: bold; text-align: right; }
+        .low-stock { border-left-color: var(--alert); } /* Orange alert for low stock */
+
         input[type="number"] {
             width: 90%; background: rgba(0,0,0,0.3);
             border: 1px solid #444; color: white; padding: 5px;
@@ -164,8 +174,18 @@
                     <div class="value bxp" id="disp-bxp">0</div>
                 </div>
                 <div class="stat-box">
-                    <div class="label">Drops Completed</div>
+                    <div class="label">Packages Dropped</div>
                     <div class="value" id="disp-ops" style="color:var(--accent)">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="label">Inventory</div>
+            <div class="inv-row" id="row-cargo">
+                <div class="inv-name">📦 Air Cargo</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-cargo">--</span>
                 </div>
             </div>
         </div>
@@ -175,7 +195,7 @@
             <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 1,000,000):</div>
             <input type="number" id="target-input" placeholder="e.g. 1000000">
             <div class="calc-output" id="calc-result">
-                Complete a delivery to enable calculator...
+                Drop a package to enable calculator...
             </div>
         </div>
 
@@ -370,8 +390,8 @@ function resetAllData() {
   
   // RESET BRIDGE VARS
   bridge_StartXP = null;
-  bridge_SessionXP = 0;
-  bridge_Ops = 0;
+  bridge_TotalPackages = 0;
+  bridge_TotalCargoStock = -1;
   
   saveData();
   renderStats();
@@ -542,6 +562,7 @@ function processGameData(data) {
       inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
       if (inventory) {
           lastInventoryObj = inventory;
+          processInventory(inventory); // Process Inventory for Cargo
       }
     } catch {
       inventory = lastInventoryObj;
@@ -738,9 +759,40 @@ if (document.readyState === 'loading') {
 
 // BRIDGE STATE - SELF CONTAINED
 let bridge_StartXP = null;
-let bridge_SessionXP = 0;
-let bridge_Ops = 0;
-let bridge_LastKnownXP = -1;
+let bridge_TotalPackages = 0;
+let bridge_TotalCargoStock = -1;
+
+function processInventory(inv) {
+    const invArray = Object.entries(inv).map(([id, data]) => {
+        let qty = 0;
+        if (typeof data === 'number') qty = data;
+        else if (typeof data === 'object') qty = data.amount || data.count || 0;
+        return { id: id.toLowerCase(), qty: qty };
+    });
+    
+    // Find all cargo items
+    const matches = invArray.filter(i => i.id.includes('cargo'));
+    const currentTotalStock = matches.reduce((sum, item) => sum + item.qty, 0);
+    
+    // Check for drop-off (decrease in stock)
+    if (bridge_TotalCargoStock > -1) {
+        if (currentTotalStock < bridge_TotalCargoStock) {
+            const dropped = bridge_TotalCargoStock - currentTotalStock;
+            // Filter massive dumps/resets just in case
+            if (dropped < 50) {
+                bridge_TotalPackages += dropped;
+            }
+        }
+    }
+    bridge_TotalCargoStock = currentTotalStock;
+
+    // Update UI Inventory
+    const el = document.getElementById('stock-cargo');
+    if(el) {
+        el.innerText = currentTotalStock;
+        el.style.color = currentTotalStock < 10 ? "var(--accent)" : "white";
+    }
+}
 
 function updateCargoHUD() {
     const stats = calculateJobStats('cargopilot');
@@ -755,38 +807,30 @@ function updateCargoHUD() {
     // BXP
     if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
     
-    // --- EXACT XP GAIN TRACKING & CALIBRATION ---
-    if (bridge_StartXP === null && current > 0) {
-        bridge_StartXP = current;
-        bridge_LastKnownXP = current;
-    }
+    // Update Packages Dropped UI
+    document.getElementById('disp-ops').innerText = bridge_TotalPackages;
     
-    // Update Logic
-    if (bridge_LastKnownXP > -1 && current > bridge_LastKnownXP) {
-        const diff = current - bridge_LastKnownXP;
-        // NO THRESHOLD: As per user request, any gain is a drop-off.
-        if (diff > 0) {
-            bridge_SessionXP += diff;
-            bridge_Ops++;
+    // CALC: Avg XP per Package
+    if (bridge_StartXP === null && current > 0) bridge_StartXP = current;
+    
+    let averageXP = 0;
+    if (bridge_StartXP !== null && bridge_TotalPackages > 0) {
+        const sessionGain = current - bridge_StartXP;
+        // Basic check to ensure positive gain
+        if (sessionGain > 0) {
+            averageXP = sessionGain / bridge_TotalPackages;
         }
-        bridge_LastKnownXP = current;
     }
     
-    // Update Clean Ops UI
-    document.getElementById('disp-ops').innerText = bridge_Ops;
-    
-    // Calculate Average per Op
-    const averageXP = bridge_Ops > 0 ? (bridge_SessionXP / bridge_Ops) : 0;
-    
-    // --- DISPLAY REMAINING XP & OPS ---
+    // --- DISPLAY REMAINING XP & PACKAGES ---
     const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
     let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
     
     if (averageXP > 0) {
-        const opsNeeded = Math.ceil(xpNeeded / averageXP);
-        remainingText += ` <span style="opacity:0.7; color:var(--accent)">(${formatNumber(opsNeeded)} drops)</span>`;
+        const packagesNeeded = Math.ceil(xpNeeded / averageXP);
+        remainingText += ` <span style="opacity:0.7; color:var(--accent)">(${formatNumber(packagesNeeded)} packages)</span>`;
     } else {
-        remainingText += ` <span style="opacity:0.5; font-size:0.9em">(Landing...)</span>`;
+        remainingText += ` <span style="opacity:0.5; font-size:0.9em">(Drop package...)</span>`;
     }
     document.getElementById('disp-xp-remaining').innerHTML = remainingText;
     
@@ -807,7 +851,7 @@ function runCalculator(avg) {
     const el = document.getElementById('calc-result');
     
     if (currentAvg === 0) {
-        el.innerHTML = "<i>Complete drop to calc...</i>";
+        el.innerHTML = "<i>Drop a package to calc...</i>";
         return;
     }
     if (!val) {
@@ -827,10 +871,10 @@ function runCalculator(avg) {
 
     if (targetXP > currentExp) {
         const diff = targetXP - currentExp;
-        const ops = Math.ceil(diff / currentAvg);
+        const packages = Math.ceil(diff / currentAvg);
         
         let output = `Remaining: <b>${formatNumber(diff)} XP</b><br>`;
-        output += `<span style="color:var(--primary)">Est. Drops: <b>${formatNumber(ops)}</b></span>`;
+        output += `<span style="color:var(--primary)">Est. Packages: <b>${formatNumber(packages)}</b></span>`;
         
         el.innerHTML = output;
     } else {
