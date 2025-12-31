@@ -778,22 +778,24 @@ function updateCargoHUD() {
     // BXP
     if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
     
-    // Update Packages Dropped UI
+    // --- EXACT XP GAIN TRACKING & CALIBRATION ---
+    if (bridge_StartXP === null && current > 0) {
+        bridge_StartXP = current;
+        bridge_LastKnownXP = current;
+    }
+    
+    // Update Logic is handled in processGameData now for sync
+    
+    // Update Clean Ops UI
     document.getElementById('disp-ops').innerText = bridge_Ops;
     
-    // Calculate Average per Package
+    // Calculate Average per Op
     const averageXP = bridge_Ops > 0 ? (bridge_SessionXP / bridge_Ops) : 0;
     
-    // --- DISPLAY REMAINING XP & PACKAGES ---
+    // --- DISPLAY REMAINING XP & OPS ---
     const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
     let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
     
-    if (averageXP > 0) {
-        const packagesNeeded = Math.ceil(xpNeeded / averageXP);
-        remainingText += ` <span style="opacity:0.7; color:var(--accent)">(${formatNumber(packagesNeeded)} actions)</span>`;
-    } else {
-        remainingText += ` <span style="opacity:0.5; font-size:0.9em">(Working...)</span>`;
-    }
     document.getElementById('disp-xp-remaining').innerHTML = remainingText;
     
     runCalculator(averageXP); 
@@ -813,7 +815,7 @@ function runCalculator(avg) {
     const el = document.getElementById('calc-result');
     
     if (currentAvg === 0) {
-        el.innerHTML = "<i>Complete delivery to calc...</i>";
+        el.innerHTML = "<i>Complete drop to calc...</i>";
         return;
     }
     if (!val) {
@@ -833,10 +835,10 @@ function runCalculator(avg) {
 
     if (targetXP > currentExp) {
         const diff = targetXP - currentExp;
-        const packages = Math.ceil(diff / currentAvg);
+        const ops = Math.ceil(diff / currentAvg);
         
         let output = `Remaining: <b>${formatNumber(diff)} XP</b><br>`;
-        output += `<span style="color:var(--primary)">Est. Actions: <b>${formatNumber(packages)}</b></span>`;
+        output += `<span style="color:var(--primary)">Est. Actions: <b>${formatNumber(ops)}</b></span>`;
         
         el.innerHTML = output;
     } else {
