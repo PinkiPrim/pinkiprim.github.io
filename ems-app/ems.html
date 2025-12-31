@@ -44,7 +44,7 @@
             flex-direction: column;
             resize: both;
             overflow: hidden;
-            min-height: 250px;
+            min-height: 200px; /* Reduced height since section removed */
         }
 
         header {
@@ -105,14 +105,6 @@
             border-radius: 4px; text-align: center;
         }
 
-        /* INFO ROW */
-        .info-row {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(255,255,255,0.05); padding: 6px 8px;
-            margin-bottom: 4px; border-radius: 4px;
-        }
-        .info-text { font-family: 'Rajdhani', sans-serif; font-weight: 600; color: #fff; }
-
         .inv-row {
             display: flex; justify-content: space-between; align-items: center;
             background: rgba(0,0,0,0.3); padding: 4px 8px;
@@ -134,7 +126,6 @@
             color: var(--text-dim); word-wrap: break-word;
         }
         
-        /* Hide Generic Elements from Script if present */
         #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
 </head>
@@ -148,20 +139,6 @@
 
     <div id="content">
         
-        <div class="section">
-            <div class="label">Current Status</div>
-            
-            <div class="info-row">
-                <div style="font-size:0.8em; color:#aaa;">📍 Region</div>
-                <div class="info-text" id="disp-region">Searching...</div>
-            </div>
-
-            <div class="info-row">
-                <div style="font-size:0.8em; color:#aaa;">🚑 Vehicle</div>
-                <div class="info-text" id="disp-vehicle">On Foot</div>
-            </div>
-        </div>
-
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div>
@@ -228,16 +205,16 @@
 <table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
 
 <script>
-// --- CLOCK (Moved to top to guarantee execution) ---
+// --- CLOCK ---
 function updateClock() {
     const now = new Date();
     const el = document.getElementById('clock');
     if(el) el.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 setInterval(updateClock, 1000);
-updateClock(); // Run immediately
+updateClock();
 
-// --- YOUR PROVIDED SCRIPT (With Integration Hooks) ---
+// --- YOUR PROVIDED SCRIPT (No changes to engine) ---
 
 let lastInventoryObj = {};
 let selectedJobs = [];
@@ -333,9 +310,7 @@ function formatNumber(num) {
 function getAllRequiredKeys() {
   const expKeys = Object.values(JOB_EXP_KEYS);
   const bxpKeys = Object.values(JOB_BXP_KEYS);
-  // INTEGRATION: Added EMS Keys here
-  // Added extra keys for region location: job_label, job_grade, job_grade_label
-  const inventoryKey = ["inventory", "exp_paramedic", "job_location", "job_name", "job_label", "job_grade", "job_grade_label", "vehicle_label", "vehicle_name"];
+  const inventoryKey = ["inventory", "exp_paramedic"];
   return [...expKeys, ...bxpKeys, ...inventoryKey];
 }
 
@@ -400,11 +375,6 @@ function resetAllData() {
       hasFirstGain[jobKey] = false;
     }
   });
-  
-  // RESET REGION LOCK
-  regionLocked = false;
-  document.getElementById('disp-region').innerText = "Searching...";
-  
   saveData();
   renderStats();
 }
@@ -569,21 +539,6 @@ function processGameData(data) {
   const now = Date.now();
   let inventory = {};
   
-  // INTEGRATION: EMS Data Handlers
-  
-  // 1. VEHICLE
-  let veh = data.vehicle_label || data.vehicle_name;
-  if (veh) {
-      document.getElementById('disp-vehicle').innerText = veh;
-  }
-
-  // 2. LOCATION (With Locking Logic)
-  let loc = data.job_location || data.job_name || data.job_label || data.job_grade || data.job_grade_label;
-  if (!loc && data.job) {
-      loc = data.job.label || data.job.grade_label || data.job.name;
-  }
-  if(loc) updateRegion(loc);
-
   if (data.inventory) {
     try {
       inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
@@ -598,7 +553,7 @@ function processGameData(data) {
     inventory = lastInventoryObj;
   }
   
-  // FALLBACK XP: Check exp_paramedic if EMS is missing
+  // FALLBACK XP Check
   if (data.exp_paramedic && !data[JOB_EXP_KEYS.emergency]) {
       data[JOB_EXP_KEYS.emergency] = data.exp_paramedic;
   }
@@ -788,37 +743,6 @@ if (document.readyState === 'loading') {
 })();
 
 // --- EMS SPECIFIC BRIDGE LOGIC ---
-
-const REGION_MAP = {
-    "Mount Zonah": "West Vinewood",
-    "Pillbox Hill": "East Vinewood",
-    "Central Los Santos": "Central Los Santos",
-    "St. Fiarce": "Palomino Highlands",
-    "Sandy Shores": "Blaine County",
-    "Fort Zancudo": "Zancudo",
-    "Paleto Bay": "Paleto Bay",
-    "Sorrow Health": "Roxwood",
-    "Woolward": "Roxwood"
-};
-
-let regionLocked = false; // LOCK STATE
-
-function updateRegion(stationName) {
-    if (!stationName || regionLocked) return; // Ignore if locked
-    
-    let region = "Unknown";
-    for (const [key, val] of Object.entries(REGION_MAP)) {
-        if (stationName.includes(key)) { region = val; break; }
-    }
-    
-    // Fallback: Use raw name if sufficiently long
-    if (region === "Unknown" && stationName.length > 2) region = stationName; 
-    
-    if (region !== "Unknown") {
-        document.getElementById('disp-region').innerText = region;
-        regionLocked = true; // LOCK IT IN
-    }
-}
 
 function processInventory(inv) {
     const invArray = Object.entries(inv).map(([id, data]) => {
