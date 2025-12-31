@@ -155,7 +155,7 @@
             </div>
             
             <div class="xp-remaining-text" id="disp-xp-remaining">
-                Waiting for delivery...
+                Waiting for drop...
             </div>
 
             <div class="stat-grid">
@@ -551,6 +551,28 @@ function processGameData(data) {
     inventory = lastInventoryObj;
   }
   
+  // 1. CARGO SPECIFIC CHECK (Must run before loop updates lastExps)
+  const currentCargoXP = data['exp_piloting_cargos'];
+  if (typeof currentCargoXP === 'number') {
+      // Init Check
+      if (bridge_LastKnownXP === -1) {
+          bridge_LastKnownXP = currentCargoXP;
+          if (!bridge_StartXP) bridge_StartXP = currentCargoXP;
+      }
+      else if (currentCargoXP > bridge_LastKnownXP) {
+          // ANY INCREASE = ACTION
+          const diff = currentCargoXP - bridge_LastKnownXP;
+          if (diff > 0) {
+              bridge_SessionXP += diff;
+              bridge_Ops++;
+              bridge_LastKnownXP = currentCargoXP; // Sync
+              // Force UI Update immediately
+              updateCargoHUD(); 
+          }
+      }
+  }
+
+  // 2. STANDARD LOOP
   JOBS.forEach(job => {
     const expKey = JOB_EXP_KEYS[job.key];
     const exp = data[expKey];
@@ -559,11 +581,6 @@ function processGameData(data) {
     }
   });
   
-  // XP Check Logic Called Here
-  if (lastExps['cargopilot']) {
-      checkXPLogic(lastExps['cargopilot']);
-  }
-
   selectedJobs.forEach(jobKey => {
     const job = JOBS.find(j => j.key === jobKey);
     if (!job) return;
@@ -748,27 +765,6 @@ let bridge_SessionXP = 0;
 let bridge_Ops = 0;
 let bridge_LastKnownXP = -1;
 
-function checkXPLogic(currentXP) {
-    // 1. Initialize State if First Run
-    if (bridge_StartXP === null && currentXP > 0) {
-        bridge_StartXP = currentXP;
-        bridge_LastKnownXP = currentXP;
-        return;
-    }
-
-    // 2. Logic Check: Did XP Increase > 10?
-    if (bridge_LastKnownXP > -1 && currentXP > bridge_LastKnownXP) {
-        const xpDiff = currentXP - bridge_LastKnownXP;
-
-        // THRESHOLD: Ignore passive 1-5 ticks. Only count actions > 10.
-        if (xpDiff > 10) {
-            bridge_SessionXP += xpDiff;
-            bridge_Ops++;
-        }
-        bridge_LastKnownXP = currentXP;
-    }
-}
-
 function updateCargoHUD() {
     const stats = calculateJobStats('cargopilot');
     const current = stats.currentExp;
@@ -793,8 +789,8 @@ function updateCargoHUD() {
     let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
     
     if (averageXP > 0) {
-        const opsNeeded = Math.ceil(xpNeeded / averageXP);
-        remainingText += ` <span style="opacity:0.7; color:var(--accent)">(${formatNumber(opsNeeded)} actions)</span>`;
+        const packagesNeeded = Math.ceil(xpNeeded / averageXP);
+        remainingText += ` <span style="opacity:0.7; color:var(--accent)">(${formatNumber(packagesNeeded)} actions)</span>`;
     } else {
         remainingText += ` <span style="opacity:0.5; font-size:0.9em">(Working...)</span>`;
     }
