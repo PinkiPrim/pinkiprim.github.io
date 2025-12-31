@@ -6,7 +6,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* EXACT CSS FROM YOUR WORKING VERSION */
+        /* --- THEME --- */
         :root {
             --primary: #0091ea; 
             --primary-dim: #0064b7;
@@ -30,6 +30,7 @@
             user-select: none;
         }
 
+        /* --- DRAGGABLE CONTAINER --- */
         #app-container {
             position: absolute;
             top: 50px;
@@ -46,6 +47,7 @@
             min-height: 250px;
         }
 
+        /* --- HEADER --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 8px 12px;
@@ -60,6 +62,7 @@
             font-size: 1.1em;
         }
 
+        /* --- CONTENT --- */
         #content {
             padding: 12px;
             flex: 1;
@@ -88,6 +91,7 @@
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
+        /* --- PROGRESS BAR --- */
         .progress-container {
             position: relative;
             height: 18px;
@@ -114,6 +118,7 @@
             z-index: 2;
         }
         
+        /* --- INVENTORY ROWS --- */
         .inv-row {
             display: flex; 
             justify-content: space-between; 
@@ -129,6 +134,7 @@
         .inv-used { color: var(--primary); font-weight: bold; margin-left: 6px; }
         .low-stock { border-left-color: var(--alert); }
 
+        /* --- STAT GRID --- */
         .stat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -141,6 +147,7 @@
             text-align: center;
         }
 
+        /* --- INPUTS --- */
         input[type="number"] {
             width: 90%;
             background: rgba(0,0,0,0.3);
@@ -153,6 +160,7 @@
         }
         input:focus { outline: 1px solid var(--primary); }
 
+        /* --- ALERTS / CALCULATOR --- */
         .calc-output {
             margin-top: 8px;
             font-size: 0.85em;
@@ -281,6 +289,7 @@
         inventoryInit: false
     };
 
+    // --- FORMULAS ---
     function getLevelFromXP(xp) {
         return Math.floor((Math.sqrt(1 + 8 * xp / 5) - 1) / 2);
     }
@@ -291,6 +300,7 @@
         return Math.floor(n).toLocaleString("en-US");
     }
 
+    // --- COMMS ---
     function requestData() {
         if(window.parent) {
             try {
@@ -303,8 +313,9 @@
     }
     
     requestData();
-    setInterval(requestData, 2000);
+    setInterval(requestData, 1000);
 
+    // --- DATA LISTENER ---
     window.addEventListener('message', (event) => {
         let payload = event.data;
         if (payload && payload.type === 'data' && payload.data) {
@@ -312,19 +323,16 @@
         }
         if (!payload) return;
 
-        // 1. XP
         if (typeof payload[KEYS.XP] === 'number') {
             updateXP(payload[KEYS.XP]);
         }
 
-        // 2. Inventory / BXP / Items
         if (payload.inventory) {
             try {
                 const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
                 processInventory(inv);
             } catch(e){}
         } else if (payload[KEYS.BXP]) {
-            // Fallback for BXP only
             updateBXP(payload[KEYS.BXP]);
         }
     });
@@ -334,23 +342,31 @@
 
         if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
-        // Convert inv to array for searching
         const invArray = Object.entries(inv).map(([id, data]) => {
-            const qty = (typeof data === 'object') ? data.amount : data;
+            let qty = 0;
+            if (typeof data === 'number') qty = data;
+            else if (typeof data === 'object') {
+                qty = data.amount || data.count || data.qty || 0;
+            }
             return { id: id.toLowerCase(), qty: qty };
         });
 
-        // Track items
         for (let type in ITEMS) {
             let itemData = ITEMS[type];
             let foundQty = 0;
-            const match = invArray.find(invItem => itemData.keywords.some(k => invItem.id.includes(k)));
-            if (match) foundQty = match.qty;
+
+            const matches = invArray.filter(invItem => 
+                itemData.keywords.some(k => invItem.id.includes(k))
+            );
+
+            if (matches.length > 0) {
+                foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
+            }
+
             updateItemStats(type, foundQty);
         }
         STATE.inventoryInit = true;
 
-        // Recalculate Remainder (Tire/Tow)
         calculateRemainder();
     }
 
@@ -365,25 +381,23 @@
     function updateItemStats(type, newStock) {
         const item = ITEMS[type];
         
-        // Detect Usage
         if (STATE.inventoryInit && item.stock > 0 && newStock < item.stock) {
             const diff = item.stock - newStock;
-            if (diff < 10) { // Ignore massive dumps
+            if (diff < 10) {
                 item.session += diff;
             }
         }
         item.stock = newStock;
 
-        // Update UI
         document.getElementById(`stock-${type}`).innerText = newStock;
         document.getElementById(`used-${type}`).innerText = `+${item.session}`;
         
-        // Low Stock Styling
         const row = document.getElementById(`row-${type}`);
         if (newStock < 2) row.classList.add('low-stock');
         else row.classList.remove('low-stock');
     }
 
+    // --- LOGIC ---
     function updateXP(newXP) {
         if (STATE.startXP === null) {
             STATE.startXP = newXP;
@@ -408,11 +422,8 @@
     }
 
     function calculateRemainder() {
-        // "Tire / Towing" = Total XP Events - (Sum of all consumed items)
         const totalItemsUsed = ITEMS.wrench.session + ITEMS.jumper.session + ITEMS.jerry.session + ITEMS.hammer.session;
-        // Ensure no negatives
         const remainder = Math.max(0, STATE.callouts - totalItemsUsed);
-        
         document.getElementById('used-tire').innerText = `+${remainder}`;
     }
 
@@ -450,7 +461,6 @@
         let inputVal = parseInt(val.replace(/,/g, ''));
         let targetXP = inputVal;
 
-        // Level Detect
         if (inputVal < 200) { 
              let lvlXP = getXPFromLevel(inputVal);
              if (lvlXP > STATE.currentXP) targetXP = lvlXP;
