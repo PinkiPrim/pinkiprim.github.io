@@ -389,8 +389,9 @@ function resetAllData() {
   });
   
   // RESET BRIDGE VARS
-  emsSessionRevives = 0;
-  emsLastXP = 0;
+  bridge_StartXP = null;
+  bridge_SessionXP = 0;
+  bridge_Revives = 0;
   
   saveData();
   renderStats();
@@ -777,16 +778,18 @@ function processInventory(inv) {
     }
 }
 
-// BRIDGE STATE
-let emsLastXP = 0;
-let emsSessionRevives = 0;
-let emsAvgXP = 0;
+// BRIDGE STATE - SELF CONTAINED FOR ACCURACY
+let bridge_StartXP = null;
+let bridge_SessionXP = 0;
+let bridge_Revives = 0;
+let bridge_LastKnownXP = -1;
 
 function updateEMSHUD() {
     const stats = calculateJobStats('emergency');
+    const current = stats.currentExp;
     
     // XP & Level
-    document.getElementById('disp-xp').innerText = formatNumber(stats.currentExp);
+    document.getElementById('disp-xp').innerText = formatNumber(current);
     document.getElementById('disp-level').innerText = stats.levelInfo.level;
     document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
     document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
@@ -794,54 +797,59 @@ function updateEMSHUD() {
     // BXP
     if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
     
-    // REVIVE DETECTION LOGIC
-    if (emsLastXP === 0 && stats.currentExp > 0) emsLastXP = stats.currentExp; // Init
-    
-    if (stats.currentExp > emsLastXP) {
-        const delta = stats.currentExp - emsLastXP;
-        // Assume anything > 50 XP is likely an active job action/revive
-        if (delta > 50) {
-            emsSessionRevives++;
-            // Calculate Average for Calculator
-            const sessionGain = stats.currentExp - initialExps['emergency'];
-            emsAvgXP = sessionGain / emsSessionRevives;
-        }
-        emsLastXP = stats.currentExp;
+    // --- EXACT XP GAIN TRACKING ---
+    // Init Logic
+    if (bridge_StartXP === null && current > 0) {
+        bridge_StartXP = current;
+        bridge_LastKnownXP = current;
     }
     
-    // NEW: XP & Revives to next level text update (Using current Average)
+    // Update Logic
+    if (bridge_LastKnownXP > -1 && current > bridge_LastKnownXP) {
+        const diff = current - bridge_LastKnownXP;
+        // Filter tiny passive ticks (keep logic focused on Jobs)
+        if (diff > 5) {
+            bridge_SessionXP += diff;
+            bridge_Revives++;
+        }
+        bridge_LastKnownXP = current;
+    }
+    
+    // Update Revives Count UI
+    document.getElementById('disp-callouts').innerText = bridge_Revives;
+    
+    // Calculate Average
+    const averageXP = bridge_Revives > 0 ? (bridge_SessionXP / bridge_Revives) : 0;
+    
+    // --- DISPLAY REMAINING XP & REVIVES ---
     const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
     let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
     
-    if (emsAvgXP > 0) {
-        const revsNeeded = Math.ceil(xpNeeded / emsAvgXP);
-        remainingText += ` <span style="opacity:0.7">(${formatNumber(revsNeeded)} revives)</span>`;
+    if (averageXP > 0) {
+        const revsNeeded = Math.ceil(xpNeeded / averageXP);
+        remainingText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(revsNeeded)} revives)</span>`;
     } else {
-        // Fallback approx if no data yet (250xp/revive assumption)
-        const revsNeeded = Math.ceil(xpNeeded / 250);
-        remainingText += ` <span style="opacity:0.5; font-size:0.9em">(~${formatNumber(revsNeeded)}?)</span>`;
+        remainingText += ` <span style="opacity:0.5; font-size:0.9em">(Working...)</span>`;
     }
     document.getElementById('disp-xp-remaining').innerHTML = remainingText;
     
-    document.getElementById('disp-callouts').innerText = emsSessionRevives;
-    
-    runCalculator(stats.expPerMin); 
+    runCalculator(averageXP); 
 }
 
 // --- CALCULATOR ---
 const calcInput = document.getElementById('target-input');
-let currentAvgTime = 0;
+let currentAvg = 0;
 
 if(calcInput) {
-    calcInput.addEventListener('input', () => runCalculator(currentAvgTime));
+    calcInput.addEventListener('input', () => runCalculator(currentAvg));
 }
 
-function runCalculator(avgTime) {
-    if(avgTime) currentAvgTime = avgTime;
+function runCalculator(avg) {
+    if(avg) currentAvg = avg;
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
-    if (currentAvgTime === 0 && emsSessionRevives === 0) {
+    if (currentAvg === 0) {
         el.innerHTML = "<i>Work to enable calc...</i>";
         return;
     }
@@ -862,20 +870,10 @@ function runCalculator(avgTime) {
 
     if (targetXP > currentExp) {
         const diff = targetXP - currentExp;
-        const mins = Math.ceil(diff / currentAvgTime);
+        const revives = Math.ceil(diff / currentAvg);
         
         let output = `Remaining: <b>${formatNumber(diff)} XP</b><br>`;
-        output += `<span style="color:var(--primary)">Est. Time: <b>${mins} mins</b></span>`;
-        
-        // Add Revives Calculation if we have an average
-        if (emsAvgXP > 0) {
-            const revives = Math.ceil(diff / emsAvgXP);
-            output += `<br><span style="color:#ffffff; font-size:0.9em;">Est. Revives: <b>${revives}</b></span>`;
-        } else {
-            // Default Fallback (Assume ~250 XP per revive if no data yet)
-            const approx = Math.ceil(diff / 250);
-            output += `<br><span style="color:#999; font-size:0.8em;">(Approx ~${approx} revives)</span>`;
-        }
+        output += `<span style="color:var(--primary)">Est. Revives: <b>${formatNumber(revives)}</b></span>`;
         
         el.innerHTML = output;
     } else {
