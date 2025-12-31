@@ -6,10 +6,9 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* EXACT BODY CSS - BLACK BOX PROOF */
+        /* --- THEME --- */
         :root {
-            /* EMS RED THEME */
-            --primary: #e53935; 
+            --primary: #e53935; /* EMS Red */
             --primary-dim: #b71c1c;
             --bg-glass: rgba(15, 15, 15, 0.95);
             --text-main: #ffffff;
@@ -19,6 +18,7 @@
             --alert: #ff9100;
         }
 
+        /* EXACT WORKING BODY CSS */
         body {
             margin: 0;
             padding: 0;
@@ -31,6 +31,7 @@
             user-select: none;
         }
 
+        /* --- CONTAINER --- */
         #app-container {
             position: absolute;
             top: 50px;
@@ -105,13 +106,12 @@
             border-radius: 4px; text-align: center;
         }
 
-        /* INFO ROW (Vehicle/Region) */
+        /* INFO ROW */
         .info-row {
             display: flex; justify-content: space-between; align-items: center;
             background: rgba(255,255,255,0.05); padding: 6px 8px;
             margin-bottom: 4px; border-radius: 4px;
         }
-        .info-icon { margin-right: 8px; opacity: 0.7; }
         .info-text { font-family: 'Rajdhani', sans-serif; font-weight: 600; color: #fff; }
 
         .inv-row {
@@ -151,7 +151,7 @@
             
             <div class="info-row">
                 <div style="font-size:0.8em; color:#aaa;">📍 Region</div>
-                <div class="info-text" id="disp-region">Unknown</div>
+                <div class="info-text" id="disp-region">Searching...</div>
             </div>
 
             <div class="info-row">
@@ -187,9 +187,6 @@
                     <div class="value" id="disp-callouts">0</div>
                 </div>
             </div>
-            <div style="text-align:center; margin-top:5px; font-size:0.7em; color:#666;">
-                Shift Time: <span id="shift-timer">00:00</span>
-            </div>
         </div>
 
         <div class="section">
@@ -215,15 +212,21 @@
 </div>
 
 <script>
-    // --- EMS CONFIG ---
-    const KEYS = {
-        XP: "exp_ems_paramedic",
-        BXP: "exp_token_a|ems|paramedic",
-        JOB_LOC: "job_location", // Assumption for station name
-        VEH: "vehicle_label"
-    };
+    // --- KEYS TO FETCH ---
+    // We request multiple keys to ensure we catch the right data
+    const DATA_REQUEST = [
+        "exp_ems_paramedic", 
+        "exp_paramedic",
+        "exp_token_a|ems|paramedic",
+        "inventory",
+        "job_location",
+        "job_name", 
+        "job_grade_label",
+        "vehicle_label",
+        "vehicle_name"
+    ];
 
-    // REGION MAPPING
+    // MAPPING
     const REGION_MAP = {
         "Mount Zonah": "West Vinewood",
         "Pillbox Hill": "East Vinewood",
@@ -241,8 +244,7 @@
         currentBXP: 0,
         startXP: null,
         callouts: 0, 
-        avgXP: 0,
-        startTime: Date.now()
+        avgXP: 0
     };
 
     function getLevelFromXP(xp) {
@@ -260,25 +262,14 @@
             try {
                 window.parent.postMessage({ 
                     type: "getNamedData",
-                    keys: [KEYS.XP, KEYS.BXP, "inventory", KEYS.JOB_LOC, KEYS.VEH]
+                    keys: DATA_REQUEST
                 }, "*");
             } catch(e) {}
         }
     }
     
-    // Fast refresh for vehicle/inventory updates
     requestData();
     setInterval(requestData, 1000);
-
-    // Shift Timer Update
-    setInterval(() => {
-        const diff = Date.now() - STATE.startTime;
-        const mins = Math.floor(diff / 60000);
-        const secs = Math.floor((diff % 60000) / 1000);
-        document.getElementById('shift-timer').innerText = 
-            `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }, 1000);
-
 
     window.addEventListener('message', (event) => {
         let payload = event.data;
@@ -287,27 +278,36 @@
         }
         if (!payload) return;
 
-        // 1. XP
-        if (typeof payload[KEYS.XP] === 'number') {
-            updateXP(payload[KEYS.XP]);
-        }
-
-        // 2. BXP
-        if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
-
-        // 3. Vehicle & Region
-        if (payload[KEYS.VEH]) {
-            document.getElementById('disp-vehicle').innerText = payload[KEYS.VEH];
-        }
+        // --- 1. XP (Try primary, then fallback) ---
+        let xp = payload.exp_ems_paramedic;
+        if (xp === undefined) xp = payload.exp_paramedic;
         
-        if (payload[KEYS.JOB_LOC]) {
-            updateRegion(payload[KEYS.JOB_LOC]);
-        } else if (payload.job_name) {
-             // Fallback if job_location isn't sent
-            updateRegion(payload.job_name);
+        if (typeof xp === 'number') {
+            updateXP(xp);
         }
 
-        // 4. Inventory (Defibs)
+        // --- 2. BXP ---
+        if (payload["exp_token_a|ems|paramedic"]) {
+            updateBXP(payload["exp_token_a|ems|paramedic"]);
+        }
+
+        // --- 3. VEHICLE (Try Label, then Name) ---
+        let veh = payload.vehicle_label;
+        if (!veh) veh = payload.vehicle_name;
+        
+        if (veh) {
+            document.getElementById('disp-vehicle').innerText = veh;
+        } else {
+            // Only reset if we are sure we are getting data but no vehicle
+            // But usually safe to leave as is or set 'On Foot'
+        }
+
+        // --- 4. REGION / STATION ---
+        // Try to find the Station Name first
+        let loc = payload.job_location || payload.job_name || payload.job_grade_label;
+        if (loc) updateRegion(loc);
+
+        // --- 5. INVENTORY ---
         if (payload.inventory) {
             try {
                 const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
@@ -317,29 +317,30 @@
     });
 
     function updateRegion(stationName) {
-        if (!stationName) return;
         let region = "Unknown";
         
-        // Check our map
+        // 1. Try Map Matching
         for (const [key, val] of Object.entries(REGION_MAP)) {
             if (stationName.includes(key)) {
                 region = val;
                 break;
             }
         }
-        // If exact match failed, just show the station name
-        if (region === "Unknown" && stationName.length > 3) region = stationName;
+        // 2. Fallback: If map failed, show raw name (maybe they are already in "Region" mode)
+        if (region === "Unknown" && stationName.length > 2) {
+            region = stationName; 
+        }
         
-        document.getElementById('disp-region').innerText = region;
+        if (region !== "Unknown") {
+            document.getElementById('disp-region').innerText = region;
+        }
     }
 
     function processInventory(inv) {
         if (!inv) return;
-        
-        if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
+        if (inv["exp_token_a|ems|paramedic"]) updateBXP(inv["exp_token_a|ems|paramedic"]);
 
-        // Search for 'defib'
-        let defibCount = 0;
+        // Summation Logic for Defibs
         const invArray = Object.entries(inv).map(([id, data]) => {
             let qty = 0;
             if (typeof data === 'number') qty = data;
@@ -350,14 +351,11 @@
         });
 
         const matches = invArray.filter(i => i.id.includes('defib'));
-        if (matches.length > 0) {
-            defibCount = matches.reduce((sum, item) => sum + item.qty, 0);
-        }
+        const defibCount = matches.reduce((sum, item) => sum + item.qty, 0);
 
         const el = document.getElementById('stock-defib');
         el.innerText = defibCount;
         
-        // Alert color if low
         if (defibCount < 2) el.style.color = "var(--alert)";
         else el.style.color = "white";
     }
