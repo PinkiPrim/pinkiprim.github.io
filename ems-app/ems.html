@@ -44,7 +44,7 @@
             flex-direction: column;
             resize: both;
             overflow: hidden;
-            min-height: 250px;
+            min-height: 200px;
         }
 
         header {
@@ -113,17 +113,6 @@
             border-radius: 4px; text-align: center;
         }
 
-        /* INFO ROW */
-        .info-row {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(255,255,255,0.05); padding: 6px 8px;
-            margin-bottom: 4px; border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .info-row:hover { background: rgba(255,255,255,0.15); }
-        .info-text { font-family: 'Rajdhani', sans-serif; font-weight: 600; color: #fff; }
-
         .inv-row {
             display: flex; justify-content: space-between; align-items: center;
             background: rgba(0,0,0,0.3); padding: 4px 8px;
@@ -158,23 +147,6 @@
 
     <div id="content">
         
-        <div class="section">
-            <div class="label" style="display:flex; justify-content:space-between;">
-                <span>Current Status</span>
-                <span style="font-size:0.8em; opacity:0.6;">(Click to Edit)</span>
-            </div>
-            
-            <div class="info-row" id="btn-region">
-                <div style="font-size:0.8em; color:#aaa;">📍 Region</div>
-                <div class="info-text" id="disp-region">Select Region...</div>
-            </div>
-
-            <div class="info-row" id="btn-vehicle">
-                <div style="font-size:0.8em; color:#aaa;">🚑 Vehicle</div>
-                <div class="info-text" id="disp-vehicle">Set Vehicle...</div>
-            </div>
-        </div>
-
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div>
@@ -254,36 +226,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// --- MANUAL INTERACTION LOGIC ---
-const REGIONS = [
-    "West Vinewood",
-    "East Vinewood",
-    "Central Los Santos",
-    "Palomino Highlands",
-    "Blaine County",
-    "Zancudo",
-    "Paleto Bay",
-    "Roxwood"
-];
-let regionIndex = 0;
-
-document.getElementById('btn-region').addEventListener('click', () => {
-    document.getElementById('disp-region').innerText = REGIONS[regionIndex];
-    regionIndex = (regionIndex + 1) % REGIONS.length;
-});
-
-document.getElementById('btn-vehicle').addEventListener('click', () => {
-    const current = document.getElementById('disp-vehicle').innerText;
-    if (current === "On Foot") {
-        document.getElementById('disp-vehicle').innerText = "Ambulance";
-    } else if (current === "Ambulance") {
-        document.getElementById('disp-vehicle').innerText = "Helicopter";
-    } else {
-        document.getElementById('disp-vehicle').innerText = "On Foot";
-    }
-});
-
-// --- YOUR PROVIDED SCRIPT ---
+// --- YOUR PROVIDED SCRIPT (Engine) ---
 
 let lastInventoryObj = {};
 let selectedJobs = [];
@@ -848,7 +791,7 @@ function updateEMSHUD() {
     document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
     document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
     
-    // NEW: XP to next level
+    // NEW: XP to next level text update
     const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
     document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
 
