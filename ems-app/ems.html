@@ -18,7 +18,6 @@
             --alert: #ff9100;
         }
 
-        /* EXACT WORKING BODY CSS */
         body {
             margin: 0;
             padding: 0;
@@ -32,7 +31,7 @@
         }
 
         /* --- CONTAINER --- */
-        #app-container {
+        #tracker-app {
             position: absolute;
             top: 50px;
             left: 50px;
@@ -134,11 +133,14 @@
             margin-top: 5px; font-size: 0.8em; line-height: 1.3;
             color: var(--text-dim); word-wrap: break-word;
         }
+        
+        /* Hide Generic Elements from Script if present */
+        #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
 </head>
 <body>
 
-<div id="app-container">
+<div id="tracker-app">
     <header id="drag-handle">
         <span>🚑 EMS Ops</span>
         <span id="clock" style="font-size:0.8em">00:00</span>
@@ -187,6 +189,9 @@
                     <div class="value" id="disp-callouts">0</div>
                 </div>
             </div>
+            <div style="text-align:center; margin-top:5px; font-size:0.7em; color:#666;">
+                Shift Time: <span id="shift-timer">00:00</span>
+            </div>
         </div>
 
         <div class="section">
@@ -201,7 +206,7 @@
 
         <div class="section" style="border:none;">
             <div class="label">Target Calculator</div>
-            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 100,000):</div>
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b>:</div>
             <input type="number" id="target-input" placeholder="e.g. 100000">
             <div class="calc-output" id="calc-result">
                 Start working to enable calculator...
@@ -209,266 +214,675 @@
         </div>
 
     </div>
+    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
 
+<div id="settings-icon" style="display:none;"></div>
+<div id="settings-panel" style="display:none;">
+    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
+    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
+    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
+    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
+    <input type="number" id="xp-font-size">
+    <button id="reset-exp-log"></button>
+    <div id="xp-font-size-value"></div>
+</div>
+<div id="job-list" style="display:none;"></div>
+<table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
+
 <script>
-    // --- KEYS TO FETCH ---
-    // We request multiple keys to ensure we catch the right data
-    const DATA_REQUEST = [
-        "exp_ems_paramedic", 
-        "exp_paramedic",
-        "exp_token_a|ems|paramedic",
-        "inventory",
-        "job_location",
-        "job_name", 
-        "job_grade_label",
-        "vehicle_label",
-        "vehicle_name"
+// --- YOUR PROVIDED SCRIPT (With Integration Hooks) ---
+
+let lastInventoryObj = {};
+let selectedJobs = [];
+let expLogs = {};
+let lastBXPs = {};
+let initialExps = {};
+let lastExps = {};
+let hasFirstGain = {};
+let lastUpdateTime = {};
+let lastDisplayedExps = {};
+let lastRenderTime = 0;
+let hasReceivedAnyData = false;
+let hasRequestedOnce = false;
+
+const TRACKER_SIZE_KEY = "tracker-app-size";
+const TRACKER_POSITION_KEY = "tracker-app-position";
+const XP_FONT_SIZE_KEY = "xp-font-size";
+const RECENT_WINDOW_MS = 10 * 60 * 1000;
+const RENDER_THROTTLE_MS = 500;
+
+const JOBS = [
+  { key: "trucker", label: "Trucker" },
+  { key: "mechanic", label: "Mechanic" },
+  { key: "garbage", label: "Garbage" },
+  { key: "postop", label: "PostOP" },
+  { key: "pilot", label: "Airline Pilot" },
+  { key: "helicopterpilot", label: "Helicopter Pilot" },
+  { key: "cargopilot", label: "Cargo Pilot" },
+  { key: "busdriver", label: "Bus Driver" },
+  { key: "conductor", label: "Train Conductor" },
+  { key: "emergency", label: "EMS" },
+  { key: "player", label: "Player" },
+  { key: "firefighter", label: "Firefighter" },
+  { key: "racer", label: "Racer" },
+  { key: "farmer", label: "Farmer" },
+  { key: "fisher", label: "Fisher" },
+  { key: "strength", label: "Strength" },
+  { key: "miner", label: "Miner" },
+  { key: "business", label: "Business" },
+  { key: "hunter", label: "Hunter" }
+];
+
+const JOB_EXP_KEYS = {
+  trucker: "exp_trucking_trucking",
+  mechanic: "exp_trucking_mechanic",
+  garbage: "exp_trucking_garbage",
+  postop: "exp_trucking_postop",
+  pilot: "exp_piloting_piloting",
+  helicopterpilot: "exp_piloting_heli",
+  cargopilot: "exp_piloting_cargos",
+  busdriver: "exp_train_bus",
+  conductor: "exp_train_train",
+  emergency: "exp_ems_ems",
+  firefighter: "exp_ems_fire",
+  racer: "exp_player_racing",
+  farmer: "exp_farming_farming",
+  fisher: "exp_farming_fishing",
+  miner: "exp_farming_mining",
+  business: "exp_business_business",
+  hunter: "exp_hunting_skill",
+  player: "exp_player_player",
+  strength: "exp_physical_strength"
+};
+
+const JOB_BXP_KEYS = {
+  trucker:       "exp_token_a|trucking|trucking",
+  mechanic:      "exp_token_a|trucking|mechanic",
+  garbage:       "exp_token_a|trucking|garbage",
+  postop:        "exp_token_a|trucking|postop",
+  pilot:         "exp_token_a|piloting|piloting",
+  helicopterpilot:"exp_token_a|piloting|heli",
+  cargopilot:    "exp_token_a|piloting|cargos",
+  busdriver:     "exp_token_a|train|bus",
+  conductor:     "exp_token_a|train|train",
+  emergency:     "exp_token_a|ems|ems",
+  firefighter:   "exp_token_a|ems|fire",
+  racer:         "exp_token_a|player|racing",
+  farmer:        "exp_token_a|farming|farming",
+  fisher:        "exp_token_a|farming|fishing",
+  miner:         "exp_token_a|farming|mining",
+  business:      "exp_token_a|business|business",
+  hunter:        "exp_token_a|hunting|skill",
+  player:        "exp_token_a|player|player",
+  strength:      "exp_token_a|physical|strength"
+};
+
+function formatNumber(num) {
+  if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toLocaleString();
+}
+
+function getAllRequiredKeys() {
+  const expKeys = Object.values(JOB_EXP_KEYS);
+  const bxpKeys = Object.values(JOB_BXP_KEYS);
+  // INTEGRATION: Added EMS Keys here
+  const inventoryKey = ["inventory", "exp_paramedic", "job_location", "job_name", "job_grade_label", "vehicle_label", "vehicle_name"];
+  return [...expKeys, ...bxpKeys, ...inventoryKey];
+}
+
+function getLevelInfo(exp) {
+  let level = 0;
+  let xpCap = 5;
+  while (exp >= xpCap) {
+    exp -= xpCap;
+    level++;
+    xpCap = (level + 1) * 5;
+  }
+  return { level, expInLevel: exp, expForNext: xpCap };
+}
+
+function getSortedJobs() {
+  return [...JOBS].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function getPercentValue(exp, cap) {
+  if (typeof exp !== "number") return null;
+  const pct = Math.max(0, Math.min(100, (exp / cap) * 100));
+  return +pct.toFixed(1);
+}
+
+function get1MPercentValue(jobKey) {
+  const exp = lastExps[jobKey];
+  return getPercentValue(exp, 1_000_000);
+}
+
+function get10MPercentValue(jobKey) {
+  const exp = lastExps[jobKey];
+  return getPercentValue(exp, 10_000_000);
+}
+
+function saveData() {
+  localStorage.setItem("selected-jobs", JSON.stringify(selectedJobs));
+  localStorage.setItem("exp-logs", JSON.stringify(expLogs));
+}
+
+function loadData() {
+  selectedJobs = JSON.parse(localStorage.getItem("selected-jobs") || "[]");
+  if (selectedJobs.length === 0) {
+    selectedJobs = ["emergency"]; // FORCE EMS DEFAULT
+    localStorage.setItem("selected-jobs", JSON.stringify(selectedJobs));
+  }
+  expLogs = JSON.parse(localStorage.getItem("exp-logs") || "{}");
+  loadSettings();
+  loadFontSize();
+  renderSummary();
+}
+
+function resetAllData() {
+  Object.keys(expLogs).forEach(key => delete expLogs[key]);
+  Object.keys(initialExps).forEach(key => delete initialExps[key]);
+  Object.keys(hasFirstGain).forEach(key => delete hasFirstGain[key]);
+  Object.keys(lastUpdateTime).forEach(key => delete lastUpdateTime[key]);
+  selectedJobs.forEach(jobKey => {
+    const exp = lastExps[jobKey];
+    if (typeof exp === "number") {
+      expLogs[jobKey] = [];
+      initialExps[jobKey] = exp;
+      hasFirstGain[jobKey] = false;
+    }
+  });
+  saveData();
+  renderStats();
+}
+
+function saveSettings() {
+  try {
+    const settings = {
+      bxp: document.getElementById("toggle-bxp").checked,
+      currentLevel: document.getElementById("toggle-current-level").checked,
+      expHr: document.getElementById("toggle-exp-hr").checked,
+      expMin: document.getElementById("toggle-exp-min").checked,
+      perkChance: document.getElementById("toggle-perk-chance").checked,
+      oneMPercent: document.getElementById("toggle-1m-percent").checked,
+      tenMPercent: document.getElementById("toggle-10m-percent").checked,
+      level: document.getElementById("toggle-level").checked
+    };
+    localStorage.setItem("tracker-settings", JSON.stringify(settings));
+  } catch (error) {}
+}
+
+function loadSettings() {
+  try {
+    const savedSettings = localStorage.getItem("tracker-settings");
+    const settings = savedSettings ? JSON.parse(savedSettings) : {};
+    document.getElementById("toggle-bxp").checked = settings.bxp !== false;
+    document.getElementById("toggle-current-level").checked = settings.currentLevel !== false;
+    document.getElementById("toggle-exp-hr").checked = settings.expHr !== false;
+    document.getElementById("toggle-exp-min").checked = settings.expMin !== false;
+    document.getElementById("toggle-perk-chance").checked = settings.perkChance !== false;
+    document.getElementById("toggle-1m-percent").checked = settings.oneMPercent === true;
+    document.getElementById("toggle-10m-percent").checked = settings.tenMPercent === true;
+    document.getElementById("toggle-level").checked = settings.level !== false;
+  } catch (error) {}
+}
+
+function getSettings() {
+  return {
+    bxp: document.getElementById("toggle-bxp").checked,
+    currentLevel: document.getElementById("toggle-current-level").checked,
+    expHr: document.getElementById("toggle-exp-hr").checked,
+    expMin: document.getElementById("toggle-exp-min").checked,
+    perkChance: document.getElementById("toggle-perk-chance").checked,
+    oneMPercent: document.getElementById("toggle-1m-percent").checked,
+    tenMPercent: document.getElementById("toggle-10m-percent").checked,
+    level: document.getElementById("toggle-level").checked
+  };
+}
+
+function applySettingsPosition(position) {} // Stubbed out for minimal impact
+
+function loadFontSize() {
+  const size = localStorage.getItem(XP_FONT_SIZE_KEY) || "12";
+  document.getElementById("xp-font-size").value = size;
+  applyFontSize(size);
+}
+
+function saveFontSize(size) {
+  localStorage.setItem(XP_FONT_SIZE_KEY, size);
+  applyFontSize(size);
+}
+
+function applyFontSize(size) {
+  document.documentElement.style.setProperty('--stat-font-size', size + 'px');
+}
+
+function savePosition() {
+  const app = document.getElementById("tracker-app");
+  if (app) {
+    const position = {
+      left: app.style.left,
+      top: app.style.top,
+      width: app.style.width,
+      height: app.style.height
+    };
+    localStorage.setItem(TRACKER_POSITION_KEY, JSON.stringify(position));
+  }
+}
+
+function adjustSettingsPosition() {} 
+
+function loadPosition() {
+  const savedPosition = localStorage.getItem(TRACKER_POSITION_KEY);
+  if (savedPosition) {
+    try {
+      const position = JSON.parse(savedPosition);
+      const app = document.getElementById("tracker-app");
+      if (app && position) {
+        if (position.left) app.style.left = position.left;
+        if (position.top) app.style.top = position.top;
+        if (position.width) app.style.width = position.width;
+        if (position.height) app.style.height = position.height;
+      }
+    } catch (e) {}
+  }
+}
+
+function renderStats() {
+  const now = Date.now();
+  if (now - lastRenderTime < RENDER_THROTTLE_MS) {
+    return;
+  }
+  lastRenderTime = now;
+  renderSummary();
+  // INTEGRATION: UPDATE HUD
+  updateEMSHUD(); 
+}
+
+function renderSummary() {} // Stubbed out - we use HUD instead
+
+function calculateJobStats(jobKey) {
+  const currentExp = lastExps[jobKey] || 0;
+  const bxp = lastBXPs[jobKey] || 0;
+  const log = expLogs[jobKey] || [];
+  let expPerHour = 0;
+  let expPerMin = 0;
+  if (log.length >= 2) {
+    const recent = log.filter(entry => Date.now() - entry.time <= RECENT_WINDOW_MS);
+    if (recent.length >= 2) {
+      const firstEntry = recent[0];
+      const lastEntry = recent[recent.length - 1];
+      const timeDiff = lastEntry.time - firstEntry.time;
+      const expDiff = lastEntry.exp - firstEntry.exp;
+      if (timeDiff > 0) {
+        expPerHour = Math.round((expDiff / timeDiff) * (1000 * 60 * 60));
+        expPerMin = Math.round(expPerHour / 60);
+      }
+    }
+  }
+  return {
+    currentExp,
+    bxp,
+    expPerHour,
+    expPerMin,
+    levelInfo: getLevelInfo(currentExp)
+  };
+}
+
+function backfillExpLogIfMissing(jobKey) {
+  if (typeof lastExps[jobKey] === "number" && (!Array.isArray(expLogs[jobKey]) || expLogs[jobKey].length < 2)) {
+    const exp = lastExps[jobKey];
+    const now = Date.now();
+    expLogs[jobKey] = [
+      { time: now - 5000, exp },
+      { time: now, exp }
     ];
+    initialExps[jobKey] = exp;
+    hasFirstGain[jobKey] = true;
+  }
+}
 
-    // MAPPING
-    const REGION_MAP = {
-        "Mount Zonah": "West Vinewood",
-        "Pillbox Hill": "East Vinewood",
-        "Central Los Santos": "Central Los Santos",
-        "St. Fiarce": "Palomino Highlands",
-        "Sandy Shores": "Blaine County",
-        "Fort Zancudo": "Zancudo",
-        "Paleto Bay": "Paleto Bay",
-        "Sorrow Health": "Roxwood",
-        "Woolward": "Roxwood"
-    };
+function setupUIHandlers() {
+  // Minimized to prevent errors
+}
 
-    const STATE = {
-        currentXP: 0,
-        currentBXP: 0,
-        startXP: null,
-        callouts: 0, 
-        avgXP: 0
-    };
+function renderJobPills() {}
 
-    function getLevelFromXP(xp) {
-        return Math.floor((Math.sqrt(1 + 8 * xp / 5) - 1) / 2);
-    }
-    function getXPFromLevel(level) {
-        return Math.floor((5 * level * (level + 1)) / 2);
-    }
-    function formatNum(n) {
-        return Math.floor(n).toLocaleString("en-US");
-    }
+function toggleJob(jobKey) {}
 
-    function requestData() {
-        if(window.parent) {
-            try {
-                window.parent.postMessage({ 
-                    type: "getNamedData",
-                    keys: DATA_REQUEST
-                }, "*");
-            } catch(e) {}
-        }
+window.toggleJob = toggleJob;
+
+function processGameData(data) {
+  const now = Date.now();
+  let inventory = {};
+  
+  // INTEGRATION: EMS Data Handlers
+  if (data.vehicle_label || data.vehicle_name) {
+      document.getElementById('disp-vehicle').innerText = data.vehicle_label || data.vehicle_name;
+  }
+  let loc = data.job_location || data.job_name || data.job_grade_label;
+  if(loc) updateRegion(loc);
+
+  if (data.inventory) {
+    try {
+      inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
+      if (inventory) {
+          lastInventoryObj = inventory;
+          processInventory(inventory); // EMS Inventory Logic
+      }
+    } catch {
+      inventory = lastInventoryObj;
     }
+  } else {
+    inventory = lastInventoryObj;
+  }
+  
+  // FALLBACK XP: Check exp_paramedic if EMS is missing
+  if (data.exp_paramedic && !data[JOB_EXP_KEYS.emergency]) {
+      data[JOB_EXP_KEYS.emergency] = data.exp_paramedic;
+  }
+
+  JOBS.forEach(job => {
+    const expKey = JOB_EXP_KEYS[job.key];
+    const exp = data[expKey];
+    if (typeof exp === "number") {
+      lastExps[job.key] = exp;
+    }
+  });
+  
+  selectedJobs.forEach(jobKey => {
+    const job = JOBS.find(j => j.key === jobKey);
+    if (!job) return;
     
-    requestData();
-    setInterval(requestData, 1000);
-
-    window.addEventListener('message', (event) => {
-        let payload = event.data;
-        if (payload && payload.type === 'data' && payload.data) {
-            payload = payload.data;
+    const expKey = JOB_EXP_KEYS[jobKey];
+    const exp = data[expKey];
+    
+    if (typeof exp === "number") {
+      if (!expLogs[jobKey]) expLogs[jobKey] = [];
+      const log = expLogs[jobKey];
+      
+      if (!hasFirstGain[jobKey]) {
+        if (typeof initialExps[jobKey] !== "number") {
+          initialExps[jobKey] = exp;
         }
-        if (!payload) return;
-
-        // --- 1. XP (Try primary, then fallback) ---
-        let xp = payload.exp_ems_paramedic;
-        if (xp === undefined) xp = payload.exp_paramedic;
-        
-        if (typeof xp === 'number') {
-            updateXP(xp);
+      }
+      if (!hasFirstGain[jobKey] && exp !== initialExps[jobKey]) {
+        hasFirstGain[jobKey] = true;
+        if (typeof initialExps[jobKey] !== "number" || initialExps[jobKey] === 0) {
+          initialExps[jobKey] = exp - (exp - (log[log.length - 1]?.exp || 0));
         }
-
-        // --- 2. BXP ---
-        if (payload["exp_token_a|ems|paramedic"]) {
-            updateBXP(payload["exp_token_a|ems|paramedic"]);
+      }
+      
+      const lastEntry = log[log.length - 1];
+      if (lastEntry === undefined) {
+        lastUpdateTime[jobKey] = now;
+      } else if (exp > lastEntry.exp) {
+        log.push({ time: now, exp });
+        lastUpdateTime[jobKey] = now;
+        const lastDisplayed = lastDisplayedExps[jobKey] || 0;
+        if (exp > lastDisplayed) {
+          lastDisplayedExps[jobKey] = exp;
         }
-
-        // --- 3. VEHICLE (Try Label, then Name) ---
-        let veh = payload.vehicle_label;
-        if (!veh) veh = payload.vehicle_name;
-        
-        if (veh) {
-            document.getElementById('disp-vehicle').innerText = veh;
-        } else {
-            // Only reset if we are sure we are getting data but no vehicle
-            // But usually safe to leave as is or set 'On Foot'
-        }
-
-        // --- 4. REGION / STATION ---
-        // Try to find the Station Name first
-        let loc = payload.job_location || payload.job_name || payload.job_grade_label;
-        if (loc) updateRegion(loc);
-
-        // --- 5. INVENTORY ---
-        if (payload.inventory) {
-            try {
-                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
-                processInventory(inv);
-            } catch(e){}
-        }
-    });
-
-    function updateRegion(stationName) {
-        let region = "Unknown";
-        
-        // 1. Try Map Matching
-        for (const [key, val] of Object.entries(REGION_MAP)) {
-            if (stationName.includes(key)) {
-                region = val;
-                break;
-            }
-        }
-        // 2. Fallback: If map failed, show raw name (maybe they are already in "Region" mode)
-        if (region === "Unknown" && stationName.length > 2) {
-            region = stationName; 
-        }
-        
-        if (region !== "Unknown") {
-            document.getElementById('disp-region').innerText = region;
-        }
-    }
-
-    function processInventory(inv) {
-        if (!inv) return;
-        if (inv["exp_token_a|ems|paramedic"]) updateBXP(inv["exp_token_a|ems|paramedic"]);
-
-        // Summation Logic for Defibs
-        const invArray = Object.entries(inv).map(([id, data]) => {
-            let qty = 0;
-            if (typeof data === 'number') qty = data;
-            else if (typeof data === 'object') {
-                qty = data.amount || data.count || data.qty || 0;
-            }
-            return { id: id.toLowerCase(), qty: qty };
+      }
+      if (log.length === 0 && hasFirstGain[jobKey]) {
+        log.push({ time: now - 5000, exp: initialExps[jobKey] });
+        log.push({ time: now, exp });
+        lastUpdateTime[jobKey] = now;
+      }
+      if (log.length > 2) {
+        const recentCutoff = now - RECENT_WINDOW_MS;
+        expLogs[jobKey] = log.filter((entry, idx) => {
+          return idx === 0 || entry.time >= recentCutoff;
         });
-
-        const matches = invArray.filter(i => i.id.includes('defib'));
-        const defibCount = matches.reduce((sum, item) => sum + item.qty, 0);
-
-        const el = document.getElementById('stock-defib');
-        el.innerText = defibCount;
-        
-        if (defibCount < 2) el.style.color = "var(--alert)";
-        else el.style.color = "white";
+      }
     }
-
-    function updateBXP(val) {
-        let amt = (typeof val === 'object') ? val.amount : val;
-        if (amt >= 0) {
-            STATE.currentBXP = amt;
-            document.getElementById('disp-bxp').innerText = formatNum(amt);
-        }
-    }
-
-    function updateXP(newXP) {
-        if (STATE.startXP === null) {
-            STATE.startXP = newXP;
-            STATE.currentXP = newXP;
-            renderDisplay();
-            return;
-        }
-
-        if (newXP > STATE.currentXP) {
-            STATE.callouts++; 
-            const gained = newXP - STATE.startXP;
-            STATE.avgXP = gained / STATE.callouts;
-
-            if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
-                window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); 
-            }
-        }
-
-        STATE.currentXP = newXP;
-        renderDisplay();
-    }
-
-    function renderDisplay() {
-        const lvl = getLevelFromXP(STATE.currentXP);
-        const nextLvlXP = getXPFromLevel(lvl + 1);
-        const prevLvlXP = getXPFromLevel(lvl);
-        const percent = Math.min(100, Math.max(0, ((STATE.currentXP - prevLvlXP) / (nextLvlXP - prevLvlXP)) * 100));
-
-        document.getElementById('disp-level').innerText = lvl;
-        document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
-        document.getElementById('level-bar').style.width = percent + "%";
-        document.getElementById('level-text').innerText = percent.toFixed(1) + "%";
-        document.getElementById('disp-callouts').innerText = STATE.callouts;
-
-        runCalculator();
-    }
-
-    document.getElementById('target-input').addEventListener('input', runCalculator);
-
-    function runCalculator() {
-        const val = document.getElementById('target-input').value;
-        const el = document.getElementById('calc-result');
-        
-        if (STATE.avgXP === 0) {
-            el.innerHTML = "<i>Complete a revive to enable calc...</i>";
-            return;
-        }
-        if (!val) {
-            el.innerText = "Enter target above.";
-            return;
-        }
-
-        let inputVal = parseInt(val.replace(/,/g, ''));
-        let targetXP = inputVal;
-
-        if (inputVal < 200) { 
-             let lvlXP = getXPFromLevel(inputVal);
-             if (lvlXP > STATE.currentXP) targetXP = lvlXP;
-        }
-
-        if (targetXP > STATE.currentXP) {
-            const diff = targetXP - STATE.currentXP;
-            const jobs = Math.ceil(diff / STATE.avgXP);
-            el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
-                           `<span style="color:var(--primary)">Revives to go: <b>${formatNum(jobs)}</b></span>`;
-        } else {
-            const jobs = Math.ceil(inputVal / STATE.avgXP);
-            el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} revives</b>`;
-        }
-    }
-
-    setInterval(() => {
-        const now = new Date();
-        document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    }, 1000);
-
-    const elmnt = document.getElementById("app-container");
-    const header = document.getElementById("drag-handle");
-    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     
-    header.onmousedown = dragMouseDown;
-    function dragMouseDown(e) {
-        e.preventDefault();
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
+    const bxpToken = JOB_BXP_KEYS[jobKey];
+    let bxpObj;
+    if (bxpToken && data[bxpToken]) {
+      bxpObj = data[bxpToken];
     }
-    function elementDrag(e) {
-        e.preventDefault();
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+    else if (bxpToken && inventory && typeof inventory === 'object') {
+      bxpObj = inventory[bxpToken];
+      if (!bxpObj) {
+        const fallbackKey = Object.keys(inventory).find(k => k.startsWith(bxpToken));
+        if (fallbackKey) bxpObj = inventory[fallbackKey];
+      }
     }
-    function closeDragElement() {
-        document.onmouseup = null;
-        document.onmousemove = null;
+    if (bxpObj && typeof bxpObj.amount === "number") {
+      lastBXPs[jobKey] = bxpObj.amount;
+    } else if (typeof bxpObj === "number") {
+      lastBXPs[jobKey] = bxpObj;
+    } else {
+      delete lastBXPs[jobKey];
     }
+  });
+  saveData();
+  renderStats();
+}
+
+function requestDataOnce(force = false) {
+  if (hasRequestedOnce && !force) return;
+  hasRequestedOnce = true;
+  try {
+    const keys = getAllRequiredKeys();
+    window.parent.postMessage({ 
+      type: "getNamedData",
+      keys: keys
+    }, "*");
+  } catch (e) {
+    window.parent.postMessage({ type: "getData" }, "*");
+  }
+}
+
+function init() {
+  loadData();
+  loadPosition();
+  renderStats();
+  
+  // Set fast polling
+  setInterval(requestDataOnce, 1000); 
+  
+  saveSettings();
+  
+  window.addEventListener("message", (event) => {
+    const msg = event.data;
+    if (msg && msg.type === "data" && msg.data) {
+      hasReceivedAnyData = true;         
+      processGameData(msg.data);
+    }
+  });
+
+  requestDataOnce();
+  setTimeout(() => { if (!hasReceivedAnyData) requestDataOnce(true); }, 1200);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+// --- DRAG HANDLER ---
+(() => {
+  const app = document.getElementById('tracker-app');
+  const handle = document.getElementById('drag-handle');
+  const rh = document.getElementById('resize-handle');
+  if (!app || !handle) return;
+  
+  let sx=0, sy=0, ax=0, ay=0, dragging=false;
+  let sw=0, sh=0, resizing=false;
+
+  function startDrag(clientX, clientY, e) {
+    if (e && e.target.closest('button')) return;
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    dragging = true; sx = clientX; sy = clientY;
+    const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
+    handle.classList.add('dragging');
+  }
+
+  handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+
+  if (rh) {
+    function startResize(clientX, clientY, e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      resizing = true; sx = clientX; sy = clientY;
+      const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
+    }
+    rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+  }
+
+  function handleMove(clientX, clientY, e) {
+    if (dragging) {
+      if (e) e.preventDefault();
+      const dx = clientX - sx, dy = clientY - sy;
+      app.style.transform = `translate(${dx}px, ${dy}px)`;
+    } else if (resizing) {
+      if (e) e.preventDefault();
+      const dx = clientX - sx, dy = clientY - sy;
+      app.style.width  = `${Math.max(280, sw + dx)}px`;
+      app.style.height = `${Math.max(120, sh + dy)}px`;
+    }
+  }
+  
+  window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+
+  function endDrag() {
+    if (dragging) {
+      const transform = app.style.transform;
+      const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+      if (match) {
+        const dx = parseFloat(match[1]) || 0;
+        const dy = parseFloat(match[2]) || 0;
+        app.style.transform = '';
+        app.style.left = `${ax + dx}px`;
+        app.style.top = `${ay + dy}px`;
+      }
+      savePosition();
+    }
+    dragging = false; resizing = false;
+    handle.classList.remove('dragging');
+  }
+  window.addEventListener('mouseup', endDrag);
+})();
+
+// --- EMS SPECIFIC BRIDGE LOGIC ---
+
+const REGION_MAP = {
+    "Mount Zonah": "West Vinewood",
+    "Pillbox Hill": "East Vinewood",
+    "Central Los Santos": "Central Los Santos",
+    "St. Fiarce": "Palomino Highlands",
+    "Sandy Shores": "Blaine County",
+    "Fort Zancudo": "Zancudo",
+    "Paleto Bay": "Paleto Bay",
+    "Sorrow Health": "Roxwood",
+    "Woolward": "Roxwood"
+};
+
+function updateRegion(stationName) {
+    if (!stationName) return;
+    let region = "Unknown";
+    for (const [key, val] of Object.entries(REGION_MAP)) {
+        if (stationName.includes(key)) { region = val; break; }
+    }
+    if (region === "Unknown" && stationName.length > 2) region = stationName; 
+    document.getElementById('disp-region').innerText = region;
+}
+
+function processInventory(inv) {
+    const invArray = Object.entries(inv).map(([id, data]) => {
+        let qty = 0;
+        if (typeof data === 'number') qty = data;
+        else if (typeof data === 'object') qty = data.amount || data.count || 0;
+        return { id: id.toLowerCase(), qty: qty };
+    });
+    const matches = invArray.filter(i => i.id.includes('defib'));
+    const defibCount = matches.reduce((sum, item) => sum + item.qty, 0);
+    const el = document.getElementById('stock-defib');
+    if(el) {
+        el.innerText = defibCount;
+        el.style.color = defibCount < 2 ? "var(--alert)" : "white";
+    }
+}
+
+// THE BRIDGE: Updates the HTML elements from the Script's state
+function updateEMSHUD() {
+    const stats = calculateJobStats('emergency');
+    
+    // XP & Level
+    document.getElementById('disp-xp').innerText = formatNumber(stats.currentExp);
+    document.getElementById('disp-level').innerText = stats.levelInfo.level;
+    document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
+    document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
+    
+    // BXP
+    if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
+    
+    // Revives (Calculated from initial XP gain session)
+    // We use the difference between current XP and what we started with
+    if(initialExps['emergency'] !== undefined) {
+        // Approximate revives (XP gained / ~200 XP per revive is a guess, but raw XP change is better)
+        // Actually, let's just show Total Session XP change as "Score"
+        const gain = stats.currentExp - initialExps['emergency'];
+        document.getElementById('disp-callouts').innerText = formatNumber(gain);
+    }
+    
+    runCalculator(stats.expPerMin); // Pass avg xp to calc
+}
+
+// --- CALCULATOR ---
+const calcInput = document.getElementById('target-input');
+let currentAvgXP = 0;
+
+if(calcInput) {
+    calcInput.addEventListener('input', () => runCalculator(currentAvgXP));
+}
+
+function runCalculator(avg) {
+    if(avg) currentAvgXP = avg;
+    const val = document.getElementById('target-input').value;
+    const el = document.getElementById('calc-result');
+    
+    if (currentAvgXP === 0) {
+        el.innerHTML = "<i>Work to calculate rate...</i>";
+        return;
+    }
+    if (!val) {
+        el.innerText = "Enter target above.";
+        return;
+    }
+
+    let inputVal = parseInt(val.replace(/,/g, ''));
+    let targetXP = inputVal;
+    
+    // Level detect
+    const currentExp = lastExps['emergency'] || 0;
+    if (inputVal < 200) { 
+         let lvlXP = getXPFromLevel(inputVal);
+         if (lvlXP > currentExp) targetXP = lvlXP;
+    }
+
+    if (targetXP > currentExp) {
+        const diff = targetXP - currentExp;
+        const mins = Math.ceil(diff / currentAvgXP);
+        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br>` + 
+                       `<span style="color:var(--primary)">Est. Time: <b>${mins} mins</b></span>`;
+    } else {
+        el.innerHTML = `Target reached.`;
+    }
+}
+
+// Shift Timer
+const startTime = Date.now();
+setInterval(() => {
+    const diff = Date.now() - startTime;
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    document.getElementById('shift-timer').innerText = 
+        `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}, 1000);
 
 </script>
 </body>
