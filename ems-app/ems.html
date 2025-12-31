@@ -189,9 +189,6 @@
                     <div class="value" id="disp-callouts">0</div>
                 </div>
             </div>
-            <div style="text-align:center; margin-top:5px; font-size:0.7em; color:#666;">
-                Shift Time: <span id="shift-timer">00:00</span>
-            </div>
         </div>
 
         <div class="section">
@@ -206,7 +203,7 @@
 
         <div class="section" style="border:none;">
             <div class="label">Target Calculator</div>
-            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b>:</div>
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 100,000):</div>
             <input type="number" id="target-input" placeholder="e.g. 100000">
             <div class="calc-output" id="calc-result">
                 Start working to enable calculator...
@@ -328,7 +325,8 @@ function getAllRequiredKeys() {
   const expKeys = Object.values(JOB_EXP_KEYS);
   const bxpKeys = Object.values(JOB_BXP_KEYS);
   // INTEGRATION: Added EMS Keys here
-  const inventoryKey = ["inventory", "exp_paramedic", "job_location", "job_name", "job_grade_label", "vehicle_label", "vehicle_name"];
+  // Added extra keys for region location: job_label, job_grade, job_grade_label
+  const inventoryKey = ["inventory", "exp_paramedic", "job_location", "job_name", "job_label", "job_grade", "job_grade_label", "vehicle_label", "vehicle_name"];
   return [...expKeys, ...bxpKeys, ...inventoryKey];
 }
 
@@ -393,6 +391,11 @@ function resetAllData() {
       hasFirstGain[jobKey] = false;
     }
   });
+  
+  // RESET REGION LOCK
+  regionLocked = false;
+  document.getElementById('disp-region').innerText = "Searching...";
+  
   saveData();
   renderStats();
 }
@@ -441,7 +444,7 @@ function getSettings() {
   };
 }
 
-function applySettingsPosition(position) {} // Stubbed out for minimal impact
+function applySettingsPosition(position) {} 
 
 function loadFontSize() {
   const size = localStorage.getItem(XP_FONT_SIZE_KEY) || "12";
@@ -558,10 +561,18 @@ function processGameData(data) {
   let inventory = {};
   
   // INTEGRATION: EMS Data Handlers
-  if (data.vehicle_label || data.vehicle_name) {
-      document.getElementById('disp-vehicle').innerText = data.vehicle_label || data.vehicle_name;
+  
+  // 1. VEHICLE
+  let veh = data.vehicle_label || data.vehicle_name;
+  if (veh) {
+      document.getElementById('disp-vehicle').innerText = veh;
   }
-  let loc = data.job_location || data.job_name || data.job_grade_label;
+
+  // 2. LOCATION (With Locking Logic)
+  let loc = data.job_location || data.job_name || data.job_label || data.job_grade || data.job_grade_label;
+  if (!loc && data.job) {
+      loc = data.job.label || data.job.grade_label || data.job.name;
+  }
   if(loc) updateRegion(loc);
 
   if (data.inventory) {
@@ -781,14 +792,23 @@ const REGION_MAP = {
     "Woolward": "Roxwood"
 };
 
+let regionLocked = false; // LOCK STATE
+
 function updateRegion(stationName) {
-    if (!stationName) return;
+    if (!stationName || regionLocked) return; // Ignore if locked
+    
     let region = "Unknown";
     for (const [key, val] of Object.entries(REGION_MAP)) {
         if (stationName.includes(key)) { region = val; break; }
     }
+    
+    // Fallback: Use raw name if sufficiently long
     if (region === "Unknown" && stationName.length > 2) region = stationName; 
-    document.getElementById('disp-region').innerText = region;
+    
+    if (region !== "Unknown") {
+        document.getElementById('disp-region').innerText = region;
+        regionLocked = true; // LOCK IT IN
+    }
 }
 
 function processInventory(inv) {
@@ -821,10 +841,7 @@ function updateEMSHUD() {
     if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
     
     // Revives (Calculated from initial XP gain session)
-    // We use the difference between current XP and what we started with
     if(initialExps['emergency'] !== undefined) {
-        // Approximate revives (XP gained / ~200 XP per revive is a guess, but raw XP change is better)
-        // Actually, let's just show Total Session XP change as "Score"
         const gain = stats.currentExp - initialExps['emergency'];
         document.getElementById('disp-callouts').innerText = formatNumber(gain);
     }
@@ -874,14 +891,10 @@ function runCalculator(avg) {
     }
 }
 
-// Shift Timer
-const startTime = Date.now();
+// --- CLOCK ---
 setInterval(() => {
-    const diff = Date.now() - startTime;
-    const mins = Math.floor(diff / 60000);
-    const secs = Math.floor((diff % 60000) / 1000);
-    document.getElementById('shift-timer').innerText = 
-        `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const now = new Date();
+    document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }, 1000);
 
 </script>
