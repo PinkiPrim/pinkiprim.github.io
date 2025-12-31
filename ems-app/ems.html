@@ -44,7 +44,7 @@
             flex-direction: column;
             resize: both;
             overflow: hidden;
-            min-height: 200px; /* Reduced height since section removed */
+            min-height: 250px;
         }
 
         header {
@@ -85,7 +85,7 @@
         .progress-container {
             position: relative; height: 16px;
             background: rgba(0,0,0,0.5);
-            border-radius: 4px; margin: 5px 0 10px 0;
+            border-radius: 4px; margin: 5px 0 5px 0;
             overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
         }
         .progress-bar {
@@ -99,11 +99,30 @@
             font-weight: bold; z-index: 2;
         }
 
+        .xp-remaining-text {
+            text-align: center;
+            font-size: 0.8em;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+        .xp-remaining-text b { color: var(--primary); }
+
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
         .stat-box {
             background: rgba(255,255,255,0.05); padding: 6px;
             border-radius: 4px; text-align: center;
         }
+
+        /* INFO ROW */
+        .info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.05); padding: 6px 8px;
+            margin-bottom: 4px; border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .info-row:hover { background: rgba(255,255,255,0.15); }
+        .info-text { font-family: 'Rajdhani', sans-serif; font-weight: 600; color: #fff; }
 
         .inv-row {
             display: flex; justify-content: space-between; align-items: center;
@@ -140,6 +159,23 @@
     <div id="content">
         
         <div class="section">
+            <div class="label" style="display:flex; justify-content:space-between;">
+                <span>Current Status</span>
+                <span style="font-size:0.8em; opacity:0.6;">(Click to Edit)</span>
+            </div>
+            
+            <div class="info-row" id="btn-region">
+                <div style="font-size:0.8em; color:#aaa;">📍 Region</div>
+                <div class="info-text" id="disp-region">Select Region...</div>
+            </div>
+
+            <div class="info-row" id="btn-vehicle">
+                <div style="font-size:0.8em; color:#aaa;">🚑 Vehicle</div>
+                <div class="info-text" id="disp-vehicle">Set Vehicle...</div>
+            </div>
+        </div>
+
+        <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div>
                     <div class="label">Paramedic Level</div>
@@ -154,6 +190,10 @@
             <div class="progress-container">
                 <div class="progress-bar" id="level-bar"></div>
                 <div class="progress-text" id="level-text">Waiting for data...</div>
+            </div>
+            
+            <div class="xp-remaining-text" id="disp-xp-remaining">
+                Waiting for data...
             </div>
 
             <div class="stat-grid">
@@ -214,7 +254,36 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// --- YOUR PROVIDED SCRIPT (No changes to engine) ---
+// --- MANUAL INTERACTION LOGIC ---
+const REGIONS = [
+    "West Vinewood",
+    "East Vinewood",
+    "Central Los Santos",
+    "Palomino Highlands",
+    "Blaine County",
+    "Zancudo",
+    "Paleto Bay",
+    "Roxwood"
+];
+let regionIndex = 0;
+
+document.getElementById('btn-region').addEventListener('click', () => {
+    document.getElementById('disp-region').innerText = REGIONS[regionIndex];
+    regionIndex = (regionIndex + 1) % REGIONS.length;
+});
+
+document.getElementById('btn-vehicle').addEventListener('click', () => {
+    const current = document.getElementById('disp-vehicle').innerText;
+    if (current === "On Foot") {
+        document.getElementById('disp-vehicle').innerText = "Ambulance";
+    } else if (current === "Ambulance") {
+        document.getElementById('disp-vehicle').innerText = "Helicopter";
+    } else {
+        document.getElementById('disp-vehicle').innerText = "On Foot";
+    }
+});
+
+// --- YOUR PROVIDED SCRIPT ---
 
 let lastInventoryObj = {};
 let selectedJobs = [];
@@ -375,6 +444,11 @@ function resetAllData() {
       hasFirstGain[jobKey] = false;
     }
   });
+  
+  // RESET BRIDGE VARS
+  emsSessionRevives = 0;
+  emsLastXP = 0;
+  
   saveData();
   renderStats();
 }
@@ -760,7 +834,11 @@ function processInventory(inv) {
     }
 }
 
-// THE BRIDGE: Updates the HTML elements from the Script's state
+// BRIDGE STATE
+let emsLastXP = 0;
+let emsSessionRevives = 0;
+let emsAvgXP = 0;
+
 function updateEMSHUD() {
     const stats = calculateJobStats('emergency');
     
@@ -770,33 +848,48 @@ function updateEMSHUD() {
     document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
     document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
     
+    // NEW: XP to next level
+    const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
+    document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
+
     // BXP
     if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
     
-    // Revives (Calculated from initial XP gain session)
-    if(initialExps['emergency'] !== undefined) {
-        const gain = stats.currentExp - initialExps['emergency'];
-        document.getElementById('disp-callouts').innerText = formatNumber(gain);
+    // REVIVE DETECTION LOGIC
+    if (emsLastXP === 0 && stats.currentExp > 0) emsLastXP = stats.currentExp; // Init
+    
+    if (stats.currentExp > emsLastXP) {
+        const delta = stats.currentExp - emsLastXP;
+        // Assume anything > 50 XP is likely an active job action/revive
+        if (delta > 50) {
+            emsSessionRevives++;
+            // Calculate Average for Calculator
+            const sessionGain = stats.currentExp - initialExps['emergency'];
+            emsAvgXP = sessionGain / emsSessionRevives;
+        }
+        emsLastXP = stats.currentExp;
     }
     
-    runCalculator(stats.expPerMin); // Pass avg xp to calc
+    document.getElementById('disp-callouts').innerText = emsSessionRevives;
+    
+    runCalculator(stats.expPerMin); 
 }
 
 // --- CALCULATOR ---
 const calcInput = document.getElementById('target-input');
-let currentAvgXP = 0;
+let currentAvgTime = 0;
 
 if(calcInput) {
-    calcInput.addEventListener('input', () => runCalculator(currentAvgXP));
+    calcInput.addEventListener('input', () => runCalculator(currentAvgTime));
 }
 
-function runCalculator(avg) {
-    if(avg) currentAvgXP = avg;
+function runCalculator(avgTime) {
+    if(avgTime) currentAvgTime = avgTime;
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
-    if (currentAvgXP === 0) {
-        el.innerHTML = "<i>Work to calculate rate...</i>";
+    if (currentAvgTime === 0 && emsSessionRevives === 0) {
+        el.innerHTML = "<i>Work to enable calc...</i>";
         return;
     }
     if (!val) {
@@ -816,9 +909,22 @@ function runCalculator(avg) {
 
     if (targetXP > currentExp) {
         const diff = targetXP - currentExp;
-        const mins = Math.ceil(diff / currentAvgXP);
-        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br>` + 
-                       `<span style="color:var(--primary)">Est. Time: <b>${mins} mins</b></span>`;
+        const mins = Math.ceil(diff / currentAvgTime);
+        
+        let output = `Remaining: <b>${formatNumber(diff)} XP</b><br>`;
+        output += `<span style="color:var(--primary)">Est. Time: <b>${mins} mins</b></span>`;
+        
+        // Add Revives Calculation if we have an average
+        if (emsAvgXP > 0) {
+            const revives = Math.ceil(diff / emsAvgXP);
+            output += `<br><span style="color:#ffffff; font-size:0.9em;">Est. Revives: <b>${revives}</b></span>`;
+        } else {
+            // Default Fallback (Assume ~250 XP per revive if no data yet)
+            const approx = Math.ceil(diff / 250);
+            output += `<br><span style="color:#999; font-size:0.8em;">(Approx ~${approx} revives)</span>`;
+        }
+        
+        el.innerHTML = output;
     } else {
         el.innerHTML = `Target reached.`;
     }
