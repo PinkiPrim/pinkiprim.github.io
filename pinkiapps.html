@@ -6,61 +6,64 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- BLACK BOX FIX (From your Cargo Tool) --- */
-        body {
+        /* --- TRANSPARENCY FIX (Matches Mechanic Tool) --- */
+        html, body {
             margin: 0;
             padding: 0;
-            font-family: 'Roboto', sans-serif;
-            background-color: transparent !important;
-            color: white;
+            background: transparent !important; /* Critical */
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            /* No fixed height/width here to prevent render container issues */
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: white;
             user-select: none;
-            
-            /* Hub Centering */
-            display: flex;
-            justify-content: center;
-            align-items: center;
             perspective: 1000px;
+        }
+
+        /* --- CENTERING WRAPPER --- */
+        /* This acts as the anchor point in the center of the screen */
+        #center-anchor {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            /* This centers the element perfectly without affecting the body dimensions */
+            transform: translate(-50%, -50%);
         }
 
         /* --- MENU CONTAINER --- */
         #menu-container {
             width: 360px;
-            background: rgba(15, 15, 15, 0.9);
+            background: rgba(15, 15, 15, 0.95); /* Darker, less transparent to hide game UI clutter behind it */
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 16px;
             padding: 40px;
             text-align: center;
-            position: relative;
             
             /* GLASS EFFECT */
             backdrop-filter: blur(10px);
             box-shadow: 
                 0 0 0 1px rgba(255,255,255,0.05),
                 0 20px 50px rgba(0,0,0,0.5),
-                0 0 30px rgba(0, 145, 234, 0.1);
+                0 0 40px rgba(0, 145, 234, 0.15);
 
-            /* ENTRANCE ANIMATION */
+            /* ANIMATION */
+            /* We start invisible and let the keyframes handle the entrance */
             opacity: 0;
-            transform-origin: center center;
-            animation: holoConstruct 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: holoConstruct 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
 
         @keyframes holoConstruct {
             0% {
                 opacity: 0;
-                transform: scale(0) rotateX(45deg) rotateY(45deg) translateZ(-500px);
-                filter: blur(20px);
-            }
-            60% {
-                opacity: 1;
-                filter: blur(0px);
+                transform: scale(0.8) rotateX(20deg) translateZ(-100px);
+                filter: blur(10px);
             }
             100% {
                 opacity: 1;
-                transform: scale(1) rotateX(0deg) rotateY(0deg) translateZ(0);
+                transform: scale(1) rotateX(0deg) translateZ(0);
+                filter: blur(0px);
             }
         }
 
@@ -70,9 +73,9 @@
             text-transform: uppercase;
             letter-spacing: 3px;
             margin: 0;
-            font-size: 2em;
+            font-size: 2.2em;
             color: #fff;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
         }
 
         .subtitle {
@@ -84,23 +87,23 @@
             border-bottom: 1px solid rgba(255,255,255,0.1);
             padding-bottom: 15px;
             display: inline-block;
-            width: 50%;
+            width: 60%;
         }
 
         /* --- BUTTONS --- */
         .btn-wrapper {
             opacity: 0;
-            animation: slideIn 0.5s ease forwards;
+            animation: slideIn 0.4s ease forwards;
         }
         
-        .btn-wrapper:nth-child(3) { animation-delay: 0.3s; }
-        .btn-wrapper:nth-child(4) { animation-delay: 0.4s; }
-        .btn-wrapper:nth-child(5) { animation-delay: 0.5s; }
-        .btn-wrapper:nth-child(6) { animation-delay: 0.6s; }
+        .btn-wrapper:nth-child(3) { animation-delay: 0.1s; }
+        .btn-wrapper:nth-child(4) { animation-delay: 0.2s; }
+        .btn-wrapper:nth-child(5) { animation-delay: 0.3s; }
+        .btn-wrapper:nth-child(6) { animation-delay: 0.4s; }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .nav-btn {
@@ -108,9 +111,9 @@
             align-items: center;
             justify-content: space-between;
             width: 100%;
-            padding: 16px 20px;
-            margin-bottom: 12px;
-            background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.0));
+            padding: 18px 22px;
+            margin-bottom: 14px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 8px;
             color: #ccc;
@@ -136,10 +139,11 @@
         }
 
         .nav-btn:hover {
-            transform: scale(1.03) translateX(5px);
+            transform: scale(1.02) translateX(4px);
             color: #fff;
             border-color: rgba(255,255,255,0.3);
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         .nav-btn:hover::before { opacity: 1; }
 
@@ -148,53 +152,47 @@
         .nav-btn.ems:hover::before  { background: #e53935; box-shadow: 0 0 10px #e53935; }
         .nav-btn.cargo:hover::before{ background: #0277bd; box-shadow: 0 0 10px #0277bd; }
 
-        .icon { width: 30px; text-align: center; margin-right: 10px; font-size: 1.1em; }
-        .arrow { opacity: 0.2; font-size: 0.8em; transition: 0.3s; }
-        .nav-btn:hover .arrow { opacity: 1; transform: translateX(5px); }
+        .icon { width: 35px; text-align: center; margin-right: 12px; font-size: 1.2em; }
+        .arrow { opacity: 0.3; font-size: 0.9em; transition: 0.3s; }
+        .nav-btn:hover .arrow { opacity: 1; transform: translateX(5px); color: white; }
 
-        .footer {
-            margin-top: 25px;
-            font-size: 0.7em;
-            color: #555;
-            letter-spacing: 1px;
-        }
     </style>
 </head>
 <body>
 
-    <div id="menu-container">
-        <h1>OPS HUB</h1>
-        <div class="subtitle">Select Active Duty</div>
+    <div id="center-anchor">
+        <div id="menu-container">
+            <h1>OPS HUB</h1>
+            <div class="subtitle">Select Active Duty</div>
 
-        <div class="btn-wrapper">
-            <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
-                <div><span class="icon">🔥</span> Fire Ops</div>
-                <span class="arrow">▶</span>
-            </a>
+            <div class="btn-wrapper">
+                <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
+                    <div><span class="icon">🔥</span> Fire Ops</div>
+                    <span class="arrow">▶</span>
+                </a>
+            </div>
+
+            <div class="btn-wrapper">
+                <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
+                    <div><span class="icon">🔧</span> Mechanic Ops</div>
+                    <span class="arrow">▶</span>
+                </a>
+            </div>
+
+            <div class="btn-wrapper">
+                <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
+                    <div><span class="icon">🚑</span> EMS Ops</div>
+                    <span class="arrow">▶</span>
+                </a>
+            </div>
+
+            <div class="btn-wrapper">
+                <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
+                    <div><span class="icon">✈️</span> Cargo Ops</div>
+                    <span class="arrow">▶</span>
+                </a>
+            </div>
         </div>
-
-        <div class="btn-wrapper">
-            <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
-                <div><span class="icon">🔧</span> Mechanic Ops</div>
-                <span class="arrow">▶</span>
-            </a>
-        </div>
-
-        <div class="btn-wrapper">
-            <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
-                <div><span class="icon">🚑</span> EMS Ops</div>
-                <span class="arrow">▶</span>
-            </a>
-        </div>
-
-        <div class="btn-wrapper">
-            <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
-                <div><span class="icon">✈️</span> Cargo Ops</div>
-                <span class="arrow">▶</span>
-            </a>
-        </div>
-
-        <div class="footer">SYSTEM READY // V2.0</div>
     </div>
 
 </body>
