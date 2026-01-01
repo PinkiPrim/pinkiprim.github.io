@@ -6,14 +6,13 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- EXACT CARGO TOOL CSS STRUCTURE --- */
+        /* --- EXACT TRANSPARENCY FIX --- */
         :root {
-            --primary: #ffffff;
             --bg-glass: rgba(15, 15, 15, 0.95);
             --border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             font-family: 'Roboto', sans-serif;
@@ -40,7 +39,7 @@
             text-align: center;
             box-shadow: 0 4px 20px rgba(0,0,0,0.8);
             
-            /* REMOVED ANIMATION TO FIX BLANK SCREEN */
+            /* No animation to prevent blank screen issues */
             opacity: 1; 
         }
 
@@ -100,10 +99,11 @@
         }
 
         /* Colored Borders on Hover */
-        .nav-btn.fire:hover { border-left: 4px solid #ff5722; }
-        .nav-btn.mech:hover { border-left: 4px solid #0091ea; }
-        .nav-btn.ems:hover  { border-left: 4px solid #e53935; }
-        .nav-btn.cargo:hover{ border-left: 4px solid #0277bd; }
+        .nav-btn.fire:hover   { border-left: 4px solid #ff5722; }
+        .nav-btn.mech:hover   { border-left: 4px solid #0091ea; }
+        .nav-btn.ems:hover    { border-left: 4px solid #e53935; }
+        .nav-btn.cargo:hover  { border-left: 4px solid #0277bd; }
+        .nav-btn.hunter:hover { border-left: 4px solid #558b2f; } /* Hunter Green */
 
         .icon { width: 35px; text-align: center; margin-right: 12px; font-size: 1.2em; }
         .arrow { opacity: 0.3; font-size: 0.9em; transition: 0.3s; }
@@ -134,6 +134,11 @@
 
         <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
             <div><span class="icon">✈️</span> Cargo Ops</div>
+            <span class="arrow">▶</span>
+        </a>
+
+        <a href="https://pinkiprim.github.io/hunter-app/hunter.html" class="nav-btn hunter">
+            <div><span class="icon">🦌</span> Hunter Ops</div>
             <span class="arrow">▶</span>
         </a>
 
