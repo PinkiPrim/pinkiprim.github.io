@@ -255,19 +255,19 @@ const KEYS = {
     BXP: "exp_token_a|hunting|skill"
 };
 
-// ITEMS: Keywords relaxed for detection, but specific enough to be accurate
+// ITEMS: Expanded keywords to catch variations
 const ITEMS = {
     meat:    { keywords: ["meat", "processed meat"], stock: 0 },
-    boar:    { keywords: ["hunting: boar"], stock: 0 },
+    boar:    { keywords: ["hunting: boar", "wild boar", "boar"], stock: 0 },
     bear:    { keywords: ["hunting: brown bear", "brown bear", "bear"], stock: 0 },
-    cougar:  { keywords: ["hunting: cougar"], stock: 0 },
-    coyote:  { keywords: ["hunting: coyote"], stock: 0 },
-    deer:    { keywords: ["hunting: deer"], stock: 0 },
-    leopard: { keywords: ["hunting: leopard"], stock: 0 },
-    lion:    { keywords: ["hunting: lion"], stock: 0 },
-    rabbit:  { keywords: ["hunting: rabbit"], stock: 0 },
-    rat:     { keywords: ["hunting: rat"], stock: 0 },
-    wolf:    { keywords: ["hunting: wolf"], stock: 0 }
+    cougar:  { keywords: ["hunting: cougar", "mountain lion", "cougar"], stock: 0 },
+    coyote:  { keywords: ["hunting: coyote", "coyote"], stock: 0 },
+    deer:    { keywords: ["hunting: deer", "deer", "doe", "buck", "whitetail"], stock: 0 },
+    leopard: { keywords: ["hunting: leopard", "leopard"], stock: 0 },
+    lion:    { keywords: ["hunting: lion", "lion"], stock: 0 },
+    rabbit:  { keywords: ["hunting: rabbit", "rabbit", "hare"], stock: 0 },
+    rat:     { keywords: ["hunting: rat", "rat"], stock: 0 },
+    wolf:    { keywords: ["hunting: wolf", "wolf"], stock: 0 }
 };
 
 const STATE = {
@@ -300,7 +300,7 @@ function requestData() {
     }
 }
 
-// Polling
+// Always poll
 requestData();
 setInterval(requestData, 1000);
 
@@ -317,7 +317,7 @@ window.addEventListener('message', (event) => {
         updateXP(payload[KEYS.XP]);
     }
 
-    // 2. Process Inventory (BXP + Items)
+    // 2. Process Inventory
     if (payload.inventory) {
         try {
             const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
@@ -334,7 +334,7 @@ function processInventory(inv) {
 
     if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
-    // Normalize Inventory
+    // Normalize Inventory to Array
     const invArray = Object.entries(inv).map(([id, data]) => {
         let qty = 0;
         if (typeof data === 'number') qty = data;
@@ -342,12 +342,12 @@ function processInventory(inv) {
         return { id: id.toLowerCase(), qty: qty };
     });
 
-    // Match Items (LENIENT MATCH)
+    // Match Items
     for (let type in ITEMS) {
         let itemData = ITEMS[type];
         let foundQty = 0;
 
-        // Check if ANY keyword is contained within the ID
+        // Check if ANY keyword is contained in the ID
         const matches = invArray.filter(invItem => 
             itemData.keywords.some(k => invItem.id.includes(k))
         );
@@ -356,7 +356,6 @@ function processInventory(inv) {
             foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
         }
 
-        // Set stock (0 if gone)
         ITEMS[type].stock = foundQty;
         
         const el = document.getElementById(`stock-${type}`);
@@ -450,7 +449,7 @@ function runCalculator() {
     }
 }
 
-// --- SIMPLE DRAG HANDLER (Same as Mechanic) ---
+// --- SIMPLE DRAG HANDLER ---
 (() => {
     const app = document.getElementById('tracker-app');
     const handle = document.getElementById('drag-handle');
