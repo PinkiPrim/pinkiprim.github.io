@@ -6,170 +6,117 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- THEME --- */
+        /* --- BLACK BOX FIX --- */
+        html, body {
+            margin: 0; padding: 0;
+            background: transparent !important;
+            overflow: hidden;
+        }
+
         :root {
-            --primary: #0091ea; 
+            --primary: #0091ea; /* Mechanic Blue */
             --primary-dim: #0064b7;
             --bg-glass: rgba(15, 15, 15, 0.95);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
-            --border: 1px solid rgba(0, 145, 234, 0.3);
+            --border: 1px solid rgba(0, 145, 234, 0.4);
             --green: #00e676;
             --alert: #ff3d00;
         }
 
         body {
-            margin: 0;
-            padding: 0;
             font-family: 'Roboto', sans-serif;
-            background-color: transparent;
             color: var(--text-main);
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
             user-select: none;
         }
 
-        /* --- DRAGGABLE CONTAINER --- */
         #app-container {
             position: absolute;
-            top: 50px;
-            left: 50px;
+            top: 50px; left: 50px;
             width: 320px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            display: flex;
-            flex-direction: column;
-            resize: both;
-            overflow: hidden;
-            min-height: 250px;
+            display: flex; flex-direction: column;
+            backdrop-filter: blur(5px);
         }
 
-        /* --- HEADER --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 8px 12px;
             cursor: move;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 1.1em;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
+            border-top-left-radius: 8px; border-top-right-radius: 8px;
         }
 
-        /* --- CONTENT --- */
-        #content {
-            padding: 12px;
-            flex: 1;
-            overflow-y: auto;
-            scrollbar-width: thin;
-        }
+        #content { padding: 10px; flex: 1; overflow-y: auto; }
 
         .section {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
+            margin-bottom: 10px; padding-bottom: 8px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .section:last-child { border-bottom: none; }
 
         .label {
-            font-size: 0.75em;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            margin-bottom: 2px;
+            font-size: 0.7em; color: var(--text-dim);
+            text-transform: uppercase; margin-bottom: 2px;
         }
-        .value {
-            font-size: 1.1em;
-            font-weight: bold;
-            color: var(--text-main);
-        }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
-        /* --- PROGRESS BAR --- */
+        /* PROGRESS BAR */
         .progress-container {
-            position: relative;
-            height: 18px;
+            position: relative; height: 16px;
             background: rgba(0,0,0,0.5);
-            border-radius: 4px;
-            margin: 5px 0 5px 0;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px; margin: 5px 0 10px 0;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
         }
         .progress-bar {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.3s ease;
+            height: 100%; background: var(--primary);
+            width: 0%; transition: width 0.3s ease;
         }
         .progress-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 0.7em;
-            text-shadow: 1px 1px 2px black;
-            font-weight: bold;
-            z-index: 2;
+            font-size: 0.7em; text-shadow: 1px 1px 2px black;
+            font-weight: bold; z-index: 2;
         }
-        
-        /* --- INVENTORY ROWS --- */
+
+        /* UPDATED GRID FOR 3 COLUMNS */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .stat-box {
+            background: rgba(255,255,255,0.05); padding: 6px;
+            border-radius: 4px; text-align: center;
+        }
+
+        /* INVENTORY GRID */
         .inv-row {
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            background: rgba(0,0,0,0.2); 
-            padding: 4px 8px;
-            margin-bottom: 4px; 
-            border-radius: 4px;
-            border-left: 3px solid var(--text-dim);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.3); padding: 4px 8px;
+            margin-bottom: 4px; border-radius: 4px;
+            border-left: 2px solid var(--text-dim);
         }
         .inv-name { font-size: 0.8em; }
-        .inv-stats { font-size: 0.8em; text-align: right; }
-        .inv-used { color: var(--primary); font-weight: bold; margin-left: 6px; }
-        .low-stock { border-left-color: var(--alert); }
+        .inv-stats { font-size: 0.8em; font-weight: bold; text-align: right; }
+        .inv-used { color: var(--primary); margin-left: 5px; }
+        
+        .inv-row.low-stock { border-left-color: var(--alert); }
 
-        /* --- STAT GRID --- */
-        .stat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .stat-box {
-            background: rgba(255,255,255,0.05);
-            padding: 8px;
-            border-radius: 4px;
-            text-align: center;
-        }
-
-        /* --- INPUTS --- */
+        /* CALCULATOR */
         input[type="number"] {
-            width: 90%;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid #444;
-            color: white;
-            padding: 6px;
-            border-radius: 4px;
-            margin-top: 5px;
-            font-family: inherit;
+            width: 90%; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; color: white; padding: 5px;
+            border-radius: 4px; margin-top: 5px; font-family: inherit;
         }
         input:focus { outline: 1px solid var(--primary); }
-
-        /* --- ALERTS / CALCULATOR --- */
         .calc-output {
-            margin-top: 8px;
-            font-size: 0.85em;
-            line-height: 1.4;
-            color: var(--text-dim);
-            word-wrap: break-word;
+            margin-top: 5px; font-size: 0.8em; line-height: 1.3;
+            color: var(--text-dim); word-wrap: break-word;
         }
-        .calc-output b { color: white; }
-
     </style>
 </head>
 <body>
@@ -205,50 +152,47 @@
                     <div class="value bxp" id="disp-bxp">0</div>
                 </div>
                 <div class="stat-box">
-                    <div class="label">Callouts (XP)</div>
+                    <div class="label">Avg XP</div>
+                    <div class="value" id="disp-avg">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Callouts</div>
                     <div class="value" id="disp-callouts">0</div>
                 </div>
             </div>
         </div>
 
         <div class="section">
-            <div class="label">Session Statistics</div>
+            <div class="label">Inventory & Session Jobs</div>
             
-            <div class="inv-row" id="row-tire">
-                <div class="inv-name">🔘 Tire / Towing</div>
-                <div class="inv-stats">
-                    <span class="inv-used" id="used-tire">+0</span>
-                </div>
-            </div>
-
             <div class="inv-row" id="row-wrench">
-                <div class="inv-name">🔧 Blown Engine</div>
+                <div class="inv-name">🔧 Wrench (Engine/Tire)</div>
                 <div class="inv-stats">
-                    Stock: <span id="stock-wrench">--</span>
+                    Stock: <span id="stock-wrench">0</span>
                     <span class="inv-used" id="used-wrench">+0</span>
                 </div>
             </div>
 
             <div class="inv-row" id="row-jumper">
-                <div class="inv-name">⚡ Dead Battery</div>
+                <div class="inv-name">⚡ Jumper (Battery)</div>
                 <div class="inv-stats">
-                    Stock: <span id="stock-jumper">--</span>
+                    Stock: <span id="stock-jumper">0</span>
                     <span class="inv-used" id="used-jumper">+0</span>
                 </div>
             </div>
 
             <div class="inv-row" id="row-jerry">
-                <div class="inv-name">⛽ Out of Gas</div>
+                <div class="inv-name">⛽ Jerry Can (Gas)</div>
                 <div class="inv-stats">
-                    Stock: <span id="stock-jerry">--</span>
+                    Stock: <span id="stock-jerry">0</span>
                     <span class="inv-used" id="used-jerry">+0</span>
                 </div>
             </div>
 
             <div class="inv-row" id="row-hammer">
-                <div class="inv-name">🔨 Bent Chassis</div>
+                <div class="inv-name">🔨 Hammer (Chassis)</div>
                 <div class="inv-stats">
-                    Stock: <span id="stock-hammer">--</span>
+                    Stock: <span id="stock-hammer">0</span>
                     <span class="inv-used" id="used-hammer">+0</span>
                 </div>
             </div>
@@ -256,10 +200,9 @@
 
         <div class="section" style="border:none;">
             <div class="label">Target Calculator</div>
-            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 100,000):</div>
-            <input type="number" id="target-input" placeholder="e.g. 100000">
+            <input type="number" id="target-input" placeholder="Target XP (e.g. 100,000)">
             <div class="calc-output" id="calc-result">
-                Start working to enable calculator...
+                Enter target above to calc remaining jobs...
             </div>
         </div>
 
@@ -267,26 +210,26 @@
 </div>
 
 <script>
-    // --- MECHANIC CONFIG ---
+    // --- CONFIG ---
     const KEYS = {
         XP: "exp_trucking_mechanic",
         BXP: "exp_token_a|trucking|mechanic"
     };
 
+    // ITEM KEYWORDS (Matches part of the ID found in game data)
     const ITEMS = {
-        wrench: { keywords: ["wrench"], stock: 0, session: 0 },
-        jumper: { keywords: ["jumper", "cable"], stock: 0, session: 0 },
-        jerry:  { keywords: ["jerry", "petrol"], stock: 0, session: 0 },
-        hammer: { keywords: ["hammer"], stock: 0, session: 0 }
+        wrench: { key: "wrench", name: "Wrench", stock: 0, used: 0 },
+        jumper: { key: "jumper", name: "Jumper Cable", stock: 0, used: 0 },
+        jerry:  { key: "jerry",  name: "Jerry Can", stock: 0, used: 0 },
+        hammer: { key: "hammer", name: "Hammer", stock: 0, used: 0 }
     };
 
     const STATE = {
         currentXP: 0,
         currentBXP: 0,
         startXP: null,
-        callouts: 0, 
-        avgXP: 0,
-        inventoryInit: false
+        callouts: 0,
+        avgXP: 0
     };
 
     // --- FORMULAS ---
@@ -313,9 +256,9 @@
     }
     
     requestData();
-    setInterval(requestData, 1000);
+    setInterval(requestData, 2000);
 
-    // --- DATA LISTENER ---
+    // --- MAIN LISTENER ---
     window.addEventListener('message', (event) => {
         let payload = event.data;
         if (payload && payload.type === 'data' && payload.data) {
@@ -323,51 +266,41 @@
         }
         if (!payload) return;
 
+        // 1. Process XP
         if (typeof payload[KEYS.XP] === 'number') {
             updateXP(payload[KEYS.XP]);
         }
 
+        // 2. Process Inventory (BXP + Items)
         if (payload.inventory) {
             try {
                 const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
                 processInventory(inv);
             } catch(e){}
-        } else if (payload[KEYS.BXP]) {
-            updateBXP(payload[KEYS.BXP]);
+        } else {
+            // Fallback: Check BXP if sent separately
+            if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
         }
     });
 
     function processInventory(inv) {
         if (!inv) return;
 
+        // A. Update BXP
         if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
-        const invArray = Object.entries(inv).map(([id, data]) => {
-            let qty = 0;
-            if (typeof data === 'number') qty = data;
-            else if (typeof data === 'object') {
-                qty = data.amount || data.count || data.qty || 0;
+        // B. Update Items (Auto-detect IDs by keyword)
+        for (let [id, data] of Object.entries(inv)) {
+            let qty = (typeof data === 'object') ? data.amount : data;
+            let lowerID = id.toLowerCase();
+
+            // Check against our item list
+            for (let type in ITEMS) {
+                if (lowerID.includes(ITEMS[type].key)) {
+                    updateItemStats(type, qty);
+                }
             }
-            return { id: id.toLowerCase(), qty: qty };
-        });
-
-        for (let type in ITEMS) {
-            let itemData = ITEMS[type];
-            let foundQty = 0;
-
-            const matches = invArray.filter(invItem => 
-                itemData.keywords.some(k => invItem.id.includes(k))
-            );
-
-            if (matches.length > 0) {
-                foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
-            }
-
-            updateItemStats(type, foundQty);
         }
-        STATE.inventoryInit = true;
-
-        calculateRemainder();
     }
 
     function updateBXP(val) {
@@ -381,23 +314,29 @@
     function updateItemStats(type, newStock) {
         const item = ITEMS[type];
         
-        if (STATE.inventoryInit && item.stock > 0 && newStock < item.stock) {
+        // Detect Usage (If stock dropped)
+        if (item.stock > 0 && newStock < item.stock) {
             const diff = item.stock - newStock;
-            if (diff < 10) {
-                item.session += diff;
+            // Sanity check: ignore massive drops (like dropping item on ground) 
+            // We assume a job uses 1 item at a time usually
+            if(diff < 5) {
+                item.used += diff;
             }
         }
+
         item.stock = newStock;
 
+        // Update DOM
         document.getElementById(`stock-${type}`).innerText = newStock;
-        document.getElementById(`used-${type}`).innerText = `+${item.session}`;
+        document.getElementById(`used-${type}`).innerText = `+${item.used}`;
         
+        // Visual Alert for Low Stock
         const row = document.getElementById(`row-${type}`);
         if (newStock < 2) row.classList.add('low-stock');
         else row.classList.remove('low-stock');
     }
 
-    // --- LOGIC ---
+    // --- XP LOGIC ---
     function updateXP(newXP) {
         if (STATE.startXP === null) {
             STATE.startXP = newXP;
@@ -407,24 +346,18 @@
         }
 
         if (newXP > STATE.currentXP) {
-            STATE.callouts++; 
+            STATE.callouts++;
             const gained = newXP - STATE.startXP;
             STATE.avgXP = gained / STATE.callouts;
-
+            
+            // Level Up Sound
             if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
                 window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); 
             }
         }
 
         STATE.currentXP = newXP;
-        calculateRemainder();
         renderDisplay();
-    }
-
-    function calculateRemainder() {
-        const totalItemsUsed = ITEMS.wrench.session + ITEMS.jumper.session + ITEMS.jerry.session + ITEMS.hammer.session;
-        const remainder = Math.max(0, STATE.callouts - totalItemsUsed);
-        document.getElementById('used-tire').innerText = `+${remainder}`;
     }
 
     function renderDisplay() {
@@ -438,6 +371,7 @@
         document.getElementById('level-bar').style.width = percent + "%";
         document.getElementById('level-text').innerText = percent.toFixed(1) + "%";
         document.getElementById('disp-callouts').innerText = STATE.callouts;
+        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP); // NEW: Display Avg
 
         runCalculator();
     }
@@ -454,23 +388,24 @@
             return;
         }
         if (!val) {
-            el.innerText = "Enter target above.";
+            el.innerText = "Enter target above...";
             return;
         }
 
         let inputVal = parseInt(val.replace(/,/g, ''));
         let targetXP = inputVal;
 
-        if (inputVal < 200) { 
-             let lvlXP = getXPFromLevel(inputVal);
-             if (lvlXP > STATE.currentXP) targetXP = lvlXP;
+        // Smart Level Detect
+        if (inputVal < 200) {
+            let lvlXP = getXPFromLevel(inputVal);
+            if (lvlXP > STATE.currentXP) targetXP = lvlXP;
         }
 
         if (targetXP > STATE.currentXP) {
             const diff = targetXP - STATE.currentXP;
             const jobs = Math.ceil(diff / STATE.avgXP);
             el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
-                           `<span style="color:var(--primary)">Callouts to go: <b>${formatNum(jobs)}</b></span>`;
+                           `Callouts to go: <b>${formatNum(jobs)}</b>`;
         } else {
             const jobs = Math.ceil(inputVal / STATE.avgXP);
             el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} jobs</b>`;
@@ -487,28 +422,17 @@
     const header = document.getElementById("drag-handle");
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     
-    header.onmousedown = dragMouseDown;
-    function dragMouseDown(e) {
-        e.preventDefault();
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
-    }
-    function elementDrag(e) {
-        e.preventDefault();
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-    }
-    function closeDragElement() {
-        document.onmouseup = null;
-        document.onmousemove = null;
-    }
-
+    header.onmousedown = (e) => {
+        e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY;
+        document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
+        document.onmousemove = (e) => {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+            pos3 = e.clientX; pos4 = e.clientY;
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        };
+    };
 </script>
 </body>
 </html>
