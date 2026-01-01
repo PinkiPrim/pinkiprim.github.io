@@ -6,65 +6,42 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- TRANSPARENCY FIX (Matches Mechanic Tool) --- */
-        html, body {
-            margin: 0;
-            padding: 0;
-            background: transparent !important; /* Critical */
-            overflow: hidden;
-            /* No fixed height/width here to prevent render container issues */
+        /* --- EXACT CARGO TOOL CSS STRUCTURE --- */
+        :root {
+            --primary: #ffffff;
+            --bg-glass: rgba(15, 15, 15, 0.95);
+            --border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         body {
+            margin: 0;
+            padding: 0;
             font-family: 'Roboto', sans-serif;
+            background-color: transparent !important; /* Critical */
             color: white;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
             user-select: none;
-            perspective: 1000px;
         }
 
-        /* --- CENTERING WRAPPER --- */
-        /* This acts as the anchor point in the center of the screen */
-        #center-anchor {
+        /* --- MENU CONTAINER (Centered) --- */
+        #menu-container {
             position: absolute;
             top: 50%;
             left: 50%;
-            /* This centers the element perfectly without affecting the body dimensions */
-            transform: translate(-50%, -50%);
-        }
-
-        /* --- MENU CONTAINER --- */
-        #menu-container {
+            transform: translate(-50%, -50%); /* Centers the div perfectly */
+            
             width: 360px;
-            background: rgba(15, 15, 15, 0.95); /* Darker, less transparent to hide game UI clutter behind it */
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 16px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 12px;
             padding: 40px;
             text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
             
-            /* GLASS EFFECT */
-            backdrop-filter: blur(10px);
-            box-shadow: 
-                0 0 0 1px rgba(255,255,255,0.05),
-                0 20px 50px rgba(0,0,0,0.5),
-                0 0 40px rgba(0, 145, 234, 0.15);
-
-            /* ANIMATION */
-            /* We start invisible and let the keyframes handle the entrance */
-            opacity: 0;
-            animation: holoConstruct 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        @keyframes holoConstruct {
-            0% {
-                opacity: 0;
-                transform: scale(0.8) rotateX(20deg) translateZ(-100px);
-                filter: blur(10px);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1) rotateX(0deg) translateZ(0);
-                filter: blur(0px);
-            }
+            /* REMOVED ANIMATION TO FIX BLANK SCREEN */
+            opacity: 1; 
         }
 
         h1 {
@@ -75,7 +52,7 @@
             margin: 0;
             font-size: 2.2em;
             color: #fff;
-            text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
 
         .subtitle {
@@ -91,21 +68,6 @@
         }
 
         /* --- BUTTONS --- */
-        .btn-wrapper {
-            opacity: 0;
-            animation: slideIn 0.4s ease forwards;
-        }
-        
-        .btn-wrapper:nth-child(3) { animation-delay: 0.1s; }
-        .btn-wrapper:nth-child(4) { animation-delay: 0.2s; }
-        .btn-wrapper:nth-child(5) { animation-delay: 0.3s; }
-        .btn-wrapper:nth-child(6) { animation-delay: 0.4s; }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         .nav-btn {
             display: flex;
             align-items: center;
@@ -129,15 +91,6 @@
             overflow: hidden;
         }
 
-        .nav-btn::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 4px; height: 100%;
-            background: white;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
         .nav-btn:hover {
             transform: scale(1.02) translateX(4px);
             color: #fff;
@@ -145,12 +98,12 @@
             background: rgba(255,255,255,0.1);
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
-        .nav-btn:hover::before { opacity: 1; }
 
-        .nav-btn.fire:hover::before { background: #ff5722; box-shadow: 0 0 10px #ff5722; }
-        .nav-btn.mech:hover::before { background: #0091ea; box-shadow: 0 0 10px #0091ea; }
-        .nav-btn.ems:hover::before  { background: #e53935; box-shadow: 0 0 10px #e53935; }
-        .nav-btn.cargo:hover::before{ background: #0277bd; box-shadow: 0 0 10px #0277bd; }
+        /* Colored Borders on Hover */
+        .nav-btn.fire:hover { border-left: 4px solid #ff5722; }
+        .nav-btn.mech:hover { border-left: 4px solid #0091ea; }
+        .nav-btn.ems:hover  { border-left: 4px solid #e53935; }
+        .nav-btn.cargo:hover{ border-left: 4px solid #0277bd; }
 
         .icon { width: 35px; text-align: center; margin-right: 12px; font-size: 1.2em; }
         .arrow { opacity: 0.3; font-size: 0.9em; transition: 0.3s; }
@@ -160,39 +113,30 @@
 </head>
 <body>
 
-    <div id="center-anchor">
-        <div id="menu-container">
-            <h1>OPS HUB</h1>
-            <div class="subtitle">Select Active Duty</div>
+    <div id="menu-container">
+        <h1>OPS HUB</h1>
+        <div class="subtitle">Select Active Duty</div>
 
-            <div class="btn-wrapper">
-                <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
-                    <div><span class="icon">🔥</span> Fire Ops</div>
-                    <span class="arrow">▶</span>
-                </a>
-            </div>
+        <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
+            <div><span class="icon">🔥</span> Fire Ops</div>
+            <span class="arrow">▶</span>
+        </a>
 
-            <div class="btn-wrapper">
-                <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
-                    <div><span class="icon">🔧</span> Mechanic Ops</div>
-                    <span class="arrow">▶</span>
-                </a>
-            </div>
+        <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
+            <div><span class="icon">🔧</span> Mechanic Ops</div>
+            <span class="arrow">▶</span>
+        </a>
 
-            <div class="btn-wrapper">
-                <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
-                    <div><span class="icon">🚑</span> EMS Ops</div>
-                    <span class="arrow">▶</span>
-                </a>
-            </div>
+        <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
+            <div><span class="icon">🚑</span> EMS Ops</div>
+            <span class="arrow">▶</span>
+        </a>
 
-            <div class="btn-wrapper">
-                <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
-                    <div><span class="icon">✈️</span> Cargo Ops</div>
-                    <span class="arrow">▶</span>
-                </a>
-            </div>
-        </div>
+        <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
+            <div><span class="icon">✈️</span> Cargo Ops</div>
+            <span class="arrow">▶</span>
+        </a>
+
     </div>
 
 </body>
