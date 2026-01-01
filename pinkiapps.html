@@ -6,26 +6,25 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- GLOBAL --- */
+        /* --- BLACK BOX FIX: RESTORED DIMENSIONS --- */
         html, body {
             margin: 0;
             padding: 0;
-            font-family: 'Roboto', sans-serif;
-            background: transparent !important; /* TRANSPARENT FOR FIVEM */
+            background: transparent !important; /* Critical */
             overflow: hidden;
-            user-select: none;
-            perspective: 1000px; /* Enable 3D space */
-            
-            /* BLACK BOX FIX: Removed 100vh/100vw on body */
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: white;
+            height: 100vh; /* Critical for transparency */
+            width: 100vw;  /* Critical for transparency */
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100%; 
-            width: 100%;
+            user-select: none;
+            perspective: 1000px;
         }
-        
-        /* Ensure the html takes up full screen for centering, but transparently */
-        html { height: 100vh; width: 100vw; }
 
         /* --- MENU CONTAINER --- */
         #menu-container {
@@ -42,15 +41,14 @@
             box-shadow: 
                 0 0 0 1px rgba(255,255,255,0.05),
                 0 20px 50px rgba(0,0,0,0.5),
-                0 0 30px rgba(0, 145, 234, 0.1); /* Subtle blue glow */
+                0 0 30px rgba(0, 145, 234, 0.1);
 
-            /* CRAZY ENTRANCE ANIMATION */
+            /* ANIMATION */
             opacity: 0;
             transform-origin: center center;
             animation: holoConstruct 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
 
-        /* The "Holographic Construct" 3D Animation */
         @keyframes holoConstruct {
             0% {
                 opacity: 0;
@@ -67,7 +65,6 @@
             }
         }
 
-        /* --- TEXT STYLES --- */
         h1 {
             font-family: 'Rajdhani', sans-serif;
             font-weight: 700;
@@ -91,14 +88,12 @@
             width: 50%;
         }
 
-        /* --- NAVIGATION BUTTONS --- */
+        /* --- BUTTONS --- */
         .btn-wrapper {
-            /* Staggered animation for buttons */
             opacity: 0;
             animation: slideIn 0.5s ease forwards;
         }
         
-        /* Stagger delays */
         .btn-wrapper:nth-child(3) { animation-delay: 0.3s; }
         .btn-wrapper:nth-child(4) { animation-delay: 0.4s; }
         .btn-wrapper:nth-child(5) { animation-delay: 0.5s; }
@@ -132,7 +127,6 @@
             overflow: hidden;
         }
 
-        /* HOVER EFFECTS */
         .nav-btn::before {
             content: '';
             position: absolute;
@@ -150,7 +144,6 @@
         }
         .nav-btn:hover::before { opacity: 1; }
 
-        /* Specific Colors */
         .nav-btn.fire:hover::before { background: #ff5722; box-shadow: 0 0 10px #ff5722; }
         .nav-btn.mech:hover::before { background: #0091ea; box-shadow: 0 0 10px #0091ea; }
         .nav-btn.ems:hover::before  { background: #e53935; box-shadow: 0 0 10px #e53935; }
