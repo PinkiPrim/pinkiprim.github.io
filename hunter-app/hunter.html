@@ -19,7 +19,7 @@
             --alert: #ff3d00;
         }
 
-        /* --- BLACK BOX FIX (Exact Cargo Config) --- */
+        /* --- BLACK BOX FIX --- */
         body {
             margin: 0;
             padding: 0;
@@ -191,7 +191,9 @@
         </div>
 
         <div class="section">
-            <div class="label">Inventory</div> <div class="inv-row meat-row">
+            <div class="label">Inventory</div>
+
+            <div class="inv-row meat-row">
                 <div class="inv-name">🥩 Processed Meat</div>
                 <div class="inv-stats">Stock: <span id="stock-meat">0</span></div>
             </div>
@@ -267,7 +269,7 @@ const RENDER_THROTTLE_MS = 500;
 const JOB_EXP_KEYS = { hunter: "exp_hunting_skill" };
 const JOB_BXP_KEYS = { hunter: "exp_token_a|hunting|skill" };
 
-// ITEM LIST 
+// ITEM LIST
 const ITEMS = {
     meat:    { keywords: ["meat"], stock: 0 },
     boar:    { keywords: ["hunting: boar", "boar"], stock: 0 },
@@ -488,61 +490,42 @@ function runCalculator() {
     }
 }
 
-// Drag Handler
+// --- FIXED DRAG HANDLER (Same as Mechanic/Cargo) ---
 (() => {
     const app = document.getElementById('tracker-app');
     const handle = document.getElementById('drag-handle');
-    const rh = document.getElementById('resize-handle');
+    
     if (!app || !handle) return;
-    let sx=0, sy=0, ax=0, ay=0, dragging=false, sw=0, sh=0, resizing=false;
-    function startDrag(clientX, clientY, e) {
-        if (e && e.target.closest('button')) return;
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        dragging = true; sx = clientX; sy = clientY;
-        const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
-        handle.classList.add('dragging');
+    
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+    handle.onmousedown = dragMouseDown;
+
+    function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
     }
-    handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
-    if (rh) {
-        function startResize(clientX, clientY, e) {
-            if (e) { e.preventDefault(); e.stopPropagation(); }
-            resizing = true; sx = clientX; sy = clientY;
-            const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
-        }
-        rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        app.style.top = (app.offsetTop - pos2) + "px";
+        app.style.left = (app.offsetLeft - pos1) + "px";
     }
-    function handleMove(clientX, clientY, e) {
-        if (dragging) {
-            if (e) e.preventDefault();
-            const dx = clientX - sx, dy = clientY - sy;
-            app.style.transform = `translate(${dx}px, ${dy}px)`;
-        } else if (resizing) {
-            if (e) e.preventDefault();
-            const dx = clientX - sx, dy = clientY - sy;
-            app.style.width  = `${Math.max(280, sw + dx)}px`;
-            app.style.height = `${Math.max(120, sh + dy)}px`;
-        }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
     }
-    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
-    function endDrag() {
-        if (dragging) {
-            const transform = app.style.transform;
-            const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
-            if (match) {
-                const dx = parseFloat(match[1]) || 0;
-                const dy = parseFloat(match[2]) || 0;
-                app.style.transform = '';
-                app.style.left = `${ax + dx}px`;
-                app.style.top = `${ay + dy}px`;
-            }
-            savePosition();
-        }
-        dragging = false; resizing = false;
-        handle.classList.remove('dragging');
-    }
-    window.addEventListener('mouseup', endDrag);
 })();
 </script>
 </body>
 </html>
-
