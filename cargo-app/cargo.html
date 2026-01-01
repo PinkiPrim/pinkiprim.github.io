@@ -18,6 +18,7 @@
             --accent: #ffc107; /* Runway Amber */
         }
 
+        /* --- BLACK BOX FIX --- */
         body {
             margin: 0;
             padding: 0;
@@ -107,7 +108,8 @@
         }
         .xp-remaining-text b { color: var(--primary); }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        /* 3 COLUMN GRID FOR AVG XP */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
         .stat-box {
             background: rgba(255,255,255,0.05); padding: 6px;
             border-radius: 4px; text-align: center;
@@ -162,6 +164,10 @@
                 <div class="stat-box">
                     <div class="label">BXP Tokens</div>
                     <div class="value bxp" id="disp-bxp">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Avg XP</div>
+                    <div class="value" id="disp-avg">0</div>
                 </div>
                 <div class="stat-box">
                     <div class="label">Total Actions</div>
@@ -792,6 +798,9 @@ function updateCargoHUD() {
     // Calculate Average per Op
     const averageXP = bridge_Ops > 0 ? (bridge_SessionXP / bridge_Ops) : 0;
     
+    // NEW: Update Avg XP UI
+    document.getElementById('disp-avg').innerText = Math.round(averageXP);
+
     // --- DISPLAY REMAINING XP & OPS ---
     const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
     let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
