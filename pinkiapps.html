@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Operations Hub</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
+
+        /* --- GLOBAL THEME --- */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            /* Dark gradient background */
+            background: linear-gradient(135deg, #1a1a1a, #0f0f0f);
+            color: white;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- MENU CONTAINER --- */
+        #menu-container {
+            width: 350px;
+            background: rgba(20, 20, 20, 0.85); /* Dark Glass */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            
+            /* ENTRANCE ANIMATION */
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes slideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 5px 0;
+            font-size: 1.8em;
+            background: -webkit-linear-gradient(45deg, #eee, #999);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: #666;
+            font-size: 0.8em;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- NAVIGATION BUTTONS --- */
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            color: #ddd;
+            text-decoration: none;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* COLOR THEMES FOR HOVER */
+        .nav-btn.fire:hover { 
+            background: rgba(255, 87, 34, 0.15); 
+            border-color: #ff5722; 
+            box-shadow: 0 0 15px rgba(255, 87, 34, 0.3);
+        }
+        .nav-btn.mech:hover { 
+            background: rgba(0, 145, 234, 0.15); 
+            border-color: #0091ea; 
+            box-shadow: 0 0 15px rgba(0, 145, 234, 0.3);
+        }
+        .nav-btn.ems:hover { 
+            background: rgba(229, 57, 53, 0.15); 
+            border-color: #e53935; 
+            box-shadow: 0 0 15px rgba(229, 57, 53, 0.3);
+        }
+        .nav-btn.cargo:hover { 
+            background: rgba(2, 119, 189, 0.15); 
+            border-color: #0277bd; 
+            box-shadow: 0 0 15px rgba(2, 119, 189, 0.3);
+        }
+
+        /* ICONS (Emoji for simplicity, can be SVGs) */
+        .icon { font-size: 1.2em; margin-right: 10px; width: 30px; text-align: center; }
+        .arrow { opacity: 0.3; transition: transform 0.3s; }
+        
+        .nav-btn:hover { transform: scale(1.02); color: white; }
+        .nav-btn:hover .arrow { opacity: 1; transform: translateX(5px); }
+
+        /* FOOTER */
+        .footer {
+            margin-top: 20px;
+            font-size: 0.7em;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="menu-container">
+        <h1>Operations Hub</h1>
+        <p class="subtitle">Select Your Active Job</p>
+
+        <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
+            <div><span class="icon">🔥</span> Fire Ops</div>
+            <span class="arrow">→</span>
+        </a>
+
+        <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
+            <div><span class="icon">🔧</span> Mechanic Ops</div>
+            <span class="arrow">→</span>
+        </a>
+
+        <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
+            <div><span class="icon">🚑</span> EMS Ops</div>
+            <span class="arrow">→</span>
+        </a>
+
+        <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
+            <div><span class="icon">✈️</span> Cargo Ops</div>
+            <span class="arrow">→</span>
+        </a>
+
+        <div class="footer">TT Helper Suite v1.0</div>
+    </div>
+
+</body>
+</html>
