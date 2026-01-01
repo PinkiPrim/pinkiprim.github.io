@@ -6,7 +6,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- THEME: HUNTER GREEN --- */ 
+        /* --- THEME: HUNTER GREEN --- */
         :root {
             --primary: #558b2f; /* Forest Green */
             --primary-dim: #2e5c18;
@@ -233,19 +233,19 @@
         BXP: "exp_token_a|hunting|skill"
     };
 
-    // ITEM DEFINITIONS
+    // ITEM DEFINITIONS - STRICT MATCHING
     const ITEMS = {
-        meat:    { keywords: ["meat"], stock: 0 },
-        boar:    { keywords: ["hunting: boar", "boar"], stock: 0 },
-        bear:    { keywords: ["hunting: brown bear", "brown bear", "bear"], stock: 0 },
-        cougar:  { keywords: ["hunting: cougar", "cougar"], stock: 0 },
-        coyote:  { keywords: ["hunting: coyote", "coyote"], stock: 0 },
-        deer:    { keywords: ["hunting: deer", "deer"], stock: 0 },
-        leopard: { keywords: ["hunting: leopard", "leopard"], stock: 0 },
-        lion:    { keywords: ["hunting: lion", "lion"], stock: 0 },
-        rabbit:  { keywords: ["hunting: rabbit", "rabbit"], stock: 0 },
-        rat:     { keywords: ["hunting: rat", "rat"], stock: 0 },
-        wolf:    { keywords: ["hunting: wolf", "wolf"], stock: 0 }
+        meat:    { keywords: ["meat", "processed meat"], stock: 0 },
+        boar:    { keywords: ["hunting: boar"], stock: 0 },
+        bear:    { keywords: ["hunting: brown bear"], stock: 0 },
+        cougar:  { keywords: ["hunting: cougar"], stock: 0 },
+        coyote:  { keywords: ["hunting: coyote"], stock: 0 },
+        deer:    { keywords: ["hunting: deer"], stock: 0 },
+        leopard: { keywords: ["hunting: leopard"], stock: 0 },
+        lion:    { keywords: ["hunting: lion"], stock: 0 },
+        rabbit:  { keywords: ["hunting: rabbit"], stock: 0 },
+        rat:     { keywords: ["hunting: rat"], stock: 0 },
+        wolf:    { keywords: ["hunting: wolf"], stock: 0 }
     };
 
     const STATE = {
@@ -278,7 +278,7 @@
         }
     }
     
-    // REPLACED: Simple Polling (like Mechanic)
+    // Always poll
     requestData();
     setInterval(requestData, 1000);
 
@@ -320,19 +320,21 @@
             return { id: id.toLowerCase(), qty: qty };
         });
 
-        // Match Items
+        // Match Items (PERFECT MATCH)
         for (let type in ITEMS) {
             let itemData = ITEMS[type];
             let foundQty = 0;
 
+            // Strict check: The inventory ID must be EXACTLY in our keyword list
             const matches = invArray.filter(invItem => 
-                itemData.keywords.some(k => invItem.id.includes(k))
+                itemData.keywords.includes(invItem.id) 
             );
 
             if (matches.length > 0) {
                 foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
             }
 
+            // Immediately set stock (0 if not found)
             ITEMS[type].stock = foundQty;
             
             const el = document.getElementById(`stock-${type}`);
@@ -432,7 +434,7 @@
         document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }, 1000);
 
-    // --- SIMPLE DRAG HANDLER (Same as Mechanic) ---
+    // --- SIMPLE DRAG HANDLER ---
     (() => {
         const app = document.getElementById('tracker-app');
         const handle = document.getElementById('drag-handle');
@@ -469,4 +471,3 @@
 </script>
 </body>
 </html>
-
