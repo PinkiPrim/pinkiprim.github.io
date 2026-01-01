@@ -6,32 +6,33 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- THEME: MECHANIC BLUE --- */
+        /* --- THEME --- */
         :root {
-            --primary: #0091ea; /* Mechanic Blue */
+            --primary: #0091ea; 
             --primary-dim: #0064b7;
             --bg-glass: rgba(15, 15, 15, 0.95);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
-            --border: 1px solid rgba(0, 145, 234, 0.4);
+            --border: 1px solid rgba(0, 145, 234, 0.3);
             --green: #00e676;
             --alert: #ff3d00;
         }
 
+        /* --- BLACK BOX FIX: CRITICAL SETTINGS --- */
         body {
             margin: 0;
             padding: 0;
             font-family: 'Roboto', sans-serif;
-            background-color: transparent;
+            background-color: transparent; /* ESSENTIAL */
             color: var(--text-main);
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            height: 100vh; /* ESSENTIAL */
+            width: 100vw;  /* ESSENTIAL */
             user-select: none;
         }
 
-        /* --- CONTAINER --- */
-        #tracker-app {
+        /* --- DRAGGABLE CONTAINER --- */
+        #app-container {
             position: absolute;
             top: 50px;
             left: 50px;
@@ -47,6 +48,7 @@
             min-height: 250px;
         }
 
+        /* --- HEADER --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 8px 12px;
@@ -61,6 +63,7 @@
             font-size: 1.1em;
         }
 
+        /* --- CONTENT --- */
         #content {
             padding: 12px;
             flex: 1;
@@ -69,70 +72,110 @@
         }
 
         .section {
-            margin-bottom: 10px; padding-bottom: 8px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .section:last-child { border-bottom: none; }
 
         .label {
-            font-size: 0.7em; color: var(--text-dim);
-            text-transform: uppercase; margin-bottom: 2px;
+            font-size: 0.75em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 2px;
         }
-        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--text-main);
+        }
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
+        /* --- PROGRESS BAR --- */
         .progress-container {
-            position: relative; height: 16px;
+            position: relative;
+            height: 18px;
             background: rgba(0,0,0,0.5);
-            border-radius: 4px; margin: 5px 0 10px 0;
-            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin: 5px 0 5px 0;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
         }
         .progress-bar {
-            height: 100%; background: var(--primary);
-            width: 0%; transition: width 0.3s ease;
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
         }
         .progress-text {
-            position: absolute; top: 50%; left: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 0.7em; text-shadow: 1px 1px 2px black;
-            font-weight: bold; z-index: 2;
+            font-size: 0.7em;
+            text-shadow: 1px 1px 2px black;
+            font-weight: bold;
+            z-index: 2;
         }
-
-        /* 3 COLUMN GRID FOR AVG XP */
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-        .stat-box {
-            background: rgba(255,255,255,0.05); padding: 6px;
-            border-radius: 4px; text-align: center;
-        }
-
-        /* INVENTORY GRID */
+        
+        /* --- INVENTORY ROWS --- */
         .inv-row {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.3); padding: 4px 8px;
-            margin-bottom: 4px; border-radius: 4px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            background: rgba(0,0,0,0.2); 
+            padding: 4px 8px;
+            margin-bottom: 4px; 
+            border-radius: 4px;
             border-left: 3px solid var(--text-dim);
         }
         .inv-name { font-size: 0.8em; }
-        .inv-stats { font-size: 0.8em; font-weight: bold; text-align: right; }
-        .inv-used { color: var(--primary); margin-left: 5px; }
+        .inv-stats { font-size: 0.8em; text-align: right; }
+        .inv-used { color: var(--primary); font-weight: bold; margin-left: 6px; }
         .low-stock { border-left-color: var(--alert); }
 
+        /* --- STAT GRID (UPDATED TO 3 COLUMNS) --- */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; /* 3 Columns for Avg XP */
+            gap: 5px;
+        }
+        .stat-box {
+            background: rgba(255,255,255,0.05);
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        /* --- INPUTS --- */
         input[type="number"] {
-            width: 90%; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; color: white; padding: 5px;
-            border-radius: 4px; margin-top: 5px; font-family: inherit;
+            width: 90%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #444;
+            color: white;
+            padding: 6px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-family: inherit;
         }
         input:focus { outline: 1px solid var(--primary); }
+
+        /* --- ALERTS / CALCULATOR --- */
         .calc-output {
-            margin-top: 5px; font-size: 0.8em; line-height: 1.3;
-            color: var(--text-dim); word-wrap: break-word;
+            margin-top: 8px;
+            font-size: 0.85em;
+            line-height: 1.4;
+            color: var(--text-dim);
+            word-wrap: break-word;
         }
+        .calc-output b { color: white; }
+
     </style>
 </head>
 <body>
 
-<div id="tracker-app">
+<div id="app-container">
     <header id="drag-handle">
         <span>🔧 Mechanic Ops</span>
         <span id="clock" style="font-size:0.8em">00:00</span>
@@ -174,36 +217,43 @@
         </div>
 
         <div class="section">
-            <div class="label">Inventory & Session Jobs</div>
+            <div class="label">Session Statistics</div>
             
-            <div class="inv-row" id="row-wrench">
-                <div class="inv-name">🔧 Wrench (Engine/Tire)</div>
+            <div class="inv-row" id="row-tire">
+                <div class="inv-name">🔘 Tire / Towing</div>
                 <div class="inv-stats">
-                    Stock: <span id="stock-wrench">0</span>
+                    <span class="inv-used" id="used-tire">+0</span>
+                </div>
+            </div>
+
+            <div class="inv-row" id="row-wrench">
+                <div class="inv-name">🔧 Blown Engine</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-wrench">--</span>
                     <span class="inv-used" id="used-wrench">+0</span>
                 </div>
             </div>
 
             <div class="inv-row" id="row-jumper">
-                <div class="inv-name">⚡ Jumper (Battery)</div>
+                <div class="inv-name">⚡ Dead Battery</div>
                 <div class="inv-stats">
-                    Stock: <span id="stock-jumper">0</span>
+                    Stock: <span id="stock-jumper">--</span>
                     <span class="inv-used" id="used-jumper">+0</span>
                 </div>
             </div>
 
             <div class="inv-row" id="row-jerry">
-                <div class="inv-name">⛽ Jerry Can (Gas)</div>
+                <div class="inv-name">⛽ Out of Gas</div>
                 <div class="inv-stats">
-                    Stock: <span id="stock-jerry">0</span>
+                    Stock: <span id="stock-jerry">--</span>
                     <span class="inv-used" id="used-jerry">+0</span>
                 </div>
             </div>
 
             <div class="inv-row" id="row-hammer">
-                <div class="inv-name">🔨 Hammer (Chassis)</div>
+                <div class="inv-name">🔨 Bent Chassis</div>
                 <div class="inv-stats">
-                    Stock: <span id="stock-hammer">0</span>
+                    Stock: <span id="stock-hammer">--</span>
                     <span class="inv-used" id="used-hammer">+0</span>
                 </div>
             </div>
@@ -211,36 +261,37 @@
 
         <div class="section" style="border:none;">
             <div class="label">Target Calculator</div>
-            <input type="number" id="target-input" placeholder="Target XP (e.g. 100,000)">
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 100,000):</div>
+            <input type="number" id="target-input" placeholder="e.g. 100000">
             <div class="calc-output" id="calc-result">
-                Enter target above to calc remaining jobs...
+                Start working to enable calculator...
             </div>
         </div>
 
     </div>
-    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
 
 <script>
-    // --- CONFIG ---
+    // --- MECHANIC CONFIG ---
     const KEYS = {
         XP: "exp_trucking_mechanic",
         BXP: "exp_token_a|trucking|mechanic"
     };
 
     const ITEMS = {
-        wrench: { key: "wrench", name: "Wrench", stock: 0, used: 0 },
-        jumper: { key: "jumper", name: "Jumper Cable", stock: 0, used: 0 },
-        jerry:  { key: "jerry",  name: "Jerry Can", stock: 0, used: 0 },
-        hammer: { key: "hammer", name: "Hammer", stock: 0, used: 0 }
+        wrench: { keywords: ["wrench"], stock: 0, session: 0 },
+        jumper: { keywords: ["jumper", "cable"], stock: 0, session: 0 },
+        jerry:  { keywords: ["jerry", "petrol"], stock: 0, session: 0 },
+        hammer: { keywords: ["hammer"], stock: 0, session: 0 }
     };
 
     const STATE = {
         currentXP: 0,
         currentBXP: 0,
         startXP: null,
-        callouts: 0,
-        avgXP: 0
+        callouts: 0, 
+        avgXP: 0,
+        inventoryInit: false
     };
 
     // --- FORMULAS ---
@@ -252,10 +303,6 @@
     }
     function formatNum(n) {
         return Math.floor(n).toLocaleString("en-US");
-    }
-    function getPercentValue(current, prev, next) {
-        const p = ((current - prev) / (next - prev)) * 100;
-        return Math.min(100, Math.max(0, p)).toFixed(1);
     }
 
     // --- COMMS ---
@@ -271,9 +318,9 @@
     }
     
     requestData();
-    setInterval(requestData, 2000);
+    setInterval(requestData, 1000);
 
-    // --- MAIN LISTENER ---
+    // --- DATA LISTENER ---
     window.addEventListener('message', (event) => {
         let payload = event.data;
         if (payload && payload.type === 'data' && payload.data) {
@@ -290,25 +337,42 @@
                 const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
                 processInventory(inv);
             } catch(e){}
-        } else {
-            if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
+        } else if (payload[KEYS.BXP]) {
+            updateBXP(payload[KEYS.BXP]);
         }
     });
 
     function processInventory(inv) {
         if (!inv) return;
+
         if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
-        for (let [id, data] of Object.entries(inv)) {
-            let qty = (typeof data === 'object') ? data.amount : data;
-            let lowerID = id.toLowerCase();
-
-            for (let type in ITEMS) {
-                if (lowerID.includes(ITEMS[type].key)) {
-                    updateItemStats(type, qty);
-                }
+        const invArray = Object.entries(inv).map(([id, data]) => {
+            let qty = 0;
+            if (typeof data === 'number') qty = data;
+            else if (typeof data === 'object') {
+                qty = data.amount || data.count || data.qty || 0;
             }
+            return { id: id.toLowerCase(), qty: qty };
+        });
+
+        for (let type in ITEMS) {
+            let itemData = ITEMS[type];
+            let foundQty = 0;
+
+            const matches = invArray.filter(invItem => 
+                itemData.keywords.some(k => invItem.id.includes(k))
+            );
+
+            if (matches.length > 0) {
+                foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
+            }
+
+            updateItemStats(type, foundQty);
         }
+        STATE.inventoryInit = true;
+
+        calculateRemainder();
     }
 
     function updateBXP(val) {
@@ -321,21 +385,24 @@
 
     function updateItemStats(type, newStock) {
         const item = ITEMS[type];
-        if (item.stock > 0 && newStock < item.stock) {
+        
+        if (STATE.inventoryInit && item.stock > 0 && newStock < item.stock) {
             const diff = item.stock - newStock;
-            if(diff < 5) item.used += diff;
+            if (diff < 10) {
+                item.session += diff;
+            }
         }
         item.stock = newStock;
 
         document.getElementById(`stock-${type}`).innerText = newStock;
-        document.getElementById(`used-${type}`).innerText = `+${item.used}`;
+        document.getElementById(`used-${type}`).innerText = `+${item.session}`;
         
         const row = document.getElementById(`row-${type}`);
         if (newStock < 2) row.classList.add('low-stock');
         else row.classList.remove('low-stock');
     }
 
-    // --- XP LOGIC ---
+    // --- LOGIC ---
     function updateXP(newXP) {
         if (STATE.startXP === null) {
             STATE.startXP = newXP;
@@ -345,39 +412,44 @@
         }
 
         if (newXP > STATE.currentXP) {
-            STATE.callouts++;
+            STATE.callouts++; 
             const gained = newXP - STATE.startXP;
             STATE.avgXP = gained / STATE.callouts;
-            
-            // Level Up Sound
+
             if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
-                try { window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); } catch(e){}
+                window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); 
             }
         }
 
         STATE.currentXP = newXP;
+        calculateRemainder();
         renderDisplay();
+    }
+
+    function calculateRemainder() {
+        const totalItemsUsed = ITEMS.wrench.session + ITEMS.jumper.session + ITEMS.jerry.session + ITEMS.hammer.session;
+        const remainder = Math.max(0, STATE.callouts - totalItemsUsed);
+        document.getElementById('used-tire').innerText = `+${remainder}`;
     }
 
     function renderDisplay() {
         const lvl = getLevelFromXP(STATE.currentXP);
         const nextLvlXP = getXPFromLevel(lvl + 1);
         const prevLvlXP = getXPFromLevel(lvl);
-        const percent = getPercentValue(STATE.currentXP, prevLvlXP, nextLvlXP);
+        const percent = Math.min(100, Math.max(0, ((STATE.currentXP - prevLvlXP) / (nextLvlXP - prevLvlXP)) * 100));
 
         document.getElementById('disp-level').innerText = lvl;
         document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
         document.getElementById('level-bar').style.width = percent + "%";
-        document.getElementById('level-text').innerText = percent + "%";
+        document.getElementById('level-text').innerText = percent.toFixed(1) + "%";
         document.getElementById('disp-callouts').innerText = STATE.callouts;
-        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP); // Update Avg XP UI
 
         runCalculator();
     }
 
     // --- CALCULATOR ---
-    const calcInput = document.getElementById('target-input');
-    if(calcInput) calcInput.addEventListener('input', runCalculator);
+    document.getElementById('target-input').addEventListener('input', runCalculator);
 
     function runCalculator() {
         const val = document.getElementById('target-input').value;
@@ -388,23 +460,23 @@
             return;
         }
         if (!val) {
-            el.innerText = "Enter target above...";
+            el.innerText = "Enter target above.";
             return;
         }
 
         let inputVal = parseInt(val.replace(/,/g, ''));
         let targetXP = inputVal;
 
-        if (inputVal < 200) {
-            let lvlXP = getXPFromLevel(inputVal);
-            if (lvlXP > STATE.currentXP) targetXP = lvlXP;
+        if (inputVal < 200) { 
+             let lvlXP = getXPFromLevel(inputVal);
+             if (lvlXP > STATE.currentXP) targetXP = lvlXP;
         }
 
         if (targetXP > STATE.currentXP) {
             const diff = targetXP - STATE.currentXP;
             const jobs = Math.ceil(diff / STATE.avgXP);
             el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
-                           `Callouts to go: <b>${formatNum(jobs)}</b>`;
+                           `<span style="color:var(--primary)">Callouts to go: <b>${formatNum(jobs)}</b></span>`;
         } else {
             const jobs = Math.ceil(inputVal / STATE.avgXP);
             el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} jobs</b>`;
@@ -417,67 +489,32 @@
         document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }, 1000);
 
-    // Drag Handler
-    (() => {
-        const app = document.getElementById('tracker-app');
-        const handle = document.getElementById('drag-handle');
-        const rh = document.getElementById('resize-handle');
-        if (!app || !handle) return;
-        
-        let sx=0, sy=0, ax=0, ay=0, dragging=false;
-        let sw=0, sh=0, resizing=false;
+    const elmnt = document.getElementById("app-container");
+    const header = document.getElementById("drag-handle");
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    
+    header.onmousedown = dragMouseDown;
+    function dragMouseDown(e) {
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+    }
+    function elementDrag(e) {
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+    }
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
 
-        function startDrag(clientX, clientY, e) {
-            if (e && e.target.closest('button')) return;
-            if (e) { e.preventDefault(); e.stopPropagation(); }
-            dragging = true; sx = clientX; sy = clientY;
-            const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
-            handle.classList.add('dragging');
-        }
-
-        handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
-
-        if (rh) {
-            function startResize(clientX, clientY, e) {
-                if (e) { e.preventDefault(); e.stopPropagation(); }
-                resizing = true; sx = clientX; sy = clientY;
-                const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
-            }
-            rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
-        }
-
-        function handleMove(clientX, clientY, e) {
-            if (dragging) {
-                if (e) e.preventDefault();
-                const dx = clientX - sx, dy = clientY - sy;
-                app.style.transform = `translate(${dx}px, ${dy}px)`;
-            } else if (resizing) {
-                if (e) e.preventDefault();
-                const dx = clientX - sx, dy = clientY - sy;
-                app.style.width  = `${Math.max(280, sw + dx)}px`;
-                app.style.height = `${Math.max(120, sh + dy)}px`;
-            }
-        }
-        
-        window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
-
-        function endDrag() {
-            if (dragging) {
-                const transform = app.style.transform;
-                const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
-                if (match) {
-                    const dx = parseFloat(match[1]) || 0;
-                    const dy = parseFloat(match[2]) || 0;
-                    app.style.transform = '';
-                    app.style.left = `${ax + dx}px`;
-                    app.style.top = `${ay + dy}px`;
-                }
-            }
-            dragging = false; resizing = false;
-            handle.classList.remove('dragging');
-        }
-        window.addEventListener('mouseup', endDrag);
-    })();
 </script>
 </body>
 </html>
