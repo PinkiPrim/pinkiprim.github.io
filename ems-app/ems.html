@@ -107,7 +107,8 @@
         }
         .xp-remaining-text b { color: var(--primary); }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        /* Updated to 3 Columns */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
         .stat-box {
             background: rgba(255,255,255,0.05); padding: 6px;
             border-radius: 4px; text-align: center;
@@ -172,6 +173,10 @@
                 <div class="stat-box">
                     <div class="label">BXP Tokens</div>
                     <div class="value bxp" id="disp-bxp">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Avg XP</div>
+                    <div class="value" id="disp-avg">0</div>
                 </div>
                 <div class="stat-box">
                     <div class="label">Revives/Heals</div>
@@ -820,6 +825,9 @@ function updateEMSHUD() {
     
     // Calculate Average
     const averageXP = bridge_Revives > 0 ? (bridge_SessionXP / bridge_Revives) : 0;
+    
+    // NEW: Update AVG XP Display
+    document.getElementById('disp-avg').innerText = Math.round(averageXP);
     
     // --- DISPLAY REMAINING XP & REVIVES ---
     const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
