@@ -12,15 +12,20 @@
             padding: 0;
             font-family: 'Roboto', sans-serif;
             background: transparent !important; /* TRANSPARENT FOR FIVEM */
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             overflow: hidden;
             user-select: none;
             perspective: 1000px; /* Enable 3D space */
+            
+            /* BLACK BOX FIX: Removed 100vh/100vw on body */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%; 
+            width: 100%;
         }
+        
+        /* Ensure the html takes up full screen for centering, but transparently */
+        html { height: 100vh; width: 100vw; }
 
         /* --- MENU CONTAINER --- */
         #menu-container {
