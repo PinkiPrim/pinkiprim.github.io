@@ -8,7 +8,7 @@
 
         /* --- THEME: HUNTER GREEN --- */
         :root {
-            --primary: #558b2f; /* Forest Green */ 
+            --primary: #558b2f; /* Forest Green */
             --primary-dim: #2e5c18;
             --bg-glass: rgba(15, 15, 15, 0.95);
             --text-main: #ffffff;
@@ -24,11 +24,11 @@
             margin: 0;
             padding: 0;
             font-family: 'Roboto', sans-serif;
-            background-color: transparent; /* Critical */
+            background-color: transparent;
             color: var(--text-main);
             overflow: hidden;
-            height: 100vh; /* Critical */
-            width: 100vw;  /* Critical */
+            height: 100vh;
+            width: 100vw;
             user-select: none;
         }
 
@@ -226,307 +226,246 @@
     <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
 
-<div id="settings-icon" style="display:none;"></div>
-<div id="settings-panel" style="display:none;">
-    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
-    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
-    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
-    <input type="number" id="xp-font-size">
-    <button id="reset-exp-log"></button>
-    <div id="xp-font-size-value"></div>
-</div>
-<div id="job-list" style="display:none;"></div>
-<table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
-
 <script>
-// --- CLOCK ---
-function updateClock() {
-    const now = new Date();
-    const el = document.getElementById('clock');
-    if(el) el.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-}
-setInterval(updateClock, 1000);
-updateClock();
+    // --- CONFIG ---
+    const KEYS = {
+        XP: "exp_hunting_skill",
+        BXP: "exp_token_a|hunting|skill"
+    };
 
-// --- ENGINE ---
-let lastInventoryObj = {};
-let selectedJobs = ["hunter"]; 
-let expLogs = {};
-let lastBXPs = {};
-let initialExps = {};
-let lastExps = {};
-let hasFirstGain = {};
-let lastUpdateTime = {};
-let lastDisplayedExps = {};
-let lastRenderTime = 0;
-let hasReceivedAnyData = false;
-let hasRequestedOnce = false;
+    // ITEM DEFINITIONS
+    const ITEMS = {
+        meat:    { keywords: ["meat"], stock: 0 },
+        boar:    { keywords: ["hunting: boar", "boar"], stock: 0 },
+        bear:    { keywords: ["hunting: brown bear", "brown bear", "bear"], stock: 0 },
+        cougar:  { keywords: ["hunting: cougar", "cougar"], stock: 0 },
+        coyote:  { keywords: ["hunting: coyote", "coyote"], stock: 0 },
+        deer:    { keywords: ["hunting: deer", "deer"], stock: 0 },
+        leopard: { keywords: ["hunting: leopard", "leopard"], stock: 0 },
+        lion:    { keywords: ["hunting: lion", "lion"], stock: 0 },
+        rabbit:  { keywords: ["hunting: rabbit", "rabbit"], stock: 0 },
+        rat:     { keywords: ["hunting: rat", "rat"], stock: 0 },
+        wolf:    { keywords: ["hunting: wolf", "wolf"], stock: 0 }
+    };
 
-const RECENT_WINDOW_MS = 10 * 60 * 1000;
-const RENDER_THROTTLE_MS = 500;
+    const STATE = {
+        currentXP: 0,
+        currentBXP: 0,
+        startXP: null,
+        callouts: 0,
+        avgXP: 0
+    };
 
-const JOB_EXP_KEYS = { hunter: "exp_hunting_skill" };
-const JOB_BXP_KEYS = { hunter: "exp_token_a|hunting|skill" };
-
-// ITEM LIST
-const ITEMS = {
-    meat:    { keywords: ["meat"], stock: 0 },
-    boar:    { keywords: ["hunting: boar", "boar"], stock: 0 },
-    bear:    { keywords: ["hunting: brown bear", "brown bear", "bear"], stock: 0 },
-    cougar:  { keywords: ["hunting: cougar", "cougar"], stock: 0 },
-    coyote:  { keywords: ["hunting: coyote", "coyote"], stock: 0 },
-    deer:    { keywords: ["hunting: deer", "deer"], stock: 0 },
-    leopard: { keywords: ["hunting: leopard", "leopard"], stock: 0 },
-    lion:    { keywords: ["hunting: lion", "lion"], stock: 0 },
-    rabbit:  { keywords: ["hunting: rabbit", "rabbit"], stock: 0 },
-    rat:     { keywords: ["hunting: rat", "rat"], stock: 0 },
-    wolf:    { keywords: ["hunting: wolf", "wolf"], stock: 0 }
-};
-
-const STATE = { currentXP: 0, currentBXP: 0, startXP: null, callouts: 0, avgXP: 0 };
-
-function formatNumber(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-  return num.toLocaleString();
-}
-
-function getAllRequiredKeys() { return ["inventory", "exp_hunting_skill"]; }
-
-function getLevelInfo(exp) {
-  let level = 0;
-  let xpCap = 5;
-  while (exp >= xpCap) {
-    exp -= xpCap;
-    level++;
-    xpCap = (level + 1) * 5;
-  }
-  return { level, expInLevel: exp, expForNext: xpCap };
-}
-
-function getPercentValue(exp, cap) {
-  if (typeof exp !== "number") return null;
-  const pct = Math.max(0, Math.min(100, (exp / cap) * 100));
-  return +pct.toFixed(1);
-}
-
-function saveData() {
-  localStorage.setItem("selected-jobs", JSON.stringify(selectedJobs));
-  localStorage.setItem("exp-logs", JSON.stringify(expLogs));
-}
-
-function loadData() {
-  expLogs = JSON.parse(localStorage.getItem("exp-logs") || "{}");
-}
-
-function renderStats() {
-  const now = Date.now();
-  if (now - lastRenderTime < RENDER_THROTTLE_MS) return;
-  lastRenderTime = now;
-  // UI updates happen in processGameData or events
-}
-
-function processGameData(data) {
-  const now = Date.now();
-  let inventory = {};
-  
-  if (data.inventory) {
-    try {
-      inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
-      if (inventory) {
-          lastInventoryObj = inventory;
-          processInventory(inventory);
-      }
-    } catch { inventory = lastInventoryObj; }
-  } else { inventory = lastInventoryObj; }
-  
-  const expKey = JOB_EXP_KEYS['hunter'];
-  const exp = data[expKey];
-  
-  if (typeof exp === "number") {
-      updateXP(exp);
-  }
-
-  const bxpToken = JOB_BXP_KEYS['hunter'];
-  let bxpObj;
-  if (bxpToken && data[bxpToken]) bxpObj = data[bxpToken];
-  else if (bxpToken && inventory && typeof inventory === 'object') {
-      bxpObj = inventory[bxpToken];
-      if (!bxpObj) {
-        const fallbackKey = Object.keys(inventory).find(k => k.startsWith(bxpToken));
-        if (fallbackKey) bxpObj = inventory[fallbackKey];
-      }
-  }
-  if (bxpObj) updateBXP(bxpObj);
-  
-  saveData();
-  renderStats();
-}
-
-function requestDataOnce(force = false) {
-  if (hasRequestedOnce && !force) return;
-  hasRequestedOnce = true;
-  try {
-    const keys = getAllRequiredKeys();
-    window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
-  } catch (e) {
-    window.parent.postMessage({ type: "getData" }, "*");
-  }
-}
-
-function init() {
-  loadData();
-  renderStats();
-  setInterval(requestDataOnce, 1000); 
-  window.addEventListener("message", (event) => {
-    const msg = event.data;
-    if (msg && msg.type === "data" && msg.data) {
-      hasReceivedAnyData = true;         
-      processGameData(msg.data);
+    // --- FORMULAS ---
+    function getLevelFromXP(xp) { return Math.floor((Math.sqrt(1 + 8 * xp / 5) - 1) / 2); }
+    function getXPFromLevel(level) { return Math.floor((5 * level * (level + 1)) / 2); }
+    function formatNum(n) { return Math.floor(n).toLocaleString("en-US"); }
+    function getPercentValue(current, prev, next) {
+        if(typeof current !== 'number') return 0;
+        const p = ((current - prev) / (next - prev)) * 100;
+        return Math.min(100, Math.max(0, p)).toFixed(1);
     }
-  });
-  requestDataOnce();
-  setTimeout(() => { if (!hasReceivedAnyData) requestDataOnce(true); }, 1200);
-}
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-else init();
+    // --- COMMS ---
+    function requestData() {
+        if(window.parent) {
+            try {
+                window.parent.postMessage({ 
+                    type: "getNamedData",
+                    keys: [KEYS.XP, KEYS.BXP, "inventory"]
+                }, "*");
+            } catch(e) {}
+        }
+    }
+    
+    // REPLACED: Simple Polling (like Mechanic)
+    requestData();
+    setInterval(requestData, 1000);
 
-// --- INVENTORY LOGIC ---
-function processInventory(inv) {
-    if (!inv) return;
-    const invArray = Object.entries(inv).map(([id, data]) => {
-        let qty = 0;
-        if (typeof data === 'number') qty = data;
-        else if (typeof data === 'object') qty = data.amount || data.count || data.qty || 0;
-        return { id: id.toLowerCase(), qty: qty };
+    // --- MAIN LISTENER ---
+    window.addEventListener('message', (event) => {
+        let payload = event.data;
+        if (payload && payload.type === 'data' && payload.data) {
+            payload = payload.data;
+        }
+        if (!payload) return;
+
+        // 1. Process XP
+        if (typeof payload[KEYS.XP] === 'number') {
+            updateXP(payload[KEYS.XP]);
+        }
+
+        // 2. Process Inventory (BXP + Items)
+        if (payload.inventory) {
+            try {
+                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
+                processInventory(inv);
+            } catch(e){}
+        } else {
+            // Fallback BXP
+            if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
+        }
     });
 
-    for (let type in ITEMS) {
-        let itemData = ITEMS[type];
-        let foundQty = 0;
-        const matches = invArray.filter(invItem => 
-            itemData.keywords.some(k => invItem.id.includes(k))
-        );
-        if (matches.length > 0) {
-            foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
-        }
-        ITEMS[type].stock = foundQty;
-        const el = document.getElementById(`stock-${type}`);
-        if(el) {
-            el.innerText = foundQty;
-            el.style.color = foundQty > 0 ? "white" : "var(--text-dim)";
+    function processInventory(inv) {
+        if (!inv) return;
+
+        if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
+
+        // Normalize Inventory
+        const invArray = Object.entries(inv).map(([id, data]) => {
+            let qty = 0;
+            if (typeof data === 'number') qty = data;
+            else if (typeof data === 'object') qty = data.amount || data.count || data.qty || 0;
+            return { id: id.toLowerCase(), qty: qty };
+        });
+
+        // Match Items
+        for (let type in ITEMS) {
+            let itemData = ITEMS[type];
+            let foundQty = 0;
+
+            const matches = invArray.filter(invItem => 
+                itemData.keywords.some(k => invItem.id.includes(k))
+            );
+
+            if (matches.length > 0) {
+                foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
+            }
+
+            ITEMS[type].stock = foundQty;
+            
+            const el = document.getElementById(`stock-${type}`);
+            if(el) {
+                el.innerText = foundQty;
+                el.style.color = foundQty > 0 ? "white" : "var(--text-dim)";
+            }
         }
     }
-}
 
-function updateBXP(val) {
-    let amt = (typeof val === 'object') ? val.amount : val;
-    if (amt >= 0) {
-        STATE.currentBXP = amt;
-        document.getElementById('disp-bxp').innerText = formatNum(amt);
+    function updateBXP(val) {
+        let amt = (typeof val === 'object') ? val.amount : val;
+        if (amt >= 0) {
+            STATE.currentBXP = amt;
+            document.getElementById('disp-bxp').innerText = formatNum(amt);
+        }
     }
-}
 
-// --- XP LOGIC ---
-function updateXP(newXP) {
-    if (STATE.startXP === null) {
-        STATE.startXP = newXP;
+    // --- XP LOGIC ---
+    function updateXP(newXP) {
+        if (STATE.startXP === null) {
+            STATE.startXP = newXP;
+            STATE.currentXP = newXP;
+            renderDisplay();
+            return;
+        }
+
+        if (newXP > STATE.currentXP) {
+            STATE.callouts++;
+            const gained = newXP - STATE.startXP;
+            STATE.avgXP = gained / STATE.callouts;
+            
+            if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
+                try { window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); } catch(e){}
+            }
+        }
+
         STATE.currentXP = newXP;
         renderDisplay();
-        return;
     }
-    if (newXP > STATE.currentXP) {
-        STATE.callouts++;
-        const gained = newXP - STATE.startXP;
-        STATE.avgXP = gained / STATE.callouts;
-        if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
-            try { window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); } catch(e){}
+
+    function renderDisplay() {
+        const lvl = getLevelFromXP(STATE.currentXP);
+        const nextLvlXP = getXPFromLevel(lvl + 1);
+        const prevLvlXP = getXPFromLevel(lvl);
+        const percent = getPercentValue(STATE.currentXP, prevLvlXP, nextLvlXP);
+
+        document.getElementById('disp-level').innerText = lvl;
+        document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
+        document.getElementById('level-bar').style.width = percent + "%";
+        document.getElementById('level-text').innerText = percent + "%";
+        document.getElementById('disp-callouts').innerText = STATE.callouts;
+        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+
+        runCalculator();
+    }
+
+    // --- CALCULATOR ---
+    const calcInput = document.getElementById('target-input');
+    if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+    function runCalculator() {
+        const val = document.getElementById('target-input').value;
+        const el = document.getElementById('calc-result');
+        
+        if (STATE.avgXP === 0) {
+            el.innerHTML = "<i>Hunt an animal to enable calc...</i>";
+            return;
+        }
+        if (!val) {
+            el.innerText = "Enter target above.";
+            return;
+        }
+
+        let inputVal = parseInt(val.replace(/,/g, ''));
+        let targetXP = inputVal;
+
+        if (inputVal < 200) {
+            let lvlXP = getXPFromLevel(inputVal);
+            if (lvlXP > STATE.currentXP) targetXP = lvlXP;
+        }
+
+        if (targetXP > STATE.currentXP) {
+            const diff = targetXP - STATE.currentXP;
+            const jobs = Math.ceil(diff / STATE.avgXP);
+            el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
+                           `<span style="color:var(--primary)">Est. Kills: <b>${formatNum(jobs)}</b></span>`;
+        } else {
+            const jobs = Math.ceil(inputVal / STATE.avgXP);
+            el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} kills</b>`;
         }
     }
-    STATE.currentXP = newXP;
-    renderDisplay();
-}
 
-function renderDisplay() {
-    const lvl = getLevelFromXP(STATE.currentXP);
-    const nextLvlXP = getXPFromLevel(lvl + 1);
-    const prevLvlXP = getXPFromLevel(lvl);
-    const percent = getPercentValue(STATE.currentXP, prevLvlXP, nextLvlXP);
+    // --- CLOCK ---
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }, 1000);
 
-    document.getElementById('disp-level').innerText = lvl;
-    document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
-    document.getElementById('level-bar').style.width = percent + "%";
-    document.getElementById('level-text').innerText = percent + "%";
-    document.getElementById('disp-callouts').innerText = STATE.callouts;
-    document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
-    runCalculator();
-}
+    // --- SIMPLE DRAG HANDLER (Same as Mechanic) ---
+    (() => {
+        const app = document.getElementById('tracker-app');
+        const handle = document.getElementById('drag-handle');
+        
+        if (!app || !handle) return;
+        
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
 
-const calcInput = document.getElementById('target-input');
-if(calcInput) calcInput.addEventListener('input', runCalculator);
+        handle.onmousedown = (e) => {
+            e = e || window.event;
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        };
 
-function runCalculator() {
-    const val = document.getElementById('target-input').value;
-    const el = document.getElementById('calc-result');
-    if (STATE.avgXP === 0) { el.innerHTML = "<i>Hunt an animal to enable calc...</i>"; return; }
-    if (!val) { el.innerText = "Enter target above."; return; }
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            app.style.top = (app.offsetTop - pos2) + "px";
+            app.style.left = (app.offsetLeft - pos1) + "px";
+        }
 
-    let inputVal = parseInt(val.replace(/,/g, ''));
-    let targetXP = inputVal;
-    if (inputVal < 200) { 
-         let lvlXP = getXPFromLevel(inputVal);
-         if (lvlXP > STATE.currentXP) targetXP = lvlXP;
-    }
-
-    if (targetXP > STATE.currentXP) {
-        const diff = targetXP - STATE.currentXP;
-        const jobs = Math.ceil(diff / STATE.avgXP);
-        el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br><span style="color:var(--primary)">Est. Kills: <b>${formatNum(jobs)}</b></span>`;
-    } else {
-        const jobs = Math.ceil(inputVal / STATE.avgXP);
-        el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} kills</b>`;
-    }
-}
-
-// --- FIXED DRAG HANDLER (Same as Mechanic/Cargo) ---
-(() => {
-    const app = document.getElementById('tracker-app');
-    const handle = document.getElementById('drag-handle');
-    
-    if (!app || !handle) return;
-    
-    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-    handle.onmousedown = dragMouseDown;
-
-    function dragMouseDown(e) {
-        e = e || window.event;
-        e.preventDefault();
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
-    }
-
-    function elementDrag(e) {
-        e = e || window.event;
-        e.preventDefault();
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        app.style.top = (app.offsetTop - pos2) + "px";
-        app.style.left = (app.offsetLeft - pos1) + "px";
-    }
-
-    function closeDragElement() {
-        document.onmouseup = null;
-        document.onmousemove = null;
-    }
-})();
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    })();
 </script>
 </body>
 </html>
-
