@@ -6,13 +6,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- BLACK BOX FIX --- */
-        html, body {
-            margin: 0; padding: 0;
-            background: transparent !important;
-            overflow: hidden;
-        }
-
+        /* --- THEME: MECHANIC BLUE --- */
         :root {
             --primary: #0091ea; /* Mechanic Blue */
             --primary-dim: #0064b7;
@@ -25,34 +19,54 @@
         }
 
         body {
+            margin: 0;
+            padding: 0;
             font-family: 'Roboto', sans-serif;
+            background-color: transparent;
             color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
             user-select: none;
         }
 
-        #app-container {
+        /* --- CONTAINER --- */
+        #tracker-app {
             position: absolute;
-            top: 50px; left: 50px;
+            top: 50px;
+            left: 50px;
             width: 320px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            display: flex; flex-direction: column;
-            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            resize: both;
+            overflow: hidden;
+            min-height: 250px;
         }
 
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 8px 12px;
             cursor: move;
-            display: flex; justify-content: space-between; align-items: center;
-            font-family: 'Rajdhani', sans-serif; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
-            border-top-left-radius: 8px; border-top-right-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1.1em;
         }
 
-        #content { padding: 10px; flex: 1; overflow-y: auto; }
+        #content {
+            padding: 12px;
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
 
         .section {
             margin-bottom: 10px; padding-bottom: 8px;
@@ -68,7 +82,6 @@
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
-        /* PROGRESS BAR */
         .progress-container {
             position: relative; height: 16px;
             background: rgba(0,0,0,0.5);
@@ -86,7 +99,7 @@
             font-weight: bold; z-index: 2;
         }
 
-        /* UPDATED GRID FOR 3 COLUMNS */
+        /* 3 COLUMN GRID FOR AVG XP */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
         .stat-box {
             background: rgba(255,255,255,0.05); padding: 6px;
@@ -98,15 +111,13 @@
             display: flex; justify-content: space-between; align-items: center;
             background: rgba(0,0,0,0.3); padding: 4px 8px;
             margin-bottom: 4px; border-radius: 4px;
-            border-left: 2px solid var(--text-dim);
+            border-left: 3px solid var(--text-dim);
         }
         .inv-name { font-size: 0.8em; }
         .inv-stats { font-size: 0.8em; font-weight: bold; text-align: right; }
         .inv-used { color: var(--primary); margin-left: 5px; }
-        
-        .inv-row.low-stock { border-left-color: var(--alert); }
+        .low-stock { border-left-color: var(--alert); }
 
-        /* CALCULATOR */
         input[type="number"] {
             width: 90%; background: rgba(0,0,0,0.3);
             border: 1px solid #444; color: white; padding: 5px;
@@ -121,7 +132,7 @@
 </head>
 <body>
 
-<div id="app-container">
+<div id="tracker-app">
     <header id="drag-handle">
         <span>🔧 Mechanic Ops</span>
         <span id="clock" style="font-size:0.8em">00:00</span>
@@ -207,6 +218,7 @@
         </div>
 
     </div>
+    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
 
 <script>
@@ -216,7 +228,6 @@
         BXP: "exp_token_a|trucking|mechanic"
     };
 
-    // ITEM KEYWORDS (Matches part of the ID found in game data)
     const ITEMS = {
         wrench: { key: "wrench", name: "Wrench", stock: 0, used: 0 },
         jumper: { key: "jumper", name: "Jumper Cable", stock: 0, used: 0 },
@@ -242,6 +253,10 @@
     function formatNum(n) {
         return Math.floor(n).toLocaleString("en-US");
     }
+    function getPercentValue(current, prev, next) {
+        const p = ((current - prev) / (next - prev)) * 100;
+        return Math.min(100, Math.max(0, p)).toFixed(1);
+    }
 
     // --- COMMS ---
     function requestData() {
@@ -266,35 +281,28 @@
         }
         if (!payload) return;
 
-        // 1. Process XP
         if (typeof payload[KEYS.XP] === 'number') {
             updateXP(payload[KEYS.XP]);
         }
 
-        // 2. Process Inventory (BXP + Items)
         if (payload.inventory) {
             try {
                 const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
                 processInventory(inv);
             } catch(e){}
         } else {
-            // Fallback: Check BXP if sent separately
             if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
         }
     });
 
     function processInventory(inv) {
         if (!inv) return;
-
-        // A. Update BXP
         if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
-        // B. Update Items (Auto-detect IDs by keyword)
         for (let [id, data] of Object.entries(inv)) {
             let qty = (typeof data === 'object') ? data.amount : data;
             let lowerID = id.toLowerCase();
 
-            // Check against our item list
             for (let type in ITEMS) {
                 if (lowerID.includes(ITEMS[type].key)) {
                     updateItemStats(type, qty);
@@ -313,24 +321,15 @@
 
     function updateItemStats(type, newStock) {
         const item = ITEMS[type];
-        
-        // Detect Usage (If stock dropped)
         if (item.stock > 0 && newStock < item.stock) {
             const diff = item.stock - newStock;
-            // Sanity check: ignore massive drops (like dropping item on ground) 
-            // We assume a job uses 1 item at a time usually
-            if(diff < 5) {
-                item.used += diff;
-            }
+            if(diff < 5) item.used += diff;
         }
-
         item.stock = newStock;
 
-        // Update DOM
         document.getElementById(`stock-${type}`).innerText = newStock;
         document.getElementById(`used-${type}`).innerText = `+${item.used}`;
         
-        // Visual Alert for Low Stock
         const row = document.getElementById(`row-${type}`);
         if (newStock < 2) row.classList.add('low-stock');
         else row.classList.remove('low-stock');
@@ -352,7 +351,7 @@
             
             // Level Up Sound
             if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
-                window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); 
+                try { window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); } catch(e){}
             }
         }
 
@@ -364,20 +363,21 @@
         const lvl = getLevelFromXP(STATE.currentXP);
         const nextLvlXP = getXPFromLevel(lvl + 1);
         const prevLvlXP = getXPFromLevel(lvl);
-        const percent = Math.min(100, Math.max(0, ((STATE.currentXP - prevLvlXP) / (nextLvlXP - prevLvlXP)) * 100));
+        const percent = getPercentValue(STATE.currentXP, prevLvlXP, nextLvlXP);
 
         document.getElementById('disp-level').innerText = lvl;
         document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
         document.getElementById('level-bar').style.width = percent + "%";
-        document.getElementById('level-text').innerText = percent.toFixed(1) + "%";
+        document.getElementById('level-text').innerText = percent + "%";
         document.getElementById('disp-callouts').innerText = STATE.callouts;
-        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP); // NEW: Display Avg
+        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
 
         runCalculator();
     }
 
     // --- CALCULATOR ---
-    document.getElementById('target-input').addEventListener('input', runCalculator);
+    const calcInput = document.getElementById('target-input');
+    if(calcInput) calcInput.addEventListener('input', runCalculator);
 
     function runCalculator() {
         const val = document.getElementById('target-input').value;
@@ -395,7 +395,6 @@
         let inputVal = parseInt(val.replace(/,/g, ''));
         let targetXP = inputVal;
 
-        // Smart Level Detect
         if (inputVal < 200) {
             let lvlXP = getXPFromLevel(inputVal);
             if (lvlXP > STATE.currentXP) targetXP = lvlXP;
@@ -418,21 +417,67 @@
         document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }, 1000);
 
-    const elmnt = document.getElementById("app-container");
-    const header = document.getElementById("drag-handle");
-    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-    
-    header.onmousedown = (e) => {
-        e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY;
-        document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
-        document.onmousemove = (e) => {
-            e.preventDefault();
-            pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
-            pos3 = e.clientX; pos4 = e.clientY;
-            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-        };
-    };
+    // Drag Handler
+    (() => {
+        const app = document.getElementById('tracker-app');
+        const handle = document.getElementById('drag-handle');
+        const rh = document.getElementById('resize-handle');
+        if (!app || !handle) return;
+        
+        let sx=0, sy=0, ax=0, ay=0, dragging=false;
+        let sw=0, sh=0, resizing=false;
+
+        function startDrag(clientX, clientY, e) {
+            if (e && e.target.closest('button')) return;
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            dragging = true; sx = clientX; sy = clientY;
+            const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
+            handle.classList.add('dragging');
+        }
+
+        handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+
+        if (rh) {
+            function startResize(clientX, clientY, e) {
+                if (e) { e.preventDefault(); e.stopPropagation(); }
+                resizing = true; sx = clientX; sy = clientY;
+                const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
+            }
+            rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+        }
+
+        function handleMove(clientX, clientY, e) {
+            if (dragging) {
+                if (e) e.preventDefault();
+                const dx = clientX - sx, dy = clientY - sy;
+                app.style.transform = `translate(${dx}px, ${dy}px)`;
+            } else if (resizing) {
+                if (e) e.preventDefault();
+                const dx = clientX - sx, dy = clientY - sy;
+                app.style.width  = `${Math.max(280, sw + dx)}px`;
+                app.style.height = `${Math.max(120, sh + dy)}px`;
+            }
+        }
+        
+        window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+
+        function endDrag() {
+            if (dragging) {
+                const transform = app.style.transform;
+                const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+                if (match) {
+                    const dx = parseFloat(match[1]) || 0;
+                    const dy = parseFloat(match[2]) || 0;
+                    app.style.transform = '';
+                    app.style.left = `${ax + dx}px`;
+                    app.style.top = `${ay + dy}px`;
+                }
+            }
+            dragging = false; resizing = false;
+            handle.classList.remove('dragging');
+        }
+        window.addEventListener('mouseup', endDrag);
+    })();
 </script>
 </body>
 </html>
