@@ -2,116 +2,341 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Sticky Scanner</title>
+    <title>TT Cargo Pilot</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --primary: #0277bd;
+            --primary-dim: #014c7a;
+            --bg-glass: rgba(15, 15, 15, 0.95);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(2, 119, 189, 0.4);
+            --green: #00e676;
+        }
+
+        /* --- BLACK BOX FIX --- */
         body {
-            margin: 0; padding: 20px;
-            background-color: #050505;
-            color: #00ff00;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 13px;
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
         }
-        #status { color: #ffff00; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+
+        #tracker-app {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
+            min-height: 200px;
+        }
+
+        header {
+            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+            padding: 8px 12px;
+            cursor: move;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
+        }
+
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+
+        .section { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .section:last-child { border-bottom: none; }
+
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 3px; }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value.highlight { color: var(--primary); }
+
+        /* Progress Bar */
+        .progress-container {
+            position: relative; height: 16px;
+            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 10px 0;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 0.7em; font-weight: bold; z-index: 2;
+        }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; text-align: center; }
+
+        /* Destination Box */
+        .dest-box {
+            background: rgba(2, 119, 189, 0.15);
+            border: 1px dashed var(--primary);
+            padding: 10px; border-radius: 4px;
+            text-align: center; font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1em; color: #fff;
+            margin-bottom: 12px;
+        }
+
+        /* Trunk List */
+        .trunk-item {
+            display: flex; justify-content: space-between;
+            font-size: 0.85em; padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* DEBUG PANEL */
+        #debug-panel {
+            background: #000; color: #0f0; font-family: monospace;
+            font-size: 10px; padding: 10px; margin-top: 10px;
+            border-top: 2px solid #fff; display: none;
+            max-height: 150px; overflow-y: auto; word-break: break-all;
+        }
         
-        /* The main display for the LATEST valid packet */
-        #latest-data {
-            border: 2px solid #00e676;
-            background: #111;
-            padding: 10px;
-            margin-bottom: 20px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            max-height: 40vh;
-            overflow-y: auto;
+        #settings-panel {
+            display: none; position: absolute; bottom: 30px; left: 10px; right: 10px;
+            background: #222; border: 1px solid #444; padding: 10px; z-index: 10;
         }
-
-        /* History log */
-        #history {
-            border-top: 1px solid #444;
-            padding-top: 10px;
-            color: #888;
-            max-height: 40vh;
-            overflow-y: auto;
+        
+        .copy-btn {
+            background: #444; color: white; border: 1px solid #666; 
+            padding: 5px 10px; margin-top: 5px; cursor: pointer; width: 100%;
         }
-
-        .key-highlight { color: #00e676; font-weight: bold; background: rgba(0, 100, 0, 0.3); }
-        .val-highlight { color: #fff; }
+        .copy-btn:hover { background: #666; }
     </style>
 </head>
 <body>
 
-    <h3>TT Sticky Scanner</h3>
-    <div id="status">Scanning... (Waiting for non-empty data)</div>
+<div id="tracker-app">
+    <header id="drag-handle">
+        <a href="https://pinkiprim.github.io/pinkiapps.html" style="text-decoration:none; margin-right:12px; cursor:pointer; font-size:1.2em;">🏠</a>
+        <span>✈️ Cargo Ops</span>
+        <span onclick="toggleSettings()" style="cursor:pointer; opacity:0.7;">⚙️</span>
+    </header>
 
-    <div style="color:#aaa; font-size:0.9em; margin-bottom:5px;">LATEST VALID DATA PACKET:</div>
-    <div id="latest-data">Waiting...</div>
+    <div id="content">
+        
+        <div class="dest-box" id="disp-dest">
+            Waiting for Waypoint...
+        </div>
 
-    <div style="color:#aaa; font-size:0.9em; margin-bottom:5px; margin-top:20px;">HISTORY LOG (Newest First):</div>
-    <div id="history"></div>
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div><div class="label">Pilot Level</div><div class="value highlight" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp">0</div></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="level-bar"></div>
+                <div class="progress-text" id="level-text">...</div>
+            </div>
+            <div class="stat-grid">
+                <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
+                <div class="stat-box"><div class="label">Deliveries</div><div class="value" id="disp-jobs">0</div></div>
+            </div>
+        </div>
 
-    <script>
-        const latestEl = document.getElementById('latest-data');
-        const historyEl = document.getElementById('history');
-        const statusEl = document.getElementById('status');
+        <div class="section">
+            <div class="label">📦 Cargo Hold (Trunk)</div>
+            <div id="trunk-list" style="min-height:30px; color:#666; font-size:0.8em; font-style:italic;">
+                No cargo data... (Open Trunk?)
+            </div>
+        </div>
 
-        // KEYS TO LISTEN FOR
-        const guessKeys = [
-            "inventory", "vehicle", "vehicle_inventory", "trunk", "trunk_inventory", 
-            "glovebox", "secondary_inventory", "cargo", 
-            "job", "job_name", "job_stage", "destination", "dest", "waypoint", "route"
-        ];
+        <div id="debug-panel">Waiting for stream...</div>
+    </div>
 
-        function scan() {
-            if(window.parent) {
-                try {
-                    window.parent.postMessage({ type: "getNamedData", keys: guessKeys }, "*");
-                    statusEl.innerText = "Scanning... " + new Date().toLocaleTimeString();
-                } catch(e) {}
+    <div id="settings-panel">
+        <label style="display:flex; align-items:center; margin-bottom:5px;">
+            <input type="checkbox" id="chk-debug" onchange="toggleDebug()"> Show Debug Info
+        </label>
+        
+        <button class="copy-btn" onclick="copyDebugData()">📋 Copy Debug Data</button>
+        
+        <button onclick="toggleSettings()" style="width:100%; padding:5px; margin-top:10px; background:#222; border:1px solid #444; color:#aaa;">Close</button>
+    </div>
+</div>
+
+<script>
+    // --- CONFIG ---
+    // Keys we are ACTIVELY looking for
+    const KEYS_TO_SCAN = [
+        "exp_token_a|piloting|cargos", // XP Key
+        "inventory", 
+        "vehicle",
+        "waypoint", "destination", // Destination guesses
+        "trunk", "trunk_inventory", "secondary_inventory", "vehicle_inventory" // Trunk guesses
+    ];
+
+    const STATE = {
+        currentXP: 0, startXP: null,
+        jobs: 0, avgXP: 0,
+        lastPayload: null // Stores raw data for copying
+    };
+
+    // --- MAIN ENGINE ---
+    function requestData() {
+        if(window.parent) {
+            try { window.parent.postMessage({ type: "getNamedData", keys: KEYS_TO_SCAN }, "*"); } catch(e) {}
+        }
+    }
+    
+    // --- UPDATED: 10 SECOND INTERVAL ---
+    setInterval(requestData, 10000);
+    requestData(); // First call immediate
+
+    window.addEventListener('message', (event) => {
+        let payload = event.data;
+        if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+        if (!payload) return;
+
+        // Store for copy button
+        STATE.lastPayload = payload;
+
+        // 1. DEBUGGER
+        if(document.getElementById('chk-debug').checked) {
+            updateDebug(payload);
+        }
+
+        // 2. XP LOGIC
+        const xpKey = "exp_token_a|piloting|cargos";
+        let xpVal = payload[xpKey];
+        if(!xpVal && payload.inventory) {
+            try {
+                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
+                if(inv[xpKey]) xpVal = inv[xpKey];
+            } catch(e){}
+        }
+        
+        if (xpVal) {
+            let amt = (typeof xpVal === 'object') ? xpVal.amount : xpVal;
+            if(typeof amt === 'number') updateXP(amt);
+        }
+
+        // 3. DESTINATION LOGIC
+        if(payload.waypoint && payload.waypoint !== false) {
+            const wp = payload.waypoint;
+            let txt = (typeof wp === 'object') ? `GPS: ${Math.round(wp.x)}, ${Math.round(wp.y)}` : wp;
+            document.getElementById('disp-dest').innerText = txt;
+            document.getElementById('disp-dest').style.border = "1px solid var(--green)";
+        } else {
+            document.getElementById('disp-dest').innerText = "No Waypoint Set";
+            document.getElementById('disp-dest').style.border = "1px dashed #555";
+        }
+
+        // 4. TRUNK LOGIC
+        let trunkData = payload.secondary_inventory || payload.vehicle_inventory || payload.trunk || payload.trunk_inventory;
+        if (trunkData) {
+            renderTrunk(trunkData);
+        }
+    });
+
+    // --- UI FUNCTIONS ---
+    function updateXP(newXP) {
+        if (STATE.startXP === null) { STATE.startXP = newXP; STATE.currentXP = newXP; renderStats(); return; }
+        if (newXP > STATE.currentXP) {
+            STATE.jobs++;
+            STATE.avgXP = (newXP - STATE.startXP) / STATE.jobs;
+        }
+        STATE.currentXP = newXP;
+        renderStats();
+    }
+
+    function renderStats() {
+        const lvl = Math.floor((Math.sqrt(1 + 8 * STATE.currentXP / 5) - 1) / 2);
+        document.getElementById('disp-level').innerText = lvl;
+        document.getElementById('disp-xp').innerText = STATE.currentXP.toLocaleString();
+        document.getElementById('disp-jobs').innerText = STATE.jobs;
+        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+        document.getElementById('level-bar').style.width = "100%"; 
+        document.getElementById('level-text').innerText = "XP Tracking Active";
+    }
+
+    function renderTrunk(data) {
+        const el = document.getElementById('trunk-list');
+        el.innerHTML = "";
+        try {
+            const inv = (typeof data === 'string') ? JSON.parse(data) : data;
+            if(Object.keys(inv).length === 0) {
+                el.innerHTML = "Trunk is empty.";
+                return;
+            }
+            for(let key in inv) {
+                let item = inv[key];
+                let qty = (typeof item === 'object') ? (item.amount || item.count || 0) : item;
+                if(qty > 0) {
+                    el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
+                }
+            }
+        } catch(e) {
+            el.innerHTML = "Error reading trunk data.";
+        }
+    }
+
+    // --- DEBUGGER & SETTINGS ---
+    function toggleSettings() {
+        const p = document.getElementById('settings-panel');
+        p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+    }
+
+    function toggleDebug() {
+        const d = document.getElementById('debug-panel');
+        d.style.display = document.getElementById('chk-debug').checked ? 'block' : 'none';
+    }
+
+    function updateDebug(data) {
+        const el = document.getElementById('debug-panel');
+        let html = "<strong>RAW STREAM:</strong><br>";
+        for(let k in data) {
+            if(data[k] !== undefined && data[k] !== "" && k !== "inventory") {
+                let val = JSON.stringify(data[k]);
+                if(val.length > 50) val = val.substring(0, 50) + "...";
+                html += `<span style="color:#0ff">${k}</span>: ${val}<br>`;
             }
         }
-        setInterval(scan, 1500); // Ask every 1.5 seconds
+        el.innerHTML = html;
+    }
 
-        window.addEventListener('message', (event) => {
-            let data = event.data;
-            if (data.type === 'data' && data.data) data = data.data;
-
-            // --- FILTER: IGNORE EMPTY DATA ---
-            // If data is null, or an empty array [], or empty object {}, IGNORE IT.
-            if (!data) return;
-            if (Array.isArray(data) && data.length === 0) return;
-            if (Object.keys(data).length === 0) return;
-
-            // --- IF WE GET HERE, WE HAVE REAL DATA ---
-            renderData(data);
-        });
-
-        function renderData(data) {
-            let html = "";
-            let timestamp = new Date().toLocaleTimeString();
-
-            for (let key in data) {
-                let val = data[key];
-                
-                // Skip empty values inside the packet too
-                if (val === null || val === undefined || val === "" || val === false) continue;
-
-                // Stringify objects for display
-                if (typeof val === 'object') val = JSON.stringify(val, null, 2);
-
-                html += `<div><span class="key-highlight">"${key}"</span>: <span class="val-highlight">${val}</span></div><hr style="border:0; border-bottom:1px dashed #333; margin:5px 0;">`;
-            }
-
-            // Update Main Box
-            if (html !== "") {
-                latestEl.innerHTML = html;
-                
-                // Add to History (Small log entry)
-                const historyEntry = document.createElement("div");
-                historyEntry.style.marginBottom = "5px";
-                historyEntry.innerText = `[${timestamp}] Received data packet (${Object.keys(data).length} keys)`;
-                historyEl.prepend(historyEntry);
-            }
+    function copyDebugData() {
+        if (!STATE.lastPayload) {
+            alert("No data received yet to copy.");
+            return;
         }
-    </script>
+        const text = JSON.stringify(STATE.lastPayload, null, 2);
+        
+        // Create temp element to copy from
+        const el = document.createElement('textarea');
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        
+        alert("Debug data copied to clipboard!");
+    }
+
+    // --- DRAG HANDLER ---
+    (() => {
+        const app = document.getElementById('tracker-app');
+        const handle = document.getElementById('drag-handle');
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        if (!app || !handle) return;
+        handle.onmousedown = (e) => {
+            e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY;
+            document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
+            document.onmousemove = (e) => {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+                pos3 = e.clientX; pos4 = e.clientY;
+                app.style.top = (app.offsetTop - pos2) + "px";
+                app.style.left = (app.offsetLeft - pos1) + "px";
+            };
+        };
+    })();
+</script>
 </body>
 </html>
