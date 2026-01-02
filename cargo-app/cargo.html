@@ -6,19 +6,18 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
-        /* --- THEME: CARGO AVIATION --- */
         :root {
-            --primary: #0277bd; /* Sky Blue */
+            --primary: #0277bd;
             --primary-dim: #004c8c;
             --bg-glass: rgba(15, 15, 15, 0.95);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
             --border: 1px solid rgba(2, 119, 189, 0.3);
             --green: #00e676;
-            --accent: #ffc107; /* Runway Amber */
+            --orange: #ff9800;
+            --accent: #ffc107;
         }
 
-        /* --- BLACK BOX FIX --- */
         body {
             margin: 0; padding: 0;
             font-family: 'Roboto', sans-serif;
@@ -29,7 +28,6 @@
             user-select: none;
         }
 
-        /* --- CONTAINER --- */
         #tracker-app {
             position: absolute;
             top: 50px; left: 50px;
@@ -54,7 +52,7 @@
 
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        /* --- DESTINATION DISPLAY --- */
+        /* DESTINATION */
         .destination-display {
             background: rgba(255, 193, 7, 0.1);
             border: 1px dashed var(--accent);
@@ -70,7 +68,7 @@
             color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); line-height: 1.1;
         }
 
-        /* Standard Sections */
+        /* STATS */
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
 
@@ -96,13 +94,19 @@
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
 
-        /* Trunk List */
+        /* TRUNK */
+        .trunk-header { display: flex; justify-content: space-between; align-items: center; }
+        .sync-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #444; margin-left: 5px; }
+        .sync-dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
+        .sync-dot.cached { background: var(--orange); }
+
         .trunk-item {
             display: flex; justify-content: space-between;
             font-size: 0.85em; padding: 4px 0;
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
+        /* CALCULATOR */
         input[type="number"] {
             width: 90%; background: rgba(0,0,0,0.3);
             border: 1px solid #444; color: white; padding: 5px;
@@ -151,8 +155,8 @@
         </div>
 
         <div class="section">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div class="label">📦 Cargo Hold (Trunk)</div>
+            <div class="trunk-header">
+                <div class="label">📦 Cargo Hold <span id="sync-status" class="sync-dot"></span></div>
                 <div class="label" id="trunk-capacity"></div>
             </div>
             <div id="trunk-list" style="min-height:30px; color:#666; font-size:0.8em; font-style:italic;">
@@ -182,7 +186,7 @@
     <div id="xp-font-size-value"></div>
 </div>
 <div id="job-list" style="display:none;"></div>
-<table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
+<table id="summary-table" style="display:none;"></table>
 
 <script>
 // --- AIRPORT DATABASE ---
@@ -194,16 +198,16 @@ const AIRPORTS = {
     "TVH": "Tongva Hills Airfield", "CV": "Carrier"
 };
 
-// --- CONFIG & STATE ---
+// --- STATE ---
 let TRUNK_KEY = null;
-let lastInventoryObj = {};
-let lastTrunkObj = {};
+let LAST_VEHICLE = null; // To detect vehicle changes
 
-const SCAN_KEYS = [
-    "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
-    "inventory", "vehicle", "plate", 
-    "chest", "trunkCapacity", "trunkWeight"
-];
+// We cache these objects so they don't disappear if the stream flickers
+let MEMORY = {
+    inventory: {},
+    trunk: {},
+    lastTrunkUpdate: 0
+};
 
 const JOB_EXP_KEY = "exp_piloting_cargos";
 const JOB_BXP_KEY = "exp_token_a|piloting|cargos";
@@ -223,10 +227,13 @@ setInterval(() => {
 function requestData() {
     if(window.parent) {
         try { 
-            let keys = [...SCAN_KEYS];
+            let keys = [
+                "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
+                "inventory", "vehicle", "plate", 
+                "chest", "trunkCapacity", "trunkWeight"
+            ];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
-            // Always allow general data flow
             window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
     }
@@ -242,45 +249,69 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. AGGRESSIVE TRUNK DETECTION
-    // Loop through ALL keys. If any key starts with "chest_" and is NOT empty, grab it.
-    for(let key in data) {
-        if(key.startsWith("chest_") && typeof data[key] === 'string' && data[key] !== "{}") {
-            // Found a non-empty chest!
-            TRUNK_KEY = key;
-            break;
-        }
+    // 1. VEHICLE CHANGE DETECTION
+    // If the vehicle/plate changes, we must wipe the trunk memory
+    let currentVehicle = data.plate || data.vehicle || "none";
+    if(LAST_VEHICLE && LAST_VEHICLE !== currentVehicle) {
+        MEMORY.trunk = {}; // Clear trunk memory on vehicle swap
+        TRUNK_KEY = null;  // Reset key
     }
-    
-    // Also use the pointer if available
+    LAST_VEHICLE = currentVehicle;
+
+    // 2. TRUNK KEY DISCOVERY
     if(data.chest && typeof data.chest === 'string') {
         TRUNK_KEY = "chest_" + data.chest;
     }
+    // Fallback scan for any chest key
+    if(!TRUNK_KEY) {
+        for(let key in data) {
+            if(key.startsWith("chest_") && typeof data[key] === 'string' && data[key] !== "{}") {
+                TRUNK_KEY = key;
+                break;
+            }
+        }
+    }
 
-    // 2. PARSE INVENTORIES
+    // 3. PARSE INVENTORIES
+    // Pockets (Always update)
     if(data.inventory) {
-        try { lastInventoryObj = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
+        try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
     }
     
-    // If we have a valid Trunk Key, parse it
+    // Trunk (Update ONLY if valid data exists)
+    let newTrunkData = null;
     if(TRUNK_KEY && data[TRUNK_KEY]) {
-        try { 
-            lastTrunkObj = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; 
-        } catch(e){}
+        try { newTrunkData = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
     }
 
-    // 3. UPDATE UI WITH TRUNK (Show EVERYTHING)
-    renderTrunkList(lastTrunkObj);
+    // If we received valid trunk data, update memory and timestamp
+    const syncDot = document.getElementById('sync-status');
+    if(newTrunkData) {
+        MEMORY.trunk = newTrunkData;
+        MEMORY.lastTrunkUpdate = Date.now();
+        syncDot.className = "sync-dot live"; // Green
+        syncDot.title = "Live Data";
+    } else {
+        // If data is older than 5 seconds, show orange
+        if(Date.now() - MEMORY.lastTrunkUpdate > 5000) {
+            syncDot.className = "sync-dot cached"; // Orange
+            syncDot.title = "Using Cached Data";
+        }
+    }
+
+    // 4. RENDER UI (Using Memory)
+    renderTrunkList(MEMORY.trunk);
+    
     if(data.trunkWeight !== undefined && data.trunkCapacity !== undefined) {
         document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight)}/${Math.round(data.trunkCapacity)}kg`;
     }
 
-    // 4. FIND DESTINATION (Case Insensitive)
-    checkCargoDestination(lastInventoryObj, lastTrunkObj);
+    // 5. DESTINATION
+    checkCargoDestination(MEMORY.inventory, MEMORY.trunk);
 
-    // 5. XP LOGIC
+    // 6. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
-    if(!currentXP && lastInventoryObj[JOB_EXP_KEY]) currentXP = lastInventoryObj[JOB_EXP_KEY];
+    if(!currentXP && MEMORY.inventory[JOB_EXP_KEY]) currentXP = MEMORY.inventory[JOB_EXP_KEY];
 
     if (typeof currentXP === 'number') {
         if (STATE.lastKnownXP === -1) {
@@ -300,9 +331,9 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 6. BXP LOGIC
+    // 7. BXP LOGIC
     let bxp = data[JOB_BXP_KEY];
-    if(!bxp && lastInventoryObj[JOB_BXP_KEY]) bxp = lastInventoryObj[JOB_BXP_KEY];
+    if(!bxp && MEMORY.inventory[JOB_BXP_KEY]) bxp = MEMORY.inventory[JOB_BXP_KEY];
     
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
@@ -316,18 +347,13 @@ function checkCargoDestination(pockets, trunk) {
     let destName = "Waiting for cargo...";
     let found = false;
 
-    // Helper: Checks if item name contains any airport code (CASE INSENSITIVE)
     const scan = (inv) => {
         if(!inv) return null;
-        
         for (const key in inv) {
             const upperKey = key.toUpperCase();
-            // Look for "CARGO" in the name to confirm it's a package
             if(upperKey.includes("CARGO")) {
                 for(const code in AIRPORTS) {
-                    if (upperKey.includes(code)) {
-                        return `${code} - ${AIRPORTS[code]}`;
-                    }
+                    if (upperKey.includes(code)) return `${code} - ${AIRPORTS[code]}`;
                 }
             }
         }
@@ -365,12 +391,9 @@ function renderTrunkList(trunk) {
         return;
     }
 
-    // List EVERYTHING in the trunk
     for(let key in trunk) {
         let item = trunk[key];
         let qty = item.amount || item.count || item;
-        // Clean up key name (remove underscores/IDs if possible, or just show raw)
-        // We'll show the raw key for accuracy
         if(qty > 0) {
             el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
         }
