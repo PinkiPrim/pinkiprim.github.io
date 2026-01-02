@@ -250,14 +250,20 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. VEHICLE CHANGE DETECTION
-    let currentVehicle = data.plate || data.vehicle || "none";
-    if(LAST_VEHICLE && LAST_VEHICLE !== currentVehicle) {
-        MEMORY.trunk = {}; // New car = Clear memory
-        MEMORY.weight = 0;
-        TRUNK_KEY = null; 
+    // 1. SMART VEHICLE DETECTION (The Fix)
+    // Only update LAST_VEHICLE if the packet actually contains vehicle info.
+    // This prevents "ghost packets" with no vehicle info from triggering a reset.
+    let incomingPlate = data.plate || data.vehicle;
+    
+    if (incomingPlate) {
+        // If we have a NEW vehicle, clear the trunk memory
+        if(LAST_VEHICLE && LAST_VEHICLE !== incomingPlate) {
+            MEMORY.trunk = {}; 
+            MEMORY.weight = 0;
+            TRUNK_KEY = null;
+        }
+        LAST_VEHICLE = incomingPlate;
     }
-    LAST_VEHICLE = currentVehicle;
 
     // 2. TRUNK KEY DISCOVERY
     if(data.chest && typeof data.chest === 'string') {
@@ -280,7 +286,7 @@ function processPayload(data) {
     // UPDATE WEIGHT
     if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(data.trunkWeight);
     
-    // TRUNK PARSING LOGIC (PROTECTION)
+    // TRUNK PARSING LOGIC (Persistency)
     let incomingTrunk = null;
     if(TRUNK_KEY && data[TRUNK_KEY]) {
         try { incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
@@ -289,25 +295,21 @@ function processPayload(data) {
     const syncDot = document.getElementById('sync-status');
     const now = Date.now();
 
-    // RULE: Only update memory if we get valid items OR if weight matches 'empty'
+    // Only update Trunk Memory if we got REAL data or if weight is truly 0
     if(incomingTrunk && Object.keys(incomingTrunk).length > 0) {
-        // CASE A: We received actual items. Update Memory.
         MEMORY.trunk = incomingTrunk;
         MEMORY.lastTrunkUpdate = now;
-        syncDot.className = "sync-dot live"; // Green
-        syncDot.title = "Live Data";
+        syncDot.className = "sync-dot live";
     } 
     else if (MEMORY.weight === 0) {
-        // CASE B: Weight is 0, so trunk is actually empty. Update Memory to empty.
         MEMORY.trunk = {};
         MEMORY.lastTrunkUpdate = now;
         syncDot.className = "sync-dot live";
     }
     else {
-        // CASE C: Incoming is empty, BUT weight > 0. 
-        // This is a "ghost" packet. IGNORE IT and keep old memory.
-        if(now - MEMORY.lastTrunkUpdate > 2000) {
-            syncDot.className = "sync-dot cached"; // Orange
+        // If we got an empty update but weight > 0, IGNORE IT and show old data.
+        if(now - MEMORY.lastTrunkUpdate > 3000) {
+            syncDot.className = "sync-dot cached";
         }
     }
 
