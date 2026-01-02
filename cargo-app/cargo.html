@@ -20,31 +20,26 @@
 
         /* --- BLACK BOX FIX --- */
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: 'Roboto', sans-serif;
             background-color: transparent;
             color: var(--text-main);
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            height: 100vh; width: 100vw;
             user-select: none;
         }
 
         /* --- CONTAINER --- */
         #tracker-app {
             position: absolute;
-            top: 50px;
-            left: 50px;
+            top: 50px; left: 50px;
             width: 320px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            display: flex;
-            flex-direction: column;
-            resize: both;
-            overflow: hidden;
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
             min-height: 200px;
         }
 
@@ -52,95 +47,60 @@
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 8px 12px;
             cursor: move;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 1.1em;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
         }
 
-        #content {
-            padding: 12px;
-            flex: 1;
-            overflow-y: auto;
-            scrollbar-width: thin;
-        }
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
         /* --- DESTINATION DISPLAY --- */
         .destination-display {
             background: rgba(255, 193, 7, 0.1);
             border: 1px dashed var(--accent);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 15px;
+            border-radius: 6px; padding: 10px; margin-bottom: 15px;
             text-align: center;
         }
-        
         .dest-label {
-            font-size: 0.7em;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 4px;
+            font-size: 0.7em; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;
         }
-
         .dest-value {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 1.3em;
-            font-weight: 700;
-            color: #fff;
-            text-shadow: 0 0 10px rgba(0,0,0,0.5);
-            line-height: 1.1;
+            font-family: 'Rajdhani', sans-serif; font-size: 1.3em; font-weight: 700;
+            color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); line-height: 1.1;
         }
 
         /* Standard Sections */
-        .section {
-            margin-bottom: 10px; padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
+        .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
 
-        .label {
-            font-size: 0.7em; color: var(--text-dim);
-            text-transform: uppercase; margin-bottom: 2px;
-        }
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
         .progress-container {
             position: relative; height: 16px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 4px; margin: 5px 0 5px 0;
+            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0;
             overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
         }
-        .progress-bar {
-            height: 100%; background: var(--primary);
-            width: 0%; transition: width 0.3s ease;
-        }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
         .progress-text {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.7em; text-shadow: 1px 1px 2px black;
-            font-weight: bold; z-index: 2;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
         }
 
-        .xp-remaining-text {
-            text-align: center;
-            font-size: 0.8em;
-            color: var(--text-dim);
-            margin-bottom: 10px;
-        }
+        .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
         .xp-remaining-text b { color: var(--primary); }
 
-        /* 3 COLUMN GRID FOR AVG XP */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-        .stat-box {
-            background: rgba(255,255,255,0.05); padding: 6px;
-            border-radius: 4px; text-align: center;
+        .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
+
+        /* Trunk List */
+        .trunk-item {
+            display: flex; justify-content: space-between;
+            font-size: 0.85em; padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
         input[type="number"] {
@@ -149,10 +109,7 @@
             border-radius: 4px; margin-top: 5px; font-family: inherit;
         }
         input:focus { outline: 1px solid var(--primary); }
-        .calc-output {
-            margin-top: 5px; font-size: 0.8em; line-height: 1.3;
-            color: var(--text-dim); word-wrap: break-word;
-        }
+        .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
         
         #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
@@ -175,14 +132,8 @@
 
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div>
-                    <div class="label">Cargo Pilot Level</div>
-                    <div class="value highlight" style="font-size:1.6em" id="disp-level">...</div>
-                </div>
-                <div style="text-align:right;">
-                    <div class="label">Current XP</div>
-                    <div class="value" id="disp-xp" style="font-size:0.9em">0</div>
-                </div>
+                <div><div class="label">Pilot Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
             </div>
 
             <div class="progress-container">
@@ -190,23 +141,22 @@
                 <div class="progress-text" id="level-text">Waiting for data...</div>
             </div>
             
-            <div class="xp-remaining-text" id="disp-xp-remaining">
-                Waiting for drop...
-            </div>
+            <div class="xp-remaining-text" id="disp-xp-remaining">Waiting for drop...</div>
 
             <div class="stat-grid">
-                <div class="stat-box">
-                    <div class="label">BXP Tokens</div>
-                    <div class="value bxp" id="disp-bxp">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="label">Avg XP</div>
-                    <div class="value" id="disp-avg">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="label">Total Actions</div>
-                    <div class="value" id="disp-ops" style="color:var(--accent)">0</div>
-                </div>
+                <div class="stat-box"><div class="label">BXP Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
+                <div class="stat-box"><div class="label">Actions</div><div class="value" id="disp-ops" style="color:var(--accent)">0</div></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="label">📦 Cargo Hold (Trunk)</div>
+                <div class="label" id="trunk-capacity"></div>
+            </div>
+            <div id="trunk-list" style="min-height:30px; color:#666; font-size:0.8em; font-style:italic;">
+                No cargo loaded.
             </div>
         </div>
 
@@ -214,9 +164,7 @@
             <div class="label">Target Calculator</div>
             <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 1,000,000):</div>
             <input type="number" id="target-input" placeholder="e.g. 1000000">
-            <div class="calc-output" id="calc-result">
-                Complete a delivery to enable calculator...
-            </div>
+            <div class="calc-output" id="calc-result">Complete a delivery to enable calculator...</div>
         </div>
 
     </div>
@@ -224,423 +172,319 @@
 </div>
 
 <div id="settings-icon" style="display:none;"></div>
-<div id="settings-panel" style="display:none;">
-    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
-    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
-    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
-    <input type="number" id="xp-font-size">
-    <button id="reset-exp-log"></button>
-    <div id="xp-font-size-value"></div>
-</div>
+<div id="settings-panel" style="display:none;"></div>
 <div id="job-list" style="display:none;"></div>
-<table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
+<table id="summary-table" style="display:none;"></table>
 
 <script>
 // --- AIRPORT DATABASE ---
 const AIRPORTS = {
-    "LSIA": "Los Santos INTL.",
-    "SSIA": "Sandy Sh. INTL. Airport",
-    "ZMA":  "Zancudo Military Airport",
-    "RAM":  "Arroyo Muerto Municipal",
-    "POA":  "Pacific Ocean Airport",
-    "MGA":  "Mount Gorgo Airport",
-    "CIA":  "Chumash Island Airport",
-    "SCA":  "San Chianski Airport",
-    "POP":  "PostOp Airport",
-    "SAN":  "Sandy Shores Airfield",
-    "MKA":  "McKenzie Airfield",
-    "CPA":  "Cayo Perico Airfield",
-    "TVH":  "Tongva Hills Airfield",
-    "CV":   "Carrier"
+    "LSIA": "Los Santos INTL.", "SSIA": "Sandy Sh. INTL. Airport", "ZMA": "Zancudo Military Airport",
+    "RAM": "Arroyo Muerto Municipal", "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
+    "CIA": "Chumash Island Airport", "SCA": "San Chianski Airport", "POP": "PostOp Airport",
+    "SAN": "Sandy Shores Airfield", "MKA": "McKenzie Airfield", "CPA": "Cayo Perico Airfield",
+    "TVH": "Tongva Hills Airfield", "CV": "Carrier"
+};
+
+// --- CONFIG & STATE ---
+let TRUNK_KEY = null;
+let lastInventoryObj = {};
+let lastTrunkObj = {};
+
+// We ask for these keys constantly
+const SCAN_KEYS = [
+    "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
+    "inventory", "vehicle", "plate", 
+    "chest", "trunkCapacity", "trunkWeight"
+];
+
+const JOB_EXP_KEY = "exp_piloting_cargos";
+const JOB_BXP_KEY = "exp_token_a|piloting|cargos";
+
+const STATE = {
+    currentXP: 0, startXP: null,
+    jobs: 0, avgXP: 0, 
+    lastKnownXP: -1, sessionXP: 0
 };
 
 // --- CLOCK ---
-function updateClock() {
-    const now = new Date();
-    const el = document.getElementById('clock');
-    if(el) el.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+setInterval(() => {
+    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}, 1000);
+
+// --- ENGINE ---
+function requestData() {
+    if(window.parent) {
+        try { 
+            // Build dynamic key list (Static + The dynamic trunk key if found)
+            let keys = [...SCAN_KEYS];
+            if(TRUNK_KEY) keys.push(TRUNK_KEY);
+            
+            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+        } catch(e) {}
+    }
 }
-setInterval(updateClock, 1000);
-updateClock();
+setInterval(requestData, 1000); // Poll every second
 
-// --- ENGINE VARS ---
-let lastInventoryObj = {};
-let selectedJobs = [];
-let expLogs = {};
-let lastBXPs = {};
-let initialExps = {};
-let lastExps = {};
-let hasFirstGain = {};
-let lastUpdateTime = {};
-let lastDisplayedExps = {};
-let lastRenderTime = 0;
-let hasReceivedAnyData = false;
-let hasRequestedOnce = false;
+window.addEventListener('message', (event) => {
+    let payload = event.data;
+    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+    if (!payload) return;
 
-const TRACKER_POSITION_KEY = "tracker-app-position";
-const RECENT_WINDOW_MS = 10 * 60 * 1000;
-const RENDER_THROTTLE_MS = 500;
+    processPayload(payload);
+});
 
-// JOB CONFIG
-const JOBS = [ { key: "cargopilot", label: "Cargo Pilot" } ];
-const JOB_EXP_KEYS = { cargopilot: "exp_piloting_cargos" };
-const JOB_BXP_KEYS = { cargopilot: "exp_token_a|piloting|cargos" };
+function processPayload(data) {
+    // 1. SMART TRUNK DETECTION (From V4)
+    if(data.chest && typeof data.chest === 'string') {
+        const potentialKey = "chest_" + data.chest;
+        if(TRUNK_KEY !== potentialKey) TRUNK_KEY = potentialKey;
+    }
 
-// --- HELPERS ---
-function formatNumber(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-  return num.toLocaleString();
+    // 2. PARSE INVENTORIES
+    // Pockets
+    if(data.inventory) {
+        try { lastInventoryObj = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
+    }
+    
+    // Trunk (if key found)
+    if(TRUNK_KEY && data[TRUNK_KEY]) {
+        try { lastTrunkObj = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
+    } else {
+        lastTrunkObj = {}; // Clear trunk if not available (vehicle closed/despawned)
+    }
+
+    // 3. UPDATE UI WITH TRUNK
+    renderTrunkList(lastTrunkObj);
+    if(data.trunkWeight && data.trunkCapacity) {
+        document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight)}/${Math.round(data.trunkCapacity)}kg`;
+    }
+
+    // 4. FIND DESTINATION (Scan Pockets + Trunk)
+    checkCargoDestination(lastInventoryObj, lastTrunkObj);
+
+    // 5. XP LOGIC
+    // Check direct Key or inside Pockets
+    let currentXP = data[JOB_EXP_KEY];
+    if(!currentXP && lastInventoryObj[JOB_EXP_KEY]) currentXP = lastInventoryObj[JOB_EXP_KEY]; // Fallback
+
+    if (typeof currentXP === 'number') {
+        if (STATE.lastKnownXP === -1) {
+            STATE.lastKnownXP = currentXP;
+            if (!STATE.startXP) STATE.startXP = currentXP;
+        } 
+        else if (currentXP > STATE.lastKnownXP) {
+            const diff = currentXP - STATE.lastKnownXP;
+            if (diff > 0) {
+                STATE.sessionXP += diff;
+                STATE.jobs++;
+                STATE.lastKnownXP = currentXP;
+            }
+        }
+        STATE.currentXP = currentXP;
+        STATE.avgXP = STATE.jobs > 0 ? (STATE.sessionXP / STATE.jobs) : 0;
+        renderStats();
+    }
+
+    // 6. BXP LOGIC
+    let bxp = data[JOB_BXP_KEY];
+    if(!bxp && lastInventoryObj[JOB_BXP_KEY]) bxp = lastInventoryObj[JOB_BXP_KEY];
+    
+    if (bxp) {
+        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
+        document.getElementById('disp-bxp').innerText = formatNumber(val);
+    }
 }
 
-function getAllRequiredKeys() {
-  const expKeys = Object.values(JOB_EXP_KEYS);
-  const bxpKeys = Object.values(JOB_BXP_KEYS);
-  return [...expKeys, ...bxpKeys, "inventory"];
-}
+// --- LOGIC FUNCTIONS ---
 
-function getLevelInfo(exp) {
-  let level = 0;
-  let xpCap = 5;
-  while (exp >= xpCap) {
-    exp -= xpCap;
-    level++;
-    xpCap = (level + 1) * 5;
-  }
-  return { level, expInLevel: exp, expForNext: xpCap };
-}
+function checkCargoDestination(pockets, trunk) {
+    let destName = "Waiting for cargo...";
+    let found = false;
 
-function getPercentValue(exp, cap) {
-  if (typeof exp !== "number") return 0;
-  const pct = Math.max(0, Math.min(100, (exp / cap) * 100));
-  return +pct.toFixed(1);
-}
-
-function saveData() {
-  localStorage.setItem("selected-jobs", JSON.stringify(selectedJobs));
-  localStorage.setItem("exp-logs", JSON.stringify(expLogs));
-}
-
-function loadData() {
-  selectedJobs = JSON.parse(localStorage.getItem("selected-jobs") || "[]");
-  if (selectedJobs.length === 0) selectedJobs = ["cargopilot"];
-  expLogs = JSON.parse(localStorage.getItem("exp-logs") || "{}");
-  loadPosition();
-}
-
-function savePosition() {
-  const app = document.getElementById("tracker-app");
-  if (app) {
-    const position = {
-      left: app.style.left,
-      top: app.style.top,
-      width: app.style.width,
-      height: app.style.height
+    // Helper to scan an object
+    const scan = (inv) => {
+        for (const key in inv) {
+            if (key.startsWith("Air Cargo: ")) {
+                const code = key.split(": ")[1]?.trim();
+                if (code && AIRPORTS[code]) return `${code} - ${AIRPORTS[code]}`;
+            }
+        }
+        return null;
     };
-    localStorage.setItem(TRACKER_POSITION_KEY, JSON.stringify(position));
-  }
+
+    // Scan Trunk FIRST (usually where cargo is), then Pockets
+    const trunkDest = scan(trunk);
+    const pocketDest = scan(pockets);
+
+    if(trunkDest) { destName = trunkDest; found = true; }
+    else if(pocketDest) { destName = pocketDest; found = true; }
+
+    const box = document.getElementById('dest-box');
+    const txt = document.getElementById('disp-destination');
+    
+    txt.innerText = destName;
+    if(found) {
+        box.style.borderColor = "var(--green)";
+        box.style.background = "rgba(0, 230, 118, 0.1)";
+        txt.style.color = "var(--green)";
+    } else {
+        box.style.borderColor = "var(--accent)";
+        box.style.background = "rgba(255, 193, 7, 0.1)";
+        txt.style.color = "#fff";
+    }
 }
 
-function loadPosition() {
-  const savedPosition = localStorage.getItem(TRACKER_POSITION_KEY);
-  if (savedPosition) {
-    try {
-      const position = JSON.parse(savedPosition);
-      const app = document.getElementById("tracker-app");
-      if (app && position) {
-        if (position.left) app.style.left = position.left;
-        if (position.top) app.style.top = position.top;
-        if (position.width) app.style.width = position.width;
-        if (position.height) app.style.height = position.height;
-      }
-    } catch (e) {}
-  }
-}
+function renderTrunkList(trunk) {
+    const el = document.getElementById('trunk-list');
+    el.innerHTML = "";
+    
+    if(Object.keys(trunk).length === 0) {
+        el.innerHTML = "Cargo hold is empty.";
+        return;
+    }
 
-function calculateJobStats(jobKey) {
-  const currentExp = lastExps[jobKey] || 0;
-  const bxp = lastBXPs[jobKey] || 0;
-  return { currentExp, bxp, levelInfo: getLevelInfo(currentExp) };
+    for(let key in trunk) {
+        let item = trunk[key];
+        let qty = item.amount || item.count || item;
+        if(qty > 0) {
+            el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
+        }
+    }
 }
 
 function renderStats() {
-  const now = Date.now();
-  if (now - lastRenderTime < RENDER_THROTTLE_MS) return;
-  lastRenderTime = now;
-  updateCargoHUD(); 
-}
-
-// --- MAIN LOGIC ---
-
-// BRIDGE STATE
-let bridge_StartXP = null;
-let bridge_SessionXP = 0;
-let bridge_Ops = 0;
-let bridge_LastKnownXP = -1;
-
-function updateCargoHUD() {
-    const stats = calculateJobStats('cargopilot');
-    const current = stats.currentExp;
-    
     // XP & Level
-    document.getElementById('disp-xp').innerText = formatNumber(current);
-    document.getElementById('disp-level').innerText = stats.levelInfo.level;
-    document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
-    document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
+    const lvl = getLevelInfo(STATE.currentXP);
+    document.getElementById('disp-xp').innerText = formatNumber(STATE.currentXP);
+    document.getElementById('disp-level').innerText = lvl.level;
     
-    // BXP
-    if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
-    
-    // Ops Tracking
-    if (bridge_StartXP === null && current > 0) {
-        bridge_StartXP = current;
-        bridge_LastKnownXP = current;
-    }
-    
-    document.getElementById('disp-ops').innerText = bridge_Ops;
-    
-    const averageXP = bridge_Ops > 0 ? (bridge_SessionXP / bridge_Ops) : 0;
-    document.getElementById('disp-avg').innerText = Math.round(averageXP);
+    // Bar
+    const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
+    document.getElementById('level-bar').style.width = pct + "%";
+    document.getElementById('level-text').innerText = pct + "%";
 
-    const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
-    let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
-    
-    document.getElementById('disp-xp-remaining').innerHTML = remainingText;
-    
-    runCalculator(averageXP); 
+    // Avg & Ops
+    document.getElementById('disp-ops').innerText = STATE.jobs;
+    document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+
+    // Remaining
+    const needed = Math.round(lvl.expForNext - lvl.expInLevel);
+    document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
+
+    runCalculator();
 }
 
-// --- DESTINATION TRACKER LOGIC ---
-function checkCargoDestination(inventory) {
-    let destinationName = "Waiting for cargo...";
-    let found = false;
-
-    // Loop through inventory items
-    for (const [key, value] of Object.entries(inventory)) {
-        // Look for items starting with "Air Cargo: "
-        if (key.startsWith("Air Cargo: ")) {
-            const code = key.split(": ")[1]; // Extract the code (e.g., "SCA")
-            if (code && AIRPORTS[code]) {
-                destinationName = `${code} - ${AIRPORTS[code]}`;
-                found = true;
-                break; // Stop after finding the first valid package
-            }
-        }
-    }
-
-    const destBox = document.getElementById('dest-box');
-    document.getElementById('disp-destination').innerText = destinationName;
-
-    // Visual feedback
-    if(found) {
-        destBox.style.borderColor = "var(--green)";
-        destBox.style.background = "rgba(0, 230, 118, 0.1)";
-        document.getElementById('disp-destination').style.color = "var(--green)";
-    } else {
-        destBox.style.borderColor = "var(--accent)";
-        destBox.style.background = "rgba(255, 193, 7, 0.1)";
-        document.getElementById('disp-destination').style.color = "#fff";
-    }
+// --- UTILS ---
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toLocaleString();
 }
 
-function processGameData(data) {
-  const now = Date.now();
-  let inventory = {};
-  
-  if (data.inventory) {
-    try {
-      inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
-      if (inventory) lastInventoryObj = inventory;
-    } catch {
-      inventory = lastInventoryObj;
-    }
-  } else {
-    inventory = lastInventoryObj;
-  }
-
-  // --- RUN DESTINATION CHECK ---
-  if(inventory) {
-      checkCargoDestination(inventory);
-  }
-  
-  // XP Check
-  const currentCargoXP = data['exp_piloting_cargos'];
-  if (typeof currentCargoXP === 'number') {
-      if (bridge_LastKnownXP === -1) {
-          bridge_LastKnownXP = currentCargoXP;
-          if (!bridge_StartXP) bridge_StartXP = currentCargoXP;
-      }
-      else if (currentCargoXP > bridge_LastKnownXP) {
-          const diff = currentCargoXP - bridge_LastKnownXP;
-          if (diff > 0) {
-              bridge_SessionXP += diff;
-              bridge_Ops++;
-              bridge_LastKnownXP = currentCargoXP;
-              updateCargoHUD(); 
-          }
-      }
-  }
-
-  // Update State Vars
-  const exp = data[JOB_EXP_KEYS.cargopilot];
-  if (typeof exp === "number") {
-      lastExps.cargopilot = exp;
-  }
-  
-  // BXP Check
-  const bxpToken = JOB_BXP_KEYS.cargopilot;
-  let bxpObj;
-  if (data[bxpToken]) bxpObj = data[bxpToken];
-  else if (inventory && inventory[bxpToken]) bxpObj = inventory[bxpToken];
-  
-  if (bxpObj) {
-      lastBXPs.cargopilot = (typeof bxpObj === 'object') ? bxpObj.amount : bxpObj;
-  }
-
-  saveData();
-  renderStats();
+function getLevelInfo(exp) {
+    let level = 0, xpCap = 5;
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    return { level, expInLevel: exp, expForNext: xpCap };
 }
 
-function requestDataOnce(force = false) {
-  if (hasRequestedOnce && !force) return;
-  hasRequestedOnce = true;
-  try {
-    const keys = getAllRequiredKeys();
-    window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
-  } catch (e) {
-    window.parent.postMessage({ type: "getData" }, "*");
-  }
+function getPercentValue(exp, cap) {
+    return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
 }
-
-function init() {
-  loadData();
-  renderStats();
-  setInterval(requestDataOnce, 1000); 
-  window.addEventListener("message", (event) => {
-    const msg = event.data;
-    if (msg && msg.type === "data" && msg.data) {
-      hasReceivedAnyData = true;          
-      processGameData(msg.data);
-    }
-  });
-  requestDataOnce();
-  setTimeout(() => { if (!hasReceivedAnyData) requestDataOnce(true); }, 1200);
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
-
-// --- DRAG HANDLER ---
-(() => {
-  const app = document.getElementById('tracker-app');
-  const handle = document.getElementById('drag-handle');
-  const rh = document.getElementById('resize-handle');
-  if (!app || !handle) return;
-  
-  let sx=0, sy=0, ax=0, ay=0, dragging=false;
-  let sw=0, sh=0, resizing=false;
-
-  function startDrag(clientX, clientY, e) {
-    if (e && e.target.closest('button')) return;
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    dragging = true; sx = clientX; sy = clientY;
-    const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
-    handle.classList.add('dragging');
-  }
-
-  handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
-
-  if (rh) {
-    function startResize(clientX, clientY, e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      resizing = true; sx = clientX; sy = clientY;
-      const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
-    }
-    rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
-  }
-
-  function handleMove(clientX, clientY, e) {
-    if (dragging) {
-      if (e) e.preventDefault();
-      const dx = clientX - sx, dy = clientY - sy;
-      app.style.transform = `translate(${dx}px, ${dy}px)`;
-    } else if (resizing) {
-      if (e) e.preventDefault();
-      const dx = clientX - sx, dy = clientY - sy;
-      app.style.width  = `${Math.max(280, sw + dx)}px`;
-      app.style.height = `${Math.max(120, sh + dy)}px`;
-    }
-  }
-  
-  window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
-
-  function endDrag() {
-    if (dragging) {
-      const transform = app.style.transform;
-      const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
-      if (match) {
-        const dx = parseFloat(match[1]) || 0;
-        const dy = parseFloat(match[2]) || 0;
-        app.style.transform = '';
-        app.style.left = `${ax + dx}px`;
-        app.style.top = `${ay + dy}px`;
-      }
-      savePosition();
-    }
-    dragging = false; resizing = false;
-    handle.classList.remove('dragging');
-  }
-  window.addEventListener('mouseup', endDrag);
-})();
 
 // --- CALCULATOR ---
 const calcInput = document.getElementById('target-input');
-let currentAvg = 0;
+if(calcInput) calcInput.addEventListener('input', runCalculator);
 
-if(calcInput) {
-    calcInput.addEventListener('input', () => runCalculator(currentAvg));
-}
-
-function runCalculator(avg) {
-    if(avg) currentAvg = avg;
+function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
-    if (currentAvg === 0) {
-        el.innerHTML = "<i>Complete drop to calc...</i>";
-        return;
-    }
-    if (!val) {
-        el.innerText = "Enter target above.";
-        return;
-    }
+    if (STATE.avgXP === 0) { el.innerHTML = "<i>Complete drop to calc...</i>"; return; }
+    if (!val) { el.innerText = "Enter target above."; return; }
 
     let inputVal = parseInt(val.replace(/,/g, ''));
     let targetXP = inputVal;
     
-    // Level detect
-    const currentExp = lastExps['cargopilot'] || 0;
+    // Auto-detect if user typed a Level (e.g. "100") instead of XP
     if (inputVal < 200) { 
-         let lvlXP = getXPFromLevel(inputVal);
-         if (lvlXP > currentExp) targetXP = lvlXP;
+         let lvlXP = 0; // Quick calc for target level
+         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2; // (rough approximation logic for target)
+         // Actually, let's use the standard formula for total XP at level L:
+         // Total = (5 * L * (L+1)) / 2
+         targetXP = (5 * inputVal * (inputVal + 1)) / 2;
     }
 
-    if (targetXP > currentExp) {
-        const diff = targetXP - currentExp;
-        const ops = Math.ceil(diff / currentAvg);
-        
-        let output = `Remaining: <b>${formatNumber(diff)} XP</b><br>`;
-        output += `<span style="color:var(--primary)">Est. Actions: <b>${formatNumber(ops)}</b></span>`;
-        
-        el.innerHTML = output;
+    if (targetXP > STATE.currentXP) {
+        const diff = targetXP - STATE.currentXP;
+        const ops = Math.ceil(diff / STATE.avgXP);
+        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(ops)}</b></span>`;
     } else {
         el.innerHTML = `Target reached.`;
     }
 }
+
+// --- DRAG HANDLER ---
+(() => {
+    const app = document.getElementById('tracker-app');
+    const handle = document.getElementById('drag-handle');
+    const rh = document.getElementById('resize-handle');
+    if (!app || !handle) return;
+    
+    let sx=0, sy=0, ax=0, ay=0, dragging=false;
+    let sw=0, sh=0, resizing=false;
+
+    function startDrag(clientX, clientY, e) {
+        if (e && e.target.closest('button')) return;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        dragging = true; sx = clientX; sy = clientY;
+        const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
+        handle.classList.add('dragging');
+    }
+
+    handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+
+    if (rh) {
+        function startResize(clientX, clientY, e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            resizing = true; sx = clientX; sy = clientY;
+            const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
+        }
+        rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+    }
+
+    function handleMove(clientX, clientY, e) {
+        if (dragging) {
+            if (e) e.preventDefault();
+            const dx = clientX - sx, dy = clientY - sy;
+            app.style.transform = `translate(${dx}px, ${dy}px)`;
+        } else if (resizing) {
+            if (e) e.preventDefault();
+            const dx = clientX - sx, dy = clientY - sy;
+            app.style.width  = `${Math.max(280, sw + dx)}px`;
+            app.style.height = `${Math.max(120, sh + dy)}px`;
+        }
+    }
+    
+    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+
+    function endDrag() {
+        if (dragging) {
+            const transform = app.style.transform;
+            const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+            if (match) {
+                const dx = parseFloat(match[1]) || 0;
+                const dy = parseFloat(match[2]) || 0;
+                app.style.transform = '';
+                app.style.left = `${ax + dx}px`;
+                app.style.top = `${ay + dy}px`;
+            }
+        }
+        dragging = false; resizing = false;
+        handle.classList.remove('dragging');
+    }
+    window.addEventListener('mouseup', endDrag);
+})();
 </script>
 </body>
 </html>
