@@ -91,7 +91,17 @@
         .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
         .xp-remaining-text b { color: var(--primary); }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        /* RUN TRACKER BOX */
+        .run-box {
+            background: rgba(2, 119, 189, 0.1);
+            border: 1px solid rgba(2, 119, 189, 0.3);
+            border-radius: 4px; padding: 8px; margin-bottom: 10px;
+        }
+        .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9em; }
+        .run-val { font-weight: bold; color: #fff; }
+        .run-label { font-size: 0.8em; color: #aaa; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
 
         /* TRUNK */
@@ -147,10 +157,23 @@
             
             <div class="xp-remaining-text" id="disp-xp-remaining">Waiting for drop...</div>
 
+            <div class="run-box">
+                <div style="border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:5px; padding-bottom:3px; color:var(--primary); font-size:0.85em; font-weight:bold; letter-spacing:1px;">FLIGHT SESSION</div>
+                <div class="run-grid">
+                    <div>
+                        <div class="run-label">Current Flight XP</div>
+                        <div class="run-val" id="disp-flight-xp" style="color:var(--green)">0 XP</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div class="run-label">Avg XP / Flight</div>
+                        <div class="run-val" id="disp-flight-avg">0 XP</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="stat-grid">
                 <div class="stat-box"><div class="label">BXP Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
-                <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
-                <div class="stat-box"><div class="label">Actions</div><div class="value" id="disp-ops" style="color:var(--accent)">0</div></div>
+                <div class="stat-box"><div class="label">Flights Done</div><div class="value" id="disp-ops" style="color:var(--accent)">0</div></div>
             </div>
         </div>
 
@@ -165,10 +188,10 @@
         </div>
 
         <div class="section" style="border:none;">
-            <div class="label">Target Calculator</div>
+            <div class="label">Flight Calculator</div>
             <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 1,000,000):</div>
             <input type="number" id="target-input" placeholder="e.g. 1000000">
-            <div class="calc-output" id="calc-result">Complete a delivery to enable calculator...</div>
+            <div class="calc-output" id="calc-result">Complete 1 flight to calibrate...</div>
         </div>
 
     </div>
@@ -193,7 +216,7 @@
 const AIRPORTS = {
     "LSIA": "Los Santos INTL.", "SSIA": "Sandy Sh. INTL. Airport", "ZMA": "Zancudo Military Airport",
     "RAM": "Arroyo Muerto Municipal", "PBA": "Arroyo Muerto Municipal", 
-    "POA": "Pacific Ocean Airport", "MGA": "Mount Gordo Airport",
+    "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
     "CIA": "Chumash Island Airport", "SCA": "San Chianski Airport", "POP": "PostOp Airport",
     "SAN": "Sandy Shores Airfield", "MKA": "McKenzie Airfield", "CPA": "Cayo Perico Airfield",
     "TVH": "Tongva Hills Airfield", "CV": "Carrier"
@@ -214,9 +237,16 @@ const JOB_EXP_KEY = "exp_piloting_cargos";
 const JOB_BXP_KEY = "exp_token_a|piloting|cargos";
 
 const STATE = {
-    currentXP: 0, startXP: null,
-    jobs: 0, avgXP: 0, 
-    lastKnownXP: -1, sessionXP: 0
+    currentXP: 0, 
+    
+    // Flight Session Tracking
+    runActive: false,
+    runStartXP: 0,      // XP at start of current flight
+    currentRunGain: 0,  // XP gained during current flight
+    
+    completedRuns: 0,
+    totalRunXP: 0,      // Sum of XP from all completed runs
+    avgRunXP: 0         // Calculated Average
 };
 
 // --- CLOCK ---
@@ -257,17 +287,17 @@ function processPayload(data) {
             MEMORY.trunk = {}; 
             MEMORY.weight = 0;
             TRUNK_KEY = null;
+            // Reset run state on vehicle switch? Maybe keep history, but reset current run.
+            STATE.runActive = false;
+            STATE.currentRunGain = 0;
         }
         LAST_VEHICLE = incomingPlate;
     }
 
-    // 2. TRUNK KEY DISCOVERY (FILTERED FOR VEHICLES)
-    // Only accept keys that contain "veh_" (Blocks backpacks)
+    // 2. TRUNK KEY DISCOVERY (FILTERED)
     if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
         TRUNK_KEY = "chest_" + data.chest;
     }
-    
-    // Fallback scan (Must look like a chest AND contain 'veh')
     if(!TRUNK_KEY) {
         for(let key in data) {
             if(key.startsWith("chest_") && key.includes("veh_") && typeof data[key] === 'string' && data[key] !== "{}") {
@@ -285,11 +315,10 @@ function processPayload(data) {
     // UPDATE WEIGHT
     if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(data.trunkWeight);
     
-    // TRUNK PARSING LOGIC (CRASH PROOFING)
+    // TRUNK PARSING LOGIC
     let incomingTrunk = null;
     if(TRUNK_KEY && data[TRUNK_KEY]) {
         try { 
-            // CRITICAL FIX: Don't parse empty strings
             if(data[TRUNK_KEY] !== "") {
                 incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY];
             }
@@ -315,110 +344,114 @@ function processPayload(data) {
         }
     }
 
-    // 4. RENDER UI
-    renderTrunkList(MEMORY.trunk);
+    // 4. DESTINATION & RUN DETECTION
+    // We check if "Air Cargo" exists in trunk/pockets to determine if a run is active
+    let hasCargo = checkForCargo(MEMORY.inventory, MEMORY.trunk);
     
-    if(data.trunkCapacity !== undefined) {
-        document.getElementById('trunk-capacity').innerText = `${MEMORY.weight}/${Math.round(data.trunkCapacity)}kg`;
-    }
-
-    // 5. DESTINATION
-    checkCargoDestination(MEMORY.inventory, MEMORY.trunk);
-
-    // 6. XP LOGIC
+    // 5. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
     if(!currentXP && MEMORY.inventory[JOB_EXP_KEY]) currentXP = MEMORY.inventory[JOB_EXP_KEY];
 
     if (typeof currentXP === 'number') {
-        if (STATE.lastKnownXP === -1) {
-            STATE.lastKnownXP = currentXP;
-            if (!STATE.startXP) STATE.startXP = currentXP;
-        } 
-        else if (currentXP > STATE.lastKnownXP) {
-            const diff = currentXP - STATE.lastKnownXP;
-            if (diff > 0) {
-                STATE.sessionXP += diff;
-                STATE.jobs++;
-                STATE.lastKnownXP = currentXP;
-            }
-        }
-        STATE.currentXP = currentXP;
-        STATE.avgXP = STATE.jobs > 0 ? (STATE.sessionXP / STATE.jobs) : 0;
+        updateRunLogic(currentXP, hasCargo);
         renderStats();
+    }
+
+    // 6. RENDER UI
+    renderTrunkList(MEMORY.trunk);
+    if(data.trunkCapacity !== undefined) {
+        document.getElementById('trunk-capacity').innerText = `${MEMORY.weight}/${Math.round(data.trunkCapacity)}kg`;
     }
 
     // 7. BXP LOGIC
     let bxp = data[JOB_BXP_KEY];
     if(!bxp && MEMORY.inventory[JOB_BXP_KEY]) bxp = MEMORY.inventory[JOB_BXP_KEY];
-    
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         document.getElementById('disp-bxp').innerText = formatNumber(val);
     }
 }
 
-// --- LOGIC FUNCTIONS ---
+// --- FLIGHT SESSION LOGIC ---
 
-function checkCargoDestination(pockets, trunk) {
+function checkForCargo(pockets, trunk) {
     let destName = "Waiting for cargo...";
     let found = false;
 
+    // Helper: Checks for "Air Cargo" or Airport Codes
     const scan = (inv) => {
-        if(!inv) return null;
+        if(!inv) return false;
         for (const key in inv) {
             const upperKey = key.toUpperCase();
             if(upperKey.includes("CARGO")) {
                 for(const code in AIRPORTS) {
-                    if (upperKey.includes(code)) return `${code} - ${AIRPORTS[code]}`;
+                    if (upperKey.includes(code)) {
+                        destName = `${code} - ${AIRPORTS[code]}`;
+                        return true;
+                    }
                 }
             }
         }
-        return null;
+        return false;
     };
 
-    const trunkDest = scan(trunk);
-    const pocketDest = scan(pockets);
-
-    if(trunkDest) { destName = trunkDest; found = true; }
-    else if(pocketDest) { destName = pocketDest; found = true; }
-
+    // Scan Trunk first, then pockets
+    let trunkHas = scan(trunk);
+    let pocketsHas = scan(pockets);
+    
+    // Update Destination Display
     const box = document.getElementById('dest-box');
     const txt = document.getElementById('disp-destination');
-    
     txt.innerText = destName;
-    if(found) {
+    
+    if(trunkHas || pocketsHas) {
         box.style.borderColor = "var(--green)";
         box.style.background = "rgba(0, 230, 118, 0.1)";
         txt.style.color = "var(--green)";
+        return true; // CARGO PRESENT
     } else {
         box.style.borderColor = "var(--accent)";
         box.style.background = "rgba(255, 193, 7, 0.1)";
         txt.style.color = "#fff";
+        return false; // NO CARGO
     }
 }
 
-function renderTrunkList(trunk) {
-    const el = document.getElementById('trunk-list');
-    el.innerHTML = "";
-    
-    // CASE: We have weight, but no items in memory yet.
-    if((!trunk || Object.keys(trunk).length === 0) && MEMORY.weight > 0) {
-        el.innerHTML = "<div style='color:var(--orange); font-style:italic;'>⚠ Cargo Detected<br>(Open Trunk to Sync)</div>";
-        return;
-    }
-    
-    if(!trunk || Object.keys(trunk).length === 0) {
-        el.innerHTML = "Cargo hold is empty.";
-        return;
+function updateRunLogic(currentXP, hasCargo) {
+    // Initialize if first load
+    if (STATE.currentXP === 0) STATE.currentXP = currentXP;
+
+    // A. DETECT START OF RUN
+    // If we have cargo, and run is NOT active, start it.
+    if (hasCargo && !STATE.runActive) {
+        STATE.runActive = true;
+        STATE.runStartXP = currentXP;
+        STATE.currentRunGain = 0;
     }
 
-    for(let key in trunk) {
-        let item = trunk[key];
-        let qty = item.amount || item.count || item;
-        if(qty > 0) {
-            el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
+    // B. TRACK XP DURING RUN
+    if (STATE.runActive) {
+        // Calculate gain since start of this specific flight
+        if (currentXP > STATE.runStartXP) {
+            STATE.currentRunGain = currentXP - STATE.runStartXP;
         }
     }
+
+    // C. DETECT END OF RUN (Delivery)
+    // If run was active, but cargo is gone, flight is done.
+    if (!hasCargo && STATE.runActive) {
+        // Wait a tick? No, assume done.
+        // Add this run's total to history
+        STATE.completedRuns++;
+        STATE.totalRunXP += STATE.currentRunGain;
+        STATE.avgRunXP = STATE.totalRunXP / STATE.completedRuns;
+        
+        // Reset Run State
+        STATE.runActive = false;
+        STATE.currentRunGain = 0;
+    }
+
+    STATE.currentXP = currentXP;
 }
 
 function renderStats() {
@@ -430,8 +463,10 @@ function renderStats() {
     document.getElementById('level-bar').style.width = pct + "%";
     document.getElementById('level-text').innerText = pct + "%";
 
-    document.getElementById('disp-ops').innerText = STATE.jobs;
-    document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+    // FLIGHT SESSION STATS
+    document.getElementById('disp-flight-xp').innerText = formatNumber(STATE.currentRunGain) + " XP";
+    document.getElementById('disp-flight-avg').innerText = Math.round(STATE.avgRunXP) + " XP";
+    document.getElementById('disp-ops').innerText = STATE.completedRuns;
 
     const needed = Math.round(lvl.expForNext - lvl.expInLevel);
     document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
@@ -464,7 +499,7 @@ function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
-    if (STATE.avgXP === 0) { el.innerHTML = "<i>Complete drop to calc...</i>"; return; }
+    if (STATE.avgRunXP === 0) { el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; return; }
     if (!val) { el.innerText = "Enter target above."; return; }
 
     let inputVal = parseInt(val.replace(/,/g, ''));
@@ -478,10 +513,35 @@ function runCalculator() {
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
-        const ops = Math.ceil(diff / STATE.avgXP);
+        // Use Average Flight XP for estimation
+        const ops = Math.ceil(diff / STATE.avgRunXP);
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(ops)}</b></span>`;
     } else {
         el.innerHTML = `Target reached.`;
+    }
+}
+
+// --- TRUNK LIST UI ---
+function renderTrunkList(trunk) {
+    const el = document.getElementById('trunk-list');
+    el.innerHTML = "";
+    
+    if((!trunk || Object.keys(trunk).length === 0) && MEMORY.weight > 0) {
+        el.innerHTML = "<div style='color:var(--orange); font-style:italic;'>⚠ Cargo Detected<br>(Open Trunk to Sync)</div>";
+        return;
+    }
+    
+    if(!trunk || Object.keys(trunk).length === 0) {
+        el.innerHTML = "Cargo hold is empty.";
+        return;
+    }
+
+    for(let key in trunk) {
+        let item = trunk[key];
+        let qty = item.amount || item.count || item;
+        if(qty > 0) {
+            el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
+        }
     }
 }
 
@@ -549,4 +609,3 @@ function runCalculator() {
 </script>
 </body>
 </html>
-
