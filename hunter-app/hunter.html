@@ -8,18 +8,18 @@
 
         /* --- THEME: HUNTER GREEN --- */
         :root {
-            --primary: #558b2f; /* Forest Green */
+            --primary: #558b2f;
             --primary-dim: #2e5c18;
             --bg-glass: rgba(15, 15, 15, 0.95);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
             --border: 1px solid rgba(85, 139, 47, 0.4);
             --green: #00e676;
-            --accent: #ffb300; /* Amber */
+            --accent: #ffb300;
             --alert: #ff3d00;
         }
 
-        /* --- EXACT CARGO BLACK BOX FIX --- */
+        /* --- BLACK BOX FIX --- */
         body {
             margin: 0;
             padding: 0;
@@ -255,30 +255,61 @@ const KEYS = {
     BXP: "exp_token_a|hunting|skill"
 };
 
-// ITEMS: Expanded keywords to catch variations
+// ITEMS CONFIG
+// 'keywords': If the item ID contains ANY of these, it's a match...
+// 'excludes': ...UNLESS it also contains ANY of these.
 const ITEMS = {
-    meat:    { keywords: ["meat", "processed meat"], stock: 0 },
-    boar:    { keywords: ["hunting: boar", "wild boar", "boar"], stock: 0 },
-    bear:    { keywords: ["hunting: brown bear", "brown bear", "bear"], stock: 0 },
-    cougar:  { keywords: ["hunting: cougar", "mountain lion", "cougar"], stock: 0 },
-    coyote:  { keywords: ["hunting: coyote", "coyote"], stock: 0 },
-    deer:    { keywords: ["hunting: deer", "deer", "doe", "buck", "whitetail"], stock: 0 },
-    leopard: { keywords: ["hunting: leopard", "leopard"], stock: 0 },
-    lion:    { keywords: ["hunting: lion", "lion"], stock: 0 },
-    rabbit:  { keywords: ["hunting: rabbit", "rabbit", "hare"], stock: 0 },
-    rat:     { keywords: ["hunting: rat", "rat"], stock: 0 },
-    wolf:    { keywords: ["hunting: wolf", "wolf"], stock: 0 }
+    meat: { 
+        keywords: ["meat", "processed"], 
+        excludes: ["boar", "bear", "cougar", "deer", "lion", "wolf", "rabbit", "rat"] 
+        // Prevents matching "deer meat" unless it's just general "processed meat"
+    },
+    boar: { 
+        keywords: ["boar"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat", "tusk"] 
+    },
+    bear: { 
+        keywords: ["bear"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat", "claw"] 
+    },
+    cougar: { 
+        keywords: ["cougar", "mountain lion"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat", "fang"] 
+    },
+    coyote: { 
+        keywords: ["coyote"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat"] 
+    },
+    deer: { 
+        keywords: ["deer", "buck", "doe", "whitetail"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat", "antler", "urine", "scent"] 
+        // "bait" is the likely culprit for the phantom 20
+    },
+    leopard: { 
+        keywords: ["leopard"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat"] 
+    },
+    lion: { 
+        keywords: ["lion"], 
+        excludes: ["mountain", "bait", "skin", "hide", "pelt", "meat"] 
+        // Exclude "mountain" to prevent Double Counting Cougar (Mountain Lion)
+    },
+    rabbit: { 
+        keywords: ["rabbit", "hare"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat", "foot"] 
+    },
+    rat: { 
+        keywords: ["rat"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat", "tail"] 
+    },
+    wolf: { 
+        keywords: ["wolf"], 
+        excludes: ["bait", "skin", "hide", "pelt", "meat", "fang"] 
+    }
 };
 
-const STATE = {
-    currentXP: 0,
-    currentBXP: 0,
-    startXP: null,
-    callouts: 0,
-    avgXP: 0
-};
+const STATE = { currentXP: 0, currentBXP: 0, startXP: null, callouts: 0, avgXP: 0 };
 
-// --- FORMULAS ---
 function getLevelFromXP(xp) { return Math.floor((Math.sqrt(1 + 8 * xp / 5) - 1) / 2); }
 function getXPFromLevel(level) { return Math.floor((5 * level * (level + 1)) / 2); }
 function formatNum(n) { return Math.floor(n).toLocaleString("en-US"); }
@@ -299,42 +330,33 @@ function requestData() {
         } catch(e) {}
     }
 }
-
-// Always poll
 requestData();
 setInterval(requestData, 1000);
 
-// --- MAIN LISTENER ---
+// --- LISTENER ---
 window.addEventListener('message', (event) => {
     let payload = event.data;
-    if (payload && payload.type === 'data' && payload.data) {
-        payload = payload.data;
-    }
+    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
     if (!payload) return;
 
-    // 1. Process XP
-    if (typeof payload[KEYS.XP] === 'number') {
-        updateXP(payload[KEYS.XP]);
-    }
+    if (typeof payload[KEYS.XP] === 'number') updateXP(payload[KEYS.XP]);
 
-    // 2. Process Inventory
     if (payload.inventory) {
         try {
             const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
             processInventory(inv);
         } catch(e){}
     } else {
-        // Fallback BXP
         if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
     }
 });
 
+// --- SMART INVENTORY PROCESSOR ---
 function processInventory(inv) {
     if (!inv) return;
-
     if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
-    // Normalize Inventory to Array
+    // Flatten Inventory
     const invArray = Object.entries(inv).map(([id, data]) => {
         let qty = 0;
         if (typeof data === 'number') qty = data;
@@ -342,22 +364,24 @@ function processInventory(inv) {
         return { id: id.toLowerCase(), qty: qty };
     });
 
-    // Match Items
     for (let type in ITEMS) {
         let itemData = ITEMS[type];
         let foundQty = 0;
 
-        // Check if ANY keyword is contained in the ID
-        const matches = invArray.filter(invItem => 
-            itemData.keywords.some(k => invItem.id.includes(k))
-        );
+        // FILTER LOGIC:
+        // 1. Must contain at least ONE keyword
+        // 2. Must NOT contain ANY exclude word
+        const matches = invArray.filter(invItem => {
+            const hasKeyword = itemData.keywords.some(k => invItem.id.includes(k));
+            const hasExclude = itemData.excludes ? itemData.excludes.some(ex => invItem.id.includes(ex)) : false;
+            return hasKeyword && !hasExclude;
+        });
 
         if (matches.length > 0) {
             foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
         }
 
         ITEMS[type].stock = foundQty;
-        
         const el = document.getElementById(`stock-${type}`);
         if(el) {
             el.innerText = foundQty;
@@ -374,7 +398,6 @@ function updateBXP(val) {
     }
 }
 
-// --- XP LOGIC ---
 function updateXP(newXP) {
     if (STATE.startXP === null) {
         STATE.startXP = newXP;
@@ -382,17 +405,14 @@ function updateXP(newXP) {
         renderDisplay();
         return;
     }
-
     if (newXP > STATE.currentXP) {
         STATE.callouts++;
         const gained = newXP - STATE.startXP;
         STATE.avgXP = gained / STATE.callouts;
-        
         if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
             try { window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); } catch(e){}
         }
     }
-
     STATE.currentXP = newXP;
     renderDisplay();
 }
@@ -409,54 +429,41 @@ function renderDisplay() {
     document.getElementById('level-text').innerText = percent + "%";
     document.getElementById('disp-callouts').innerText = STATE.callouts;
     document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
-
     runCalculator();
 }
 
-// --- CALCULATOR ---
 const calcInput = document.getElementById('target-input');
 if(calcInput) calcInput.addEventListener('input', runCalculator);
 
 function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
-    
-    if (STATE.avgXP === 0) {
-        el.innerHTML = "<i>Hunt an animal to enable calc...</i>";
-        return;
-    }
-    if (!val) {
-        el.innerText = "Enter target above.";
-        return;
-    }
+    if (STATE.avgXP === 0) { el.innerHTML = "<i>Hunt an animal to enable calc...</i>"; return; }
+    if (!val) { el.innerText = "Enter target above."; return; }
 
     let inputVal = parseInt(val.replace(/,/g, ''));
     let targetXP = inputVal;
-
-    if (inputVal < 200) {
-        let lvlXP = getXPFromLevel(inputVal);
-        if (lvlXP > STATE.currentXP) targetXP = lvlXP;
+    if (inputVal < 200) { 
+         let lvlXP = getXPFromLevel(inputVal);
+         if (lvlXP > STATE.currentXP) targetXP = lvlXP;
     }
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
         const jobs = Math.ceil(diff / STATE.avgXP);
-        el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
-                       `<span style="color:var(--primary)">Est. Kills: <b>${formatNum(jobs)}</b></span>`;
+        el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br><span style="color:var(--primary)">Est. Kills: <b>${formatNum(jobs)}</b></span>`;
     } else {
         const jobs = Math.ceil(inputVal / STATE.avgXP);
         el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} kills</b>`;
     }
 }
 
-// --- SIMPLE DRAG HANDLER ---
+// DRAG HANDLER
 (() => {
     const app = document.getElementById('tracker-app');
     const handle = document.getElementById('drag-handle');
-    
-    if (!app || !handle) return;
-    
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    if (!app || !handle) return;
 
     handle.onmousedown = (e) => {
         e = e || window.event;
