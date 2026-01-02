@@ -19,7 +19,7 @@
             --alert: #ff3d00;
         }
 
-        /* --- BLACK BOX FIX --- */
+        /* --- EXACT CARGO BLACK BOX FIX --- */
         body {
             margin: 0;
             padding: 0;
@@ -255,19 +255,19 @@ const KEYS = {
     BXP: "exp_token_a|hunting|skill"
 };
 
-// ITEMS: Cleaned up to avoid False Positives (removed generic "meat", "boar", etc.)
+// ITEMS: Keywords specific to avoid overlap (e.g. "Lion" overlapping "Mountain Lion")
 const ITEMS = {
-    meat:    { keywords: ["processed meat", "deer meat", "game meat"], stock: 0 },
-    boar:    { keywords: ["hunting: boar", "wild boar", "carcass: boar"], stock: 0 },
-    bear:    { keywords: ["hunting: brown bear", "hunting: bear", "brown bear"], stock: 0 },
-    cougar:  { keywords: ["hunting: cougar", "mountain lion", "carcass: cougar"], stock: 0 },
-    coyote:  { keywords: ["hunting: coyote", "carcass: coyote"], stock: 0 },
-    deer:    { keywords: ["hunting: deer", "carcass: deer", "whitetail"], stock: 0 },
-    leopard: { keywords: ["hunting: leopard", "carcass: leopard"], stock: 0 },
-    lion:    { keywords: ["hunting: lion", "carcass: lion"], stock: 0 }, 
-    rabbit:  { keywords: ["hunting: rabbit", "carcass: rabbit"], stock: 0 },
-    rat:     { keywords: ["hunting: rat", "carcass: rat"], stock: 0 },
-    wolf:    { keywords: ["hunting: wolf", "carcass: wolf"], stock: 0 }
+    meat:    { keywords: ["meat", "processed meat"], stock: 0 },
+    boar:    { keywords: ["hunting: boar", "wild boar"], stock: 0 }, // Removed generic "boar"
+    bear:    { keywords: ["hunting: brown bear", "brown bear"], stock: 0 }, // Removed generic "bear"
+    cougar:  { keywords: ["hunting: cougar", "mountain lion"], stock: 0 }, // Removed "cougar" just in case
+    coyote:  { keywords: ["hunting: coyote"], stock: 0 },
+    deer:    { keywords: ["hunting: deer"], stock: 0 },
+    leopard: { keywords: ["hunting: leopard"], stock: 0 },
+    lion:    { keywords: ["hunting: lion"], stock: 0 }, // Removed generic "lion" to avoid Mountain Lion
+    rabbit:  { keywords: ["hunting: rabbit"], stock: 0 },
+    rat:     { keywords: ["hunting: rat"], stock: 0 },
+    wolf:    { keywords: ["hunting: wolf"], stock: 0 }
 };
 
 const STATE = {
@@ -342,7 +342,7 @@ function processInventory(inv) {
         return { id: id.toLowerCase(), qty: qty };
     });
 
-    // Match Items (LENIENT BUT SPECIFIC)
+    // Match Items (Smart Keywords)
     for (let type in ITEMS) {
         let itemData = ITEMS[type];
         let foundQty = 0;
@@ -449,7 +449,7 @@ function runCalculator() {
     }
 }
 
-// --- DRAG HANDLER ---
+// --- SIMPLE DRAG HANDLER ---
 (() => {
     const app = document.getElementById('tracker-app');
     const handle = document.getElementById('drag-handle');
