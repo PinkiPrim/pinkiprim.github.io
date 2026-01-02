@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Visual Debugger</title>
+    <style>
+        body {
+            margin: 0; padding: 20px;
+            background-color: rgba(0, 0, 0, 0.95);
+            color: #00ff00; /* Hacker Green for visibility */
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            overflow: hidden;
+            user-select: text; /* Allows selecting text if mouse works */
+        }
+        h3 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        
+        #controls { margin-bottom: 15px; }
+        #status { color: #ffff00; margin-bottom: 10px; }
+
+        /* The Box where data appears */
+        #output-box {
+            width: 95%;
+            height: 80vh;
+            border: 1px solid #444;
+            background: #111;
+            padding: 10px;
+            overflow-y: scroll;
+            white-space: pre-wrap; /* Keeps formatting */
+            word-break: break-all;
+        }
+
+        .entry { margin-bottom: 10px; border-bottom: 1px dashed #333; padding-bottom: 5px; }
+        .key-found { color: #00e676; font-weight: bold; background: rgba(0, 50, 0, 0.5); }
+        .raw-dump { color: #888; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+
+    <h3>TT Data Scanner</h3>
+    <div id="status">Scanning for keys...</div>
+    
+    <div id="output-box">Waiting for game data...</div>
+
+    <script>
+        const output = document.getElementById('output-box');
+        const status = document.getElementById('status');
+
+        // --- 1. THE LIST OF KEYS TO GUESS ---
+        // We will ask the game for ALL of these.
+        const guessKeys = [
+            // Standard
+            "inventory", "player_id", "source", 
+            // Vehicle / Trunk
+            "vehicle", "vehicle_inventory", "trunk", "trunk_inventory", 
+            "glovebox", "secondary_inventory", "cargo", "trailer", 
+            "vehicle_data", "plate", "fuel",
+            // Job / Destination
+            "job", "job_name", "job_stage", "job_info", "job_data",
+            "mission", "mission_data", "task", "objective",
+            "destination", "dest", "waypoint", "coords", 
+            "current_job", "delivery", "route"
+        ];
+
+        // --- 2. REQUEST LOOP ---
+        function scan() {
+            if(window.parent) {
+                try {
+                    // Send request for our list of guesses
+                    window.parent.postMessage({ 
+                        type: "getNamedData",
+                        keys: guessKeys
+                    }, "*");
+                    
+                    status.innerText = "Scanning... (Last ping: " + new Date().toLocaleTimeString() + ")";
+                } catch(e) {
+                    status.innerText = "Error posting message: " + e.message;
+                }
+            }
+        }
+
+        // Scan every 2 seconds
+        setInterval(scan, 2000);
+        scan();
+
+        // --- 3. DISPLAY RESULTS ---
+        window.addEventListener('message', (event) => {
+            const payload = event.data;
+            let data = payload;
+            
+            // Unwrap if inside a 'data' property
+            if (payload.type === 'data' && payload.data) {
+                data = payload.data;
+            }
+
+            // Clear box to prevent freezing, or append? Let's clear for readability.
+            output.innerHTML = ""; 
+
+            // A. Check for our Guessed Keys
+            let foundSomething = false;
+            
+            // Loop through the data we received
+            for (let key in data) {
+                let val = data[key];
+                
+                // If the value is not null/undefined/empty
+                if (val !== null && val !== undefined && val !== "") {
+                    
+                    // Format object/arrays to be readable
+                    if (typeof val === 'object') val = JSON.stringify(val, null, 2);
+
+                    const div = document.createElement('div');
+                    div.className = "entry";
+                    
+                    // Highlight if it matches our "Trunk" or "Job" guesses
+                    if (guessKeys.includes(key) || key.includes('trunk') || key.includes('job')) {
+                        div.innerHTML = `<span class="key-found">MATCH FOUND: "${key}"</span><br>${val}`;
+                    } else {
+                        div.innerHTML = `<span style="color:#aaa">Key: "${key}"</span><br>${val}`;
+                    }
+                    output.appendChild(div);
+                    foundSomething = true;
+                }
+            }
+
+            if (!foundSomething) {
+                output.innerHTML = "Received data packet, but all values were empty/null.<br><br>Raw Dump:<br>" + JSON.stringify(data);
+            }
+        });
+    </script>
+</body>
+</html>
