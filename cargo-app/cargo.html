@@ -200,12 +200,13 @@ const AIRPORTS = {
 
 // --- STATE ---
 let TRUNK_KEY = null;
-let LAST_VEHICLE = null; // To detect vehicle changes
+let LAST_VEHICLE = null; 
 
-// We cache these objects so they don't disappear if the stream flickers
+// Memory Cache
 let MEMORY = {
     inventory: {},
     trunk: {},
+    weight: 0,
     lastTrunkUpdate: 0
 };
 
@@ -250,11 +251,11 @@ window.addEventListener('message', (event) => {
 
 function processPayload(data) {
     // 1. VEHICLE CHANGE DETECTION
-    // If the vehicle/plate changes, we must wipe the trunk memory
     let currentVehicle = data.plate || data.vehicle || "none";
     if(LAST_VEHICLE && LAST_VEHICLE !== currentVehicle) {
-        MEMORY.trunk = {}; // Clear trunk memory on vehicle swap
-        TRUNK_KEY = null;  // Reset key
+        MEMORY.trunk = {}; // New car = Clear memory
+        MEMORY.weight = 0;
+        TRUNK_KEY = null; 
     }
     LAST_VEHICLE = currentVehicle;
 
@@ -262,7 +263,6 @@ function processPayload(data) {
     if(data.chest && typeof data.chest === 'string') {
         TRUNK_KEY = "chest_" + data.chest;
     }
-    // Fallback scan for any chest key
     if(!TRUNK_KEY) {
         for(let key in data) {
             if(key.startsWith("chest_") && typeof data[key] === 'string' && data[key] !== "{}") {
@@ -273,37 +273,48 @@ function processPayload(data) {
     }
 
     // 3. PARSE INVENTORIES
-    // Pockets (Always update)
     if(data.inventory) {
         try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
     }
     
-    // Trunk (Update ONLY if valid data exists)
-    let newTrunkData = null;
+    // UPDATE WEIGHT
+    if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(data.trunkWeight);
+    
+    // TRUNK PARSING LOGIC (PROTECTION)
+    let incomingTrunk = null;
     if(TRUNK_KEY && data[TRUNK_KEY]) {
-        try { newTrunkData = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
+        try { incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
     }
 
-    // If we received valid trunk data, update memory and timestamp
     const syncDot = document.getElementById('sync-status');
-    if(newTrunkData) {
-        MEMORY.trunk = newTrunkData;
-        MEMORY.lastTrunkUpdate = Date.now();
-        syncDot.className = "sync-dot live"; // Green
-        syncDot.title = "Live Data";
-    } else {
-        // If data is older than 5 seconds, show orange
-        if(Date.now() - MEMORY.lastTrunkUpdate > 5000) {
-            syncDot.className = "sync-dot cached"; // Orange
-            syncDot.title = "Using Cached Data";
+    const now = Date.now();
+
+    // RULE: Only update memory if we get valid items OR if weight matches 'empty'
+    if(incomingTrunk && Object.keys(incomingTrunk).length > 0) {
+        // CASE A: We received actual items. Update Memory.
+        MEMORY.trunk = incomingTrunk;
+        MEMORY.lastTrunkUpdate = now;
+        syncDot.className = "sync-dot live";
+    } 
+    else if (MEMORY.weight === 0) {
+        // CASE B: Weight is 0, so trunk is actually empty. Update Memory to empty.
+        MEMORY.trunk = {};
+        MEMORY.lastTrunkUpdate = now;
+        syncDot.className = "sync-dot live";
+    }
+    else {
+        // CASE C: Incoming is empty, BUT weight > 0. 
+        // This is a "ghost" packet. IGNORE IT and keep old memory.
+        if(now - MEMORY.lastTrunkUpdate > 2000) {
+            syncDot.className = "sync-dot cached";
         }
     }
 
-    // 4. RENDER UI (Using Memory)
+    // 4. RENDER UI
     renderTrunkList(MEMORY.trunk);
     
-    if(data.trunkWeight !== undefined && data.trunkCapacity !== undefined) {
-        document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight)}/${Math.round(data.trunkCapacity)}kg`;
+    if(data.trunkCapacity !== undefined) {
+        document.getElementById('trunk-capacity').innerText = `${MEMORY.weight}/${Math.round(data.trunkCapacity)}kg`;
     }
 
     // 5. DESTINATION
@@ -360,7 +371,6 @@ function checkCargoDestination(pockets, trunk) {
         return null;
     };
 
-    // Scan Trunk FIRST
     const trunkDest = scan(trunk);
     const pocketDest = scan(pockets);
 
@@ -385,6 +395,12 @@ function checkCargoDestination(pockets, trunk) {
 function renderTrunkList(trunk) {
     const el = document.getElementById('trunk-list');
     el.innerHTML = "";
+    
+    // If trunk is empty AND weight is > 0, show Loading
+    if((!trunk || Object.keys(trunk).length === 0) && MEMORY.weight > 0) {
+        el.innerHTML = "<i>Manifest pending...</i>";
+        return;
+    }
     
     if(!trunk || Object.keys(trunk).length === 0) {
         el.innerHTML = "Cargo hold is empty.";
