@@ -225,13 +225,12 @@ function requestData() {
         try { 
             let keys = [...SCAN_KEYS];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
-            // Request Specific AND General to catch everything
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
             window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
     }
 }
-setInterval(requestData, 1000); // Poll every second
+setInterval(requestData, 1000); 
 
 window.addEventListener('message', (event) => {
     let payload = event.data;
@@ -242,18 +241,17 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. SMART TRUNK DETECTION (Auto-Scan)
-    // If we haven't found the trunk key yet, OR if the trunk is empty, scan for a better key
+    // 1. SMART TRUNK DETECTION
     if(Object.keys(lastTrunkObj).length === 0) {
         for(let key in data) {
-            // Looks like a chest key AND has data inside
+            // Find keys that start with "chest_" and are not empty
             if(key.startsWith("chest_") && typeof data[key] === 'string' && data[key] !== "{}") {
                 TRUNK_KEY = key;
                 break;
             }
         }
     }
-    // Also respect the official pointer if present
+    // Also respect pointer
     if(data.chest && typeof data.chest === 'string') {
         TRUNK_KEY = "chest_" + data.chest;
     }
@@ -273,7 +271,7 @@ function processPayload(data) {
         document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight)}/${Math.round(data.trunkCapacity)}kg`;
     }
 
-    // 4. FIND DESTINATION (Loose Search)
+    // 4. FIND DESTINATION (Case Insensitive)
     checkCargoDestination(lastInventoryObj, lastTrunkObj);
 
     // 5. XP LOGIC
@@ -314,13 +312,19 @@ function checkCargoDestination(pockets, trunk) {
     let destName = "Waiting for cargo...";
     let found = false;
 
-    // Helper: Checks if item name contains any airport code
+    // Helper: Checks if item name contains any airport code (CASE INSENSITIVE)
     const scan = (inv) => {
+        if(!inv) return null;
+        
         for (const key in inv) {
-            // Check against ALL airport codes
+            // Convert Item Name to UPPERCASE to match (e.g. "aircargo_sca" -> "AIRCARGO_SCA")
+            const upperKey = key.toUpperCase();
+            
+            // Safety: Only look at items that likely contain cargo to avoid false matches (like scanners)
+            if(!upperKey.includes("CARGO")) continue; 
+
             for(const code in AIRPORTS) {
-                // If item name contains "SCA" (e.g. "Air Cargo SCA" or "SCA Package")
-                if (key.includes(code)) {
+                if (upperKey.includes(code)) {
                     return `${code} - ${AIRPORTS[code]}`;
                 }
             }
@@ -417,7 +421,6 @@ function runCalculator() {
     let inputVal = parseInt(val.replace(/,/g, ''));
     let targetXP = inputVal;
     
-    // Level detect
     if (inputVal < 200) { 
          let lvlXP = 0; 
          for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
