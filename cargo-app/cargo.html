@@ -172,9 +172,17 @@
 </div>
 
 <div id="settings-icon" style="display:none;"></div>
-<div id="settings-panel" style="display:none;"></div>
+<div id="settings-panel" style="display:none;">
+    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
+    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
+    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
+    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
+    <input type="number" id="xp-font-size">
+    <button id="reset-exp-log"></button>
+    <div id="xp-font-size-value"></div>
+</div>
 <div id="job-list" style="display:none;"></div>
-<table id="summary-table" style="display:none;"></table>
+<table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
 
 <script>
 // --- AIRPORT DATABASE ---
@@ -191,7 +199,6 @@ let TRUNK_KEY = null;
 let lastInventoryObj = {};
 let lastTrunkObj = {};
 
-// We ask for these keys constantly
 const SCAN_KEYS = [
     "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
     "inventory", "vehicle", "plate", 
@@ -216,11 +223,11 @@ setInterval(() => {
 function requestData() {
     if(window.parent) {
         try { 
-            // Build dynamic key list (Static + The dynamic trunk key if found)
             let keys = [...SCAN_KEYS];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
-            
+            // Request Specific AND General to catch everything
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+            window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
     }
 }
@@ -235,38 +242,43 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. SMART TRUNK DETECTION (From V4)
+    // 1. SMART TRUNK DETECTION (Auto-Scan)
+    // If we haven't found the trunk key yet, OR if the trunk is empty, scan for a better key
+    if(Object.keys(lastTrunkObj).length === 0) {
+        for(let key in data) {
+            // Looks like a chest key AND has data inside
+            if(key.startsWith("chest_") && typeof data[key] === 'string' && data[key] !== "{}") {
+                TRUNK_KEY = key;
+                break;
+            }
+        }
+    }
+    // Also respect the official pointer if present
     if(data.chest && typeof data.chest === 'string') {
-        const potentialKey = "chest_" + data.chest;
-        if(TRUNK_KEY !== potentialKey) TRUNK_KEY = potentialKey;
+        TRUNK_KEY = "chest_" + data.chest;
     }
 
     // 2. PARSE INVENTORIES
-    // Pockets
     if(data.inventory) {
         try { lastInventoryObj = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
     }
     
-    // Trunk (if key found)
     if(TRUNK_KEY && data[TRUNK_KEY]) {
         try { lastTrunkObj = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
-    } else {
-        lastTrunkObj = {}; // Clear trunk if not available (vehicle closed/despawned)
     }
 
     // 3. UPDATE UI WITH TRUNK
     renderTrunkList(lastTrunkObj);
-    if(data.trunkWeight && data.trunkCapacity) {
+    if(data.trunkWeight !== undefined && data.trunkCapacity !== undefined) {
         document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight)}/${Math.round(data.trunkCapacity)}kg`;
     }
 
-    // 4. FIND DESTINATION (Scan Pockets + Trunk)
+    // 4. FIND DESTINATION (Loose Search)
     checkCargoDestination(lastInventoryObj, lastTrunkObj);
 
     // 5. XP LOGIC
-    // Check direct Key or inside Pockets
     let currentXP = data[JOB_EXP_KEY];
-    if(!currentXP && lastInventoryObj[JOB_EXP_KEY]) currentXP = lastInventoryObj[JOB_EXP_KEY]; // Fallback
+    if(!currentXP && lastInventoryObj[JOB_EXP_KEY]) currentXP = lastInventoryObj[JOB_EXP_KEY];
 
     if (typeof currentXP === 'number') {
         if (STATE.lastKnownXP === -1) {
@@ -302,18 +314,21 @@ function checkCargoDestination(pockets, trunk) {
     let destName = "Waiting for cargo...";
     let found = false;
 
-    // Helper to scan an object
+    // Helper: Checks if item name contains any airport code
     const scan = (inv) => {
         for (const key in inv) {
-            if (key.startsWith("Air Cargo: ")) {
-                const code = key.split(": ")[1]?.trim();
-                if (code && AIRPORTS[code]) return `${code} - ${AIRPORTS[code]}`;
+            // Check against ALL airport codes
+            for(const code in AIRPORTS) {
+                // If item name contains "SCA" (e.g. "Air Cargo SCA" or "SCA Package")
+                if (key.includes(code)) {
+                    return `${code} - ${AIRPORTS[code]}`;
+                }
             }
         }
         return null;
     };
 
-    // Scan Trunk FIRST (usually where cargo is), then Pockets
+    // Scan Trunk FIRST
     const trunkDest = scan(trunk);
     const pocketDest = scan(pockets);
 
@@ -339,7 +354,7 @@ function renderTrunkList(trunk) {
     const el = document.getElementById('trunk-list');
     el.innerHTML = "";
     
-    if(Object.keys(trunk).length === 0) {
+    if(!trunk || Object.keys(trunk).length === 0) {
         el.innerHTML = "Cargo hold is empty.";
         return;
     }
@@ -354,21 +369,17 @@ function renderTrunkList(trunk) {
 }
 
 function renderStats() {
-    // XP & Level
     const lvl = getLevelInfo(STATE.currentXP);
     document.getElementById('disp-xp').innerText = formatNumber(STATE.currentXP);
     document.getElementById('disp-level').innerText = lvl.level;
     
-    // Bar
     const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
     document.getElementById('level-bar').style.width = pct + "%";
     document.getElementById('level-text').innerText = pct + "%";
 
-    // Avg & Ops
     document.getElementById('disp-ops').innerText = STATE.jobs;
     document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
 
-    // Remaining
     const needed = Math.round(lvl.expForNext - lvl.expInLevel);
     document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
 
@@ -406,12 +417,10 @@ function runCalculator() {
     let inputVal = parseInt(val.replace(/,/g, ''));
     let targetXP = inputVal;
     
-    // Auto-detect if user typed a Level (e.g. "100") instead of XP
+    // Level detect
     if (inputVal < 200) { 
-         let lvlXP = 0; // Quick calc for target level
-         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2; // (rough approximation logic for target)
-         // Actually, let's use the standard formula for total XP at level L:
-         // Total = (5 * L * (L+1)) / 2
+         let lvlXP = 0; 
+         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
          targetXP = (5 * inputVal * (inputVal + 1)) / 2;
     }
 
