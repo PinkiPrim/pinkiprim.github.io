@@ -69,6 +69,34 @@
             scrollbar-width: thin;
         }
 
+        /* --- DESTINATION DISPLAY --- */
+        .destination-display {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px dashed var(--accent);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .dest-label {
+            font-size: 0.7em;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .dest-value {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+            line-height: 1.1;
+        }
+
+        /* Standard Sections */
         .section {
             margin-bottom: 10px; padding-bottom: 8px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -140,6 +168,11 @@
 
     <div id="content">
         
+        <div class="destination-display" id="dest-box">
+            <div class="dest-label">Next Destination</div>
+            <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
+        </div>
+
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div>
@@ -204,6 +237,24 @@
 <table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
 
 <script>
+// --- AIRPORT DATABASE ---
+const AIRPORTS = {
+    "LSIA": "Los Santos INTL.",
+    "SSIA": "Sandy Sh. INTL. Airport",
+    "ZMA":  "Zancudo Military Airport",
+    "RAM":  "Arroyo Muerto Municipal",
+    "POA":  "Pacific Ocean Airport",
+    "MGA":  "Mount Gorgo Airport",
+    "CIA":  "Chumash Island Airport",
+    "SCA":  "San Chianski Airport",
+    "POP":  "PostOp Airport",
+    "SAN":  "Sandy Shores Airfield",
+    "MKA":  "McKenzie Airfield",
+    "CPA":  "Cayo Perico Airfield",
+    "TVH":  "Tongva Hills Airfield",
+    "CV":   "Carrier"
+};
+
 // --- CLOCK ---
 function updateClock() {
     const now = new Date();
@@ -213,8 +264,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// --- YOUR PROVIDED SCRIPT (Engine) ---
-
+// --- ENGINE VARS ---
 let lastInventoryObj = {};
 let selectedJobs = [];
 let expLogs = {};
@@ -228,78 +278,16 @@ let lastRenderTime = 0;
 let hasReceivedAnyData = false;
 let hasRequestedOnce = false;
 
-const TRACKER_SIZE_KEY = "tracker-app-size";
 const TRACKER_POSITION_KEY = "tracker-app-position";
-const XP_FONT_SIZE_KEY = "xp-font-size";
 const RECENT_WINDOW_MS = 10 * 60 * 1000;
 const RENDER_THROTTLE_MS = 500;
 
-const JOBS = [
-  { key: "trucker", label: "Trucker" },
-  { key: "mechanic", label: "Mechanic" },
-  { key: "garbage", label: "Garbage" },
-  { key: "postop", label: "PostOP" },
-  { key: "pilot", label: "Airline Pilot" },
-  { key: "helicopterpilot", label: "Helicopter Pilot" },
-  { key: "cargopilot", label: "Cargo Pilot" },
-  { key: "busdriver", label: "Bus Driver" },
-  { key: "conductor", label: "Train Conductor" },
-  { key: "emergency", label: "EMS" },
-  { key: "player", label: "Player" },
-  { key: "firefighter", label: "Firefighter" },
-  { key: "racer", label: "Racer" },
-  { key: "farmer", label: "Farmer" },
-  { key: "fisher", label: "Fisher" },
-  { key: "strength", label: "Strength" },
-  { key: "miner", label: "Miner" },
-  { key: "business", label: "Business" },
-  { key: "hunter", label: "Hunter" }
-];
+// JOB CONFIG
+const JOBS = [ { key: "cargopilot", label: "Cargo Pilot" } ];
+const JOB_EXP_KEYS = { cargopilot: "exp_piloting_cargos" };
+const JOB_BXP_KEYS = { cargopilot: "exp_token_a|piloting|cargos" };
 
-const JOB_EXP_KEYS = {
-  trucker: "exp_trucking_trucking",
-  mechanic: "exp_trucking_mechanic",
-  garbage: "exp_trucking_garbage",
-  postop: "exp_trucking_postop",
-  pilot: "exp_piloting_piloting",
-  helicopterpilot: "exp_piloting_heli",
-  cargopilot: "exp_piloting_cargos",
-  busdriver: "exp_train_bus",
-  conductor: "exp_train_train",
-  emergency: "exp_ems_ems",
-  firefighter: "exp_ems_fire",
-  racer: "exp_player_racing",
-  farmer: "exp_farming_farming",
-  fisher: "exp_farming_fishing",
-  miner: "exp_farming_mining",
-  business: "exp_business_business",
-  hunter: "exp_hunting_skill",
-  player: "exp_player_player",
-  strength: "exp_physical_strength"
-};
-
-const JOB_BXP_KEYS = {
-  trucker:       "exp_token_a|trucking|trucking",
-  mechanic:      "exp_token_a|trucking|mechanic",
-  garbage:       "exp_token_a|trucking|garbage",
-  postop:        "exp_token_a|trucking|postop",
-  pilot:         "exp_token_a|piloting|piloting",
-  helicopterpilot:"exp_token_a|piloting|heli",
-  cargopilot:    "exp_token_a|piloting|cargos",
-  busdriver:     "exp_token_a|train|bus",
-  conductor:     "exp_token_a|train|train",
-  emergency:     "exp_token_a|ems|ems",
-  firefighter:   "exp_token_a|ems|fire",
-  racer:         "exp_token_a|player|racing",
-  farmer:        "exp_token_a|farming|farming",
-  fisher:        "exp_token_a|farming|fishing",
-  miner:         "exp_token_a|farming|mining",
-  business:      "exp_token_a|business|business",
-  hunter:        "exp_token_a|hunting|skill",
-  player:        "exp_token_a|player|player",
-  strength:      "exp_token_a|physical|strength"
-};
-
+// --- HELPERS ---
 function formatNumber(num) {
   if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
   if (num >= 1000) return (num / 1000).toFixed(1) + "K";
@@ -309,8 +297,7 @@ function formatNumber(num) {
 function getAllRequiredKeys() {
   const expKeys = Object.values(JOB_EXP_KEYS);
   const bxpKeys = Object.values(JOB_BXP_KEYS);
-  const inventoryKey = ["inventory", "exp_piloting_cargos"];
-  return [...expKeys, ...bxpKeys, ...inventoryKey];
+  return [...expKeys, ...bxpKeys, "inventory"];
 }
 
 function getLevelInfo(exp) {
@@ -324,24 +311,10 @@ function getLevelInfo(exp) {
   return { level, expInLevel: exp, expForNext: xpCap };
 }
 
-function getSortedJobs() {
-  return [...JOBS].sort((a, b) => a.label.localeCompare(b.label));
-}
-
 function getPercentValue(exp, cap) {
-  if (typeof exp !== "number") return null;
+  if (typeof exp !== "number") return 0;
   const pct = Math.max(0, Math.min(100, (exp / cap) * 100));
   return +pct.toFixed(1);
-}
-
-function get1MPercentValue(jobKey) {
-  const exp = lastExps[jobKey];
-  return getPercentValue(exp, 1_000_000);
-}
-
-function get10MPercentValue(jobKey) {
-  const exp = lastExps[jobKey];
-  return getPercentValue(exp, 10_000_000);
 }
 
 function saveData() {
@@ -351,99 +324,9 @@ function saveData() {
 
 function loadData() {
   selectedJobs = JSON.parse(localStorage.getItem("selected-jobs") || "[]");
-  if (selectedJobs.length === 0) {
-    selectedJobs = ["cargopilot"]; // FORCE CARGO DEFAULT
-    localStorage.setItem("selected-jobs", JSON.stringify(selectedJobs));
-  }
+  if (selectedJobs.length === 0) selectedJobs = ["cargopilot"];
   expLogs = JSON.parse(localStorage.getItem("exp-logs") || "{}");
-  loadSettings();
-  loadFontSize();
-  renderSummary();
-}
-
-function resetAllData() {
-  Object.keys(expLogs).forEach(key => delete expLogs[key]);
-  Object.keys(initialExps).forEach(key => delete initialExps[key]);
-  Object.keys(hasFirstGain).forEach(key => delete hasFirstGain[key]);
-  Object.keys(lastUpdateTime).forEach(key => delete lastUpdateTime[key]);
-  selectedJobs.forEach(jobKey => {
-    const exp = lastExps[jobKey];
-    if (typeof exp === "number") {
-      expLogs[jobKey] = [];
-      initialExps[jobKey] = exp;
-      hasFirstGain[jobKey] = false;
-    }
-  });
-  
-  // RESET BRIDGE VARS
-  bridge_StartXP = null;
-  bridge_SessionXP = 0;
-  bridge_Ops = 0;
-  bridge_LastKnownXP = -1;
-  
-  saveData();
-  renderStats();
-}
-
-function saveSettings() {
-  try {
-    const settings = {
-      bxp: document.getElementById("toggle-bxp").checked,
-      currentLevel: document.getElementById("toggle-current-level").checked,
-      expHr: document.getElementById("toggle-exp-hr").checked,
-      expMin: document.getElementById("toggle-exp-min").checked,
-      perkChance: document.getElementById("toggle-perk-chance").checked,
-      oneMPercent: document.getElementById("toggle-1m-percent").checked,
-      tenMPercent: document.getElementById("toggle-10m-percent").checked,
-      level: document.getElementById("toggle-level").checked
-    };
-    localStorage.setItem("tracker-settings", JSON.stringify(settings));
-  } catch (error) {}
-}
-
-function loadSettings() {
-  try {
-    const savedSettings = localStorage.getItem("tracker-settings");
-    const settings = savedSettings ? JSON.parse(savedSettings) : {};
-    document.getElementById("toggle-bxp").checked = settings.bxp !== false;
-    document.getElementById("toggle-current-level").checked = settings.currentLevel !== false;
-    document.getElementById("toggle-exp-hr").checked = settings.expHr !== false;
-    document.getElementById("toggle-exp-min").checked = settings.expMin !== false;
-    document.getElementById("toggle-perk-chance").checked = settings.perkChance !== false;
-    document.getElementById("toggle-1m-percent").checked = settings.oneMPercent === true;
-    document.getElementById("toggle-10m-percent").checked = settings.tenMPercent === true;
-    document.getElementById("toggle-level").checked = settings.level !== false;
-  } catch (error) {}
-}
-
-function getSettings() {
-  return {
-    bxp: document.getElementById("toggle-bxp").checked,
-    currentLevel: document.getElementById("toggle-current-level").checked,
-    expHr: document.getElementById("toggle-exp-hr").checked,
-    expMin: document.getElementById("toggle-exp-min").checked,
-    perkChance: document.getElementById("toggle-perk-chance").checked,
-    oneMPercent: document.getElementById("toggle-1m-percent").checked,
-    tenMPercent: document.getElementById("toggle-10m-percent").checked,
-    level: document.getElementById("toggle-level").checked
-  };
-}
-
-function applySettingsPosition(position) {} 
-
-function loadFontSize() {
-  const size = localStorage.getItem(XP_FONT_SIZE_KEY) || "12";
-  document.getElementById("xp-font-size").value = size;
-  applyFontSize(size);
-}
-
-function saveFontSize(size) {
-  localStorage.setItem(XP_FONT_SIZE_KEY, size);
-  applyFontSize(size);
-}
-
-function applyFontSize(size) {
-  document.documentElement.style.setProperty('--stat-font-size', size + 'px');
+  loadPosition();
 }
 
 function savePosition() {
@@ -458,8 +341,6 @@ function savePosition() {
     localStorage.setItem(TRACKER_POSITION_KEY, JSON.stringify(position));
   }
 }
-
-function adjustSettingsPosition() {} 
 
 function loadPosition() {
   const savedPosition = localStorage.getItem(TRACKER_POSITION_KEY);
@@ -477,69 +358,91 @@ function loadPosition() {
   }
 }
 
-function renderStats() {
-  const now = Date.now();
-  if (now - lastRenderTime < RENDER_THROTTLE_MS) {
-    return;
-  }
-  lastRenderTime = now;
-  renderSummary();
-  // INTEGRATION: UPDATE HUD
-  updateCargoHUD(); 
-}
-
-function renderSummary() {} // Stubbed out - we use HUD instead
-
 function calculateJobStats(jobKey) {
   const currentExp = lastExps[jobKey] || 0;
   const bxp = lastBXPs[jobKey] || 0;
-  const log = expLogs[jobKey] || [];
-  let expPerHour = 0;
-  let expPerMin = 0;
-  if (log.length >= 2) {
-    const recent = log.filter(entry => Date.now() - entry.time <= RECENT_WINDOW_MS);
-    if (recent.length >= 2) {
-      const firstEntry = recent[0];
-      const lastEntry = recent[recent.length - 1];
-      const timeDiff = lastEntry.time - firstEntry.time;
-      const expDiff = lastEntry.exp - firstEntry.exp;
-      if (timeDiff > 0) {
-        expPerHour = Math.round((expDiff / timeDiff) * (1000 * 60 * 60));
-        expPerMin = Math.round(expPerHour / 60);
-      }
+  return { currentExp, bxp, levelInfo: getLevelInfo(currentExp) };
+}
+
+function renderStats() {
+  const now = Date.now();
+  if (now - lastRenderTime < RENDER_THROTTLE_MS) return;
+  lastRenderTime = now;
+  updateCargoHUD(); 
+}
+
+// --- MAIN LOGIC ---
+
+// BRIDGE STATE
+let bridge_StartXP = null;
+let bridge_SessionXP = 0;
+let bridge_Ops = 0;
+let bridge_LastKnownXP = -1;
+
+function updateCargoHUD() {
+    const stats = calculateJobStats('cargopilot');
+    const current = stats.currentExp;
+    
+    // XP & Level
+    document.getElementById('disp-xp').innerText = formatNumber(current);
+    document.getElementById('disp-level').innerText = stats.levelInfo.level;
+    document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
+    document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
+    
+    // BXP
+    if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
+    
+    // Ops Tracking
+    if (bridge_StartXP === null && current > 0) {
+        bridge_StartXP = current;
+        bridge_LastKnownXP = current;
     }
-  }
-  return {
-    currentExp,
-    bxp,
-    expPerHour,
-    expPerMin,
-    levelInfo: getLevelInfo(currentExp)
-  };
+    
+    document.getElementById('disp-ops').innerText = bridge_Ops;
+    
+    const averageXP = bridge_Ops > 0 ? (bridge_SessionXP / bridge_Ops) : 0;
+    document.getElementById('disp-avg').innerText = Math.round(averageXP);
+
+    const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
+    let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
+    
+    document.getElementById('disp-xp-remaining').innerHTML = remainingText;
+    
+    runCalculator(averageXP); 
 }
 
-function backfillExpLogIfMissing(jobKey) {
-  if (typeof lastExps[jobKey] === "number" && (!Array.isArray(expLogs[jobKey]) || expLogs[jobKey].length < 2)) {
-    const exp = lastExps[jobKey];
-    const now = Date.now();
-    expLogs[jobKey] = [
-      { time: now - 5000, exp },
-      { time: now, exp }
-    ];
-    initialExps[jobKey] = exp;
-    hasFirstGain[jobKey] = true;
-  }
+// --- DESTINATION TRACKER LOGIC ---
+function checkCargoDestination(inventory) {
+    let destinationName = "Waiting for cargo...";
+    let found = false;
+
+    // Loop through inventory items
+    for (const [key, value] of Object.entries(inventory)) {
+        // Look for items starting with "Air Cargo: "
+        if (key.startsWith("Air Cargo: ")) {
+            const code = key.split(": ")[1]; // Extract the code (e.g., "SCA")
+            if (code && AIRPORTS[code]) {
+                destinationName = `${code} - ${AIRPORTS[code]}`;
+                found = true;
+                break; // Stop after finding the first valid package
+            }
+        }
+    }
+
+    const destBox = document.getElementById('dest-box');
+    document.getElementById('disp-destination').innerText = destinationName;
+
+    // Visual feedback
+    if(found) {
+        destBox.style.borderColor = "var(--green)";
+        destBox.style.background = "rgba(0, 230, 118, 0.1)";
+        document.getElementById('disp-destination').style.color = "var(--green)";
+    } else {
+        destBox.style.borderColor = "var(--accent)";
+        destBox.style.background = "rgba(255, 193, 7, 0.1)";
+        document.getElementById('disp-destination').style.color = "#fff";
+    }
 }
-
-function setupUIHandlers() {
-  // Minimized to prevent errors
-}
-
-function renderJobPills() {}
-
-function toggleJob(jobKey) {}
-
-window.toggleJob = toggleJob;
 
 function processGameData(data) {
   const now = Date.now();
@@ -548,113 +451,53 @@ function processGameData(data) {
   if (data.inventory) {
     try {
       inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
-      if (inventory) {
-          lastInventoryObj = inventory;
-      }
+      if (inventory) lastInventoryObj = inventory;
     } catch {
       inventory = lastInventoryObj;
     }
   } else {
     inventory = lastInventoryObj;
   }
+
+  // --- RUN DESTINATION CHECK ---
+  if(inventory) {
+      checkCargoDestination(inventory);
+  }
   
-  // 1. CARGO SPECIFIC CHECK (Must run before loop updates lastExps)
+  // XP Check
   const currentCargoXP = data['exp_piloting_cargos'];
   if (typeof currentCargoXP === 'number') {
-      // Init Check
       if (bridge_LastKnownXP === -1) {
           bridge_LastKnownXP = currentCargoXP;
           if (!bridge_StartXP) bridge_StartXP = currentCargoXP;
       }
       else if (currentCargoXP > bridge_LastKnownXP) {
-          // ANY INCREASE = ACTION
           const diff = currentCargoXP - bridge_LastKnownXP;
           if (diff > 0) {
               bridge_SessionXP += diff;
               bridge_Ops++;
-              bridge_LastKnownXP = currentCargoXP; // Sync
-              // Force UI Update immediately
+              bridge_LastKnownXP = currentCargoXP;
               updateCargoHUD(); 
           }
       }
   }
 
-  // 2. STANDARD LOOP
-  JOBS.forEach(job => {
-    const expKey = JOB_EXP_KEYS[job.key];
-    const exp = data[expKey];
-    if (typeof exp === "number") {
-      lastExps[job.key] = exp;
-    }
-  });
+  // Update State Vars
+  const exp = data[JOB_EXP_KEYS.cargopilot];
+  if (typeof exp === "number") {
+      lastExps.cargopilot = exp;
+  }
   
-  selectedJobs.forEach(jobKey => {
-    const job = JOBS.find(j => j.key === jobKey);
-    if (!job) return;
-    
-    const expKey = JOB_EXP_KEYS[jobKey];
-    const exp = data[expKey];
-    
-    if (typeof exp === "number") {
-      if (!expLogs[jobKey]) expLogs[jobKey] = [];
-      const log = expLogs[jobKey];
-      
-      if (!hasFirstGain[jobKey]) {
-        if (typeof initialExps[jobKey] !== "number") {
-          initialExps[jobKey] = exp;
-        }
-      }
-      if (!hasFirstGain[jobKey] && exp !== initialExps[jobKey]) {
-        hasFirstGain[jobKey] = true;
-        if (typeof initialExps[jobKey] !== "number" || initialExps[jobKey] === 0) {
-          initialExps[jobKey] = exp - (exp - (log[log.length - 1]?.exp || 0));
-        }
-      }
-      
-      const lastEntry = log[log.length - 1];
-      if (lastEntry === undefined) {
-        lastUpdateTime[jobKey] = now;
-      } else if (exp > lastEntry.exp) {
-        log.push({ time: now, exp });
-        lastUpdateTime[jobKey] = now;
-        const lastDisplayed = lastDisplayedExps[jobKey] || 0;
-        if (exp > lastDisplayed) {
-          lastDisplayedExps[jobKey] = exp;
-        }
-      }
-      if (log.length === 0 && hasFirstGain[jobKey]) {
-        log.push({ time: now - 5000, exp: initialExps[jobKey] });
-        log.push({ time: now, exp });
-        lastUpdateTime[jobKey] = now;
-      }
-      if (log.length > 2) {
-        const recentCutoff = now - RECENT_WINDOW_MS;
-        expLogs[jobKey] = log.filter((entry, idx) => {
-          return idx === 0 || entry.time >= recentCutoff;
-        });
-      }
-    }
-    
-    const bxpToken = JOB_BXP_KEYS[jobKey];
-    let bxpObj;
-    if (bxpToken && data[bxpToken]) {
-      bxpObj = data[bxpToken];
-    }
-    else if (bxpToken && inventory && typeof inventory === 'object') {
-      bxpObj = inventory[bxpToken];
-      if (!bxpObj) {
-        const fallbackKey = Object.keys(inventory).find(k => k.startsWith(bxpToken));
-        if (fallbackKey) bxpObj = inventory[fallbackKey];
-      }
-    }
-    if (bxpObj && typeof bxpObj.amount === "number") {
-      lastBXPs[jobKey] = bxpObj.amount;
-    } else if (typeof bxpObj === "number") {
-      lastBXPs[jobKey] = bxpObj;
-    } else {
-      delete lastBXPs[jobKey];
-    }
-  });
+  // BXP Check
+  const bxpToken = JOB_BXP_KEYS.cargopilot;
+  let bxpObj;
+  if (data[bxpToken]) bxpObj = data[bxpToken];
+  else if (inventory && inventory[bxpToken]) bxpObj = inventory[bxpToken];
+  
+  if (bxpObj) {
+      lastBXPs.cargopilot = (typeof bxpObj === 'object') ? bxpObj.amount : bxpObj;
+  }
+
   saveData();
   renderStats();
 }
@@ -664,10 +507,7 @@ function requestDataOnce(force = false) {
   hasRequestedOnce = true;
   try {
     const keys = getAllRequiredKeys();
-    window.parent.postMessage({ 
-      type: "getNamedData",
-      keys: keys
-    }, "*");
+    window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
   } catch (e) {
     window.parent.postMessage({ type: "getData" }, "*");
   }
@@ -675,22 +515,15 @@ function requestDataOnce(force = false) {
 
 function init() {
   loadData();
-  loadPosition();
   renderStats();
-  
-  // Set fast polling
   setInterval(requestDataOnce, 1000); 
-  
-  saveSettings();
-  
   window.addEventListener("message", (event) => {
     const msg = event.data;
     if (msg && msg.type === "data" && msg.data) {
-      hasReceivedAnyData = true;         
+      hasReceivedAnyData = true;          
       processGameData(msg.data);
     }
   });
-
   requestDataOnce();
   setTimeout(() => { if (!hasReceivedAnyData) requestDataOnce(true); }, 1200);
 }
@@ -764,53 +597,6 @@ if (document.readyState === 'loading') {
   window.addEventListener('mouseup', endDrag);
 })();
 
-// --- CARGO BRIDGE LOGIC ---
-
-// BRIDGE STATE - SELF CONTAINED
-let bridge_StartXP = null;
-let bridge_SessionXP = 0;
-let bridge_Ops = 0;
-let bridge_LastKnownXP = -1;
-
-function updateCargoHUD() {
-    const stats = calculateJobStats('cargopilot');
-    const current = stats.currentExp;
-    
-    // XP & Level
-    document.getElementById('disp-xp').innerText = formatNumber(current);
-    document.getElementById('disp-level').innerText = stats.levelInfo.level;
-    document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
-    document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
-    
-    // BXP
-    if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
-    
-    // --- EXACT XP GAIN TRACKING & CALIBRATION ---
-    if (bridge_StartXP === null && current > 0) {
-        bridge_StartXP = current;
-        bridge_LastKnownXP = current;
-    }
-    
-    // Update Logic is handled in processGameData now for sync
-    
-    // Update Clean Ops UI
-    document.getElementById('disp-ops').innerText = bridge_Ops;
-    
-    // Calculate Average per Op
-    const averageXP = bridge_Ops > 0 ? (bridge_SessionXP / bridge_Ops) : 0;
-    
-    // NEW: Update Avg XP UI
-    document.getElementById('disp-avg').innerText = Math.round(averageXP);
-
-    // --- DISPLAY REMAINING XP & OPS ---
-    const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
-    let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
-    
-    document.getElementById('disp-xp-remaining').innerHTML = remainingText;
-    
-    runCalculator(averageXP); 
-}
-
 // --- CALCULATOR ---
 const calcInput = document.getElementById('target-input');
 let currentAvg = 0;
@@ -855,8 +641,6 @@ function runCalculator(avg) {
         el.innerHTML = `Target reached.`;
     }
 }
-
 </script>
 </body>
 </html>
-
