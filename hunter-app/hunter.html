@@ -2,50 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Hunter Helper</title>
+    <title>TT Hunter Helper v2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         /* --- THEME: HUNTER GREEN --- */
         :root {
-            --primary: #558b2f;
+            --primary: #558b2f; /* Forest Green */
             --primary-dim: #2e5c18;
             --bg-glass: rgba(15, 15, 15, 0.95);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
             --border: 1px solid rgba(85, 139, 47, 0.4);
             --green: #00e676;
-            --accent: #ffb300;
-            --alert: #ff3d00;
+            --accent: #ffb300; /* Amber */
         }
 
-        /* --- BLACK BOX FIX --- */
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: 'Roboto', sans-serif;
             background-color: transparent;
             color: var(--text-main);
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            height: 100vh; width: 100vw;
             user-select: none;
         }
 
-        /* --- CONTAINER --- */
         #tracker-app {
             position: absolute;
-            top: 50px;
-            left: 50px;
+            top: 50px; left: 50px;
             width: 340px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            display: flex;
-            flex-direction: column;
-            resize: both;
-            overflow: hidden;
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
             min-height: 200px;
         }
 
@@ -53,63 +45,34 @@
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 8px 12px;
             cursor: move;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 1.1em;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
         }
 
-        #content {
-            padding: 12px;
-            flex: 1;
-            overflow-y: auto;
-            scrollbar-width: thin;
-        }
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        .section {
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
+        .section { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
 
-        .label {
-            font-size: 0.7em;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            margin-bottom: 3px;
-        }
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 3px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
         .progress-container {
             position: relative; height: 16px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 4px; margin: 5px 0 10px 0;
+            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 10px 0;
             overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
         }
-        .progress-bar {
-            height: 100%; background: var(--primary);
-            width: 0%; transition: width 0.3s ease;
-        }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
         .progress-text {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.7em; text-shadow: 1px 1px 2px black;
-            font-weight: bold; z-index: 2;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
         }
 
-        /* 3 COLUMN GRID */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-        .stat-box {
-            background: rgba(255,255,255,0.05); padding: 6px;
-            border-radius: 4px; text-align: center;
-        }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
 
         /* INVENTORY STYLES */
         .inv-row {
@@ -122,8 +85,7 @@
         .meat-row {
             border-left-color: var(--accent);
             background: rgba(255, 179, 0, 0.1);
-            margin-bottom: 8px;
-            font-weight: bold;
+            margin-bottom: 8px; font-weight: bold;
         }
 
         .inv-name { font-size: 0.85em; }
@@ -138,10 +100,7 @@
             border-radius: 4px; margin-top: 5px; font-family: inherit;
         }
         input:focus { outline: 1px solid var(--primary); }
-        .calc-output {
-            margin-top: 5px; font-size: 0.8em; line-height: 1.3;
-            color: var(--text-dim); word-wrap: break-word;
-        }
+        .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
         
         #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
@@ -159,14 +118,8 @@
         
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div>
-                    <div class="label">Hunter Level</div>
-                    <div class="value highlight" style="font-size:1.6em" id="disp-level">...</div>
-                </div>
-                <div style="text-align:right;">
-                    <div class="label">Current XP</div>
-                    <div class="value" id="disp-xp" style="font-size:0.9em">0</div>
-                </div>
+                <div><div class="label">Hunter Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
             </div>
 
             <div class="progress-container">
@@ -175,18 +128,9 @@
             </div>
 
             <div class="stat-grid">
-                <div class="stat-box">
-                    <div class="label">BXP Tokens</div>
-                    <div class="value bxp" id="disp-bxp">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="label">Avg XP</div>
-                    <div class="value" id="disp-avg">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="label">Kills/Actions</div>
-                    <div class="value" id="disp-callouts">0</div>
-                </div>
+                <div class="stat-box"><div class="label">BXP Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
+                <div class="stat-box"><div class="label">Kills/Actions</div><div class="value" id="disp-callouts">0</div></div>
             </div>
         </div>
 
@@ -202,7 +146,7 @@
                 <div class="animal-col">
                     <div class="inv-row"><div class="inv-name">Hunting: Boar</div><div class="inv-stats" id="stock-boar">0</div></div>
                     <div class="inv-row"><div class="inv-name">Hunting: Bear</div><div class="inv-stats" id="stock-bear">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Cougar</div><div class="inv-stats" id="stock-cougar">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Hunting: Cougar</div><div class="inv-stats" id="stock-mtlion">0</div></div>
                     <div class="inv-row"><div class="inv-name">Hunting: Coyote</div><div class="inv-stats" id="stock-coyote">0</div></div>
                     <div class="inv-row"><div class="inv-name">Hunting: Deer</div><div class="inv-stats" id="stock-deer">0</div></div>
                 </div>
@@ -237,259 +181,276 @@
     <div id="xp-font-size-value"></div>
 </div>
 <div id="job-list" style="display:none;"></div>
-<table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
+<table id="summary-table" style="display:none;"></table>
 
 <script>
-// --- CLOCK ---
-function updateClock() {
-    const now = new Date();
-    const el = document.getElementById('clock');
-    if(el) el.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-}
-setInterval(updateClock, 1000);
-updateClock();
+    // --- CLOCK ---
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }, 1000);
 
-// --- CONFIG ---
-const KEYS = {
-    XP: "exp_hunting_skill",
-    BXP: "exp_token_a|hunting|skill"
-};
-
-// ITEMS CONFIG
-// 'keywords': If the item ID contains ANY of these, it's a match...
-// 'excludes': ...UNLESS it also contains ANY of these.
-const ITEMS = {
-    meat: { 
-        keywords: ["meat", "processed"], 
-        excludes: ["boar", "bear", "cougar", "deer", "lion", "wolf", "rabbit", "rat"] 
-        // Prevents matching "deer meat" unless it's just general "processed meat"
-    },
-    boar: { 
-        keywords: ["boar"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat", "tusk"] 
-    },
-    bear: { 
-        keywords: ["bear"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat", "claw"] 
-    },
-    cougar: { 
-        keywords: ["cougar", "mountain lion"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat", "fang"] 
-    },
-    coyote: { 
-        keywords: ["coyote"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat"] 
-    },
-    deer: { 
-        keywords: ["deer", "buck", "doe", "whitetail"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat", "antler", "urine", "scent"] 
-        // "bait" is the likely culprit for the phantom 20
-    },
-    leopard: { 
-        keywords: ["leopard"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat"] 
-    },
-    lion: { 
-        keywords: ["lion"], 
-        excludes: ["mountain", "bait", "skin", "hide", "pelt", "meat"] 
-        // Exclude "mountain" to prevent Double Counting Cougar (Mountain Lion)
-    },
-    rabbit: { 
-        keywords: ["rabbit", "hare"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat", "foot"] 
-    },
-    rat: { 
-        keywords: ["rat"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat", "tail"] 
-    },
-    wolf: { 
-        keywords: ["wolf"], 
-        excludes: ["bait", "skin", "hide", "pelt", "meat", "fang"] 
-    }
-};
-
-const STATE = { currentXP: 0, currentBXP: 0, startXP: null, callouts: 0, avgXP: 0 };
-
-function getLevelFromXP(xp) { return Math.floor((Math.sqrt(1 + 8 * xp / 5) - 1) / 2); }
-function getXPFromLevel(level) { return Math.floor((5 * level * (level + 1)) / 2); }
-function formatNum(n) { return Math.floor(n).toLocaleString("en-US"); }
-function getPercentValue(current, prev, next) {
-    if(typeof current !== 'number') return 0;
-    const p = ((current - prev) / (next - prev)) * 100;
-    return Math.min(100, Math.max(0, p)).toFixed(1);
-}
-
-// --- COMMS ---
-function requestData() {
-    if(window.parent) {
-        try {
-            window.parent.postMessage({ 
-                type: "getNamedData",
-                keys: [KEYS.XP, KEYS.BXP, "inventory"]
-            }, "*");
-        } catch(e) {}
-    }
-}
-requestData();
-setInterval(requestData, 1000);
-
-// --- LISTENER ---
-window.addEventListener('message', (event) => {
-    let payload = event.data;
-    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
-    if (!payload) return;
-
-    if (typeof payload[KEYS.XP] === 'number') updateXP(payload[KEYS.XP]);
-
-    if (payload.inventory) {
-        try {
-            const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
-            processInventory(inv);
-        } catch(e){}
-    } else {
-        if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
-    }
-});
-
-// --- SMART INVENTORY PROCESSOR ---
-function processInventory(inv) {
-    if (!inv) return;
-    if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
-
-    // Flatten Inventory
-    const invArray = Object.entries(inv).map(([id, data]) => {
-        let qty = 0;
-        if (typeof data === 'number') qty = data;
-        else if (typeof data === 'object') qty = data.amount || data.count || data.qty || 0;
-        return { id: id.toLowerCase(), qty: qty };
-    });
-
-    for (let type in ITEMS) {
-        let itemData = ITEMS[type];
-        let foundQty = 0;
-
-        // FILTER LOGIC:
-        // 1. Must contain at least ONE keyword
-        // 2. Must NOT contain ANY exclude word
-        const matches = invArray.filter(invItem => {
-            const hasKeyword = itemData.keywords.some(k => invItem.id.includes(k));
-            const hasExclude = itemData.excludes ? itemData.excludes.some(ex => invItem.id.includes(ex)) : false;
-            return hasKeyword && !hasExclude;
-        });
-
-        if (matches.length > 0) {
-            foundQty = matches.reduce((sum, item) => sum + item.qty, 0);
-        }
-
-        ITEMS[type].stock = foundQty;
-        const el = document.getElementById(`stock-${type}`);
-        if(el) {
-            el.innerText = foundQty;
-            el.style.color = foundQty > 0 ? "white" : "var(--text-dim)";
-        }
-    }
-}
-
-function updateBXP(val) {
-    let amt = (typeof val === 'object') ? val.amount : val;
-    if (amt >= 0) {
-        STATE.currentBXP = amt;
-        document.getElementById('disp-bxp').innerText = formatNum(amt);
-    }
-}
-
-function updateXP(newXP) {
-    if (STATE.startXP === null) {
-        STATE.startXP = newXP;
-        STATE.currentXP = newXP;
-        renderDisplay();
-        return;
-    }
-    if (newXP > STATE.currentXP) {
-        STATE.callouts++;
-        const gained = newXP - STATE.startXP;
-        STATE.avgXP = gained / STATE.callouts;
-        if (getLevelFromXP(newXP) > getLevelFromXP(STATE.currentXP)) {
-            try { window.parent.postMessage({ type: "sfx", sfx: 16 }, "*"); } catch(e){}
-        }
-    }
-    STATE.currentXP = newXP;
-    renderDisplay();
-}
-
-function renderDisplay() {
-    const lvl = getLevelFromXP(STATE.currentXP);
-    const nextLvlXP = getXPFromLevel(lvl + 1);
-    const prevLvlXP = getXPFromLevel(lvl);
-    const percent = getPercentValue(STATE.currentXP, prevLvlXP, nextLvlXP);
-
-    document.getElementById('disp-level').innerText = lvl;
-    document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
-    document.getElementById('level-bar').style.width = percent + "%";
-    document.getElementById('level-text').innerText = percent + "%";
-    document.getElementById('disp-callouts').innerText = STATE.callouts;
-    document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
-    runCalculator();
-}
-
-const calcInput = document.getElementById('target-input');
-if(calcInput) calcInput.addEventListener('input', runCalculator);
-
-function runCalculator() {
-    const val = document.getElementById('target-input').value;
-    const el = document.getElementById('calc-result');
-    if (STATE.avgXP === 0) { el.innerHTML = "<i>Hunt an animal to enable calc...</i>"; return; }
-    if (!val) { el.innerText = "Enter target above."; return; }
-
-    let inputVal = parseInt(val.replace(/,/g, ''));
-    let targetXP = inputVal;
-    if (inputVal < 200) { 
-         let lvlXP = getXPFromLevel(inputVal);
-         if (lvlXP > STATE.currentXP) targetXP = lvlXP;
-    }
-
-    if (targetXP > STATE.currentXP) {
-        const diff = targetXP - STATE.currentXP;
-        const jobs = Math.ceil(diff / STATE.avgXP);
-        el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br><span style="color:var(--primary)">Est. Kills: <b>${formatNum(jobs)}</b></span>`;
-    } else {
-        const jobs = Math.ceil(inputVal / STATE.avgXP);
-        el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} kills</b>`;
-    }
-}
-
-// DRAG HANDLER
-(() => {
-    const app = document.getElementById('tracker-app');
-    const handle = document.getElementById('drag-handle');
-    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-    if (!app || !handle) return;
-
-    handle.onmousedown = (e) => {
-        e = e || window.event;
-        e.preventDefault();
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
+    // --- CONFIG ---
+    const KEYS = {
+        XP: "exp_hunting_skill",
+        BXP: "exp_token_a|hunting|skill"
     };
 
-    function elementDrag(e) {
-        e = e || window.event;
-        e.preventDefault();
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        app.style.top = (app.offsetTop - pos2) + "px";
-        app.style.left = (app.offsetLeft - pos1) + "px";
+    // ITEM DEFINITIONS (IDs verified via Deep Probe)
+    const ITEMS = {
+        meat:    { id: "processed_meat", alt: ["meat"] }, // Fallback for meat
+        boar:    { id: "hide_boar" },
+        bear:    { id: "hide_bear" },
+        mtlion:  { id: "hide_mtlion" }, // MOUNTAIN LION / COUGAR
+        coyote:  { id: "hide_coyote" },
+        deer:    { id: "hide_deer" },
+        leopard: { id: "hide_leopard" },
+        lion:    { id: "hide_lion" },
+        rabbit:  { id: "hide_rabbit" },
+        rat:     { id: "hide_rat" },
+        wolf:    { id: "hide_wolf" }
+    };
+
+    const STATE = {
+        currentXP: 0, currentBXP: 0, startXP: null,
+        callouts: 0, avgXP: 0
+    };
+
+    // --- COMMS ---
+    function requestData() {
+        if(window.parent) {
+            try {
+                // Request specific keys AND general data to be safe
+                window.parent.postMessage({ 
+                    type: "getNamedData",
+                    keys: [KEYS.XP, KEYS.BXP, "inventory"]
+                }, "*");
+                window.parent.postMessage({ type: "getData" }, "*");
+            } catch(e) {}
+        }
+    }
+    // Poll every 1 second
+    requestData();
+    setInterval(requestData, 1000);
+
+    // --- MAIN LISTENER ---
+    window.addEventListener('message', (event) => {
+        let payload = event.data;
+        if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+        if (!payload) return;
+
+        // 1. Process XP
+        let newXP = payload[KEYS.XP];
+        if(!newXP && payload.inventory) {
+            // Sometimes XP comes inside the inventory JSON
+            try {
+                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
+                if(inv[KEYS.XP]) newXP = inv[KEYS.XP];
+            } catch(e){}
+        }
+        
+        if (typeof newXP === 'number' || (typeof newXP === 'object' && newXP.amount)) {
+            const val = (typeof newXP === 'object') ? newXP.amount : newXP;
+            updateXP(val);
+        }
+
+        // 2. Process Inventory
+        if (payload.inventory) {
+            try {
+                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
+                processInventory(inv);
+            } catch(e){}
+        } else {
+            // Fallback for BXP if not in inventory object
+            if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
+        }
+    });
+
+    function processInventory(inv) {
+        if (!inv) return;
+
+        // BXP Check
+        if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
+
+        // Normalize Inventory to simple array for searching
+        // Format: { "hide_wolf": { amount: 1 }, ... }
+        for (let type in ITEMS) {
+            let def = ITEMS[type];
+            let foundQty = 0;
+
+            // Direct check for main ID (e.g. "hide_wolf")
+            if (inv[def.id]) {
+                foundQty += (inv[def.id].amount || inv[def.id]);
+            }
+
+            // Optional Alts check (for meat or unexpected names)
+            if (def.alt) {
+                def.alt.forEach(altKey => {
+                    // Check if key contains the alt string
+                    for(let k in inv) {
+                        if(k.includes(altKey) && k !== def.id) {
+                            foundQty += (inv[k].amount || inv[k]);
+                        }
+                    }
+                });
+            }
+
+            const el = document.getElementById(`stock-${type}`);
+            if(el) {
+                el.innerText = foundQty;
+                el.style.color = foundQty > 0 ? "white" : "var(--text-dim)";
+            }
+        }
     }
 
-    function closeDragElement() {
-        document.onmouseup = null;
-        document.onmousemove = null;
+    function updateBXP(val) {
+        let amt = (typeof val === 'object') ? val.amount : val;
+        if (amt >= 0) {
+            STATE.currentBXP = amt;
+            document.getElementById('disp-bxp').innerText = formatNum(amt);
+        }
     }
-})();
+
+    // --- XP LOGIC ---
+    function updateXP(newXP) {
+        if (STATE.startXP === null) {
+            STATE.startXP = newXP;
+            STATE.currentXP = newXP;
+            renderDisplay();
+            return;
+        }
+
+        if (newXP > STATE.currentXP) {
+            STATE.callouts++;
+            const gained = newXP - STATE.startXP;
+            STATE.avgXP = gained / STATE.callouts;
+        }
+
+        STATE.currentXP = newXP;
+        renderDisplay();
+    }
+
+    function renderDisplay() {
+        const lvl = getLevelFromXP(STATE.currentXP);
+        const nextLvlXP = getXPFromLevel(lvl + 1);
+        const prevLvlXP = getXPFromLevel(lvl);
+        const percent = getPercentValue(STATE.currentXP, prevLvlXP, nextLvlXP);
+
+        document.getElementById('disp-level').innerText = lvl;
+        document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
+        document.getElementById('level-bar').style.width = percent + "%";
+        document.getElementById('level-text').innerText = percent + "%";
+        document.getElementById('disp-callouts').innerText = STATE.callouts;
+        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+
+        runCalculator();
+    }
+
+    // --- UTILS ---
+    function getLevelFromXP(xp) { return Math.floor((Math.sqrt(1 + 8 * xp / 5) - 1) / 2); }
+    function getXPFromLevel(level) { return Math.floor((5 * level * (level + 1)) / 2); }
+    function formatNum(n) { return Math.floor(n).toLocaleString("en-US"); }
+    function getPercentValue(current, prev, next) {
+        if(typeof current !== 'number') return 0;
+        const p = ((current - prev) / (next - prev)) * 100;
+        return Math.min(100, Math.max(0, p)).toFixed(1);
+    }
+
+    // --- CALCULATOR ---
+    const calcInput = document.getElementById('target-input');
+    if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+    function runCalculator() {
+        const val = document.getElementById('target-input').value;
+        const el = document.getElementById('calc-result');
+        
+        if (STATE.avgXP === 0) {
+            el.innerHTML = "<i>Hunt an animal to enable calc...</i>";
+            return;
+        }
+        if (!val) {
+            el.innerText = "Enter target above.";
+            return;
+        }
+
+        let inputVal = parseInt(val.replace(/,/g, ''));
+        let targetXP = inputVal;
+
+        if (inputVal < 200) {
+            let lvlXP = getXPFromLevel(inputVal);
+            if (lvlXP > STATE.currentXP) targetXP = lvlXP;
+        }
+
+        if (targetXP > STATE.currentXP) {
+            const diff = targetXP - STATE.currentXP;
+            const jobs = Math.ceil(diff / STATE.avgXP);
+            el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
+                           `<span style="color:var(--primary)">Est. Kills: <b>${formatNum(jobs)}</b></span>`;
+        } else {
+            el.innerHTML = "Target reached.";
+        }
+    }
+
+    // --- DRAG HANDLER ---
+    (() => {
+        const app = document.getElementById('tracker-app');
+        const handle = document.getElementById('drag-handle');
+        const rh = document.getElementById('resize-handle');
+        if (!app || !handle) return;
+        
+        let sx=0, sy=0, ax=0, ay=0, dragging=false;
+        let sw=0, sh=0, resizing=false;
+
+        function startDrag(clientX, clientY, e) {
+            if (e && e.target.closest('button')) return;
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            dragging = true; sx = clientX; sy = clientY;
+            const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
+            handle.classList.add('dragging');
+        }
+
+        handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+
+        if (rh) {
+            function startResize(clientX, clientY, e) {
+                if (e) { e.preventDefault(); e.stopPropagation(); }
+                resizing = true; sx = clientX; sy = clientY;
+                const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
+            }
+            rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+        }
+
+        function handleMove(clientX, clientY, e) {
+            if (dragging) {
+                if (e) e.preventDefault();
+                const dx = clientX - sx, dy = clientY - sy;
+                app.style.transform = `translate(${dx}px, ${dy}px)`;
+            } else if (resizing) {
+                if (e) e.preventDefault();
+                const dx = clientX - sx, dy = clientY - sy;
+                app.style.width  = `${Math.max(280, sw + dx)}px`;
+                app.style.height = `${Math.max(120, sh + dy)}px`;
+            }
+        }
+        
+        window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+
+        function endDrag() {
+            if (dragging) {
+                const transform = app.style.transform;
+                const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+                if (match) {
+                    const dx = parseFloat(match[1]) || 0;
+                    const dy = parseFloat(match[2]) || 0;
+                    app.style.transform = '';
+                    app.style.left = `${ax + dx}px`;
+                    app.style.top = `${ay + dy}px`;
+                }
+            }
+            dragging = false; resizing = false;
+            handle.classList.remove('dragging');
+        }
+        window.addEventListener('mouseup', endDrag);
+    })();
 </script>
 </body>
 </html>
