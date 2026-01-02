@@ -192,7 +192,7 @@
 // --- AIRPORT DATABASE ---
 const AIRPORTS = {
     "LSIA": "Los Santos INTL.", "SSIA": "Sandy Sh. INTL. Airport", "ZMA": "Zancudo Military Airport",
-    "RAM": "Arroyo Muerto Municipal", "PBA": "Arroyo Muerto Municipal", // ADDED PBA SUPPORT
+    "RAM": "Arroyo Muerto Municipal", "PBA": "Arroyo Muerto Municipal", 
     "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
     "CIA": "Chumash Island Airport", "SCA": "San Chianski Airport", "POP": "PostOp Airport",
     "SAN": "Sandy Shores Airfield", "MKA": "McKenzie Airfield", "CPA": "Cayo Perico Airfield",
@@ -203,7 +203,6 @@ const AIRPORTS = {
 let TRUNK_KEY = null;
 let LAST_VEHICLE = null; 
 
-// Memory Cache
 let MEMORY = {
     inventory: {},
     trunk: {},
@@ -262,13 +261,16 @@ function processPayload(data) {
         LAST_VEHICLE = incomingPlate;
     }
 
-    // 2. TRUNK KEY DISCOVERY
-    if(data.chest && typeof data.chest === 'string') {
+    // 2. TRUNK KEY DISCOVERY (FILTERED FOR VEHICLES)
+    // Only accept keys that contain "veh_" (Blocks backpacks)
+    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
         TRUNK_KEY = "chest_" + data.chest;
     }
+    
+    // Fallback scan (Must look like a chest AND contain 'veh')
     if(!TRUNK_KEY) {
         for(let key in data) {
-            if(key.startsWith("chest_") && typeof data[key] === 'string' && data[key] !== "{}") {
+            if(key.startsWith("chest_") && key.includes("veh_") && typeof data[key] === 'string' && data[key] !== "{}") {
                 TRUNK_KEY = key;
                 break;
             }
@@ -283,10 +285,15 @@ function processPayload(data) {
     // UPDATE WEIGHT
     if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(data.trunkWeight);
     
-    // TRUNK PARSING LOGIC
+    // TRUNK PARSING LOGIC (CRASH PROOFING)
     let incomingTrunk = null;
     if(TRUNK_KEY && data[TRUNK_KEY]) {
-        try { incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
+        try { 
+            // CRITICAL FIX: Don't parse empty strings
+            if(data[TRUNK_KEY] !== "") {
+                incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY];
+            }
+        } catch(e){}
     }
 
     const syncDot = document.getElementById('sync-status');
