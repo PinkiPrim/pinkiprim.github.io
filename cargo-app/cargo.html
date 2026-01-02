@@ -192,7 +192,8 @@
 // --- AIRPORT DATABASE ---
 const AIRPORTS = {
     "LSIA": "Los Santos INTL.", "SSIA": "Sandy Sh. INTL. Airport", "ZMA": "Zancudo Military Airport",
-    "RAM": "Arroyo Muerto Municipal", "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
+    "RAM": "Arroyo Muerto Municipal", "PBA": "Arroyo Muerto Municipal", // ADDED PBA SUPPORT
+    "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
     "CIA": "Chumash Island Airport", "SCA": "San Chianski Airport", "POP": "PostOp Airport",
     "SAN": "Sandy Shores Airfield", "MKA": "McKenzie Airfield", "CPA": "Cayo Perico Airfield",
     "TVH": "Tongva Hills Airfield", "CV": "Carrier"
@@ -250,13 +251,9 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. SMART VEHICLE DETECTION (The Fix)
-    // Only update LAST_VEHICLE if the packet actually contains vehicle info.
-    // This prevents "ghost packets" with no vehicle info from triggering a reset.
+    // 1. SMART VEHICLE DETECTION
     let incomingPlate = data.plate || data.vehicle;
-    
     if (incomingPlate) {
-        // If we have a NEW vehicle, clear the trunk memory
         if(LAST_VEHICLE && LAST_VEHICLE !== incomingPlate) {
             MEMORY.trunk = {}; 
             MEMORY.weight = 0;
@@ -286,7 +283,7 @@ function processPayload(data) {
     // UPDATE WEIGHT
     if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(data.trunkWeight);
     
-    // TRUNK PARSING LOGIC (Persistency)
+    // TRUNK PARSING LOGIC
     let incomingTrunk = null;
     if(TRUNK_KEY && data[TRUNK_KEY]) {
         try { incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
@@ -295,7 +292,6 @@ function processPayload(data) {
     const syncDot = document.getElementById('sync-status');
     const now = Date.now();
 
-    // Only update Trunk Memory if we got REAL data or if weight is truly 0
     if(incomingTrunk && Object.keys(incomingTrunk).length > 0) {
         MEMORY.trunk = incomingTrunk;
         MEMORY.lastTrunkUpdate = now;
@@ -307,7 +303,6 @@ function processPayload(data) {
         syncDot.className = "sync-dot live";
     }
     else {
-        // If we got an empty update but weight > 0, IGNORE IT and show old data.
         if(now - MEMORY.lastTrunkUpdate > 3000) {
             syncDot.className = "sync-dot cached";
         }
