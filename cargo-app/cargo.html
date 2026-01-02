@@ -226,6 +226,7 @@ function requestData() {
             let keys = [...SCAN_KEYS];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+            // Always allow general data flow
             window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
     }
@@ -241,17 +242,17 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. SMART TRUNK DETECTION
-    if(Object.keys(lastTrunkObj).length === 0) {
-        for(let key in data) {
-            // Find keys that start with "chest_" and are not empty
-            if(key.startsWith("chest_") && typeof data[key] === 'string' && data[key] !== "{}") {
-                TRUNK_KEY = key;
-                break;
-            }
+    // 1. AGGRESSIVE TRUNK DETECTION
+    // Loop through ALL keys. If any key starts with "chest_" and is NOT empty, grab it.
+    for(let key in data) {
+        if(key.startsWith("chest_") && typeof data[key] === 'string' && data[key] !== "{}") {
+            // Found a non-empty chest!
+            TRUNK_KEY = key;
+            break;
         }
     }
-    // Also respect pointer
+    
+    // Also use the pointer if available
     if(data.chest && typeof data.chest === 'string') {
         TRUNK_KEY = "chest_" + data.chest;
     }
@@ -261,11 +262,14 @@ function processPayload(data) {
         try { lastInventoryObj = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
     }
     
+    // If we have a valid Trunk Key, parse it
     if(TRUNK_KEY && data[TRUNK_KEY]) {
-        try { lastTrunkObj = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
+        try { 
+            lastTrunkObj = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; 
+        } catch(e){}
     }
 
-    // 3. UPDATE UI WITH TRUNK
+    // 3. UPDATE UI WITH TRUNK (Show EVERYTHING)
     renderTrunkList(lastTrunkObj);
     if(data.trunkWeight !== undefined && data.trunkCapacity !== undefined) {
         document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight)}/${Math.round(data.trunkCapacity)}kg`;
@@ -317,15 +321,13 @@ function checkCargoDestination(pockets, trunk) {
         if(!inv) return null;
         
         for (const key in inv) {
-            // Convert Item Name to UPPERCASE to match (e.g. "aircargo_sca" -> "AIRCARGO_SCA")
             const upperKey = key.toUpperCase();
-            
-            // Safety: Only look at items that likely contain cargo to avoid false matches (like scanners)
-            if(!upperKey.includes("CARGO")) continue; 
-
-            for(const code in AIRPORTS) {
-                if (upperKey.includes(code)) {
-                    return `${code} - ${AIRPORTS[code]}`;
+            // Look for "CARGO" in the name to confirm it's a package
+            if(upperKey.includes("CARGO")) {
+                for(const code in AIRPORTS) {
+                    if (upperKey.includes(code)) {
+                        return `${code} - ${AIRPORTS[code]}`;
+                    }
                 }
             }
         }
@@ -363,9 +365,12 @@ function renderTrunkList(trunk) {
         return;
     }
 
+    // List EVERYTHING in the trunk
     for(let key in trunk) {
         let item = trunk[key];
         let qty = item.amount || item.count || item;
+        // Clean up key name (remove underscores/IDs if possible, or just show raw)
+        // We'll show the raw key for accuracy
         if(qty > 0) {
             el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
         }
