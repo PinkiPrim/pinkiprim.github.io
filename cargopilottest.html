@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Cargo Pilot Helper</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --primary: #0277bd;
+            --primary-dim: #004c8c;
+            --bg-glass: rgba(15, 15, 15, 0.95);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(2, 119, 189, 0.3);
+            --green: #00e676;
+            --orange: #ff9800;
+            --accent: #ffc107;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        #tracker-app {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
+            min-height: 200px;
+        }
+
+        header {
+            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+            padding: 8px 12px;
+            cursor: move;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
+        }
+
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+
+        /* DESTINATION */
+        .destination-display {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px dashed var(--accent);
+            border-radius: 6px; padding: 10px; margin-bottom: 15px;
+            text-align: center;
+        }
+        .dest-label {
+            font-size: 0.7em; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;
+        }
+        .dest-value {
+            font-family: 'Rajdhani', sans-serif; font-size: 1.3em; font-weight: 700;
+            color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); line-height: 1.1;
+        }
+
+        /* STATS */
+        .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .section:last-child { border-bottom: none; }
+
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value.highlight { color: var(--primary); }
+        .value.bxp { color: var(--green); }
+
+        .progress-container {
+            position: relative; height: 16px;
+            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
+        }
+
+        .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
+        .xp-remaining-text b { color: var(--primary); }
+
+        /* RUN TRACKER BOX */
+        .run-box {
+            background: rgba(2, 119, 189, 0.1);
+            border: 1px solid rgba(2, 119, 189, 0.3);
+            border-radius: 4px; padding: 8px; margin-bottom: 10px;
+        }
+        .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9em; }
+        .run-val { font-weight: bold; color: #fff; }
+        .run-label { font-size: 0.8em; color: #aaa; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
+
+        /* TRUNK */
+        .trunk-header { display: flex; justify-content: space-between; align-items: center; }
+        .sync-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #444; margin-left: 5px; }
+        .sync-dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
+        .sync-dot.cached { background: var(--orange); }
+
+        .trunk-item {
+            display: flex; justify-content: space-between;
+            font-size: 0.85em; padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* CALCULATOR */
+        input[type="number"] {
+            width: 90%; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; color: white; padding: 5px;
+            border-radius: 4px; margin-top: 5px; font-family: inherit;
+        }
+        input:focus { outline: 1px solid var(--primary); }
+        .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
+        
+        #settings-panel, #job-list, #summary-table { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="tracker-app">
+    <header id="drag-handle">
+        <a href="https://pinkiprim.github.io/pinkiapps.html" style="text-decoration:none; margin-right:12px; cursor:pointer; font-size:1.2em;">🏠</a>
+        <span>✈️ Cargo Ops</span>
+        <span id="clock" style="font-size:0.8em">00:00</span>
+    </header>
+
+    <div id="content">
+        
+        <div class="destination-display" id="dest-box">
+            <div class="dest-label">Next Destination</div>
+            <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
+        </div>
+
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div><div class="label">Pilot Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="level-bar"></div>
+                <div class="progress-text" id="level-text">Waiting for data...</div>
+            </div>
+            
+            <div class="xp-remaining-text" id="disp-xp-remaining">Waiting for drop...</div>
+
+            <div class="run-box">
+                <div style="border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:5px; padding-bottom:3px; color:var(--primary); font-size:0.85em; font-weight:bold; letter-spacing:1px;">FLIGHT SESSION</div>
+                <div class="run-grid">
+                    <div>
+                        <div class="run-label">Current Flight XP</div>
+                        <div class="run-val" id="disp-flight-xp" style="color:var(--green)">0 XP</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div class="run-label">Avg XP / Flight</div>
+                        <div class="run-val" id="disp-flight-avg">0 XP</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-box"><div class="label">BXP Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Flights Done</div><div class="value" id="disp-ops" style="color:var(--accent)">0</div></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="trunk-header">
+                <div class="label">📦 Cargo Hold <span id="sync-status" class="sync-dot"></span></div>
+                <div class="label" id="trunk-capacity"></div>
+            </div>
+            <div id="trunk-list" style="min-height:30px; color:#666; font-size:0.8em; font-style:italic;">
+                No cargo loaded.
+            </div>
+        </div>
+
+        <div class="section" style="border:none;">
+            <div class="label">Flight Calculator</div>
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 1,000,000):</div>
+            <input type="number" id="target-input" placeholder="e.g. 1000000">
+            <div class="calc-output" id="calc-result">Complete 1 flight to calibrate...</div>
+        </div>
+
+    </div>
+    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
+</div>
+
+<div id="settings-icon" style="display:none;"></div>
+<div id="settings-panel" style="display:none;">
+    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
+    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
+    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
+    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
+    <input type="number" id="xp-font-size">
+    <button id="reset-exp-log"></button>
+    <div id="xp-font-size-value"></div>
+</div>
+<div id="job-list" style="display:none;"></div>
+<table id="summary-table" style="display:none;"></table>
+
+<script>
+// --- AIRPORT DATABASE ---
+const AIRPORTS = {
+    "LSIA": "Los Santos INTL.", "SSIA": "Sandy Sh. INTL. Airport", "ZMA": "Zancudo Military Airport",
+    "RAM": "Arroyo Muerto Municipal", "PBA": "Arroyo Muerto Municipal", 
+    "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
+    "CIA": "Chumash Island Airport", "SCA": "San Chianski Airport", "POP": "PostOp Airport",
+    "SAN": "Sandy Shores Airfield", "MKA": "McKenzie Airfield", "CPA": "Cayo Perico Airfield",
+    "TVH": "Tongva Hills Airfield", "CV": "Carrier"
+};
+
+// --- STATE ---
+let TRUNK_KEY = null;
+let LAST_VEHICLE = null; 
+
+let MEMORY = {
+    inventory: {},
+    trunk: {},
+    weight: 0,
+    lastTrunkUpdate: 0
+};
+
+const JOB_EXP_KEY = "exp_piloting_cargos";
+const JOB_BXP_KEY = "exp_token_a|piloting|cargos";
+
+const STATE = {
+    currentXP: 0, 
+    
+    // Flight Session Tracking
+    runActive: false,
+    runStartXP: 0,      // XP at start of current flight
+    currentRunGain: 0,  // XP gained during current flight
+    
+    completedRuns: 0,
+    totalRunXP: 0,      // Sum of XP from all completed runs
+    avgRunXP: 0         // Calculated Average
+};
+
+// --- CLOCK ---
+setInterval(() => {
+    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}, 1000);
+
+// --- ENGINE ---
+function requestData() {
+    if(window.parent) {
+        try { 
+            let keys = [
+                "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
+                "inventory", "vehicle", "plate", 
+                "chest", "trunkCapacity", "trunkWeight"
+            ];
+            if(TRUNK_KEY) keys.push(TRUNK_KEY);
+            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+            window.parent.postMessage({ type: "getData" }, "*"); 
+        } catch(e) {}
+    }
+}
+setInterval(requestData, 1000); 
+
+window.addEventListener('message', (event) => {
+    let payload = event.data;
+    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+    if (!payload) return;
+
+    processPayload(payload);
+});
+
+function processPayload(data) {
+    // 1. SMART VEHICLE DETECTION
+    let incomingPlate = data.plate || data.vehicle;
+    if (incomingPlate) {
+        if(LAST_VEHICLE && LAST_VEHICLE !== incomingPlate) {
+            MEMORY.trunk = {}; 
+            MEMORY.weight = 0;
+            TRUNK_KEY = null;
+            // Reset run state on vehicle switch? Maybe keep history, but reset current run.
+            STATE.runActive = false;
+            STATE.currentRunGain = 0;
+        }
+        LAST_VEHICLE = incomingPlate;
+    }
+
+    // 2. TRUNK KEY DISCOVERY (FILTERED)
+    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
+        TRUNK_KEY = "chest_" + data.chest;
+    }
+    if(!TRUNK_KEY) {
+        for(let key in data) {
+            if(key.startsWith("chest_") && key.includes("veh_") && typeof data[key] === 'string' && data[key] !== "{}") {
+                TRUNK_KEY = key;
+                break;
+            }
+        }
+    }
+
+    // 3. PARSE INVENTORIES
+    if(data.inventory) {
+        try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
+    }
+    
+    // UPDATE WEIGHT
+    if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(data.trunkWeight);
+    
+    // TRUNK PARSING LOGIC
+    let incomingTrunk = null;
+    if(TRUNK_KEY && data[TRUNK_KEY]) {
+        try { 
+            if(data[TRUNK_KEY] !== "") {
+                incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY];
+            }
+        } catch(e){}
+    }
+
+    const syncDot = document.getElementById('sync-status');
+    const now = Date.now();
+
+    if(incomingTrunk && Object.keys(incomingTrunk).length > 0) {
+        MEMORY.trunk = incomingTrunk;
+        MEMORY.lastTrunkUpdate = now;
+        syncDot.className = "sync-dot live";
+    } 
+    else if (MEMORY.weight === 0) {
+        MEMORY.trunk = {};
+        MEMORY.lastTrunkUpdate = now;
+        syncDot.className = "sync-dot live";
+    }
+    else {
+        if(now - MEMORY.lastTrunkUpdate > 3000) {
+            syncDot.className = "sync-dot cached";
+        }
+    }
+
+    // 4. DESTINATION & RUN DETECTION
+    // We check if "Air Cargo" exists in trunk/pockets to determine if a run is active
+    let hasCargo = checkForCargo(MEMORY.inventory, MEMORY.trunk);
+    
+    // 5. XP LOGIC
+    let currentXP = data[JOB_EXP_KEY];
+    if(!currentXP && MEMORY.inventory[JOB_EXP_KEY]) currentXP = MEMORY.inventory[JOB_EXP_KEY];
+
+    if (typeof currentXP === 'number') {
+        updateRunLogic(currentXP, hasCargo);
+        renderStats();
+    }
+
+    // 6. RENDER UI
+    renderTrunkList(MEMORY.trunk);
+    if(data.trunkCapacity !== undefined) {
+        document.getElementById('trunk-capacity').innerText = `${MEMORY.weight}/${Math.round(data.trunkCapacity)}kg`;
+    }
+
+    // 7. BXP LOGIC
+    let bxp = data[JOB_BXP_KEY];
+    if(!bxp && MEMORY.inventory[JOB_BXP_KEY]) bxp = MEMORY.inventory[JOB_BXP_KEY];
+    if (bxp) {
+        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
+        document.getElementById('disp-bxp').innerText = formatNumber(val);
+    }
+}
+
+// --- FLIGHT SESSION LOGIC ---
+
+function checkForCargo(pockets, trunk) {
+    let destName = "Waiting for cargo...";
+    let found = false;
+
+    // Helper: Checks for "Air Cargo" or Airport Codes
+    const scan = (inv) => {
+        if(!inv) return false;
+        for (const key in inv) {
+            const upperKey = key.toUpperCase();
+            if(upperKey.includes("CARGO")) {
+                for(const code in AIRPORTS) {
+                    if (upperKey.includes(code)) {
+                        destName = `${code} - ${AIRPORTS[code]}`;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    };
+
+    // Scan Trunk first, then pockets
+    let trunkHas = scan(trunk);
+    let pocketsHas = scan(pockets);
+    
+    // Update Destination Display
+    const box = document.getElementById('dest-box');
+    const txt = document.getElementById('disp-destination');
+    txt.innerText = destName;
+    
+    if(trunkHas || pocketsHas) {
+        box.style.borderColor = "var(--green)";
+        box.style.background = "rgba(0, 230, 118, 0.1)";
+        txt.style.color = "var(--green)";
+        return true; // CARGO PRESENT
+    } else {
+        box.style.borderColor = "var(--accent)";
+        box.style.background = "rgba(255, 193, 7, 0.1)";
+        txt.style.color = "#fff";
+        return false; // NO CARGO
+    }
+}
+
+function updateRunLogic(currentXP, hasCargo) {
+    // Initialize if first load
+    if (STATE.currentXP === 0) STATE.currentXP = currentXP;
+
+    // A. DETECT START OF RUN
+    // If we have cargo, and run is NOT active, start it.
+    if (hasCargo && !STATE.runActive) {
+        STATE.runActive = true;
+        STATE.runStartXP = currentXP;
+        STATE.currentRunGain = 0;
+    }
+
+    // B. TRACK XP DURING RUN
+    if (STATE.runActive) {
+        // Calculate gain since start of this specific flight
+        if (currentXP > STATE.runStartXP) {
+            STATE.currentRunGain = currentXP - STATE.runStartXP;
+        }
+    }
+
+    // C. DETECT END OF RUN (Delivery)
+    // If run was active, but cargo is gone, flight is done.
+    if (!hasCargo && STATE.runActive) {
+        // Wait a tick? No, assume done.
+        // Add this run's total to history
+        STATE.completedRuns++;
+        STATE.totalRunXP += STATE.currentRunGain;
+        STATE.avgRunXP = STATE.totalRunXP / STATE.completedRuns;
+        
+        // Reset Run State
+        STATE.runActive = false;
+        STATE.currentRunGain = 0;
+    }
+
+    STATE.currentXP = currentXP;
+}
+
+function renderStats() {
+    const lvl = getLevelInfo(STATE.currentXP);
+    document.getElementById('disp-xp').innerText = formatNumber(STATE.currentXP);
+    document.getElementById('disp-level').innerText = lvl.level;
+    
+    const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
+    document.getElementById('level-bar').style.width = pct + "%";
+    document.getElementById('level-text').innerText = pct + "%";
+
+    // FLIGHT SESSION STATS
+    document.getElementById('disp-flight-xp').innerText = formatNumber(STATE.currentRunGain) + " XP";
+    document.getElementById('disp-flight-avg').innerText = Math.round(STATE.avgRunXP) + " XP";
+    document.getElementById('disp-ops').innerText = STATE.completedRuns;
+
+    const needed = Math.round(lvl.expForNext - lvl.expInLevel);
+    document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
+
+    runCalculator();
+}
+
+// --- UTILS ---
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toLocaleString();
+}
+
+function getLevelInfo(exp) {
+    let level = 0, xpCap = 5;
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    return { level, expInLevel: exp, expForNext: xpCap };
+}
+
+function getPercentValue(exp, cap) {
+    return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
+}
+
+// --- CALCULATOR ---
+const calcInput = document.getElementById('target-input');
+if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+function runCalculator() {
+    const val = document.getElementById('target-input').value;
+    const el = document.getElementById('calc-result');
+    
+    if (STATE.avgRunXP === 0) { el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; return; }
+    if (!val) { el.innerText = "Enter target above."; return; }
+
+    let inputVal = parseInt(val.replace(/,/g, ''));
+    let targetXP = inputVal;
+    
+    if (inputVal < 200) { 
+         let lvlXP = 0; 
+         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
+         targetXP = (5 * inputVal * (inputVal + 1)) / 2;
+    }
+
+    if (targetXP > STATE.currentXP) {
+        const diff = targetXP - STATE.currentXP;
+        // Use Average Flight XP for estimation
+        const ops = Math.ceil(diff / STATE.avgRunXP);
+        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(ops)}</b></span>`;
+    } else {
+        el.innerHTML = `Target reached.`;
+    }
+}
+
+// --- TRUNK LIST UI ---
+function renderTrunkList(trunk) {
+    const el = document.getElementById('trunk-list');
+    el.innerHTML = "";
+    
+    if((!trunk || Object.keys(trunk).length === 0) && MEMORY.weight > 0) {
+        el.innerHTML = "<div style='color:var(--orange); font-style:italic;'>⚠ Cargo Detected<br>(Open Trunk to Sync)</div>";
+        return;
+    }
+    
+    if(!trunk || Object.keys(trunk).length === 0) {
+        el.innerHTML = "Cargo hold is empty.";
+        return;
+    }
+
+    for(let key in trunk) {
+        let item = trunk[key];
+        let qty = item.amount || item.count || item;
+        if(qty > 0) {
+            el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
+        }
+    }
+}
+
+// --- DRAG HANDLER ---
+(() => {
+    const app = document.getElementById('tracker-app');
+    const handle = document.getElementById('drag-handle');
+    const rh = document.getElementById('resize-handle');
+    if (!app || !handle) return;
+    
+    let sx=0, sy=0, ax=0, ay=0, dragging=false;
+    let sw=0, sh=0, resizing=false;
+
+    function startDrag(clientX, clientY, e) {
+        if (e && e.target.closest('button')) return;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        dragging = true; sx = clientX; sy = clientY;
+        const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
+        handle.classList.add('dragging');
+    }
+
+    handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+
+    if (rh) {
+        function startResize(clientX, clientY, e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            resizing = true; sx = clientX; sy = clientY;
+            const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
+        }
+        rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+    }
+
+    function handleMove(clientX, clientY, e) {
+        if (dragging) {
+            if (e) e.preventDefault();
+            const dx = clientX - sx, dy = clientY - sy;
+            app.style.transform = `translate(${dx}px, ${dy}px)`;
+        } else if (resizing) {
+            if (e) e.preventDefault();
+            const dx = clientX - sx, dy = clientY - sy;
+            app.style.width  = `${Math.max(280, sw + dx)}px`;
+            app.style.height = `${Math.max(120, sh + dy)}px`;
+        }
+    }
+    
+    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+
+    function endDrag() {
+        if (dragging) {
+            const transform = app.style.transform;
+            const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+            if (match) {
+                const dx = parseFloat(match[1]) || 0;
+                const dy = parseFloat(match[2]) || 0;
+                app.style.transform = '';
+                app.style.left = `${ax + dx}px`;
+                app.style.top = `${ay + dy}px`;
+            }
+        }
+        dragging = false; resizing = false;
+        handle.classList.remove('dragging');
+    }
+    window.addEventListener('mouseup', endDrag);
+})();
+</script>
+</body>
+</html>
