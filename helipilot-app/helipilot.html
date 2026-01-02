@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Heli Ops</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
+
+        /* --- THEME: HELI AVIATION --- */
+        :root {
+            --primary: #ff9800; /* Safety Orange */
+            --primary-dim: #b26a00;
+            --bg-glass: rgba(20, 20, 20, 0.95);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(255, 152, 0, 0.4);
+            --green: #00e676;
+            --blue: #0277bd;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        #tracker-app {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
+            min-height: 200px;
+        }
+
+        header {
+            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+            padding: 8px 12px;
+            cursor: move;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+
+        /* FLIGHT DATA DISPLAY */
+        .flight-board {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed var(--text-dim);
+            border-radius: 6px; padding: 10px; margin-bottom: 15px;
+        }
+        
+        .flight-row { margin-bottom: 8px; }
+        .flight-row:last-child { margin-bottom: 0; }
+        
+        .f-label { font-size: 0.7em; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        .f-value { 
+            font-family: 'Rajdhani', sans-serif; font-size: 1.3em; font-weight: 700; 
+            color: #fff; line-height: 1.1; 
+        }
+        .f-sub { font-size: 0.9em; color: #ccc; }
+
+        /* STATS */
+        .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .section:last-child { border-bottom: none; }
+
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value.highlight { color: var(--primary); }
+        .value.bxp { color: var(--green); }
+
+        .progress-container {
+            position: relative; height: 16px;
+            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
+        }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
+
+        /* CALCULATOR */
+        input[type="number"] {
+            width: 90%; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; color: white; padding: 5px;
+            border-radius: 4px; margin-top: 5px; font-family: inherit;
+        }
+        input:focus { outline: 1px solid var(--primary); }
+        .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
+        
+        #settings-panel, #job-list, #summary-table { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="tracker-app">
+    <header id="drag-handle">
+        <a href="https://pinkiprim.github.io/pinkiapps.html" style="text-decoration:none; margin-right:12px; cursor:pointer; font-size:1.2em;">🏠</a>
+        <span>🚁 Heli Ops</span>
+        <span id="clock" style="font-size:0.8em">00:00</span>
+    </header>
+
+    <div id="content">
+        
+        <div class="flight-board" id="flight-display">
+            <div class="flight-row">
+                <div class="f-label">Current Objective</div>
+                <div class="f-value" id="disp-dest">Waiting for job...</div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <div class="f-label">Distance</div>
+                    <div class="f-value f-sub" id="disp-dist">--</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="f-label">Stops Complete</div>
+                    <div class="f-value f-sub" id="disp-stops">-- / --</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div><div class="label">Heli Pilot Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="level-bar"></div>
+                <div class="progress-text" id="level-text">...</div>
+            </div>
+            
+            <div class="stat-grid">
+                <div class="stat-box"><div class="label">BXP Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
+                <div class="stat-box"><div class="label">Actions</div><div class="value" id="disp-ops" style="color:var(--primary)">0</div></div>
+            </div>
+        </div>
+
+        <div class="section" style="border:none;">
+            <div class="label">Target Calculator</div>
+            <input type="number" id="target-input" placeholder="Enter Target XP (e.g. 100000)">
+            <div class="calc-output" id="calc-result">Start flying to enable calculator...</div>
+        </div>
+
+    </div>
+    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
+</div>
+
+<div id="settings-icon" style="display:none;"></div>
+<div id="settings-panel" style="display:none;">
+    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
+    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
+    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
+    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
+    <input type="number" id="xp-font-size">
+    <button id="reset-exp-log"></button>
+    <div id="xp-font-size-value"></div>
+</div>
+<div id="job-list" style="display:none;"></div>
+<table id="summary-table" style="display:none;"></table>
+
+<script>
+// --- CONFIG ---
+const KEYS = {
+    XP: "exp_piloting_heli",
+    BXP: "exp_token_a|piloting|heli",
+    STATUS: "status"
+};
+
+const STATE = {
+    currentXP: 0, startXP: null,
+    jobs: 0, avgXP: 0, 
+    lastKnownXP: -1, sessionXP: 0
+};
+
+// --- CLOCK ---
+setInterval(() => {
+    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}, 1000);
+
+// --- ENGINE ---
+function requestData() {
+    if(window.parent) {
+        try { 
+            window.parent.postMessage({ 
+                type: "getNamedData", 
+                keys: [KEYS.XP, KEYS.BXP, KEYS.STATUS, "inventory"] 
+            }, "*");
+            window.parent.postMessage({ type: "getData" }, "*"); 
+        } catch(e) {}
+    }
+}
+setInterval(requestData, 1000); 
+
+window.addEventListener('message', (event) => {
+    let payload = event.data;
+    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+    if (!payload) return;
+
+    processPayload(payload);
+});
+
+function processPayload(data) {
+    // 1. FLIGHT COMPUTER (Parsing the Status JSON)
+    if (data.status) {
+        try {
+            // Status comes as a JSON string inside the JSON
+            const statusObj = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
+            
+            if (statusObj && statusObj.lines) {
+                parseFlightStatus(statusObj.lines);
+            }
+        } catch(e) {
+            // Sometimes status is weird, ignore parsing errors
+        }
+    }
+
+    // 2. XP LOGIC
+    let currentXP = data[KEYS.XP];
+    // Check inventory fallback
+    if(!currentXP && data.inventory) {
+        try {
+            const inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
+            if(inv[KEYS.XP]) currentXP = inv[KEYS.XP];
+        } catch(e){}
+    }
+
+    if (typeof currentXP === 'number') {
+        if (STATE.lastKnownXP === -1) {
+            STATE.lastKnownXP = currentXP;
+            if (!STATE.startXP) STATE.startXP = currentXP;
+        } 
+        else if (currentXP > STATE.lastKnownXP) {
+            const diff = currentXP - STATE.lastKnownXP;
+            if (diff > 0) {
+                STATE.sessionXP += diff;
+                STATE.jobs++;
+                STATE.lastKnownXP = currentXP;
+            }
+        }
+        STATE.currentXP = currentXP;
+        STATE.avgXP = STATE.jobs > 0 ? (STATE.sessionXP / STATE.jobs) : 0;
+        renderStats();
+    }
+
+    // 3. BXP LOGIC
+    let bxp = data[KEYS.BXP];
+    if(!bxp && data.inventory) {
+        try {
+            const inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
+            if(inv[KEYS.BXP]) bxp = inv[KEYS.BXP];
+        } catch(e){}
+    }
+    
+    if (bxp) {
+        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
+        document.getElementById('disp-bxp').innerText = formatNumber(val);
+    }
+}
+
+// --- LOGIC FUNCTIONS ---
+
+function parseFlightStatus(lines) {
+    // lines array example: ["Status: ~y~Enroute", "~g~Destination~w~: Vespucci Police Dept.", "~g~Distance~w~: 1832 m", "~g~Stops~w~: 0 / 14"]
+    
+    let destination = "No Destination";
+    let distance = "--";
+    let stops = "--";
+
+    lines.forEach(line => {
+        // Strip colors (e.g. ~g~, ~w~)
+        const cleanLine = line.replace(/~[a-z]~/g, "").trim();
+        
+        if (cleanLine.startsWith("Destination:")) {
+            destination = cleanLine.split(":")[1].trim();
+        }
+        if (cleanLine.startsWith("Distance:")) {
+            distance = cleanLine.split(":")[1].trim();
+        }
+        if (cleanLine.startsWith("Stops:")) {
+            stops = cleanLine.split(":")[1].trim();
+        }
+    });
+
+    document.getElementById('disp-dest').innerText = destination;
+    document.getElementById('disp-dist').innerText = distance;
+    document.getElementById('disp-stops').innerText = stops;
+    
+    // Highlight if close
+    const distBox = document.getElementById('disp-dist');
+    if(distance.includes("m") && parseInt(distance) < 200) {
+        distBox.style.color = "var(--green)";
+        distBox.style.fontWeight = "bold";
+    } else {
+        distBox.style.color = "#ccc";
+    }
+}
+
+function renderStats() {
+    const lvl = getLevelInfo(STATE.currentXP);
+    document.getElementById('disp-xp').innerText = formatNumber(STATE.currentXP);
+    document.getElementById('disp-level').innerText = lvl.level;
+    
+    const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
+    document.getElementById('level-bar').style.width = pct + "%";
+    document.getElementById('level-text').innerText = pct + "%";
+
+    document.getElementById('disp-ops').innerText = STATE.jobs;
+    document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+
+    runCalculator();
+}
+
+// --- UTILS ---
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toLocaleString();
+}
+
+function getLevelInfo(exp) {
+    let level = 0, xpCap = 5;
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    return { level, expInLevel: exp, expForNext: xpCap };
+}
+
+function getPercentValue(exp, cap) {
+    return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
+}
+
+// --- CALCULATOR ---
+const calcInput = document.getElementById('target-input');
+if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+function runCalculator() {
+    const val = document.getElementById('target-input').value;
+    const el = document.getElementById('calc-result');
+    
+    if (STATE.avgXP === 0) { el.innerHTML = "<i>Complete a stop to calc...</i>"; return; }
+    if (!val) { el.innerText = "Enter target above."; return; }
+
+    let inputVal = parseInt(val.replace(/,/g, ''));
+    let targetXP = inputVal;
+    
+    if (inputVal < 200) { 
+         let lvlXP = 0; 
+         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
+         targetXP = (5 * inputVal * (inputVal + 1)) / 2;
+    }
+
+    if (targetXP > STATE.currentXP) {
+        const diff = targetXP - STATE.currentXP;
+        const ops = Math.ceil(diff / STATE.avgXP);
+        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Stops: <b>${formatNumber(ops)}</b></span>`;
+    } else {
+        el.innerHTML = `Target reached.`;
+    }
+}
+
+// --- DRAG HANDLER ---
+(() => {
+    const app = document.getElementById('tracker-app');
+    const handle = document.getElementById('drag-handle');
+    const rh = document.getElementById('resize-handle');
+    if (!app || !handle) return;
+    
+    let sx=0, sy=0, ax=0, ay=0, dragging=false;
+    let sw=0, sh=0, resizing=false;
+
+    function startDrag(clientX, clientY, e) {
+        if (e && e.target.closest('button')) return;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        dragging = true; sx = clientX; sy = clientY;
+        const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
+        handle.classList.add('dragging');
+    }
+
+    handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+
+    if (rh) {
+        function startResize(clientX, clientY, e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            resizing = true; sx = clientX; sy = clientY;
+            const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
+        }
+        rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+    }
+
+    function handleMove(clientX, clientY, e) {
+        if (dragging) {
+            if (e) e.preventDefault();
+            const dx = clientX - sx, dy = clientY - sy;
+            app.style.transform = `translate(${dx}px, ${dy}px)`;
+        } else if (resizing) {
+            if (e) e.preventDefault();
+            const dx = clientX - sx, dy = clientY - sy;
+            app.style.width  = `${Math.max(280, sw + dx)}px`;
+            app.style.height = `${Math.max(120, sh + dy)}px`;
+        }
+    }
+    
+    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+
+    function endDrag() {
+        if (dragging) {
+            const transform = app.style.transform;
+            const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+            if (match) {
+                const dx = parseFloat(match[1]) || 0;
+                const dy = parseFloat(match[2]) || 0;
+                app.style.transform = '';
+                app.style.left = `${ax + dx}px`;
+                app.style.top = `${ay + dy}px`;
+            }
+        }
+        dragging = false; resizing = false;
+        handle.classList.remove('dragging');
+    }
+    window.addEventListener('mouseup', endDrag);
+})();
+</script>
+</body>
+</html>
