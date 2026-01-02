@@ -294,7 +294,8 @@ function processPayload(data) {
         // CASE A: We received actual items. Update Memory.
         MEMORY.trunk = incomingTrunk;
         MEMORY.lastTrunkUpdate = now;
-        syncDot.className = "sync-dot live";
+        syncDot.className = "sync-dot live"; // Green
+        syncDot.title = "Live Data";
     } 
     else if (MEMORY.weight === 0) {
         // CASE B: Weight is 0, so trunk is actually empty. Update Memory to empty.
@@ -306,7 +307,7 @@ function processPayload(data) {
         // CASE C: Incoming is empty, BUT weight > 0. 
         // This is a "ghost" packet. IGNORE IT and keep old memory.
         if(now - MEMORY.lastTrunkUpdate > 2000) {
-            syncDot.className = "sync-dot cached";
+            syncDot.className = "sync-dot cached"; // Orange
         }
     }
 
@@ -396,9 +397,9 @@ function renderTrunkList(trunk) {
     const el = document.getElementById('trunk-list');
     el.innerHTML = "";
     
-    // If trunk is empty AND weight is > 0, show Loading
+    // CASE: We have weight, but no items in memory yet.
     if((!trunk || Object.keys(trunk).length === 0) && MEMORY.weight > 0) {
-        el.innerHTML = "<i>Manifest pending...</i>";
+        el.innerHTML = "<div style='color:var(--orange); font-style:italic;'>⚠ Cargo Detected<br>(Open Trunk to Sync)</div>";
         return;
     }
     
