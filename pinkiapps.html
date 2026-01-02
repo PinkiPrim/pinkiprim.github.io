@@ -13,34 +13,28 @@
         }
 
         html, body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: 'Roboto', sans-serif;
-            background-color: transparent !important; /* Critical */
+            background-color: transparent !important;
             color: white;
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            height: 100vh; width: 100vw;
             user-select: none;
         }
 
-        /* --- MENU CONTAINER (Centered) --- */
+        /* --- MENU CONTAINER --- */
         #menu-container {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%); /* Centers the div perfectly */
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
             
-            width: 360px;
+            width: 500px; /* Wider for 2 columns */
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 12px;
-            padding: 40px;
+            padding: 30px;
             text-align: center;
             box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-            
-            /* No animation to prevent blank screen issues */
-            opacity: 1; 
         }
 
         h1 {
@@ -57,23 +51,29 @@
         .subtitle {
             color: #888;
             font-size: 0.85em;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             text-transform: uppercase;
             letter-spacing: 1px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 15px;
+            padding-bottom: 10px;
             display: inline-block;
-            width: 60%;
+            width: 50%;
+        }
+
+        /* --- GRID LAYOUT --- */
+        .grid-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 2 Columns */
+            gap: 12px; /* Space between buttons */
         }
 
         /* --- BUTTONS --- */
         .nav-btn {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start; /* Left align content */
             width: 100%;
-            padding: 18px 22px;
-            margin-bottom: 14px;
+            padding: 15px 15px; /* Smaller padding */
             background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 8px;
@@ -81,7 +81,7 @@
             text-decoration: none;
             font-family: 'Rajdhani', sans-serif;
             font-weight: 700;
-            font-size: 1.2em;
+            font-size: 1.1em;
             text-transform: uppercase;
             transition: all 0.2s ease;
             box-sizing: border-box;
@@ -91,23 +91,27 @@
         }
 
         .nav-btn:hover {
-            transform: scale(1.02) translateX(4px);
+            transform: translateY(-2px); /* Slight lift */
             color: #fff;
             border-color: rgba(255,255,255,0.3);
             background: rgba(255,255,255,0.1);
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
-        /* Colored Borders on Hover */
+        /* Colored Borders */
         .nav-btn.fire:hover   { border-left: 4px solid #ff5722; }
         .nav-btn.mech:hover   { border-left: 4px solid #0091ea; }
         .nav-btn.ems:hover    { border-left: 4px solid #e53935; }
         .nav-btn.cargo:hover  { border-left: 4px solid #0277bd; }
-        .nav-btn.hunter:hover { border-left: 4px solid #558b2f; } /* Hunter Green */
+        .nav-btn.hunter:hover { border-left: 4px solid #558b2f; }
+        .nav-btn.heli:hover   { border-left: 4px solid #ff9800; } /* Safety Orange */
 
-        .icon { width: 35px; text-align: center; margin-right: 12px; font-size: 1.2em; }
-        .arrow { opacity: 0.3; font-size: 0.9em; transition: 0.3s; }
-        .nav-btn:hover .arrow { opacity: 1; transform: translateX(5px); color: white; }
+        .icon { 
+            width: 30px; 
+            text-align: center; 
+            margin-right: 10px; 
+            font-size: 1.2em; 
+        }
 
     </style>
 </head>
@@ -117,31 +121,33 @@
         <h1>OPS HUB</h1>
         <div class="subtitle">Select Active Duty</div>
 
-        <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
-            <div><span class="icon">🔥</span> Fire Ops</div>
-            <span class="arrow">▶</span>
-        </a>
+        <div class="grid-wrapper">
+            
+            <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
+                <span class="icon">🔥</span> Fire Ops
+            </a>
 
-        <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
-            <div><span class="icon">🔧</span> Mechanic Ops</div>
-            <span class="arrow">▶</span>
-        </a>
+            <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
+                <span class="icon">🔧</span> Mechanic
+            </a>
 
-        <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
-            <div><span class="icon">🚑</span> EMS Ops</div>
-            <span class="arrow">▶</span>
-        </a>
+            <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
+                <span class="icon">🚑</span> EMS Ops
+            </a>
 
-        <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
-            <div><span class="icon">✈️</span> Cargo Ops</div>
-            <span class="arrow">▶</span>
-        </a>
+            <a href="https://pinkiprim.github.io/cargo-app/cargopilot.html" class="nav-btn cargo">
+                <span class="icon">✈️</span> Cargo Ops
+            </a>
 
-        <a href="https://pinkiprim.github.io/hunter-app/hunter.html" class="nav-btn hunter">
-            <div><span class="icon">🦌</span> Hunter Ops</div>
-            <span class="arrow">▶</span>
-        </a>
+            <a href="https://pinkiprim.github.io/hunter-app/hunter.html" class="nav-btn hunter">
+                <span class="icon">🦌</span> Hunter Ops
+            </a>
 
+            <a href="https://pinkiprim.github.io/heli-app/helipilot.html" class="nav-btn heli">
+                <span class="icon">🚁</span> Heli Ops
+            </a>
+
+        </div>
     </div>
 
 </body>
