@@ -51,14 +51,17 @@
             position: relative; overflow: hidden;
         }
 
-        .nav-icon, #clock { position: relative; z-index: 20; font-size: 1.1em; }
+        /* Nav and Clock need Z-Index to sit above animations */
+        .nav-icon, #clock { position: relative; z-index: 100; font-size: 1.1em; }
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; }
 
+        /* LAYER 1: TEXT (Middle) */
         .header-center {
-            position: absolute; left: 50%; top: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center; width: 100%;
-            pointer-events: none; z-index: 15;
+            position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+            pointer-events: none; 
+            z-index: 50; 
         }
 
         .header-title {
@@ -68,180 +71,98 @@
             color: #ccc; margin-bottom: 2px;
         }
 
+        /* LAYER 2: ANIMATIONS (Top) */
+        #anim-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; 
+            z-index: 60; 
+            overflow: hidden;
+        }
+
+        /* --- THE GOD NAME STYLE --- */
         #user-rank-display {
             font-family: 'Rajdhani', sans-serif;
-            font-size: 1.3em; font-weight: 900; 
+            font-size: 1.4em; font-weight: 900; 
             text-transform: uppercase; letter-spacing: 1px;
-            position: relative; line-height: 1;
+            line-height: 1;
             white-space: nowrap; transform: translateZ(0); 
-        }
-
-        /* --- 🧬 THE EVOLUTION PATH 🧬 --- */
-        
-        /* 0: STANDARD (White) */
-        /* Default style applied */
-
-        /* 5K: COLOR (Base Blue) */
-        .rank-5k { color: #00e5ff; }
-
-        /* 10K: GLOW (Blue Glow) */
-        .rank-10k { 
-            color: #00e5ff;
-            text-shadow: 0 0 10px #00e5ff;
-        }
-
-        /* 25K: PULSE (Blue Glow + Pulse) */
-        .rank-25k {
-            color: #00e5ff;
-            text-shadow: 0 0 15px #00e5ff;
-            animation: softPulse 2s infinite ease-in-out;
-        }
-        @keyframes softPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-
-        /* 50K: RAINBOW STATIC (The Core) */
-        .rank-50k {
-            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-            background-size: 300%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-shadow: none; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
-        }
-
-        /* 100K: RAINBOW FLOW (The Animation) */
-        .rank-100k {
-            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-            background-size: 300%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
-            animation: rainbowFlow 4s linear infinite;
-        }
-        @keyframes rainbowFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
-
-        /* 250K: + SUNBURST (Static Aura) */
-        .rank-250k {
-            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-            background-size: 300%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px white);
-            animation: rainbowFlow 4s linear infinite;
-        }
-
-        /* 500K: + SPARKLES (CSS Particles) */
-        .rank-500k {
-            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-            background-size: 300%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px white);
-            animation: rainbowFlow 4s linear infinite;
-            position: relative;
-        }
-        .rank-500k::after {
-            content: "✦"; position: absolute; top: -5px; right: -10px; font-size: 0.6em; color: white;
-            animation: sparkle 1s infinite alternate;
-        }
-        .rank-500k::before {
-            content: "✦"; position: absolute; bottom: -2px; left: -10px; font-size: 0.4em; color: white;
-            animation: sparkle 1.5s infinite alternate-reverse;
-        }
-        @keyframes sparkle { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
-
-        /* 1M: + ROTATION (Moving Aura) */
-        .rank-1m {
-            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-            background-size: 300%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px white);
-            animation: rainbowFlow 3s linear infinite, gentlePulse 1s infinite alternate;
-            position: relative;
-        }
-        @keyframes gentlePulse { from { transform: scale(1); } to { transform: scale(1.05); } }
-
-        /* --- ✈️ 10M GOD TIER SEQUENCE ✈️ --- */
-        
-        /* The Final Form: Has EVERYTHING + JS Particles */
-        .rank-10m {
-            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-            background-size: 300%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             
-            filter: drop-shadow(0 0 10px white) drop-shadow(0 0 20px cyan);
+            /* Hidden by default */
+            opacity: 0;
             
-            /* Flow + Gentle Pulse (Stagnant position, active texture) */
-            animation: rainbowFlow 2s linear infinite, gentlePulse 0.5s infinite alternate;
+            /* RAINBOW GRADIENT (Seamless Math) */
+            background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             
-            opacity: 0; /* Hidden until sequence reveals it */
-        }
-        
-        /* The Active State (15s duration) */
-        .rank-10m.revealed { opacity: 1; transition: opacity 0.5s ease-out; }
-        
-        /* The Exit State (Shrink) */
-        .rank-10m.exiting { animation: shrinkOut 1s forwards; }
-        @keyframes shrinkOut { 0% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0; transform: scale(0); } }
-
-        /* --- ASSETS & ANIMATIONS --- */
-        #god-tier-assets {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 18; overflow: hidden;
-            display: none;
+            /* GLOW */
+            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 10px cyan);
         }
 
-        /* PLANE */
+        /* REVEALED STATE (Active) */
+        #user-rank-display.revealed {
+            opacity: 1;
+            transition: opacity 0.5s ease-in;
+            /* Seamless Rainbow + Gentle Bounce */
+            animation: rainbowMove 3s linear infinite, gentleBounce 2s infinite ease-in-out;
+        }
+
+        /* SEAMLESS RAINBOW MATH */
+        @keyframes rainbowMove {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        @keyframes gentleBounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); } 
+            100% { transform: scale(1); }
+        }
+
+        /* STABLE CORNER SPARKLES */
+        #user-rank-display.revealed::after {
+            content: "✦"; position: absolute; top: -8px; right: -12px; 
+            font-size: 0.6em; color: white !important; -webkit-text-fill-color: white !important;
+            animation: blink 1s infinite alternate; filter: drop-shadow(0 0 5px white);
+            text-shadow: none;
+        }
+        #user-rank-display.revealed::before {
+            content: "✦"; position: absolute; bottom: -2px; left: -12px; 
+            font-size: 0.5em; color: white !important; -webkit-text-fill-color: white !important;
+            animation: blink 1.5s infinite alternate-reverse; filter: drop-shadow(0 0 5px white);
+            text-shadow: none;
+        }
+        @keyframes blink { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
+
+        /* --- ASSETS --- */
         #gt-plane {
-            position: absolute; top: -20%; left: -150%;
-            height: 140%; width: auto;
-            z-index: 25;
-            /* White silhouette? Or use original color? Assuming original based on request, or white fit. */
-            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5));
+            position: absolute; top: -10px; left: -200px;
+            width: 300px; 
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
         }
 
-        /* CLOUD */
         #gt-cloud {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 150px; opacity: 0;
-            z-index: 22;
+            width: 180px; 
+            opacity: 0;
         }
 
-        /* SEQUENCES */
-        .anim-plane { animation: flyPlane 3s linear forwards; }
-        .anim-cloud { animation: popCloud 1.5s linear forwards; animation-delay: 1.2s; } /* Timed to plane crossing center */
-        
-        /* Gentle Pop for Text */
-        .anim-text-pop { animation: gentlePop 0.5s ease-out forwards; }
+        /* ANIMATION KEYFRAMES */
+        .fly-plane { animation: planeMove 3s linear forwards; }
+        .pop-cloud { animation: cloudPop 2.5s linear forwards; animation-delay: 1.0s; }
 
-        @keyframes flyPlane { 0% { left: -150%; } 100% { left: 150%; } }
+        @keyframes planeMove { 0% { left: -200px; } 100% { left: 400px; } }
         
-        @keyframes popCloud {
+        @keyframes cloudPop {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            20% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-            70% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
         }
 
-        @keyframes gentlePop {
-            0% { transform: scale(0.5); opacity: 0; }
-            60% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        /* Particles */
-        #particle-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 1; overflow: hidden;
-        }
-        .particle {
-            position: absolute; background: white; border-radius: 50%;
-            box-shadow: 0 0 5px white; pointer-events: none;
-        }
-
-        /* DEBUG DROPDOWN */
-        #debug-ranks {
-            width: 100%; background: #111; color: #aaa; 
-            border: none; border-bottom: 1px solid #333; 
-            padding: 4px; font-size: 0.8em; text-align: center; cursor: pointer;
-        }
-
-        /* --- BASE CSS (Standard) --- */
+        /* --- BASE CSS --- */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .destination-display { background: rgba(255, 193, 7, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 10px; margin-bottom: 15px; text-align: center; }
         .dest-label { font-size: 0.7em; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
@@ -277,27 +198,12 @@
 <body>
 
 <div id="tracker-app">
-    <select id="debug-ranks" onchange="testRank(this.value)">
-        <option value="0">Test: 0 XP (Standard)</option>
-        <option value="5000">Test: 5K (Color)</option>
-        <option value="10000">Test: 10K (Glow)</option>
-        <option value="25000">Test: 25K (Pulse)</option>
-        <option value="50000">Test: 50K (Rainbow)</option>
-        <option value="100000">Test: 100K (Flow)</option>
-        <option value="250000">Test: 250K (Aura)</option>
-        <option value="500000">Test: 500K (Sparkle)</option>
-        <option value="1000000">Test: 1M (Moving Aura)</option>
-        <option value="10000000">Test: 10M (GOD SEQUENCE)</option>
-    </select>
-
     <header id="drag-handle">
         
-        <div id="god-tier-assets">
+        <div id="anim-layer">
             <img id="gt-plane" src="https://www.nicepng.com/png/full/204-2044109_how-to-set-use-airplane-svg-vector.png">
             <img id="gt-cloud" src="https://wallpapers.com/images/high/cartoon-cloud-in-pastel-colors-png-vbg-3h4w3rkfn5fveu2t.png">
         </div>
-        
-        <div id="particle-container"></div>
 
         <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon" style="text-decoration:none; cursor:pointer; font-size:1.2em;">🏠</a>
         
@@ -394,9 +300,8 @@ const AIRPORTS = {
 // --- STATE ---
 let TRUNK_KEY = null;
 let LAST_VEHICLE = null; 
-let PARTICLE_INTERVAL = null;
-let GOD_MODE_INTERVAL = null;
-let GOD_HIDE_TIMEOUT = null;
+let ANIM_INTERVAL = null;
+let HIDE_TIMEOUT = null;
 
 let MEMORY = {
     inventory: {},
@@ -450,11 +355,17 @@ window.addEventListener('message', (event) => {
     processPayload(payload);
 });
 
+// START ANIMATION LOOP ON LOAD
+window.onload = () => { startAnimationLoop(); };
+
 function processPayload(data) {
     if(data.name && STATE.playerName !== data.name) {
         STATE.playerName = data.name;
         document.getElementById('user-rank-display').innerText = STATE.playerName;
-        updateRankVisuals(STATE.currentXP); 
+        // Restart loop on name change
+        clearInterval(ANIM_INTERVAL);
+        ANIM_INTERVAL = null;
+        startAnimationLoop(); 
     }
 
     let incomingPlate = data.plate || data.vehicle;
@@ -522,7 +433,6 @@ function processPayload(data) {
 
     if (typeof currentXP === 'number') {
         updateRunLogic(currentXP, hasCargo);
-        updateRankVisuals(currentXP);
         renderStats();
     }
 
@@ -539,119 +449,42 @@ function processPayload(data) {
     }
 }
 
-// --- RANK VISUALS ---
-function updateRankVisuals(xp) {
-    const el = document.getElementById('user-rank-display');
-    const assetContainer = document.getElementById('god-tier-assets');
-    
-    // Reset if rank changes (cleanup)
-    if (xp < 10000000 && GOD_MODE_INTERVAL) {
-        el.className = "";
-        assetContainer.style.display = "none";
-        clearInterval(GOD_MODE_INTERVAL); GOD_MODE_INTERVAL = null;
-        clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null;
-        clearTimeout(GOD_HIDE_TIMEOUT);
-        document.getElementById('particle-container').innerHTML = '';
-        el.style.opacity = "1";
-        el.classList.remove("anim-text-pop");
-    }
-
-    if (xp >= 10000000) { 
-        if (!el.classList.contains("rank-10m")) {
-            el.className = "rank-10m"; 
-            assetContainer.style.display = "block";
-            el.style.opacity = "0"; // Start hidden for reveal
-            
-            // START LOOPS
-            triggerGodSequence();
-            if (!GOD_MODE_INTERVAL) GOD_MODE_INTERVAL = setInterval(triggerGodSequence, 20000);
-            if (!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(true), 150);
-        }
-    } else {
-        el.className = ""; // Reset
-        if (xp >= 1000000) { el.classList.add("rank-1m"); if(!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(false), 200); }
-        else if (xp >= 500000) el.classList.add("rank-500k");
-        else if (xp >= 250000) el.classList.add("rank-250k");
-        else if (xp >= 100000) el.classList.add("rank-100k");
-        else if (xp >= 50000) el.classList.add("rank-50k");
-        else if (xp >= 25000) el.classList.add("rank-25k");
-        else if (xp >= 10000) el.classList.add("rank-10k");
-        else if (xp >= 5000) el.classList.add("rank-5k");
-        
-        // Clean up particles for non-particle ranks
-        if (xp < 1000000 && PARTICLE_INTERVAL) {
-            clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null;
-            document.getElementById('particle-container').innerHTML = '';
-        }
-        el.style.opacity = "1";
-    }
+// --- GLOBAL ANIMATION LOOP ---
+function startAnimationLoop() {
+    if (ANIM_INTERVAL) return;
+    triggerSequence();
+    ANIM_INTERVAL = setInterval(triggerSequence, 30000); 
 }
 
-function triggerGodSequence() {
+function triggerSequence() {
     const plane = document.getElementById('gt-plane');
     const cloud = document.getElementById('gt-cloud');
     const text = document.getElementById('user-rank-display');
     
-    // Reset
-    plane.classList.remove("anim-plane");
-    cloud.classList.remove("anim-cloud");
+    // RESET
+    plane.classList.remove("fly-plane");
+    cloud.classList.remove("pop-cloud");
     text.classList.remove("revealed");
-    text.classList.remove("exiting");
-    text.classList.remove("anim-text-pop");
-    text.style.opacity = "0"; // Ensure hidden
+    text.style.opacity = "0"; 
     
-    void plane.offsetWidth; // Force Reflow
+    if(HIDE_TIMEOUT) clearTimeout(HIDE_TIMEOUT);
     
-    // Start Sequence
-    plane.classList.add("anim-plane");
-    cloud.classList.add("anim-cloud");
+    // Force Reflow
+    void plane.offsetWidth; 
     
-    // Reveal Text at 1.8s (Timed with cloud dissipation)
-    setTimeout(() => { 
-        text.classList.add("anim-text-pop");
-        text.classList.add("revealed"); 
-    }, 2000);
+    // START
+    plane.classList.add("fly-plane");
+    cloud.classList.add("pop-cloud");
     
-    // Hide Text at 16.8s (15s visible)
-    if(GOD_HIDE_TIMEOUT) clearTimeout(GOD_HIDE_TIMEOUT);
-    GOD_HIDE_TIMEOUT = setTimeout(() => { text.classList.add("exiting"); }, 17000);
-}
-
-function spawnParticle(isRainbow) {
-    const container = document.getElementById('particle-container');
-    const p = document.createElement('div');
-    p.classList.add('particle');
+    // REVEAL NAME (At 2.2s)
+    setTimeout(() => {
+        text.classList.add("revealed");
+    }, 2200);
     
-    p.style.left = (50 + (Math.random() * 20 - 10)) + '%';
-    p.style.top = (50 + (Math.random() * 20 - 10)) + '%';
-    const size = Math.random() * 3 + 1;
-    p.style.width = size + 'px'; p.style.height = size + 'px';
-    
-    // Physics
-    const angle = Math.random() * 360;
-    const velocity = Math.random() * 60 + 20;
-    const tx = Math.cos(angle) * velocity;
-    const ty = Math.sin(angle) * velocity;
-    
-    // Color logic
-    if (isRainbow) {
-        const colors = ['red', 'cyan', 'lime', 'yellow', 'magenta'];
-        p.style.background = colors[Math.floor(Math.random() * colors.length)];
-        p.style.boxShadow = `0 0 5px ${p.style.background}`;
-    }
-
-    p.animate([
-        { transform: 'translate(0,0) scale(1)', opacity: 1 },
-        { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
-    ], { duration: 800, easing: 'ease-out' }).onfinish = () => p.remove();
-    container.appendChild(p);
-}
-
-function testRank(val) { 
-    STATE.currentXP = parseInt(val);
-    const el = document.getElementById('user-rank-display');
-    el.className = ""; 
-    updateRankVisuals(STATE.currentXP); 
+    // HIDE NAME (At 17.2s - 15s duration)
+    HIDE_TIMEOUT = setTimeout(() => {
+        text.classList.remove("revealed");
+    }, 17200);
 }
 
 // --- FLIGHT LOGIC ---
