@@ -41,7 +41,7 @@
             min-height: 200px;
         }
 
-        /* --- HEADER & LAYOUT --- */
+        /* --- HEADER STRUCTURE --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 0 12px; height: 46px;    
@@ -51,14 +51,18 @@
             position: relative; overflow: hidden;
         }
 
-        .nav-icon, #clock { position: relative; z-index: 20; font-size: 1.1em; }
+        .nav-icon, #clock { position: relative; z-index: 100; font-size: 1.1em; }
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; }
 
+        /* --- LAYERS --- */
+        
+        /* LAYER 1: THE TEXT (Sits in the middle) */
         .header-center {
-            position: absolute; left: 50%; top: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center; width: 100%;
-            pointer-events: none; z-index: 15;
+            position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+            pointer-events: none; 
+            z-index: 50; /* Middle Layer */
         }
 
         .header-title {
@@ -68,31 +72,40 @@
             color: #ccc; margin-bottom: 2px;
         }
 
-        /* --- ✈️ THE ANIMATION STYLE ✈️ --- */
+        /* LAYER 2: THE ANIMATION ASSETS (Sits ON TOP to hide text) */
+        #anim-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; 
+            z-index: 60; /* Top Layer */
+            overflow: hidden;
+        }
+
+        /* --- NAME STYLING --- */
         
         #user-rank-display {
             font-family: 'Rajdhani', sans-serif;
-            font-size: 1.3em; font-weight: 900; 
+            font-size: 1.4em; font-weight: 900; 
             text-transform: uppercase; letter-spacing: 1px;
-            position: relative; line-height: 1;
-            white-space: nowrap; transform: translateZ(0);
+            line-height: 1;
+            white-space: nowrap; 
+            opacity: 0; /* Hidden by default */
+            position: relative;
+        }
+
+        /* THE REVEALED STATE */
+        #user-rank-display.revealed {
+            opacity: 1;
+            transition: opacity 0.2s ease-in;
             
-            /* RAINBOW CORE */
+            /* Rainbow Gradient */
             background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
             background-size: 200%;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             
-            /* GLOW */
-            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 15px cyan);
+            /* Glow */
+            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 10px cyan);
             
-            /* Initial State (Hidden) */
-            opacity: 0; 
-        }
-
-        /* Active State: Flowing Rainbow + Gentle Bounce */
-        #user-rank-display.revealed {
-            opacity: 1;
-            transition: opacity 0.5s ease-out;
+            /* Animation Loop */
             animation: rainbowFlow 3s linear infinite, gentleBounce 2s infinite ease-in-out;
         }
 
@@ -103,58 +116,51 @@
         
         @keyframes gentleBounce {
             0% { transform: scale(1); }
-            50% { transform: scale(1.05); } /* Subtle bounce */
+            50% { transform: scale(1.05); } 
             100% { transform: scale(1); }
         }
 
-        /* OLD SPARKLES (Stable) */
+        /* SPARKLES (Hard coded positions) */
         #user-rank-display.revealed::after {
-            content: "✦"; position: absolute; top: -5px; right: -12px; font-size: 0.8em; color: white;
-            animation: simpleSparkle 1.2s infinite alternate; text-shadow: 0 0 5px white;
+            content: "✦"; position: absolute; top: -10px; right: -15px; 
+            font-size: 0.8em; color: white; -webkit-text-fill-color: white;
+            animation: blink 1s infinite alternate; filter: drop-shadow(0 0 5px white);
         }
         #user-rank-display.revealed::before {
-            content: "✦"; position: absolute; bottom: -2px; left: -12px; font-size: 0.6em; color: white;
-            animation: simpleSparkle 1.5s infinite alternate-reverse; text-shadow: 0 0 5px white;
+            content: "✦"; position: absolute; bottom: -5px; left: -15px; 
+            font-size: 0.6em; color: white; -webkit-text-fill-color: white;
+            animation: blink 1.5s infinite alternate-reverse; filter: drop-shadow(0 0 5px white);
         }
-        @keyframes simpleSparkle { 
-            0% { opacity: 0; transform: scale(0.5); } 
-            100% { opacity: 1; transform: scale(1.2); } 
-        }
+        @keyframes blink { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
 
-        /* --- ASSETS & SEQUENCES --- */
-        
-        #anim-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 18; overflow: hidden;
-        }
+        /* --- ASSETS --- */
 
         /* PLANE */
         #gt-plane {
-            position: absolute; top: -20%; left: -150%;
-            height: 140%; width: auto;
-            z-index: 25;
-            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5));
+            position: absolute; top: -10px; left: -200px;
+            width: 300px; /* Big plane */
+            opacity: 1;
         }
 
         /* CLOUD */
         #gt-cloud {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 150px; opacity: 0;
-            z-index: 22;
+            width: 200px; 
+            opacity: 0;
         }
 
         /* ANIMATION CLASSES */
         .fly-plane { animation: planeMove 3s linear forwards; }
-        .pop-cloud { animation: cloudPop 1.5s linear forwards; animation-delay: 1.2s; }
+        .pop-cloud { animation: cloudPop 2s linear forwards; animation-delay: 1.0s; }
 
-        @keyframes planeMove { 0% { left: -150%; } 100% { left: 150%; } }
+        @keyframes planeMove { 0% { left: -200px; } 100% { left: 400px; } }
         
         @keyframes cloudPop {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            20% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-            70% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1); opacity: 1; } /* Cloud Covers Name */
+            70% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; } /* Holds */
+            100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; } /* Fades out */
         }
 
         /* --- BASE CSS --- */
@@ -441,13 +447,14 @@ function processPayload(data) {
     }
 }
 
-// --- ANIMATION SYSTEM (SIMPLIFIED) ---
+// --- ANIMATION SYSTEM (STABLE) ---
 function startAnimationLoop() {
-    // If loop already running, don't double up
     if (ANIM_INTERVAL) return;
     
+    // Initial Trigger
     triggerSequence();
-    ANIM_INTERVAL = setInterval(triggerSequence, 30000); // 30s Loop
+    // Loop every 30s
+    ANIM_INTERVAL = setInterval(triggerSequence, 30000); 
 }
 
 function triggerSequence() {
@@ -455,29 +462,29 @@ function triggerSequence() {
     const cloud = document.getElementById('gt-cloud');
     const text = document.getElementById('user-rank-display');
     
-    // RESET
+    // 1. RESET STATES
     plane.classList.remove("fly-plane");
     cloud.classList.remove("pop-cloud");
     text.classList.remove("revealed");
-    text.style.opacity = "0"; // Force hidden
+    text.style.opacity = "0"; 
     if(HIDE_TIMEOUT) clearTimeout(HIDE_TIMEOUT);
     
-    void plane.offsetWidth; // Force Reflow
+    // Force Reflow
+    void plane.offsetWidth; 
     
-    // START
+    // 2. START ANIMATION
     plane.classList.add("fly-plane");
     cloud.classList.add("pop-cloud");
     
-    // REVEAL NAME (At 2.0s)
+    // 3. REVEAL NAME (At 2.2s - After cloud covers center)
     setTimeout(() => {
         text.classList.add("revealed");
-    }, 2000);
+    }, 2200);
     
-    // HIDE NAME (At 17s - 15s duration)
+    // 4. HIDE NAME (At 17s - 15s duration)
     HIDE_TIMEOUT = setTimeout(() => {
         text.classList.remove("revealed");
-        // opacity transition in CSS handles fade out
-    }, 17000);
+    }, 17200);
 }
 
 // --- FLIGHT LOGIC ---
