@@ -51,17 +51,14 @@
             position: relative; overflow: hidden;
         }
 
-        /* Nav and Clock need Z-Index to sit above animations */
-        .nav-icon, #clock { position: relative; z-index: 100; font-size: 1.1em; }
+        .nav-icon, #clock { position: relative; z-index: 20; font-size: 1.1em; }
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; }
 
-        /* LAYER 1: TEXT (Middle) */
         .header-center {
-            position: absolute; left: 0; top: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; 
-            justify-content: center; align-items: center;
-            pointer-events: none; 
-            z-index: 50; 
+            position: absolute; left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center; width: 100%;
+            pointer-events: none; z-index: 15;
         }
 
         .header-title {
@@ -71,56 +68,50 @@
             color: #ccc; margin-bottom: 2px;
         }
 
-        /* LAYER 2: ANIMATIONS (Top) */
-        #anim-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; 
-            z-index: 60; 
-            overflow: hidden;
-        }
-
-        /* --- THE GOD NAME STYLE --- */
+        /* --- THE GOD MODE STYLE (Applied to Everyone) --- */
         #user-rank-display {
             font-family: 'Rajdhani', sans-serif;
             font-size: 1.4em; font-weight: 900; 
             text-transform: uppercase; letter-spacing: 1px;
-            line-height: 1;
+            position: relative; line-height: 1;
             white-space: nowrap; transform: translateZ(0); 
             
-            /* Hidden by default */
+            /* Base State: Hidden */
             opacity: 0;
+            color: white; /* Fallback color */
+        }
+
+        /* REVEALED STATE (Active Animation) */
+        #user-rank-display.revealed {
+            opacity: 1;
+            transition: opacity 0.5s ease-in;
             
-            /* RAINBOW GRADIENT (Seamless Math) */
-            background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
+            /* SMOOTH SEAMLESS RAINBOW LOOP */
+            background: linear-gradient(to right, 
+                #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
             background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             
-            /* GLOW */
-            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 10px cyan);
+            /* Glow */
+            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 15px cyan);
+            
+            /* The Motion */
+            animation: rainbowFlow 3s linear infinite, gentleBounce 2s infinite ease-in-out;
         }
 
-        /* REVEALED STATE (Active) */
-        #user-rank-display.revealed {
-            opacity: 1;
-            transition: opacity 0.5s ease-in;
-            /* Seamless Rainbow + Gentle Bounce */
-            animation: rainbowMove 3s linear infinite, gentleBounce 2s infinite ease-in-out;
+        @keyframes rainbowFlow { 
+            0% { background-position: 0% center; } 
+            100% { background-position: 200% center; } 
         }
-
-        /* SEAMLESS RAINBOW MATH */
-        @keyframes rainbowMove {
-            0% { background-position: 0% center; }
-            100% { background-position: 200% center; }
-        }
-
+        
         @keyframes gentleBounce {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); } 
             100% { transform: scale(1); }
         }
 
-        /* STABLE CORNER SPARKLES */
+        /* SPARKLES (The Old, Stable Version) */
         #user-rank-display.revealed::after {
             content: "✦"; position: absolute; top: -8px; right: -12px; 
             font-size: 0.6em; color: white !important; -webkit-text-fill-color: white !important;
@@ -135,34 +126,53 @@
         }
         @keyframes blink { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
 
-        /* --- ASSETS --- */
-        #gt-plane {
-            position: absolute; top: -10px; left: -200px;
-            width: 300px; 
-            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+        /* --- ASSETS & ANIMATIONS --- */
+        #god-tier-assets {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 18; overflow: hidden;
+            /* No display:none here, controlled by opacity via JS/CSS */
         }
 
+        /* PLANE */
+        #gt-plane {
+            position: absolute; top: -20%; left: -150%;
+            height: 140%; width: auto;
+            z-index: 25;
+            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5));
+        }
+
+        /* CLOUD */
         #gt-cloud {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 180px; 
-            opacity: 0;
+            width: 150px; opacity: 0;
+            z-index: 22;
         }
 
-        /* ANIMATION KEYFRAMES */
-        .fly-plane { animation: planeMove 3s linear forwards; }
-        .pop-cloud { animation: cloudPop 2.5s linear forwards; animation-delay: 1.0s; }
-
-        @keyframes planeMove { 0% { left: -200px; } 100% { left: 400px; } }
+        /* SEQUENCES */
+        .anim-plane { animation: flyPlane 3s linear forwards; }
+        .anim-cloud { animation: popCloud 1.5s linear forwards; animation-delay: 1.2s; } 
         
-        @keyframes cloudPop {
+        @keyframes flyPlane { 0% { left: -150%; } 100% { left: 150%; } }
+        
+        @keyframes popCloud {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            20% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            80% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            70% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; }
         }
 
-        /* --- BASE CSS --- */
+        /* Particles */
+        #particle-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1; overflow: hidden;
+        }
+        .particle {
+            position: absolute; background: white; border-radius: 50%;
+            box-shadow: 0 0 5px white; pointer-events: none;
+        }
+
+        /* --- BASE CSS (Standard) --- */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .destination-display { background: rgba(255, 193, 7, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 10px; margin-bottom: 15px; text-align: center; }
         .dest-label { font-size: 0.7em; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
@@ -200,10 +210,12 @@
 <div id="tracker-app">
     <header id="drag-handle">
         
-        <div id="anim-layer">
+        <div id="god-tier-assets">
             <img id="gt-plane" src="https://www.nicepng.com/png/full/204-2044109_how-to-set-use-airplane-svg-vector.png">
             <img id="gt-cloud" src="https://wallpapers.com/images/high/cartoon-cloud-in-pastel-colors-png-vbg-3h4w3rkfn5fveu2t.png">
         </div>
+        
+        <div id="particle-container"></div>
 
         <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon" style="text-decoration:none; cursor:pointer; font-size:1.2em;">🏠</a>
         
@@ -362,8 +374,9 @@ function processPayload(data) {
     if(data.name && STATE.playerName !== data.name) {
         STATE.playerName = data.name;
         document.getElementById('user-rank-display').innerText = STATE.playerName;
-        // Restart loop on name change
-        clearInterval(ANIM_INTERVAL);
+        
+        // RESTART LOOP if name changes
+        if(ANIM_INTERVAL) clearInterval(ANIM_INTERVAL);
         ANIM_INTERVAL = null;
         startAnimationLoop(); 
     }
@@ -449,9 +462,10 @@ function processPayload(data) {
     }
 }
 
-// --- GLOBAL ANIMATION LOOP ---
+// --- ANIMATION SYSTEM (STABLE) ---
 function startAnimationLoop() {
     if (ANIM_INTERVAL) return;
+    
     triggerSequence();
     ANIM_INTERVAL = setInterval(triggerSequence, 30000); 
 }
@@ -461,13 +475,10 @@ function triggerSequence() {
     const cloud = document.getElementById('gt-cloud');
     const text = document.getElementById('user-rank-display');
     
-    // RESET
+    // RESET STATES
     plane.classList.remove("fly-plane");
     cloud.classList.remove("pop-cloud");
     text.classList.remove("revealed");
-    text.style.opacity = "0"; 
-    
-    if(HIDE_TIMEOUT) clearTimeout(HIDE_TIMEOUT);
     
     // Force Reflow
     void plane.offsetWidth; 
@@ -481,7 +492,8 @@ function triggerSequence() {
         text.classList.add("revealed");
     }, 2200);
     
-    // HIDE NAME (At 17.2s - 15s duration)
+    // HIDE NAME (At 17.2s)
+    if(HIDE_TIMEOUT) clearTimeout(HIDE_TIMEOUT);
     HIDE_TIMEOUT = setTimeout(() => {
         text.classList.remove("revealed");
     }, 17200);
