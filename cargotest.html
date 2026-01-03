@@ -41,7 +41,7 @@
             min-height: 200px;
         }
 
-        /* --- HEADER STRUCTURE --- */
+        /* --- HEADER & LAYOUT --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             padding: 0 12px; height: 46px;    
@@ -51,18 +51,14 @@
             position: relative; overflow: hidden;
         }
 
-        .nav-icon, #clock { position: relative; z-index: 100; font-size: 1.1em; }
+        .nav-icon, #clock { position: relative; z-index: 20; font-size: 1.1em; }
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; }
 
-        /* --- LAYERS --- */
-        
-        /* LAYER 1: THE TEXT (Sits in the middle) */
         .header-center {
-            position: absolute; left: 0; top: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; 
-            justify-content: center; align-items: center;
-            pointer-events: none; 
-            z-index: 50; /* Middle Layer */
+            position: absolute; left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center; width: 100%;
+            pointer-events: none; z-index: 15;
         }
 
         .header-title {
@@ -72,95 +68,229 @@
             color: #ccc; margin-bottom: 2px;
         }
 
-        /* LAYER 2: THE ANIMATION ASSETS (Sits ON TOP to hide text) */
-        #anim-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; 
-            z-index: 60; /* Top Layer */
-            overflow: hidden;
-        }
-
-        /* --- NAME STYLING --- */
-        
         #user-rank-display {
             font-family: 'Rajdhani', sans-serif;
-            font-size: 1.4em; font-weight: 900; 
+            font-size: 1.3em; font-weight: 900; 
             text-transform: uppercase; letter-spacing: 1px;
-            line-height: 1;
-            white-space: nowrap; 
-            opacity: 0; /* Hidden by default */
-            position: relative;
+            position: relative; line-height: 1;
+            white-space: nowrap; transform: translateZ(0); 
         }
 
-        /* THE REVEALED STATE */
-        #user-rank-display.revealed {
-            opacity: 1;
-            transition: opacity 0.2s ease-in;
+        /* --- 🧬 THE EVOLUTION PATH 🧬 --- */
+        
+        /* 0: STANDARD */
+        /* Default white */
+
+        /* 5K: COLOR */
+        .rank-5k { color: #00e5ff; }
+
+        /* 10K: GLOW */
+        .rank-10k { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; }
+
+        /* 25K: PULSE (The Heartbeat Begins) */
+        .rank-25k {
+            color: #00e5ff;
+            text-shadow: 0 0 15px #00e5ff;
+            animation: softPulse 2s infinite ease-in-out;
+        }
+        @keyframes softPulse { 0%, 100% { opacity: 1; filter: brightness(1); } 50% { opacity: 0.8; filter: brightness(1.3); } }
+
+        /* 50K: RAINBOW STATIC (Pulse Carried Forward) */
+        .rank-50k {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 200%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: none; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+            animation: softPulse 2s infinite ease-in-out; /* Pulse Maintained */
+        }
+
+        /* 100K: RAINBOW FLOW (Movement Begins) */
+        .rank-100k {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 200%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
+            /* Combines Flow AND Pulse */
+            animation: rainbowFlow 3s linear infinite, softPulse 2s infinite ease-in-out;
+        }
+        @keyframes rainbowFlow { 
+            0% { background-position: 0% center; } 
+            100% { background-position: 200% center; } 
+        }
+
+        /* 250K: + SUNBURST AURA (Static Glow, No Sparkles yet) */
+        .rank-250k {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 200%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            /* Heavy Double Shadow */
+            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 15px cyan);
+            animation: rainbowFlow 3s linear infinite, softPulse 2s infinite ease-in-out;
+        }
+
+        /* 500K: + WIDE SPARKLES (The Bling) */
+        .rank-500k {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 200%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 8px white) drop-shadow(0 0 15px cyan);
+            animation: rainbowFlow 3s linear infinite, softPulse 2s infinite ease-in-out;
+            position: relative;
+        }
+        /* Top Row of Sparkles - Full Width */
+        .rank-500k::after {
+            content: "✦ ⋆ ✦"; /* Multiple stars */
+            position: absolute; top: -10px; left: 0; width: 100%;
+            font-size: 0.7em; color: white; letter-spacing: 5px;
+            display: flex; justify-content: space-between;
+            animation: bigSparkle 1.2s infinite alternate; text-shadow: 0 0 5px white;
+        }
+        /* Bottom Row of Sparkles - Full Width */
+        .rank-500k::before {
+            content: "⋆ ✦ ⋆"; /* Multiple stars offset */
+            position: absolute; bottom: -6px; left: 0; width: 100%;
+            font-size: 0.5em; color: white; letter-spacing: 5px;
+            display: flex; justify-content: space-around;
+            animation: bigSparkle 1.8s infinite alternate-reverse; text-shadow: 0 0 5px white;
+        }
+        @keyframes bigSparkle { 
+            0% { opacity: 0.3; transform: scale(0.8); } 
+            100% { opacity: 1; transform: scale(1.2); } 
+        }
+
+        /* 1M: + HEARTBEAT (Bigger/Smaller Animation) */
+        .rank-1m {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 200%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px white) drop-shadow(0 0 20px cyan);
+            position: relative;
             
-            /* Rainbow Gradient */
+            /* Flow + Heavy Heartbeat (Replaces Soft Pulse) */
+            animation: rainbowFlow 3s linear infinite, heavyHeartbeat 1.5s infinite ease-in-out;
+        }
+        /* Inherit Sparkles from 500k Logic manually */
+        .rank-1m::after {
+            content: "✦ ⋆ ✦"; position: absolute; top: -10px; left: 0; width: 100%;
+            font-size: 0.7em; color: white; display: flex; justify-content: space-between;
+            animation: bigSparkle 1.2s infinite alternate; text-shadow: 0 0 8px white;
+        }
+        .rank-1m::before {
+            content: "⋆ ✦ ⋆"; position: absolute; bottom: -6px; left: 0; width: 100%;
+            font-size: 0.5em; color: white; display: flex; justify-content: space-around;
+            animation: bigSparkle 1.8s infinite alternate-reverse; text-shadow: 0 0 8px white;
+        }
+
+        @keyframes heavyHeartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); } /* Big expansion */
+            100% { transform: scale(1); }
+        }
+
+
+        /* --- ✈️ 10M GOD TIER SEQUENCE ✈️ --- */
+        /* Combines EVERYTHING: Flow + Aura + Wide Sparkles + Heartbeat + Particles */
+        
+        .rank-10m {
+            /* Rainbow Core */
             background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
             background-size: 200%;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             
-            /* Glow */
-            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 10px cyan);
+            /* Heavy Aura */
+            filter: drop-shadow(0 0 10px white) drop-shadow(0 0 25px cyan);
             
-            /* Animation Loop */
-            animation: rainbowFlow 3s linear infinite, gentleBounce 2s infinite ease-in-out;
-        }
-
-        @keyframes rainbowFlow { 
-            0% { background-position: 0% 50%; } 
-            100% { background-position: 200% 50%; } 
+            /* Initial State */
+            opacity: 0; 
+            position: relative;
+            z-index: 5;
         }
         
-        @keyframes gentleBounce {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); } 
-            100% { transform: scale(1); }
+        /* Reveal State - ACTIVE ANIMATIONS */
+        .rank-10m.revealed { 
+            opacity: 1; 
+            transition: opacity 0.5s ease-out;
+            /* Flow + Heartbeat */
+            animation: rainbowFlow 2s linear infinite, heavyHeartbeat 1.5s infinite ease-in-out;
+        }
+        
+        /* Exit State */
+        .rank-10m.exiting { animation: shrinkOut 1s forwards; }
+        @keyframes shrinkOut { 0% { opacity: 1; transform: scale(1.15); } 100% { opacity: 0; transform: scale(0); } }
+
+        /* GOD TIER SPARKLES (Wide & Dense) */
+        .rank-10m.revealed::after {
+            content: "✦ ⋆ ✦ ⋆ ✦"; /* More stars */
+            position: absolute; top: -12px; left: 0; width: 100%;
+            font-size: 0.8em; color: white; display: flex; justify-content: space-between;
+            animation: bigSparkle 0.8s infinite alternate; text-shadow: 0 0 10px white;
+        }
+        .rank-10m.revealed::before {
+            content: "⋆ ✦ ⋆ ✦ ⋆"; /* More stars */
+            position: absolute; bottom: -8px; left: 0; width: 100%;
+            font-size: 0.6em; color: white; display: flex; justify-content: space-around;
+            animation: bigSparkle 1.2s infinite alternate-reverse; text-shadow: 0 0 10px white;
         }
 
-        /* SPARKLES (Hard coded positions) */
-        #user-rank-display.revealed::after {
-            content: "✦"; position: absolute; top: -10px; right: -15px; 
-            font-size: 0.8em; color: white; -webkit-text-fill-color: white;
-            animation: blink 1s infinite alternate; filter: drop-shadow(0 0 5px white);
+        /* --- ASSETS & ANIMATIONS --- */
+        #god-tier-assets {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100; /* HIGH Z-INDEX TO ENSURE VISIBILITY */
+            overflow: hidden;
+            display: none;
         }
-        #user-rank-display.revealed::before {
-            content: "✦"; position: absolute; bottom: -5px; left: -15px; 
-            font-size: 0.6em; color: white; -webkit-text-fill-color: white;
-            animation: blink 1.5s infinite alternate-reverse; filter: drop-shadow(0 0 5px white);
-        }
-        @keyframes blink { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
-
-        /* --- ASSETS --- */
 
         /* PLANE */
         #gt-plane {
-            position: absolute; top: -10px; left: -200px;
-            width: 300px; /* Big plane */
-            opacity: 1;
+            position: absolute; top: -20%; left: -150%;
+            height: 140%; width: auto;
+            z-index: 105;
+            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5));
         }
 
         /* CLOUD */
         #gt-cloud {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 200px; 
-            opacity: 0;
+            width: 150px; opacity: 0;
+            z-index: 102;
         }
 
-        /* ANIMATION CLASSES */
-        .fly-plane { animation: planeMove 3s linear forwards; }
-        .pop-cloud { animation: cloudPop 2s linear forwards; animation-delay: 1.0s; }
+        /* SEQUENCES */
+        .anim-plane { animation: flyPlane 3s linear forwards; }
+        .anim-cloud { animation: popCloud 1.5s linear forwards; animation-delay: 1.2s; }
+        .anim-text-pop { animation: gentlePop 0.5s ease-out forwards; }
 
-        @keyframes planeMove { 0% { left: -200px; } 100% { left: 400px; } }
+        @keyframes flyPlane { 0% { left: -150%; } 100% { left: 150%; } }
         
-        @keyframes cloudPop {
+        @keyframes popCloud {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            20% { transform: translate(-50%, -50%) scale(1); opacity: 1; } /* Cloud Covers Name */
-            70% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; } /* Holds */
-            100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; } /* Fades out */
+            20% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            70% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; }
+        }
+
+        @keyframes gentlePop {
+            0% { transform: scale(0.5); opacity: 0; }
+            60% { transform: scale(1.15); opacity: 1; } /* Match heartbeat max */
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Particles */
+        #particle-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1; overflow: hidden;
+        }
+        .particle {
+            position: absolute; background: white; border-radius: 50%;
+            box-shadow: 0 0 5px white; pointer-events: none;
+        }
+
+        /* DEBUG DROPDOWN */
+        #debug-ranks {
+            width: 100%; background: #111; color: #aaa; 
+            border: none; border-bottom: 1px solid #333; 
+            padding: 4px; font-size: 0.8em; text-align: center; cursor: pointer;
         }
 
         /* --- BASE CSS --- */
@@ -199,12 +329,27 @@
 <body>
 
 <div id="tracker-app">
+    <select id="debug-ranks" onchange="testRank(this.value)">
+        <option value="0">Test: 0 XP (Standard)</option>
+        <option value="5000">Test: 5K (Color)</option>
+        <option value="10000">Test: 10K (Glow)</option>
+        <option value="25000">Test: 25K (Pulse)</option>
+        <option value="50000">Test: 50K (Rainbow)</option>
+        <option value="100000">Test: 100K (Flow)</option>
+        <option value="250000">Test: 250K (Aura)</option>
+        <option value="500000">Test: 500K (Sparkles)</option>
+        <option value="1000000">Test: 1M (Heartbeat)</option>
+        <option value="10000000">Test: 10M (GOD SEQUENCE)</option>
+    </select>
+
     <header id="drag-handle">
         
-        <div id="anim-layer">
+        <div id="god-tier-assets">
             <img id="gt-plane" src="https://www.nicepng.com/png/full/204-2044109_how-to-set-use-airplane-svg-vector.png">
             <img id="gt-cloud" src="https://wallpapers.com/images/high/cartoon-cloud-in-pastel-colors-png-vbg-3h4w3rkfn5fveu2t.png">
         </div>
+        
+        <div id="particle-container"></div>
 
         <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon" style="text-decoration:none; cursor:pointer; font-size:1.2em;">🏠</a>
         
@@ -301,8 +446,9 @@ const AIRPORTS = {
 // --- STATE ---
 let TRUNK_KEY = null;
 let LAST_VEHICLE = null; 
-let ANIM_INTERVAL = null;
-let HIDE_TIMEOUT = null;
+let PARTICLE_INTERVAL = null;
+let GOD_MODE_INTERVAL = null;
+let GOD_HIDE_TIMEOUT = null;
 
 let MEMORY = {
     inventory: {},
@@ -356,14 +502,11 @@ window.addEventListener('message', (event) => {
     processPayload(payload);
 });
 
-// START ANIMATION LOOP ON LOAD
-window.onload = () => { startAnimationLoop(); };
-
 function processPayload(data) {
     if(data.name && STATE.playerName !== data.name) {
         STATE.playerName = data.name;
         document.getElementById('user-rank-display').innerText = STATE.playerName;
-        startAnimationLoop(); // Restart loop on name change
+        updateRankVisuals(STATE.currentXP); 
     }
 
     let incomingPlate = data.plate || data.vehicle;
@@ -431,6 +574,7 @@ function processPayload(data) {
 
     if (typeof currentXP === 'number') {
         updateRunLogic(currentXP, hasCargo);
+        updateRankVisuals(currentXP);
         renderStats();
     }
 
@@ -447,44 +591,117 @@ function processPayload(data) {
     }
 }
 
-// --- ANIMATION SYSTEM (STABLE) ---
-function startAnimationLoop() {
-    if (ANIM_INTERVAL) return;
+// --- RANK VISUALS ---
+function updateRankVisuals(xp) {
+    const el = document.getElementById('user-rank-display');
+    const assetContainer = document.getElementById('god-tier-assets');
     
-    // Initial Trigger
-    triggerSequence();
-    // Loop every 30s
-    ANIM_INTERVAL = setInterval(triggerSequence, 30000); 
+    // Reset if rank changes
+    if (xp < 10000000 && GOD_MODE_INTERVAL) {
+        el.className = "";
+        assetContainer.style.display = "none";
+        clearInterval(GOD_MODE_INTERVAL); GOD_MODE_INTERVAL = null;
+        clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null;
+        clearTimeout(GOD_HIDE_TIMEOUT);
+        document.getElementById('particle-container').innerHTML = '';
+        el.style.opacity = "1";
+        el.classList.remove("anim-text-pop");
+    }
+
+    if (xp >= 10000000) { 
+        if (!el.classList.contains("rank-10m")) {
+            el.className = "rank-10m"; 
+            assetContainer.style.display = "block";
+            el.style.opacity = "0"; // Start hidden for reveal
+            
+            // START LOOPS
+            triggerGodSequence();
+            if (!GOD_MODE_INTERVAL) GOD_MODE_INTERVAL = setInterval(triggerGodSequence, 20000); // 20s Loop
+            if (!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(true), 150);
+        }
+    } else {
+        el.className = ""; // Reset
+        if (xp >= 1000000) { el.classList.add("rank-1m"); if(!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(false), 200); }
+        else if (xp >= 500000) el.classList.add("rank-500k");
+        else if (xp >= 250000) { el.classList.add("rank-250k"); }
+        else if (xp >= 100000) el.classList.add("rank-100k");
+        else if (xp >= 50000) el.classList.add("rank-50k");
+        else if (xp >= 25000) el.classList.add("rank-25k");
+        else if (xp >= 10000) el.classList.add("rank-10k");
+        else if (xp >= 5000) el.classList.add("rank-5k");
+        
+        // Clean up particles for non-particle ranks
+        if (xp < 1000000 && PARTICLE_INTERVAL) {
+            clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null;
+            document.getElementById('particle-container').innerHTML = '';
+        }
+        el.style.opacity = "1";
+    }
 }
 
-function triggerSequence() {
+function triggerGodSequence() {
     const plane = document.getElementById('gt-plane');
     const cloud = document.getElementById('gt-cloud');
     const text = document.getElementById('user-rank-display');
     
-    // 1. RESET STATES
-    plane.classList.remove("fly-plane");
-    cloud.classList.remove("pop-cloud");
+    // Reset
+    plane.classList.remove("anim-plane");
+    cloud.classList.remove("anim-cloud");
     text.classList.remove("revealed");
+    text.classList.remove("exiting");
+    text.classList.remove("anim-text-pop");
     text.style.opacity = "0"; 
-    if(HIDE_TIMEOUT) clearTimeout(HIDE_TIMEOUT);
     
-    // Force Reflow
-    void plane.offsetWidth; 
+    void plane.offsetWidth; // Force Reflow
     
-    // 2. START ANIMATION
-    plane.classList.add("fly-plane");
-    cloud.classList.add("pop-cloud");
+    // Start Sequence
+    plane.classList.add("anim-plane");
+    cloud.classList.add("anim-cloud");
     
-    // 3. REVEAL NAME (At 2.2s - After cloud covers center)
-    setTimeout(() => {
-        text.classList.add("revealed");
-    }, 2200);
+    // Reveal Text at 1.8s
+    setTimeout(() => { 
+        text.classList.add("anim-text-pop");
+        text.classList.add("revealed"); 
+    }, 2000);
     
-    // 4. HIDE NAME (At 17s - 15s duration)
-    HIDE_TIMEOUT = setTimeout(() => {
-        text.classList.remove("revealed");
-    }, 17200);
+    // Hide Text at 16.8s (15s visible)
+    if(GOD_HIDE_TIMEOUT) clearTimeout(GOD_HIDE_TIMEOUT);
+    GOD_HIDE_TIMEOUT = setTimeout(() => { text.classList.add("exiting"); }, 17000);
+}
+
+function spawnParticle(isRainbow) {
+    const container = document.getElementById('particle-container');
+    const p = document.createElement('div');
+    p.classList.add('particle');
+    
+    p.style.left = (50 + (Math.random() * 20 - 10)) + '%';
+    p.style.top = (50 + (Math.random() * 20 - 10)) + '%';
+    const size = Math.random() * 3 + 1;
+    p.style.width = size + 'px'; p.style.height = size + 'px';
+    
+    const angle = Math.random() * 360;
+    const velocity = Math.random() * 60 + 20;
+    const tx = Math.cos(angle) * velocity;
+    const ty = Math.sin(angle) * velocity;
+    
+    if (isRainbow) {
+        const colors = ['red', 'cyan', 'lime', 'yellow', 'magenta'];
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.boxShadow = `0 0 5px ${p.style.background}`;
+    }
+
+    p.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+    ], { duration: 800, easing: 'ease-out' }).onfinish = () => p.remove();
+    container.appendChild(p);
+}
+
+function testRank(val) { 
+    STATE.currentXP = parseInt(val);
+    const el = document.getElementById('user-rank-display');
+    el.className = ""; 
+    updateRankVisuals(STATE.currentXP); 
 }
 
 // --- FLIGHT LOGIC ---
