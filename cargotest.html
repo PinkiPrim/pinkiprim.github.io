@@ -70,150 +70,141 @@
 
         #user-rank-display {
             font-family: 'Rajdhani', sans-serif;
-            font-size: 1.2em; font-weight: 900; 
+            font-size: 1.3em; font-weight: 900; 
             text-transform: uppercase; letter-spacing: 1px;
             position: relative; line-height: 1;
             white-space: nowrap; transform: translateZ(0); 
         }
 
-        /* --- 🎖️ ADDITIVE RANK PROGRESSION 🎖️ --- */
+        /* --- 💥 RANK EVOLUTION 💥 --- */
         
-        /* 0: STANDARD (White) */
-        /* No class needed, default white */
+        /* 0 - 50K: THE ENERGY PHASE (Already Approved) */
+        .rank-5k { color: #ff9800; text-shadow: 0 0 10px #ff5722; animation: burnPulse 0.5s infinite alternate; }
+        .rank-10k { color: #76ff03; text-shadow: 0 0 10px #ccff00; letter-spacing: 2px; animation: toxicPulse 2s infinite; }
+        .rank-25k { background: linear-gradient(180deg, #fff 40%, #000 50%, #fff 60%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: chromeFlash 4s infinite linear; }
+        .rank-50k { color: #fff; text-shadow: 0 0 10px #2962ff; animation: shockwave 2s infinite; }
 
-        /* 5K: + COLOR (Cargo Blue) */
-        .rank-5k { color: #40c4ff; }
-
-        /* 10K: + GLOW (Blue Glow) */
-        .rank-10k { 
-            color: #40c4ff;
-            text-shadow: 0 0 8px #40c4ff;
-        }
-
-        /* 25K: + ANIMATION (Pulse) */
-        .rank-25k {
-            color: #40c4ff;
-            text-shadow: 0 0 10px #40c4ff;
-            animation: softPulse 2s infinite ease-in-out;
-        }
-        @keyframes softPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-
-        /* 50K: + GRADIENT (Silver/Blue Metal) */
-        .rank-50k {
-            background: linear-gradient(180deg, #ffffff 30%, #40c4ff 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 5px #0277bd);
-            animation: softPulse 2s infinite;
-        }
-
-        /* 100K: + SPARKLES (Midas Touch) */
+        /* 100K: LIQUID GOLD (Unlocks Fluid Gradient) */
         .rank-100k {
-            background: linear-gradient(to bottom, #ffd700, #ffecb3);
+            background: linear-gradient(120deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            background-size: 200%;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 5px gold);
-            position: relative;
+            filter: drop-shadow(0 0 3px gold);
+            animation: shineFlow 2s linear infinite;
         }
-        .rank-100k::after {
-            content: "✨"; position: absolute; top: -5px; right: -8px; font-size: 0.6em;
-            animation: sparkle 1s infinite alternate;
-        }
-        @keyframes sparkle { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
+        @keyframes shineFlow { to { background-position: 200% center; } }
 
-        /* 250K: + FIRE (Heat Haze) */
+        /* 250K: HELLFIRE (Unlocks Active Particles) */
+        /* Text gets active burning effect */
         .rank-250k {
-            color: #ff3d00;
-            text-shadow: 0 -2px 5px #ffea00;
-            filter: url(#heat); /* SVG Turbulence */
+            color: #ff5722;
+            text-shadow: 0 -3px 5px #ffeb3b, 0 -6px 10px #f44336;
+            animation: fireBreath 0.2s infinite alternate;
         }
+        @keyframes fireBreath { from { transform: scale(1); filter: brightness(1); } to { transform: scale(1.05); filter: brightness(1.3); } }
 
-        /* 500K: + GLITCH (Cyber Slice) */
+        /* 500K: CYBER (Unlocks Geometry/Pop) */
         .rank-500k {
             color: #00e5ff;
-            position: relative;
-            text-shadow: 2px 0 #ff00c1;
-            animation: glitchShake 0.2s infinite;
+            text-shadow: 3px 0 #ff00de;
+            animation: hardGlitch 0.3s infinite;
         }
-        @keyframes glitchShake { 0% { transform: translate(0,0); } 20% { transform: translate(-1px, 1px); } 40% { transform: translate(1px, -1px); } 60% { transform: translate(0,0); } }
+        @keyframes hardGlitch {
+            0% { transform: translate(0,0); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+            20% { transform: translate(-3px, 1px); clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%); }
+            40% { transform: translate(3px, -1px); clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%); }
+            60% { transform: translate(0,0); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+        }
 
-        /* 1M: + COSMIC (Nebula) */
+        /* 1M: COSMIC (Unlocks Aura/Void) */
         .rank-1m {
-            background: url('https://media.giphy.com/media/26tn33ai01UfQN36o/giphy.gif');
-            background-size: cover; background-position: center;
+            background: linear-gradient(45deg, #2b00ff, #ff00dd);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 8px violet);
-            letter-spacing: 2px;
+            filter: drop-shadow(0 0 10px #d500f9);
+            animation: pulseAura 2s infinite ease-in-out;
         }
+        @keyframes pulseAura { 0% { filter: drop-shadow(0 0 5px #d500f9); } 50% { filter: drop-shadow(0 0 20px #d500f9); transform: scale(1.1); } 100% { filter: drop-shadow(0 0 5px #d500f9); } }
 
         /* --- ✈️ 10M GOD TIER SEQUENCE ✈️ --- */
         
         .rank-10m {
-            /* The Supernova Look */
-            background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
-            background-size: 400%;
+            /* RAINBOW CORE */
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 300%;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            font-weight: 900; letter-spacing: 2px;
-            filter: drop-shadow(0 0 10px white);
-            animation: rainbow 4s ease infinite;
             
-            /* Hidden initially for the reveal animation */
-            opacity: 0; 
+            /* MASSIVE GLOW */
+            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 10px cyan);
+            
+            /* CONSTANT ANIMATION (Not Stagnant) */
+            animation: rainbowFlow 2s linear infinite, godPulse 0.5s infinite alternate;
+            
+            opacity: 0; /* Hidden until sequence reveals it */
         }
         
-        /* State when animation is done or resting */
+        /* The Active State (15s duration) */
         .rank-10m.revealed { opacity: 1; }
+        /* The Exit State (Shrink) */
+        .rank-10m.exiting { animation: shrinkOut 1s forwards; }
 
-        @keyframes rainbow { 
-            0%{background-position:0% 82%} 50%{background-position:100% 19%} 100%{background-position:0% 82%}
-        }
+        @keyframes rainbowFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+        @keyframes godPulse { from { transform: scale(1); } to { transform: scale(1.1); letter-spacing: 3px; } }
+        @keyframes shrinkOut { 0% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(0); } }
 
-        /* ASSETS */
+        /* --- ASSETS & ANIMATIONS --- */
         #god-tier-assets {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 10; overflow: hidden;
-            display: none; /* Hidden unless 10M */
+            pointer-events: none; z-index: 18; overflow: hidden;
+            display: none;
         }
 
-        /* Plane Graphic */
+        /* HUGE PLANE */
         #gt-plane {
-            position: absolute; top: 5px; left: -100px;
-            width: 40px; height: auto;
-            filter: brightness(0) invert(1); /* Make it white silhouette */
-            z-index: 12;
+            position: absolute; top: -20%; left: -150%;
+            height: 140%; /* Huge but fits vertically */
+            width: auto;
+            z-index: 25;
+            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5));
         }
 
-        /* Cloud Graphic */
+        /* POP CLOUD */
         #gt-cloud {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 120px; opacity: 0;
-            z-index: 11;
+            width: 150px; opacity: 0;
+            z-index: 22;
         }
 
-        /* ANIMATION SEQUENCE CLASSES */
-        .anim-plane { animation: flyPlane 3s linear forwards; }
-        .anim-cloud { animation: popCloud 3s linear forwards; }
-        .anim-text  { animation: popText 3s linear forwards; }
-
-        @keyframes flyPlane {
-            0% { left: -50px; }
-            100% { left: 120%; }
+        /* POP FLASH */
+        #gt-flash {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px; height: 50px;
+            background: white; border-radius: 50%;
+            opacity: 0; z-index: 21;
+            box-shadow: 0 0 50px 20px white;
         }
 
+        /* SEQUENCES */
+        .anim-plane { animation: flyPlane 2s linear forwards; }
+        .anim-cloud { animation: popCloud 1.5s linear forwards; animation-delay: 0.8s; } /* Timing matched to plane center */
+        .anim-flash { animation: popFlash 0.5s ease-out forwards; animation-delay: 1.8s; }
+
+        @keyframes flyPlane { 0% { left: -150%; } 100% { left: 150%; } }
+        
         @keyframes popCloud {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            40% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; } /* Cloud appears */
-            70% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; } /* Holds */
-            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; } /* Dissipates */
+            20% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1.8); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
         }
 
-        @keyframes popText {
-            0% { opacity: 0; }
-            80% { opacity: 0; } /* Wait for cloud */
-            90% { opacity: 1; transform: scale(1.2); } /* POP */
-            100% { opacity: 1; transform: scale(1); }
+        @keyframes popFlash {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(10); opacity: 0; }
         }
 
-        /* Particles */
+        /* Particles (Shared by 250k+) */
         #particle-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 1; overflow: hidden;
@@ -222,6 +213,7 @@
             position: absolute; background: white; border-radius: 50%;
             box-shadow: 0 0 5px white; pointer-events: none;
         }
+        .ember { background: #ff5722; box-shadow: 0 0 5px orange; } /* For 250k */
 
         /* DEBUG DROPDOWN */
         #debug-ranks {
@@ -230,67 +222,58 @@
             padding: 4px; font-size: 0.8em; text-align: center; cursor: pointer;
         }
 
-        /* --- REST OF CSS --- */
+        /* --- BASE CSS (Standard) --- */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .destination-display { background: rgba(255, 193, 7, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 10px; margin-bottom: 15px; text-align: center; }
         .dest-label { font-size: 0.7em; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
         .dest-value { font-family: 'Rajdhani', sans-serif; font-size: 1.3em; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); line-height: 1.1; }
-        
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
-
         .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
         .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
         .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
         .xp-remaining-text b { color: var(--primary); }
-
         .run-box { background: rgba(2, 119, 189, 0.1); border: 1px solid rgba(2, 119, 189, 0.3); border-radius: 4px; padding: 8px; margin-bottom: 10px; }
         .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9em; }
         .run-val { font-weight: bold; color: #fff; }
         .run-label { font-size: 0.8em; color: #aaa; }
-
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
-
         .trunk-header { display: flex; justify-content: space-between; align-items: center; }
         .sync-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #444; margin-left: 5px; }
         .sync-dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
         .sync-dot.cached { background: var(--orange); }
         .trunk-item { display: flex; justify-content: space-between; font-size: 0.85em; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-
         input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: inherit; }
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
         #settings-panel, #job-list, #summary-table { display: none !important; }
+        
+        /* OTHER VFX KEYFRAMES */
+        @keyframes burnPulse { from { filter: brightness(1); } to { filter: brightness(1.5); } }
+        @keyframes toxicPulse { 0% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(30deg) drop-shadow(0 0 5px lime); } 100% { filter: hue-rotate(0deg); } }
+        @keyframes chromeFlash { 0% { filter: brightness(1); } 50% { filter: brightness(1.5) drop-shadow(0 0 5px white); } 100% { filter: brightness(1); } }
+        @keyframes shockwave { 0% { transform: scale(1); text-shadow: 0 0 5px #2962ff; } 5% { transform: scale(1.1); text-shadow: 0 0 20px #2962ff, 0 0 40px white; } 10% { transform: scale(1); text-shadow: 0 0 5px #2962ff; } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-<svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
-  <defs>
-    <filter id="heat">
-      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
-      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
-    </filter>
-  </defs>
-</svg>
-
 <div id="tracker-app">
     <select id="debug-ranks" onchange="testRank(this.value)">
         <option value="0">Test: 0 XP (Standard)</option>
-        <option value="5000">Test: 5K (Color)</option>
-        <option value="10000">Test: 10K (Glow)</option>
-        <option value="25000">Test: 25K (Pulse)</option>
-        <option value="50000">Test: 50K (Metal)</option>
+        <option value="5000">Test: 5K (Energy)</option>
+        <option value="10000">Test: 10K (Toxic)</option>
+        <option value="25000">Test: 25K (Chrome)</option>
+        <option value="50000">Test: 50K (Tesla)</option>
         <option value="100000">Test: 100K (Midas)</option>
-        <option value="250000">Test: 250K (Fire)</option>
-        <option value="500000">Test: 500K (Glitch)</option>
-        <option value="1000000">Test: 1M (Cosmic)</option>
+        <option value="250000">Test: 250K (Hellfire)</option>
+        <option value="500000">Test: 500K (Cyber)</option>
+        <option value="1000000">Test: 1M (Event Horizon)</option>
         <option value="10000000">Test: 10M (GOD SEQUENCE)</option>
     </select>
 
@@ -299,6 +282,7 @@
         <div id="god-tier-assets">
             <img id="gt-plane" src="https://www.nicepng.com/png/full/204-2044109_how-to-set-use-airplane-svg-vector.png">
             <img id="gt-cloud" src="https://wallpapers.com/images/high/cartoon-cloud-in-pastel-colors-png-vbg-3h4w3rkfn5fveu2t.png">
+            <div id="gt-flash"></div>
         </div>
         
         <div id="particle-container"></div>
@@ -400,6 +384,7 @@ let TRUNK_KEY = null;
 let LAST_VEHICLE = null; 
 let PARTICLE_INTERVAL = null;
 let GOD_MODE_INTERVAL = null;
+let GOD_HIDE_TIMEOUT = null;
 
 let MEMORY = {
     inventory: {},
@@ -491,6 +476,7 @@ function processPayload(data) {
     
     if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(data.trunkWeight);
     
+    // CRASH FIX: Check for empty string
     let incomingTrunk = null;
     if(TRUNK_KEY && data[TRUNK_KEY]) {
         try { 
@@ -546,39 +532,44 @@ function updateRankVisuals(xp) {
     const el = document.getElementById('user-rank-display');
     const assetContainer = document.getElementById('god-tier-assets');
     
-    // Reset Everything
-    el.className = "";
-    el.classList.remove("revealed"); // Reset 10M reveal state if dropping rank
-    assetContainer.style.display = "none";
-    if (PARTICLE_INTERVAL) { clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null; document.getElementById('particle-container').innerHTML = ''; }
-    if (GOD_MODE_INTERVAL) { clearInterval(GOD_MODE_INTERVAL); GOD_MODE_INTERVAL = null; }
+    // Reset if rank changes
+    // Only perform full reset if dropping below 10M to save resources
+    if (xp < 10000000 && GOD_MODE_INTERVAL) {
+        el.className = "";
+        assetContainer.style.display = "none";
+        clearInterval(GOD_MODE_INTERVAL); GOD_MODE_INTERVAL = null;
+        clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null;
+        clearTimeout(GOD_HIDE_TIMEOUT);
+        document.getElementById('particle-container').innerHTML = '';
+        el.style.opacity = "1"; // Show name for normal ranks
+    }
 
-    // APPLY TIER
     if (xp >= 10000000) { 
-        el.classList.add("rank-10m");
-        assetContainer.style.display = "block"; // Show assets
-        
-        // Start 30s Loop
-        triggerGodSequence(); 
-        if (!GOD_MODE_INTERVAL) {
-            GOD_MODE_INTERVAL = setInterval(triggerGodSequence, 30000);
+        if (!el.classList.contains("rank-10m")) {
+            el.className = "rank-10m"; // Set base class
+            assetContainer.style.display = "block";
+            
+            // START LOOPS
+            triggerGodSequence();
+            if (!GOD_MODE_INTERVAL) GOD_MODE_INTERVAL = setInterval(triggerGodSequence, 20000); // 20s Loop (15s visible + 5s reset)
+            if (!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(true), 150);
         }
-        
-        // Start Particles
-        if (!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(spawnParticle, 150);
-        
     } else {
-        // Standard Tiers
-        if (xp >= 1000000) el.classList.add("rank-1m");
+        el.className = ""; // Reset
+        if (xp >= 1000000) { el.classList.add("rank-1m"); if(!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(false), 200); }
         else if (xp >= 500000) el.classList.add("rank-500k");
-        else if (xp >= 250000) el.classList.add("rank-250k");
+        else if (xp >= 250000) { el.classList.add("rank-250k"); if(!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(false, 'ember'), 250); }
         else if (xp >= 100000) el.classList.add("rank-100k");
         else if (xp >= 50000) el.classList.add("rank-50k");
         else if (xp >= 25000) el.classList.add("rank-25k");
         else if (xp >= 10000) el.classList.add("rank-10k");
         else if (xp >= 5000) el.classList.add("rank-5k");
         
-        // Ensure name is visible if not 10M
+        // Clean up particles for non-particle ranks
+        if (xp < 250000 && xp !== 1000000 && PARTICLE_INTERVAL) {
+            clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null;
+            document.getElementById('particle-container').innerHTML = '';
+        }
         el.style.opacity = "1";
     }
 }
@@ -586,46 +577,69 @@ function updateRankVisuals(xp) {
 function triggerGodSequence() {
     const plane = document.getElementById('gt-plane');
     const cloud = document.getElementById('gt-cloud');
+    const flash = document.getElementById('gt-flash');
     const text = document.getElementById('user-rank-display');
     
-    // Reset Animations
+    // Reset
     plane.classList.remove("anim-plane");
     cloud.classList.remove("anim-cloud");
-    text.classList.remove("anim-text");
+    flash.classList.remove("anim-flash");
     text.classList.remove("revealed");
+    text.classList.remove("exiting");
     
-    void plane.offsetWidth; // Trigger Reflow
+    void plane.offsetWidth; // Force Reflow
     
-    // Start Sequence
+    // Start
     plane.classList.add("anim-plane");
     cloud.classList.add("anim-cloud");
-    text.classList.add("anim-text");
+    flash.classList.add("anim-flash");
     
-    // Keep text visible after anim
-    setTimeout(() => { text.classList.add("revealed"); }, 3000);
+    // Reveal Text at 1.8s
+    setTimeout(() => { text.classList.add("revealed"); }, 1800);
+    
+    // Hide Text at 16.8s (15s visible)
+    if(GOD_HIDE_TIMEOUT) clearTimeout(GOD_HIDE_TIMEOUT);
+    GOD_HIDE_TIMEOUT = setTimeout(() => { text.classList.add("exiting"); }, 16800);
 }
 
-function spawnParticle() {
+function spawnParticle(isRainbow, type) {
     const container = document.getElementById('particle-container');
     const p = document.createElement('div');
     p.classList.add('particle');
+    if(type === 'ember') p.classList.add('ember');
+    
     p.style.left = (50 + (Math.random() * 20 - 10)) + '%';
     p.style.top = (50 + (Math.random() * 20 - 10)) + '%';
-    const size = Math.random() * 4 + 2;
+    const size = Math.random() * 3 + 1;
     p.style.width = size + 'px'; p.style.height = size + 'px';
+    
+    // Physics
     const angle = Math.random() * 360;
-    const velocity = Math.random() * 100 + 50;
+    const velocity = Math.random() * 60 + 20;
     const tx = Math.cos(angle) * velocity;
     const ty = Math.sin(angle) * velocity;
     
+    // Color logic
+    if (isRainbow) {
+        const colors = ['red', 'cyan', 'lime', 'yellow', 'magenta'];
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.boxShadow = `0 0 5px ${p.style.background}`;
+    }
+
     p.animate([
         { transform: 'translate(0,0) scale(1)', opacity: 1 },
         { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
-    ], { duration: 1000, easing: 'ease-out' }).onfinish = () => p.remove();
+    ], { duration: 800, easing: 'ease-out' }).onfinish = () => p.remove();
     container.appendChild(p);
 }
 
-function testRank(val) { updateRankVisuals(parseInt(val)); }
+function testRank(val) { 
+    // Force reset for testing
+    STATE.currentXP = parseInt(val);
+    const el = document.getElementById('user-rank-display');
+    el.className = ""; // clear
+    updateRankVisuals(STATE.currentXP); 
+}
 
 // --- FLIGHT LOGIC ---
 function checkForCargo(pockets, trunk) {
