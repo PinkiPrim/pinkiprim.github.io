@@ -76,80 +76,107 @@
             white-space: nowrap; transform: translateZ(0); 
         }
 
-        /* --- 💥 RANK EVOLUTION 💥 --- */
+        /* --- 🧬 THE EVOLUTION PATH 🧬 --- */
         
-        /* 0 - 50K: THE ENERGY PHASE (Already Approved) */
-        .rank-5k { color: #ff9800; text-shadow: 0 0 10px #ff5722; animation: burnPulse 0.5s infinite alternate; }
-        .rank-10k { color: #76ff03; text-shadow: 0 0 10px #ccff00; letter-spacing: 2px; animation: toxicPulse 2s infinite; }
-        .rank-25k { background: linear-gradient(180deg, #fff 40%, #000 50%, #fff 60%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: chromeFlash 4s infinite linear; }
-        .rank-50k { color: #fff; text-shadow: 0 0 10px #2962ff; animation: shockwave 2s infinite; }
+        /* 0: STANDARD (White) */
+        /* Default style applied */
 
-        /* 100K: LIQUID GOLD (Unlocks Fluid Gradient) */
-        .rank-100k {
-            background: linear-gradient(120deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-            background-size: 200%;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 3px gold);
-            animation: shineFlow 2s linear infinite;
-        }
-        @keyframes shineFlow { to { background-position: 200% center; } }
+        /* 5K: COLOR (Base Blue) */
+        .rank-5k { color: #00e5ff; }
 
-        /* 250K: HELLFIRE (Unlocks Active Particles) */
-        /* Text gets active burning effect */
-        .rank-250k {
-            color: #ff5722;
-            text-shadow: 0 -3px 5px #ffeb3b, 0 -6px 10px #f44336;
-            animation: fireBreath 0.2s infinite alternate;
-        }
-        @keyframes fireBreath { from { transform: scale(1); filter: brightness(1); } to { transform: scale(1.05); filter: brightness(1.3); } }
-
-        /* 500K: CYBER (Unlocks Geometry/Pop) */
-        .rank-500k {
+        /* 10K: GLOW (Blue Glow) */
+        .rank-10k { 
             color: #00e5ff;
-            text-shadow: 3px 0 #ff00de;
-            animation: hardGlitch 0.3s infinite;
-        }
-        @keyframes hardGlitch {
-            0% { transform: translate(0,0); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-            20% { transform: translate(-3px, 1px); clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%); }
-            40% { transform: translate(3px, -1px); clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%); }
-            60% { transform: translate(0,0); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+            text-shadow: 0 0 10px #00e5ff;
         }
 
-        /* 1M: COSMIC (Unlocks Aura/Void) */
-        .rank-1m {
-            background: linear-gradient(45deg, #2b00ff, #ff00dd);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px #d500f9);
-            animation: pulseAura 2s infinite ease-in-out;
+        /* 25K: PULSE (Blue Glow + Pulse) */
+        .rank-25k {
+            color: #00e5ff;
+            text-shadow: 0 0 15px #00e5ff;
+            animation: softPulse 2s infinite ease-in-out;
         }
-        @keyframes pulseAura { 0% { filter: drop-shadow(0 0 5px #d500f9); } 50% { filter: drop-shadow(0 0 20px #d500f9); transform: scale(1.1); } 100% { filter: drop-shadow(0 0 5px #d500f9); } }
+        @keyframes softPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        /* 50K: RAINBOW STATIC (The Core) */
+        .rank-50k {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 300%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: none; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+        }
+
+        /* 100K: RAINBOW FLOW (The Animation) */
+        .rank-100k {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 300%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
+            animation: rainbowFlow 4s linear infinite;
+        }
+        @keyframes rainbowFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+
+        /* 250K: + SUNBURST (Static Aura) */
+        .rank-250k {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 300%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px white);
+            animation: rainbowFlow 4s linear infinite;
+        }
+
+        /* 500K: + SPARKLES (CSS Particles) */
+        .rank-500k {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 300%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px white);
+            animation: rainbowFlow 4s linear infinite;
+            position: relative;
+        }
+        .rank-500k::after {
+            content: "✦"; position: absolute; top: -5px; right: -10px; font-size: 0.6em; color: white;
+            animation: sparkle 1s infinite alternate;
+        }
+        .rank-500k::before {
+            content: "✦"; position: absolute; bottom: -2px; left: -10px; font-size: 0.4em; color: white;
+            animation: sparkle 1.5s infinite alternate-reverse;
+        }
+        @keyframes sparkle { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
+
+        /* 1M: + ROTATION (Moving Aura) */
+        .rank-1m {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 300%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px white);
+            animation: rainbowFlow 3s linear infinite, gentlePulse 1s infinite alternate;
+            position: relative;
+        }
+        @keyframes gentlePulse { from { transform: scale(1); } to { transform: scale(1.05); } }
 
         /* --- ✈️ 10M GOD TIER SEQUENCE ✈️ --- */
         
+        /* The Final Form: Has EVERYTHING + JS Particles */
         .rank-10m {
-            /* RAINBOW CORE */
             background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
             background-size: 300%;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             
-            /* MASSIVE GLOW */
-            filter: drop-shadow(0 0 5px white) drop-shadow(0 0 10px cyan);
+            filter: drop-shadow(0 0 10px white) drop-shadow(0 0 20px cyan);
             
-            /* CONSTANT ANIMATION (Not Stagnant) */
-            animation: rainbowFlow 2s linear infinite, godPulse 0.5s infinite alternate;
+            /* Flow + Gentle Pulse (Stagnant position, active texture) */
+            animation: rainbowFlow 2s linear infinite, gentlePulse 0.5s infinite alternate;
             
             opacity: 0; /* Hidden until sequence reveals it */
         }
         
         /* The Active State (15s duration) */
-        .rank-10m.revealed { opacity: 1; }
+        .rank-10m.revealed { opacity: 1; transition: opacity 0.5s ease-out; }
+        
         /* The Exit State (Shrink) */
         .rank-10m.exiting { animation: shrinkOut 1s forwards; }
-
-        @keyframes rainbowFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
-        @keyframes godPulse { from { transform: scale(1); } to { transform: scale(1.1); letter-spacing: 3px; } }
-        @keyframes shrinkOut { 0% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(0); } }
+        @keyframes shrinkOut { 0% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0; transform: scale(0); } }
 
         /* --- ASSETS & ANIMATIONS --- */
         #god-tier-assets {
@@ -158,16 +185,16 @@
             display: none;
         }
 
-        /* HUGE PLANE */
+        /* PLANE */
         #gt-plane {
             position: absolute; top: -20%; left: -150%;
-            height: 140%; /* Huge but fits vertically */
-            width: auto;
+            height: 140%; width: auto;
             z-index: 25;
+            /* White silhouette? Or use original color? Assuming original based on request, or white fit. */
             filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5));
         }
 
-        /* POP CLOUD */
+        /* CLOUD */
         #gt-cloud {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
@@ -175,36 +202,29 @@
             z-index: 22;
         }
 
-        /* POP FLASH */
-        #gt-flash {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px; height: 50px;
-            background: white; border-radius: 50%;
-            opacity: 0; z-index: 21;
-            box-shadow: 0 0 50px 20px white;
-        }
-
         /* SEQUENCES */
-        .anim-plane { animation: flyPlane 2s linear forwards; }
-        .anim-cloud { animation: popCloud 1.5s linear forwards; animation-delay: 0.8s; } /* Timing matched to plane center */
-        .anim-flash { animation: popFlash 0.5s ease-out forwards; animation-delay: 1.8s; }
+        .anim-plane { animation: flyPlane 3s linear forwards; }
+        .anim-cloud { animation: popCloud 1.5s linear forwards; animation-delay: 1.2s; } /* Timed to plane crossing center */
+        
+        /* Gentle Pop for Text */
+        .anim-text-pop { animation: gentlePop 0.5s ease-out forwards; }
 
         @keyframes flyPlane { 0% { left: -150%; } 100% { left: 150%; } }
         
         @keyframes popCloud {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
             20% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-            80% { transform: translate(-50%, -50%) scale(1.8); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+            70% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; }
         }
 
-        @keyframes popFlash {
-            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(10); opacity: 0; }
+        @keyframes gentlePop {
+            0% { transform: scale(0.5); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
-        /* Particles (Shared by 250k+) */
+        /* Particles */
         #particle-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 1; overflow: hidden;
@@ -213,7 +233,6 @@
             position: absolute; background: white; border-radius: 50%;
             box-shadow: 0 0 5px white; pointer-events: none;
         }
-        .ember { background: #ff5722; box-shadow: 0 0 5px orange; } /* For 250k */
 
         /* DEBUG DROPDOWN */
         #debug-ranks {
@@ -253,12 +272,6 @@
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
         #settings-panel, #job-list, #summary-table { display: none !important; }
-        
-        /* OTHER VFX KEYFRAMES */
-        @keyframes burnPulse { from { filter: brightness(1); } to { filter: brightness(1.5); } }
-        @keyframes toxicPulse { 0% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(30deg) drop-shadow(0 0 5px lime); } 100% { filter: hue-rotate(0deg); } }
-        @keyframes chromeFlash { 0% { filter: brightness(1); } 50% { filter: brightness(1.5) drop-shadow(0 0 5px white); } 100% { filter: brightness(1); } }
-        @keyframes shockwave { 0% { transform: scale(1); text-shadow: 0 0 5px #2962ff; } 5% { transform: scale(1.1); text-shadow: 0 0 20px #2962ff, 0 0 40px white; } 10% { transform: scale(1); text-shadow: 0 0 5px #2962ff; } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -266,14 +279,14 @@
 <div id="tracker-app">
     <select id="debug-ranks" onchange="testRank(this.value)">
         <option value="0">Test: 0 XP (Standard)</option>
-        <option value="5000">Test: 5K (Energy)</option>
-        <option value="10000">Test: 10K (Toxic)</option>
-        <option value="25000">Test: 25K (Chrome)</option>
-        <option value="50000">Test: 50K (Tesla)</option>
-        <option value="100000">Test: 100K (Midas)</option>
-        <option value="250000">Test: 250K (Hellfire)</option>
-        <option value="500000">Test: 500K (Cyber)</option>
-        <option value="1000000">Test: 1M (Event Horizon)</option>
+        <option value="5000">Test: 5K (Color)</option>
+        <option value="10000">Test: 10K (Glow)</option>
+        <option value="25000">Test: 25K (Pulse)</option>
+        <option value="50000">Test: 50K (Rainbow)</option>
+        <option value="100000">Test: 100K (Flow)</option>
+        <option value="250000">Test: 250K (Aura)</option>
+        <option value="500000">Test: 500K (Sparkle)</option>
+        <option value="1000000">Test: 1M (Moving Aura)</option>
         <option value="10000000">Test: 10M (GOD SEQUENCE)</option>
     </select>
 
@@ -282,7 +295,6 @@
         <div id="god-tier-assets">
             <img id="gt-plane" src="https://www.nicepng.com/png/full/204-2044109_how-to-set-use-airplane-svg-vector.png">
             <img id="gt-cloud" src="https://wallpapers.com/images/high/cartoon-cloud-in-pastel-colors-png-vbg-3h4w3rkfn5fveu2t.png">
-            <div id="gt-flash"></div>
         </div>
         
         <div id="particle-container"></div>
@@ -532,8 +544,7 @@ function updateRankVisuals(xp) {
     const el = document.getElementById('user-rank-display');
     const assetContainer = document.getElementById('god-tier-assets');
     
-    // Reset if rank changes
-    // Only perform full reset if dropping below 10M to save resources
+    // Reset if rank changes (cleanup)
     if (xp < 10000000 && GOD_MODE_INTERVAL) {
         el.className = "";
         assetContainer.style.display = "none";
@@ -541,24 +552,26 @@ function updateRankVisuals(xp) {
         clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null;
         clearTimeout(GOD_HIDE_TIMEOUT);
         document.getElementById('particle-container').innerHTML = '';
-        el.style.opacity = "1"; // Show name for normal ranks
+        el.style.opacity = "1";
+        el.classList.remove("anim-text-pop");
     }
 
     if (xp >= 10000000) { 
         if (!el.classList.contains("rank-10m")) {
-            el.className = "rank-10m"; // Set base class
+            el.className = "rank-10m"; 
             assetContainer.style.display = "block";
+            el.style.opacity = "0"; // Start hidden for reveal
             
             // START LOOPS
             triggerGodSequence();
-            if (!GOD_MODE_INTERVAL) GOD_MODE_INTERVAL = setInterval(triggerGodSequence, 20000); // 20s Loop (15s visible + 5s reset)
+            if (!GOD_MODE_INTERVAL) GOD_MODE_INTERVAL = setInterval(triggerGodSequence, 20000);
             if (!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(true), 150);
         }
     } else {
         el.className = ""; // Reset
         if (xp >= 1000000) { el.classList.add("rank-1m"); if(!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(false), 200); }
         else if (xp >= 500000) el.classList.add("rank-500k");
-        else if (xp >= 250000) { el.classList.add("rank-250k"); if(!PARTICLE_INTERVAL) PARTICLE_INTERVAL = setInterval(() => spawnParticle(false, 'ember'), 250); }
+        else if (xp >= 250000) el.classList.add("rank-250k");
         else if (xp >= 100000) el.classList.add("rank-100k");
         else if (xp >= 50000) el.classList.add("rank-50k");
         else if (xp >= 25000) el.classList.add("rank-25k");
@@ -566,7 +579,7 @@ function updateRankVisuals(xp) {
         else if (xp >= 5000) el.classList.add("rank-5k");
         
         // Clean up particles for non-particle ranks
-        if (xp < 250000 && xp !== 1000000 && PARTICLE_INTERVAL) {
+        if (xp < 1000000 && PARTICLE_INTERVAL) {
             clearInterval(PARTICLE_INTERVAL); PARTICLE_INTERVAL = null;
             document.getElementById('particle-container').innerHTML = '';
         }
@@ -577,36 +590,37 @@ function updateRankVisuals(xp) {
 function triggerGodSequence() {
     const plane = document.getElementById('gt-plane');
     const cloud = document.getElementById('gt-cloud');
-    const flash = document.getElementById('gt-flash');
     const text = document.getElementById('user-rank-display');
     
     // Reset
     plane.classList.remove("anim-plane");
     cloud.classList.remove("anim-cloud");
-    flash.classList.remove("anim-flash");
     text.classList.remove("revealed");
     text.classList.remove("exiting");
+    text.classList.remove("anim-text-pop");
+    text.style.opacity = "0"; // Ensure hidden
     
     void plane.offsetWidth; // Force Reflow
     
-    // Start
+    // Start Sequence
     plane.classList.add("anim-plane");
     cloud.classList.add("anim-cloud");
-    flash.classList.add("anim-flash");
     
-    // Reveal Text at 1.8s
-    setTimeout(() => { text.classList.add("revealed"); }, 1800);
+    // Reveal Text at 1.8s (Timed with cloud dissipation)
+    setTimeout(() => { 
+        text.classList.add("anim-text-pop");
+        text.classList.add("revealed"); 
+    }, 2000);
     
     // Hide Text at 16.8s (15s visible)
     if(GOD_HIDE_TIMEOUT) clearTimeout(GOD_HIDE_TIMEOUT);
-    GOD_HIDE_TIMEOUT = setTimeout(() => { text.classList.add("exiting"); }, 16800);
+    GOD_HIDE_TIMEOUT = setTimeout(() => { text.classList.add("exiting"); }, 17000);
 }
 
-function spawnParticle(isRainbow, type) {
+function spawnParticle(isRainbow) {
     const container = document.getElementById('particle-container');
     const p = document.createElement('div');
     p.classList.add('particle');
-    if(type === 'ember') p.classList.add('ember');
     
     p.style.left = (50 + (Math.random() * 20 - 10)) + '%';
     p.style.top = (50 + (Math.random() * 20 - 10)) + '%';
@@ -634,10 +648,9 @@ function spawnParticle(isRainbow, type) {
 }
 
 function testRank(val) { 
-    // Force reset for testing
     STATE.currentXP = parseInt(val);
     const el = document.getElementById('user-rank-display');
-    el.className = ""; // clear
+    el.className = ""; 
     updateRankVisuals(STATE.currentXP); 
 }
 
