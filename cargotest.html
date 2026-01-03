@@ -51,14 +51,17 @@
             position: relative; overflow: hidden;
         }
 
-        .nav-icon, #clock { position: relative; z-index: 20; font-size: 1.1em; }
+        /* Nav and Clock: High Z-Index to stay clickable/visible */
+        .nav-icon, #clock { position: relative; z-index: 100; font-size: 1.1em; }
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; }
 
+        /* --- NAME CONTAINER (Middle) --- */
         .header-center {
-            position: absolute; left: 50%; top: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center; width: 100%;
-            pointer-events: none; z-index: 15;
+            position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+            pointer-events: none; 
+            z-index: 50; 
         }
 
         .header-title {
@@ -68,7 +71,7 @@
             color: #ccc; margin-bottom: 2px;
         }
 
-        /* --- THE GOD MODE STYLE (Applied to Everyone) --- */
+        /* --- GOD TIER NAME STYLE --- */
         #user-rank-display {
             font-family: 'Rajdhani', sans-serif;
             font-size: 1.4em; font-weight: 900; 
@@ -76,15 +79,19 @@
             position: relative; line-height: 1;
             white-space: nowrap; transform: translateZ(0); 
             
-            /* Base State: Hidden */
+            /* Hidden by default */
             opacity: 0;
-            color: white; /* Fallback color */
+            /* Smooth Fade Out when class removed */
+            transition: opacity 1s ease-out; 
+            
+            /* Fallback color */
+            color: white; 
         }
 
-        /* REVEALED STATE (Active Animation) */
+        /* REVEALED STATE (Active) */
         #user-rank-display.revealed {
             opacity: 1;
-            transition: opacity 0.5s ease-in;
+            transition: opacity 0.2s ease-in; /* Fast fade in */
             
             /* SMOOTH SEAMLESS RAINBOW LOOP */
             background: linear-gradient(to right, 
@@ -97,10 +104,10 @@
             filter: drop-shadow(0 0 5px white) drop-shadow(0 0 15px cyan);
             
             /* The Motion */
-            animation: rainbowFlow 3s linear infinite, gentleBounce 2s infinite ease-in-out;
+            animation: rainbowMove 3s linear infinite, gentleBounce 2s infinite ease-in-out;
         }
 
-        @keyframes rainbowFlow { 
+        @keyframes rainbowMove { 
             0% { background-position: 0% center; } 
             100% { background-position: 200% center; } 
         }
@@ -111,68 +118,62 @@
             100% { transform: scale(1); }
         }
 
-        /* SPARKLES (The Old, Stable Version) */
+        /* SPARKLES (Forced White) */
         #user-rank-display.revealed::after {
             content: "✦"; position: absolute; top: -8px; right: -12px; 
+            font-family: Arial, sans-serif; /* Ensure symbol renders */
             font-size: 0.6em; color: white !important; -webkit-text-fill-color: white !important;
             animation: blink 1s infinite alternate; filter: drop-shadow(0 0 5px white);
             text-shadow: none;
         }
         #user-rank-display.revealed::before {
             content: "✦"; position: absolute; bottom: -2px; left: -12px; 
+            font-family: Arial, sans-serif;
             font-size: 0.5em; color: white !important; -webkit-text-fill-color: white !important;
             animation: blink 1.5s infinite alternate-reverse; filter: drop-shadow(0 0 5px white);
             text-shadow: none;
         }
         @keyframes blink { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
 
-        /* --- ASSETS & ANIMATIONS --- */
-        #god-tier-assets {
+        /* --- ASSETS LAYER (Top) --- */
+        #anim-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 18; overflow: hidden;
-            /* No display:none here, controlled by opacity via JS/CSS */
+            pointer-events: none; 
+            z-index: 200; /* Above everything */
+            overflow: hidden; 
         }
 
-        /* PLANE */
         #gt-plane {
-            position: absolute; top: -20%; left: -150%;
-            height: 140%; width: auto;
-            z-index: 25;
-            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5));
+            position: absolute; top: -10px; left: -250px; /* Start off screen */
+            width: 300px; 
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+            opacity: 1;
         }
 
-        /* CLOUD */
         #gt-cloud {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 150px; opacity: 0;
-            z-index: 22;
+            width: 180px; 
+            opacity: 0;
         }
 
-        /* SEQUENCES */
-        .anim-plane { animation: flyPlane 3s linear forwards; }
-        .anim-cloud { animation: popCloud 1.5s linear forwards; animation-delay: 1.2s; } 
+        /* ANIMATION KEYFRAMES */
+        .fly-plane { animation: planeMove 3s linear forwards; }
+        .pop-cloud { animation: cloudPop 2.5s linear forwards; animation-delay: 1.0s; } /* Delayed to match plane */
+
+        @keyframes planeMove { 
+            0% { left: -250px; } 
+            100% { left: 450px; } 
+        }
         
-        @keyframes flyPlane { 0% { left: -150%; } 100% { left: 150%; } }
-        
-        @keyframes popCloud {
+        @keyframes cloudPop {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            20% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-            70% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
         }
 
-        /* Particles */
-        #particle-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 1; overflow: hidden;
-        }
-        .particle {
-            position: absolute; background: white; border-radius: 50%;
-            box-shadow: 0 0 5px white; pointer-events: none;
-        }
-
-        /* --- BASE CSS (Standard) --- */
+        /* --- BASE CSS --- */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .destination-display { background: rgba(255, 193, 7, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 10px; margin-bottom: 15px; text-align: center; }
         .dest-label { font-size: 0.7em; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
@@ -210,12 +211,10 @@
 <div id="tracker-app">
     <header id="drag-handle">
         
-        <div id="god-tier-assets">
+        <div id="anim-layer">
             <img id="gt-plane" src="https://www.nicepng.com/png/full/204-2044109_how-to-set-use-airplane-svg-vector.png">
             <img id="gt-cloud" src="https://wallpapers.com/images/high/cartoon-cloud-in-pastel-colors-png-vbg-3h4w3rkfn5fveu2t.png">
         </div>
-        
-        <div id="particle-container"></div>
 
         <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon" style="text-decoration:none; cursor:pointer; font-size:1.2em;">🏠</a>
         
@@ -479,6 +478,9 @@ function triggerSequence() {
     plane.classList.remove("fly-plane");
     cloud.classList.remove("pop-cloud");
     text.classList.remove("revealed");
+    text.style.opacity = "0"; 
+    
+    if(HIDE_TIMEOUT) clearTimeout(HIDE_TIMEOUT);
     
     // Force Reflow
     void plane.offsetWidth; 
@@ -492,8 +494,7 @@ function triggerSequence() {
         text.classList.add("revealed");
     }, 2200);
     
-    // HIDE NAME (At 17.2s)
-    if(HIDE_TIMEOUT) clearTimeout(HIDE_TIMEOUT);
+    // HIDE NAME (At 17.2s - 15s duration)
     HIDE_TIMEOUT = setTimeout(() => {
         text.classList.remove("revealed");
     }, 17200);
