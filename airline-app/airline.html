@@ -266,14 +266,16 @@ let SESSION_START_TIME = Date.now();
 const JOB_EXP_KEY = "exp_piloting_piloting";
 const JOB_BXP_KEY = "exp_token_a|piloting|piloting";
 
-// Anti-Flicker Buffer
+// Anti-Flicker & Flight Counting Logic
 let routeResetTimeout = null;
+let hasCountedCurrent = false;
 
 const STATE = {
     currentXP: 0, 
     startXP: 0,
     sessionGain: 0,
-    dropCount: 0
+    completedRuns: 0,
+    avgXP: 0
 };
 
 // --- CLOCK ---
@@ -315,32 +317,43 @@ function processPayload(data) {
             if (statusData && statusData.lines) {
                 let lines = statusData.lines;
                 
-                // Line 0: Status & Timer (e.g. "Status: ~y~Boarding ~r~(23 seconds)")
+                // Line 0: Status & Timer
                 if (lines[0]) {
                     let rawStatusLine = cleanString(lines[0]); // "Status: Boarding (23 seconds)"
-                    
-                    // Extract Timer
-                    let timeMatch = rawStatusLine.match(/\((\d+)\s*seconds?\)/i);
-                    let timerEl = document.getElementById('disp-timer');
-                    let statusEl = document.getElementById('disp-status');
-                    
-                    // Remove "Status: " prefix for cleaner UI
                     let cleanStatus = rawStatusLine.replace("Status:", "").replace(/\(\d+\s*seconds?\)/i, "").trim();
-                    statusEl.innerText = cleanStatus || "ACTIVE";
+                    let timerMatch = rawStatusLine.match(/\((\d+)\s*seconds?\)/i);
+                    let timerEl = document.getElementById('disp-timer');
+                    
+                    document.getElementById('disp-status').innerText = cleanStatus || "ACTIVE";
 
-                    if (timeMatch) {
-                        let sec = parseInt(timeMatch[1]);
+                    // --- TIMER UI ---
+                    if (timerMatch) {
+                        let sec = parseInt(timerMatch[1]);
                         timerEl.innerText = sec + "s";
-                        timerEl.className = "timer-line active"; // Bright/Green
-                        
-                        if (sec <= 10) timerEl.className = "timer-line urgent"; // Red
+                        timerEl.className = "timer-line active"; 
+                        if (sec <= 10) timerEl.className = "timer-line urgent"; 
                     } else {
                         timerEl.innerText = "--";
-                        timerEl.className = "timer-line"; // Dim
+                        timerEl.className = "timer-line";
+                    }
+
+                    // --- FLIGHT COUNTING LOGIC (Deboarding Trigger) ---
+                    // If we see "Deboarding", and haven't counted this run yet -> Count it!
+                    if (cleanStatus.toUpperCase().includes("DEBOARDING")) {
+                        if (!hasCountedCurrent) {
+                            STATE.completedRuns++;
+                            hasCountedCurrent = true; // Lock until next flight resets it
+                            updateAverages();
+                        }
+                    }
+                    // Reset lock if we start a new flight phase (Boarding or Enroute)
+                    // We check that it does NOT contain "Deboarding" to avoid resetting while still deboarding.
+                    else if ((cleanStatus.toUpperCase().includes("BOARDING") || cleanStatus.toUpperCase().includes("ROUTE")) && !cleanStatus.toUpperCase().includes("DEBOARDING")) {
+                        hasCountedCurrent = false;
                     }
                 }
 
-                // Line 1: Destination (e.g. "~g~Destination: ~w~San Chianski Airport Terminal 3")
+                // Line 1: Destination
                 if (lines[1]) {
                     let destLine = cleanString(lines[1]).replace("Destination:", "").trim();
                     document.getElementById('disp-route-name').innerText = destLine;
@@ -348,7 +361,7 @@ function processPayload(data) {
                     document.getElementById('disp-route-name').innerText = "Unknown Destination";
                 }
 
-                // Line 2: Distance (e.g. "~g~Distance to destination: ~w~10462m")
+                // Line 2: Distance
                 if (lines[2]) {
                     let distLine = cleanString(lines[2]).replace("Distance to destination:", "").trim();
                     document.getElementById('disp-dist').innerText = "Dist: " + distLine;
@@ -366,6 +379,8 @@ function processPayload(data) {
                 document.getElementById('disp-timer').innerText = "--";
                 document.getElementById('disp-timer').className = "timer-line";
                 routeResetTimeout = null;
+                // Reset counting logic if we go completely idle
+                hasCountedCurrent = false; 
             }, 3000);
         }
     }
@@ -377,13 +392,10 @@ function processPayload(data) {
             STATE.startXP = currentXP;
             STATE.currentXP = currentXP;
         } 
-        else if (currentXP > STATE.currentXP) {
-            STATE.dropCount++;
+        else {
             STATE.currentXP = currentXP;
             STATE.sessionGain = currentXP - STATE.startXP;
-        }
-        else if (currentXP < STATE.currentXP) {
-            STATE.currentXP = currentXP; 
+            updateAverages();
         }
         renderStats();
     }
@@ -403,6 +415,13 @@ function processPayload(data) {
     }
 }
 
+function updateAverages() {
+    // Only update average if we have completed at least one flight
+    if (STATE.completedRuns > 0) {
+        STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
+    }
+}
+
 function cleanString(str) {
     if (!str) return "";
     return str.replace(/~[a-z]~/g, "").trim();
@@ -419,9 +438,9 @@ function renderStats() {
 
     document.getElementById('disp-session-xp').innerText = formatNumber(STATE.sessionGain) + " XP";
     
-    let avgDrop = STATE.dropCount > 0 ? Math.round(STATE.sessionGain / STATE.dropCount) : 0;
-    document.getElementById('disp-xp-drop').innerText = avgDrop + " XP";
-    document.getElementById('disp-drops').innerText = STATE.dropCount;
+    // Use the calculated average
+    document.getElementById('disp-xp-drop').innerText = Math.round(STATE.avgXP) + " XP";
+    document.getElementById('disp-drops').innerText = STATE.completedRuns;
 
     const needed = Math.round(lvl.expForNext - lvl.expInLevel);
     document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
@@ -458,7 +477,7 @@ function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
-    if (STATE.dropCount === 0) { 
+    if (STATE.completedRuns === 0) { 
         el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; 
         return; 
     }
@@ -478,7 +497,8 @@ function runCalculator() {
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
-        const avgDrop = STATE.sessionGain / STATE.dropCount;
+        // Use current average based on COMPLETED flights
+        const avgDrop = (STATE.avgXP > 0) ? STATE.avgXP : 1; 
         const estDrops = Math.ceil(diff / avgDrop);
         
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(estDrops)}</b></span>`;
