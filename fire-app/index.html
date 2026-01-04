@@ -159,6 +159,17 @@
             word-wrap: break-word;
         }
         .calc-output b { color: white; }
+        
+        /* QUICK BUTTONS */
+        .quick-btn-row {
+            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
+        }
+        .quick-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
+        }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
     </style>
 </head>
@@ -222,8 +233,15 @@
 
         <div class="section">
             <div class="label">Target Calculator</div>
-            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b> (e.g. 50000):</div>
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b>:</div>
             <input type="number" id="target-input" placeholder="e.g. 50000">
+            
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+
             <div class="calc-output" id="calc-result">
                 Start working to enable calculator...
             </div>
@@ -377,7 +395,13 @@
     }
 
     // --- CALCULATOR ---
-    document.getElementById('target-input').addEventListener('input', runCalculator);
+    const calcInput = document.getElementById('target-input');
+    if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+    function setCalc(amount) {
+        document.getElementById('target-input').value = amount;
+        runCalculator();
+    }
 
     function runCalculator() {
         const val = document.getElementById('target-input').value;
@@ -395,7 +419,6 @@
 
         let inputVal = parseInt(val);
         
-        // --- THE FIX YOU ASKED FOR ---
         // If input is greater than current XP, we treat it as a Target Goal
         if (inputVal > STATE.currentXP) {
             const remaining = inputVal - STATE.currentXP;
