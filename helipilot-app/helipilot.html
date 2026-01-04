@@ -102,6 +102,17 @@
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
         
+        /* QUICK BUTTONS */
+        .quick-btn-row {
+            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
+        }
+        .quick-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
+        }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
         #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
 </head>
@@ -153,7 +164,15 @@
 
         <div class="section" style="border:none;">
             <div class="label">Target Calculator</div>
-            <input type="number" id="target-input" placeholder="Enter Target XP (e.g. 100000)">
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b>:</div>
+            <input type="number" id="target-input" placeholder="e.g. 100000">
+            
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+
             <div class="calc-output" id="calc-result">Start flying to enable calculator...</div>
         </div>
 
@@ -219,23 +238,19 @@ function processPayload(data) {
     // 1. FLIGHT COMPUTER (Parsing the Status JSON)
     if (data.status) {
         try {
-            // Status comes as a JSON string inside the JSON
             const statusObj = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
             
             if (statusObj && statusObj.lines) {
                 parseFlightStatus(statusObj.lines);
             }
-        } catch(e) {
-            // Sometimes status is weird, ignore parsing errors
-        }
+        } catch(e) {}
     }
 
     // 2. XP LOGIC
     let currentXP = data[KEYS.XP];
-    // Check inventory fallback
     if(!currentXP && data.inventory) {
         try {
-            const inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
+            const inv = typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
             if(inv[KEYS.XP]) currentXP = inv[KEYS.XP];
         } catch(e){}
     }
@@ -276,14 +291,11 @@ function processPayload(data) {
 // --- LOGIC FUNCTIONS ---
 
 function parseFlightStatus(lines) {
-    // lines array example: ["Status: ~y~Enroute", "~g~Destination~w~: Vespucci Police Dept.", "~g~Distance~w~: 1832 m", "~g~Stops~w~: 0 / 14"]
-    
     let destination = "No Destination";
     let distance = "--";
     let stops = "--";
 
     lines.forEach(line => {
-        // Strip colors (e.g. ~g~, ~w~)
         const cleanLine = line.replace(/~[a-z]~/g, "").trim();
         
         if (cleanLine.startsWith("Destination:")) {
@@ -301,7 +313,6 @@ function parseFlightStatus(lines) {
     document.getElementById('disp-dist').innerText = distance;
     document.getElementById('disp-stops').innerText = stops;
     
-    // Highlight if close
     const distBox = document.getElementById('disp-dist');
     if(distance.includes("m") && parseInt(distance) < 200) {
         distBox.style.color = "var(--green)";
@@ -346,6 +357,11 @@ function getPercentValue(exp, cap) {
 // --- CALCULATOR ---
 const calcInput = document.getElementById('target-input');
 if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+function setCalc(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator();
+}
 
 function runCalculator() {
     const val = document.getElementById('target-input').value;
@@ -395,7 +411,7 @@ function runCalculator() {
     if (rh) {
         function startResize(clientX, clientY, e) {
             if (e) { e.preventDefault(); e.stopPropagation(); }
-            resizing = true; sx = clientX; sy = clientY;
+            resizing = true; sx = e.clientX; sy = e.clientY;
             const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
         }
         rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
