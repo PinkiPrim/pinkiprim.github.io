@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>TT Train Helper</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
             --primary: #ffb300; 
@@ -42,18 +42,37 @@
             min-height: 200px;
         }
 
+        /* --- HEADER LAYOUT (Fixed Centering & Drag) --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-            padding: 8px 12px;
+            height: 36px;
+            padding: 0 12px;
             cursor: move;
-            display: flex; justify-content: space-between; align-items: center;
-            font-family: 'Rajdhani', sans-serif; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
-            color: #000;
+            position: relative; /* Essential for absolute centering */
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        #speed-display { cursor: pointer; border-bottom: 1px dotted #000; }
-        #speed-display:hover { opacity: 0.8; }
+        .header-left { display: flex; align-items: center; z-index: 10; }
+        .header-right { display: flex; align-items: center; z-index: 10; }
+
+        /* Centered Title */
+        .header-title {
+            position: absolute;
+            left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; 
+            font-size: 1.2em;
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            color: #000;
+            pointer-events: none; /* KEY FIX: Makes text "invisible" to clicks, allowing drag */
+            white-space: nowrap;
+        }
+
+        .nav-icon { text-decoration: none; font-size: 1.2em; cursor: pointer; }
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #000; font-size: 0.9em; }
 
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
@@ -80,21 +99,18 @@
         .dash-sublabel { font-size: 0.65em; color: #888; text-transform: uppercase; }
         .dash-val { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 1.1em; }
 
-        /* MISSED STOP WARNING */
+        #speed-display { color: var(--primary); cursor: pointer; }
+        #speed-display:hover { color: #fff; }
+
+        /* WARNINGS */
         .missed-warning {
             display: none;
             margin-top: 8px; font-size: 0.9em; font-weight: bold;
-            color: var(--red);
-            background: rgba(255, 0, 0, 0.1);
-            border: 1px solid var(--red);
-            padding: 4px; border-radius: 4px;
-            text-transform: uppercase; letter-spacing: 1px;
+            color: var(--red); background: rgba(255, 0, 0, 0.1); border: 1px solid var(--red);
+            padding: 4px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;
             animation: flashRed 0.5s infinite alternate;
         }
-        @keyframes flashRed {
-            from { opacity: 0.5; transform: scale(0.98); } 
-            to { opacity: 1; transform: scale(1.02); text-shadow: 0 0 10px red; }
-        }
+        @keyframes flashRed { from { opacity: 0.5; transform: scale(0.98); } to { opacity: 1; transform: scale(1.02); text-shadow: 0 0 10px red; } }
 
         /* STATS */
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -130,19 +146,6 @@
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
 
-        /* FREIGHT SECTION */
-        #freight-section { display: none; }
-        .trunk-header { display: flex; justify-content: space-between; align-items: center; }
-        .sync-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #444; margin-left: 5px; }
-        .sync-dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
-        .sync-dot.cached { background: var(--orange); }
-
-        .trunk-item {
-            display: flex; justify-content: space-between;
-            font-size: 0.85em; padding: 4px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
         /* CALCULATOR */
         input[type="number"] {
             width: 90%; background: rgba(0,0,0,0.3);
@@ -159,12 +162,14 @@
 
 <div id="tracker-app">
     <header id="drag-handle">
-        <div style="display:flex; align-items:center;">
-            <a href="https://pinkiprim.github.io/pinkiapps.html" style="text-decoration:none; margin-right:12px; cursor:pointer; font-size:1.2em;">🏠</a>
-            <span>🚂 Train Ops</span>
+        <div class="header-left">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
         </div>
-        <div style="text-align:right;">
-            <span id="clock" style="font-size:0.8em; margin-left:8px;">00:00</span>
+        
+        <div class="header-title">🚂 Train Ops</div>
+        
+        <div class="header-right">
+            <span id="clock">00:00</span>
         </div>
     </header>
 
@@ -180,7 +185,7 @@
                     <div class="dash-val" id="speed-display">0 km/h</div>
                 </div>
                 <div class="dash-cell">
-                    <div class="dash-sublabel">Stop Dist.</div>
+                    <div class="dash-sublabel">Dest. Dist.</div>
                     <div class="dash-val" id="disp-dist">-</div>
                 </div>
             </div>
@@ -221,16 +226,6 @@
             </div>
         </div>
 
-        <div class="section" id="freight-section">
-            <div class="trunk-header">
-                <div class="label">📦 Freight Cargo <span id="sync-status" class="sync-dot"></span></div>
-                <div class="label" id="trunk-capacity"></div>
-            </div>
-            <div id="trunk-list" style="min-height:30px; color:#666; font-size:0.8em; font-style:italic;">
-                No cargo loaded.
-            </div>
-        </div>
-
         <div class="section" style="border:none;">
             <div class="label">Level Calculator</div>
             <input type="number" id="target-input" placeholder="e.g. 500000">
@@ -260,9 +255,6 @@ const JOB_BXP_KEY = "exp_token_a|train|train";
 let resetTimeout = null;
 let lastKnownVehicle = null;
 
-let TRUNK_KEY = null;
-let MEMORY = { trunk: {}, weight: 0, lastTrunkUpdate: 0 };
-
 const STATE = {
     currentXP: 0, 
     startXP: 0,
@@ -286,10 +278,8 @@ function requestData() {
             let keys = [
                 "exp_train_train", "exp_token_a|train|train", 
                 "vehicle", "vehicleName", "speed", 
-                "pos_x", "pos_y", "waypoint_x", "waypoint_y",
-                "chest", "trunkCapacity", "trunkWeight"
+                "pos_x", "pos_y", "waypoint_x", "waypoint_y"
             ];
-            if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
             window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
@@ -310,35 +300,32 @@ function toggleSpeedUnit() {
 }
 
 function processPayload(data) {
-    // 1. BUFFERED VEHICLE CHECK (Anti-Flicker)
+    // 1. BUFFERED VEHICLE CHECK (Anti-Flicker & OnFoot Logic)
     let rawVehicle = data.vehicle;
     let vName = data.vehicleName || rawVehicle;
 
-    // Check if player is clearly "On Foot" or no vehicle
+    // Check if player is "On Foot" or null
     if (!rawVehicle || rawVehicle === "onFoot" || rawVehicle === "null" || rawVehicle === "false") {
         
-        // Only reset if we aren't already waiting to reset
+        // Wait 3 seconds before resetting UI to avoid flickers
         if (!resetTimeout) {
             resetTimeout = setTimeout(() => {
-                // If 3 seconds pass and we are still "On Foot", THEN clear UI
                 document.getElementById('disp-vehicle').innerText = "Waiting...";
                 document.getElementById('speed-display').innerText = "0 " + (STATE.useMPH ? "mph" : "km/h");
                 document.getElementById('disp-dist').innerText = "-";
                 document.getElementById('missed-warning').style.display = "none";
-                document.getElementById('freight-section').style.display = "none";
                 lastKnownVehicle = null;
                 resetTimeout = null; 
-            }, 3000); // 3 Second Buffer
+            }, 3000);
         }
     } 
     else {
-        // We found a vehicle! CANCEL any pending reset.
+        // Valid Vehicle Found - Cancel reset
         if (resetTimeout) {
             clearTimeout(resetTimeout);
             resetTimeout = null;
         }
 
-        // Update Display Immediately
         lastKnownVehicle = vName;
         
         // Clean Name
@@ -360,7 +347,8 @@ function processPayload(data) {
             document.getElementById('speed-display').innerText = `${speedVal} ${unit}`;
         }
 
-        // DISTANCE LOGIC - (Relaxed: Works even if waypoint=false, as long as coords exist)
+        // DISTANCE LOGIC - IGNORE 'waypoint' boolean, trust coords
+        // If coords exist and are not 0, we calculate.
         if(data.pos_x && data.waypoint_x && data.waypoint_x !== 0) {
             let dist = Math.hypot(data.waypoint_x - data.pos_x, data.waypoint_y - data.pos_y);
             let distEl = document.getElementById('disp-dist');
@@ -393,53 +381,14 @@ function processPayload(data) {
             }
             STATE.lastDistance = dist;
         } else {
-            // Only clear distance if we really have no target
-            // Keep old distance if it just flickered out for a ms
+            // Keep old distance if it just flickered, otherwise reset
             if(!lastKnownVehicle) {
                 document.getElementById('disp-dist').innerText = "-";
             }
         }
-
-        // FREIGHT LOGIC (Only if valid vehicle)
-        let isFreight = (vName.toLowerCase().includes("freight") || (data.trunkCapacity && data.trunkCapacity > 1000));
-        document.getElementById('freight-section').style.display = isFreight ? "block" : "none";
-
-        if(isFreight) {
-            // Basic Trunk Logic
-            if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
-                TRUNK_KEY = "chest_" + data.chest;
-            } else if(!TRUNK_KEY) {
-                for(let key in data) {
-                    if(key.startsWith("chest_") && key.includes("veh_")) { TRUNK_KEY = key; break; }
-                }
-            }
-            
-            let incomingTrunk = null;
-            if(TRUNK_KEY && data[TRUNK_KEY]) {
-                try { incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
-            }
-
-            const now = Date.now();
-            if(incomingTrunk && Object.keys(incomingTrunk).length > 0) {
-                MEMORY.trunk = incomingTrunk;
-                MEMORY.lastTrunkUpdate = now;
-                document.getElementById('sync-status').className = "sync-dot live";
-            } else if (data.trunkWeight === 0) {
-                MEMORY.trunk = {};
-                document.getElementById('sync-status').className = "sync-dot live";
-            } else {
-                if(now - MEMORY.lastTrunkUpdate > 3000) document.getElementById('sync-status').className = "sync-dot cached";
-            }
-            
-            if(data.trunkCapacity) {
-                document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight || 0)}/${Math.round(data.trunkCapacity)}kg`;
-            }
-            
-            renderTrunkList(MEMORY.trunk);
-        }
     }
 
-    // 4. XP LOGIC
+    // 2. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
         if (STATE.startXP === 0) STATE.startXP = currentXP;
@@ -448,9 +397,9 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 5. BXP LOGIC (Direct token check)
+    // 3. BXP LOGIC (Direct token check)
     let bxp = data[JOB_BXP_KEY];
-    // Fallback search
+    // Fallback: Check raw inventory string if the top-level key is missing
     if(!bxp && data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
@@ -538,17 +487,6 @@ function runCalculator() {
     }
 }
 
-function renderTrunkList(trunk) {
-    const el = document.getElementById('trunk-list');
-    el.innerHTML = "";
-    if(!trunk || Object.keys(trunk).length === 0) { el.innerHTML = "No freight loaded."; return; }
-    for(let key in trunk) {
-        let item = trunk[key];
-        let qty = item.amount || item.count || item;
-        if(qty > 0) { el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`; }
-    }
-}
-
 // --- DRAG HANDLER ---
 (() => {
     const app = document.getElementById('tracker-app');
@@ -560,7 +498,7 @@ function renderTrunkList(trunk) {
     let sw=0, sh=0, resizing=false;
 
     function startDrag(clientX, clientY, e) {
-        if (e && e.target.closest('button, span, .dash-cell')) return; 
+        if (e && e.target.closest('button, input, .dash-cell')) return; 
         if (e) { e.preventDefault(); e.stopPropagation(); }
         dragging = true; sx = clientX; sy = clientY;
         const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
