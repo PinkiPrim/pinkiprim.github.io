@@ -8,16 +8,16 @@
 
         :root {
             /* Airline Theme - Sky Blue/Cloud White */
-            --primary: #4fc3f7; 
-            --primary-dim: #0288d1;
+            --primary: #03a9f4; 
+            --primary-dim: #0277bd;
             --bg-glass: rgba(18, 18, 18, 0.95);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
-            --border: 1px solid rgba(79, 195, 247, 0.3);
+            --border: 1px solid rgba(3, 169, 244, 0.3);
             --green: #00e676;
             --orange: #ff9800;
             --red: #ff5252;
-            --accent: #b3e5fc;
+            --accent: #81d4fa;
         }
 
         body {
@@ -70,7 +70,7 @@
 
         /* --- COMPACT ROUTE INFO --- */
         .route-box {
-            background: rgba(79, 195, 247, 0.1);
+            background: rgba(3, 169, 244, 0.1);
             border: 1px dashed var(--accent);
             border-radius: 6px; 
             padding: 5px; 
@@ -292,7 +292,13 @@ const ITEM_MEAL = "fridge_airline_meal";
 // Anti-Flicker & Flight Counting Logic
 let routeResetTimeout = null;
 let hasCountedCurrent = false;
-let TRUNK_KEY = null; // To track aircraft trunk if available
+let TRUNK_KEY = null;
+
+// MEMORY OBJECT to persist data between partial updates
+const MEMORY = {
+    inventory: {},
+    trunk: {}
+};
 
 const STATE = {
     currentXP: 0, 
@@ -332,7 +338,7 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. STATUS PARSING (Airline Logic)
+    // 1. STATUS PARSING
     if (data.status) {
         if (routeResetTimeout) { clearTimeout(routeResetTimeout); routeResetTimeout = null; }
 
@@ -344,7 +350,7 @@ function processPayload(data) {
                 
                 // Line 0: Status & Timer
                 if (lines[0]) {
-                    let rawStatusLine = cleanString(lines[0]);
+                    let rawStatusLine = cleanString(lines[0]); 
                     let cleanStatus = rawStatusLine.replace("Status:", "").replace(/\(\d+\s*seconds?\)/i, "").trim();
                     let timerMatch = rawStatusLine.match(/\((\d+)\s*seconds?\)/i);
                     let timerEl = document.getElementById('disp-timer');
@@ -361,11 +367,10 @@ function processPayload(data) {
                         timerEl.className = "timer-line";
                     }
 
-                    // --- FLIGHT COUNTING LOGIC (Deboarding Trigger) ---
                     if (cleanStatus.toUpperCase().includes("DEBOARDING")) {
                         if (!hasCountedCurrent) {
                             STATE.completedRuns++;
-                            hasCountedCurrent = true; // Lock until reset
+                            hasCountedCurrent = true; 
                             updateAverages();
                         }
                     }
@@ -374,7 +379,6 @@ function processPayload(data) {
                     }
                 }
 
-                // Line 1: Destination
                 if (lines[1]) {
                     let destLine = cleanString(lines[1]).replace("Destination:", "").trim();
                     document.getElementById('disp-route-name').innerText = destLine;
@@ -382,7 +386,6 @@ function processPayload(data) {
                     document.getElementById('disp-route-name').innerText = "Unknown Destination";
                 }
 
-                // Line 2: Distance
                 if (lines[2]) {
                     let distLine = cleanString(lines[2]).replace("Distance to destination:", "").trim();
                     document.getElementById('disp-dist').innerText = "Dist: " + distLine;
@@ -420,38 +423,42 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 3. INVENTORY LOGIC (Meals)
+    // 3. INVENTORY LOGIC (Memory-Based)
+    
     // Find Trunk Key
     if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
         TRUNK_KEY = "chest_" + data.chest;
     }
     
-    // Calculate total meals (Pocket + Trunk)
-    let totalMeals = 0;
-    
-    // Pocket
+    // Update Memory: Pockets
     if(data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
-            if(inv[ITEM_MEAL]) totalMeals += (inv[ITEM_MEAL].amount || inv[ITEM_MEAL]);
-            
-            // Check BXP in inventory while we are here
-            if (!data[JOB_BXP_KEY_A] && !data[JOB_BXP_KEY_B]) {
-               let bxpInv = inv[JOB_BXP_KEY_A] || inv[JOB_BXP_KEY_B];
-               if(bxpInv) document.getElementById('disp-bxp').innerText = formatNumber(bxpInv.amount || bxpInv);
-            }
+            MEMORY.inventory = inv || {};
         } catch(e){}
     }
     
-    // Trunk
+    // Update Memory: Trunk
     if(TRUNK_KEY && data[TRUNK_KEY]) {
         try {
             let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY];
-            if(trunk[ITEM_MEAL]) totalMeals += (trunk[ITEM_MEAL].amount || trunk[ITEM_MEAL]);
+            MEMORY.trunk = trunk || {};
         } catch(e){}
     }
     
-    // Update Meal UI
+    // Calculate Total from Memory
+    let totalMeals = 0;
+    
+    // Check Pocket Memory
+    if(MEMORY.inventory[ITEM_MEAL]) {
+        totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
+    }
+    // Check Trunk Memory
+    if(MEMORY.trunk[ITEM_MEAL]) {
+        totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
+    }
+    
+    // Update UI
     const mealEl = document.getElementById('stock-meal');
     const mealRow = document.getElementById('row-meal');
     mealEl.innerText = totalMeals;
@@ -461,6 +468,12 @@ function processPayload(data) {
 
     // 4. BXP LOGIC (Direct)
     let bxp = data[JOB_BXP_KEY_A] || data[JOB_BXP_KEY_B];
+    
+    // Fallback to inventory memory if direct data missing
+    if (!bxp && MEMORY.inventory) {
+        bxp = MEMORY.inventory[JOB_BXP_KEY_A] || MEMORY.inventory[JOB_BXP_KEY_B];
+    }
+
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         document.getElementById('disp-bxp').innerText = formatNumber(val);
