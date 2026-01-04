@@ -7,6 +7,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
+            /* Industrial Train Theme */
             --primary: #ffb300; 
             --primary-dim: #c68400;
             --bg-glass: rgba(18, 18, 18, 0.95);
@@ -15,7 +16,6 @@
             --border: 1px solid rgba(255, 179, 0, 0.3);
             --green: #00e676;
             --orange: #ff9800;
-            --red: #ff5252;
             --accent: #ffd54f;
         }
 
@@ -39,22 +39,19 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
             display: flex; flex-direction: column;
             resize: both; overflow: hidden;
-            min-height: 200px;
+            min-height: 150px;
         }
 
-        /* --- HEADER LAYOUT (Fixed Centering & Drag) --- */
+        /* --- HEADER LAYOUT --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             height: 36px;
             padding: 0 12px;
             cursor: move;
-            position: relative; /* Essential for absolute centering */
+            position: relative;
             display: flex; align-items: center; justify-content: space-between;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-
-        .header-left { display: flex; align-items: center; z-index: 10; }
-        .header-right { display: flex; align-items: center; z-index: 10; }
 
         /* Centered Title */
         .header-title {
@@ -67,7 +64,7 @@
             text-transform: uppercase; 
             letter-spacing: 2px;
             color: #000;
-            pointer-events: none; /* KEY FIX: Makes text "invisible" to clicks, allowing drag */
+            pointer-events: none; 
             white-space: nowrap;
         }
 
@@ -75,42 +72,6 @@
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #000; font-size: 0.9em; }
 
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
-
-        /* VEHICLE INFO */
-        .info-display {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px dashed var(--accent);
-            border-radius: 6px; padding: 10px; margin-bottom: 15px;
-            text-align: center;
-        }
-        .info-label {
-            font-size: 0.7em; color: var(--accent);
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;
-        }
-        .info-value {
-            font-family: 'Rajdhani', sans-serif; font-size: 1.3em; font-weight: 700;
-            color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); line-height: 1.1;
-            padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px;
-        }
-
-        /* DASHBOARD GRID */
-        .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-        .dash-cell { background: rgba(0,0,0,0.3); border-radius: 4px; padding: 5px; }
-        .dash-sublabel { font-size: 0.65em; color: #888; text-transform: uppercase; }
-        .dash-val { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 1.1em; }
-
-        #speed-display { color: var(--primary); cursor: pointer; }
-        #speed-display:hover { color: #fff; }
-
-        /* WARNINGS */
-        .missed-warning {
-            display: none;
-            margin-top: 8px; font-size: 0.9em; font-weight: bold;
-            color: var(--red); background: rgba(255, 0, 0, 0.1); border: 1px solid var(--red);
-            padding: 4px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;
-            animation: flashRed 0.5s infinite alternate;
-        }
-        @keyframes flashRed { from { opacity: 0.5; transform: scale(0.98); } to { opacity: 1; transform: scale(1.02); text-shadow: 0 0 10px red; } }
 
         /* STATS */
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -162,37 +123,19 @@
 
 <div id="tracker-app">
     <header id="drag-handle">
-        <div class="header-left">
+        <div style="display:flex; align-items:center;">
             <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
         </div>
         
         <div class="header-title">🚂 Train Ops</div>
         
-        <div class="header-right">
+        <div style="text-align:right;">
             <span id="clock">00:00</span>
         </div>
     </header>
 
     <div id="content">
         
-        <div class="info-display" id="status-box">
-            <div class="info-label">Current Vehicle</div>
-            <div class="info-value" id="disp-vehicle">Waiting...</div>
-            
-            <div class="dash-grid">
-                <div class="dash-cell" onclick="toggleSpeedUnit()" title="Click to Switch Unit" style="cursor:pointer;">
-                    <div class="dash-sublabel">Speed (Toggle)</div>
-                    <div class="dash-val" id="speed-display">0 km/h</div>
-                </div>
-                <div class="dash-cell">
-                    <div class="dash-sublabel">Dest. Dist.</div>
-                    <div class="dash-val" id="disp-dist">-</div>
-                </div>
-            </div>
-            
-            <div id="missed-warning" class="missed-warning">⚠ MISSED STOP - REVERSE ⚠</div>
-        </div>
-
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div><div class="label">Conductor Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
@@ -251,19 +194,10 @@ let SESSION_START_TIME = Date.now();
 const JOB_EXP_KEY = "exp_train_train"; 
 const JOB_BXP_KEY = "exp_token_a|train|train";
 
-// Variables for Debounce (Anti-Flicker)
-let resetTimeout = null;
-let lastKnownVehicle = null;
-
 const STATE = {
     currentXP: 0, 
     startXP: 0,
-    sessionGain: 0,
-    useMPH: false, 
-    
-    // Distance / Stop Tracking
-    lastWaypointX: 0,
-    lastDistance: null
+    sessionGain: 0
 };
 
 // --- CLOCK ---
@@ -275,10 +209,10 @@ setInterval(() => {
 function requestData() {
     if(window.parent) {
         try { 
+            // MINIMAL REQUESTS: Only what we need for XP and Tokens
             let keys = [
                 "exp_train_train", "exp_token_a|train|train", 
-                "vehicle", "vehicleName", "speed", 
-                "pos_x", "pos_y", "waypoint_x", "waypoint_y"
+                "inventory" 
             ];
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
             window.parent.postMessage({ type: "getData" }, "*"); 
@@ -295,100 +229,8 @@ window.addEventListener('message', (event) => {
     processPayload(payload);
 });
 
-function toggleSpeedUnit() {
-    STATE.useMPH = !STATE.useMPH;
-}
-
 function processPayload(data) {
-    // 1. BUFFERED VEHICLE CHECK (Anti-Flicker & OnFoot Logic)
-    let rawVehicle = data.vehicle;
-    let vName = data.vehicleName || rawVehicle;
-
-    // Check if player is "On Foot" or null
-    if (!rawVehicle || rawVehicle === "onFoot" || rawVehicle === "null" || rawVehicle === "false") {
-        
-        // Wait 3 seconds before resetting UI to avoid flickers
-        if (!resetTimeout) {
-            resetTimeout = setTimeout(() => {
-                document.getElementById('disp-vehicle').innerText = "Waiting...";
-                document.getElementById('speed-display').innerText = "0 " + (STATE.useMPH ? "mph" : "km/h");
-                document.getElementById('disp-dist').innerText = "-";
-                document.getElementById('missed-warning').style.display = "none";
-                lastKnownVehicle = null;
-                resetTimeout = null; 
-            }, 3000);
-        }
-    } 
-    else {
-        // Valid Vehicle Found - Cancel reset
-        if (resetTimeout) {
-            clearTimeout(resetTimeout);
-            resetTimeout = null;
-        }
-
-        lastKnownVehicle = vName;
-        
-        // Clean Name
-        if(vName === "freight") vName = "Freight Train";
-        if(vName === "metrotrain") vName = "Metro Train";
-        document.getElementById('disp-vehicle').innerText = vName;
-
-        // SPEED
-        if(data.speed !== undefined) {
-            let speedVal = 0;
-            let unit = "";
-            if(STATE.useMPH) {
-                speedVal = Math.round(data.speed * 2.23694);
-                unit = "mph";
-            } else {
-                speedVal = Math.round(data.speed * 3.6);
-                unit = "km/h";
-            }
-            document.getElementById('speed-display').innerText = `${speedVal} ${unit}`;
-        }
-
-        // DISTANCE LOGIC - IGNORE 'waypoint' boolean, trust coords
-        // If coords exist and are not 0, we calculate.
-        if(data.pos_x && data.waypoint_x && data.waypoint_x !== 0) {
-            let dist = Math.hypot(data.waypoint_x - data.pos_x, data.waypoint_y - data.pos_y);
-            let distEl = document.getElementById('disp-dist');
-            let warnEl = document.getElementById('missed-warning');
-
-            // "At Station" Logic
-            if (dist < 20 && data.speed < 1) {
-                distEl.innerText = "AT STATION";
-                distEl.style.color = "var(--accent)";
-            } else {
-                distEl.innerText = `${Math.round(dist)}m`;
-                if(dist < 50) distEl.style.color = "var(--green)";
-                else if(dist < 300) distEl.style.color = "var(--orange)";
-                else distEl.style.color = "#fff";
-            }
-
-            if (Math.abs(data.waypoint_x - STATE.lastWaypointX) > 5) {
-                STATE.lastWaypointX = data.waypoint_x;
-                STATE.lastDistance = dist;
-                warnEl.style.display = "none";
-            }
-
-            if (STATE.lastDistance !== null) {
-                let isMovingAway = dist > (STATE.lastDistance + 0.5); 
-                if (isMovingAway && dist > 30 && dist < 400) {
-                    warnEl.style.display = "block";
-                } else {
-                    warnEl.style.display = "none";
-                }
-            }
-            STATE.lastDistance = dist;
-        } else {
-            // Keep old distance if it just flickered, otherwise reset
-            if(!lastKnownVehicle) {
-                document.getElementById('disp-dist').innerText = "-";
-            }
-        }
-    }
-
-    // 2. XP LOGIC
+    // 1. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
         if (STATE.startXP === 0) STATE.startXP = currentXP;
@@ -397,7 +239,7 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 3. BXP LOGIC (Direct token check)
+    // 2. BXP LOGIC
     let bxp = data[JOB_BXP_KEY];
     // Fallback: Check raw inventory string if the top-level key is missing
     if(!bxp && data.inventory) {
@@ -498,7 +340,7 @@ function runCalculator() {
     let sw=0, sh=0, resizing=false;
 
     function startDrag(clientX, clientY, e) {
-        if (e && e.target.closest('button, input, .dash-cell')) return; 
+        if (e && e.target.closest('button, input')) return; 
         if (e) { e.preventDefault(); e.stopPropagation(); }
         dragging = true; sx = clientX; sy = clientY;
         const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
