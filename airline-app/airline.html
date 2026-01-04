@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Airline Ops</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            /* Airline Theme - Sky Blue/White */
+            --primary: #4fc3f7; 
+            --primary-dim: #0288d1;
+            --bg-glass: rgba(18, 18, 18, 0.95);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(79, 195, 247, 0.3);
+            --green: #00e676;
+            --orange: #ff9800;
+            --red: #ff5252;
+            --accent: #b3e5fc;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        #tracker-app {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
+            min-height: 200px;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+            height: 32px; 
+            padding: 0 10px;
+            cursor: move;
+            position: relative;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header-title {
+            position: absolute; left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; font-size: 1.1em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #000; pointer-events: none; white-space: nowrap;
+        }
+
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; }
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #000; font-size: 0.85em; }
+
+        #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+
+        /* --- COMPACT ROUTE INFO --- */
+        .route-box {
+            background: rgba(79, 195, 247, 0.1);
+            border: 1px dashed var(--accent);
+            border-radius: 6px; 
+            padding: 5px; 
+            margin-bottom: 6px; 
+            text-align: center;
+        }
+        .route-label {
+            font-size: 0.6em; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px;
+        }
+        .route-name {
+            font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700;
+            color: #fff; line-height: 1.1; margin-bottom: 2px;
+        }
+        .route-progress {
+            font-size: 0.75em; color: var(--text-dim); font-weight: bold;
+        }
+
+        /* --- STATUS & TIMER (Extra Compact) --- */
+        .status-container {
+            background: rgba(255,255,255,0.05); 
+            border-radius: 6px; 
+            padding: 4px; 
+            margin-bottom: 10px;
+            text-align: center;
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        
+        .status-line {
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 700; 
+            font-size: 0.8em; 
+            color: #ccc;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .timer-line {
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; 
+            font-size: 1.1em; 
+            color: var(--text-dim); line-height: 1;
+            transition: color 0.2s ease;
+        }
+        .timer-line.active { color: var(--green); text-shadow: 0 0 8px rgba(0, 230, 118, 0.4); }
+        .timer-line.urgent { color: var(--red); text-shadow: 0 0 8px rgba(255, 82, 82, 0.6); }
+
+        /* --- STATS --- */
+        .section { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .section:last-child { border-bottom: none; }
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value.highlight { color: var(--primary); }
+        .value.bxp { color: var(--green); }
+
+        .progress-container {
+            position: relative; height: 14px;
+            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 0.65em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
+        }
+        .xp-remaining-text { text-align: center; font-size: 0.75em; color: var(--text-dim); margin-bottom: 8px; }
+        .xp-remaining-text b { color: var(--primary); }
+
+        /* SESSION BOX */
+        .run-box {
+            background: rgba(79, 195, 247, 0.1);
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            border-radius: 4px; padding: 6px; margin-bottom: 8px;
+        }
+        .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em; }
+        .run-val { font-weight: bold; color: #fff; }
+        .run-label { font-size: 0.8em; color: #aaa; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; text-align: center; }
+
+        /* CALCULATOR */
+        input[type="number"] {
+            width: 90%; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; color: white; padding: 4px;
+            border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em;
+        }
+        input:focus { outline: 1px solid var(--primary); }
+        .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
+        
+        /* QUICK BUTTONS */
+        .quick-btn-row {
+            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
+        }
+        .quick-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
+        }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        #settings-panel, #job-list, #summary-table { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="tracker-app">
+    <header id="drag-handle">
+        <div class="header-left">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
+        </div>
+        <div class="header-title">✈️ Airline Ops</div>
+        <div class="header-right">
+            <span id="clock">00:00</span>
+        </div>
+    </header>
+
+    <div id="content">
+        
+        <div class="route-box" id="route-box">
+            <div class="route-label">Current Destination</div>
+            <div class="route-name" id="disp-route-name">Waiting for route...</div>
+            <div class="route-progress" id="disp-dist">Dist: -/-</div>
+        </div>
+
+        <div class="status-container">
+            <div class="status-line" id="disp-status">IDLE</div>
+            <div class="timer-line" id="disp-timer">--</div>
+        </div>
+
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div><div class="label">Airline Pilot Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="level-bar"></div>
+                <div class="progress-text" id="level-text">Waiting for data...</div>
+            </div>
+            
+            <div class="xp-remaining-text" id="disp-xp-remaining">Start a flight...</div>
+
+            <div class="run-box">
+                <div style="border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:5px; padding-bottom:3px; color:var(--primary); font-size:0.85em; font-weight:bold; letter-spacing:1px;">SESSION TRACKER</div>
+                <div class="run-grid">
+                    <div>
+                        <div class="run-label">Session XP Gain</div>
+                        <div class="run-val" id="disp-session-xp" style="color:var(--green)">0 XP</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div class="run-label">Avg XP / Flight</div>
+                        <div class="run-val" id="disp-xp-drop">0 XP</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-box"><div class="label">Pilot Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Flights Done</div><div class="value" id="disp-drops" style="color:var(--accent)">0</div></div>
+            </div>
+        </div>
+
+        <div class="section" style="border:none;">
+            <div class="label">Flight Calculator</div>
+            <input type="number" id="target-input" placeholder="e.g. 500000">
+            
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+
+            <div class="calc-output" id="calc-result">Complete 1 flight to calibrate...</div>
+        </div>
+
+    </div>
+    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
+</div>
+
+<div id="settings-icon" style="display:none;"></div>
+<div id="settings-panel" style="display:none;">
+    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
+    <button id="reset-exp-log"></button>
+    <div id="xp-font-size-value"></div>
+</div>
+<div id="job-list" style="display:none;"></div>
+<table id="summary-table" style="display:none;"></table>
+
+<script>
+// --- STATE ---
+let SESSION_START_TIME = Date.now();
+const JOB_EXP_KEY = "exp_piloting_piloting";
+const JOB_BXP_KEY = "exp_token_a|piloting|piloting";
+
+// Anti-Flicker Buffer
+let routeResetTimeout = null;
+
+const STATE = {
+    currentXP: 0, 
+    startXP: 0,
+    sessionGain: 0,
+    dropCount: 0
+};
+
+// --- CLOCK ---
+setInterval(() => {
+    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}, 1000);
+
+// --- ENGINE ---
+function requestData() {
+    if(window.parent) {
+        try { 
+            let keys = [
+                "exp_piloting_piloting", "exp_token_a|piloting|piloting", // Requesting XP Keys
+                "status", "inventory" // Requesting Status for Route Info
+            ];
+            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+            window.parent.postMessage({ type: "getData" }, "*"); 
+        } catch(e) {}
+    }
+}
+setInterval(requestData, 1000); 
+
+window.addEventListener('message', (event) => {
+    let payload = event.data;
+    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+    if (!payload) return;
+
+    processPayload(payload);
+});
+
+function processPayload(data) {
+    // 1. STATUS PARSING (Airline Logic)
+    if (data.status) {
+        if (routeResetTimeout) { clearTimeout(routeResetTimeout); routeResetTimeout = null; }
+
+        try {
+            let statusData = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
+            
+            if (statusData && statusData.lines) {
+                let lines = statusData.lines;
+                
+                // Line 0: Status & Timer (e.g. "Status: ~y~Boarding ~r~(23 seconds)")
+                if (lines[0]) {
+                    let rawStatusLine = cleanString(lines[0]); // "Status: Boarding (23 seconds)"
+                    
+                    // Extract Timer
+                    let timeMatch = rawStatusLine.match(/\((\d+)\s*seconds?\)/i);
+                    let timerEl = document.getElementById('disp-timer');
+                    let statusEl = document.getElementById('disp-status');
+                    
+                    // Remove "Status: " prefix for cleaner UI
+                    let cleanStatus = rawStatusLine.replace("Status:", "").replace(/\(\d+\s*seconds?\)/i, "").trim();
+                    statusEl.innerText = cleanStatus || "ACTIVE";
+
+                    if (timeMatch) {
+                        let sec = parseInt(timeMatch[1]);
+                        timerEl.innerText = sec + "s";
+                        timerEl.className = "timer-line active"; // Bright/Green
+                        
+                        if (sec <= 10) timerEl.className = "timer-line urgent"; // Red
+                    } else {
+                        timerEl.innerText = "--";
+                        timerEl.className = "timer-line"; // Dim
+                    }
+                }
+
+                // Line 1: Destination (e.g. "~g~Destination: ~w~San Chianski Airport Terminal 3")
+                if (lines[1]) {
+                    let destLine = cleanString(lines[1]).replace("Destination:", "").trim();
+                    document.getElementById('disp-route-name').innerText = destLine;
+                } else {
+                    document.getElementById('disp-route-name').innerText = "Unknown Destination";
+                }
+
+                // Line 2: Distance (e.g. "~g~Distance to destination: ~w~10462m")
+                if (lines[2]) {
+                    let distLine = cleanString(lines[2]).replace("Distance to destination:", "").trim();
+                    document.getElementById('disp-dist').innerText = "Dist: " + distLine;
+                } else {
+                    document.getElementById('disp-dist').innerText = "Dist: --";
+                }
+            }
+        } catch (e) {}
+    } else {
+        if (!routeResetTimeout) {
+            routeResetTimeout = setTimeout(() => {
+                document.getElementById('disp-route-name').innerText = "No Flight Active";
+                document.getElementById('disp-dist').innerText = "Dist: -/-";
+                document.getElementById('disp-status').innerText = "IDLE";
+                document.getElementById('disp-timer').innerText = "--";
+                document.getElementById('disp-timer').className = "timer-line";
+                routeResetTimeout = null;
+            }, 3000);
+        }
+    }
+
+    // 2. XP LOGIC
+    let currentXP = data[JOB_EXP_KEY];
+    if (typeof currentXP === 'number') {
+        if (STATE.startXP === 0) {
+            STATE.startXP = currentXP;
+            STATE.currentXP = currentXP;
+        } 
+        else if (currentXP > STATE.currentXP) {
+            STATE.dropCount++;
+            STATE.currentXP = currentXP;
+            STATE.sessionGain = currentXP - STATE.startXP;
+        }
+        else if (currentXP < STATE.currentXP) {
+            STATE.currentXP = currentXP; 
+        }
+        renderStats();
+    }
+
+    // 3. BXP LOGIC
+    let bxp = data[JOB_BXP_KEY];
+    if(!bxp && data.inventory) {
+        try {
+            let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
+            if(inv[JOB_BXP_KEY]) bxp = inv[JOB_BXP_KEY];
+        } catch(e) {}
+    }
+    
+    if (bxp) {
+        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
+        document.getElementById('disp-bxp').innerText = formatNumber(val);
+    }
+}
+
+function cleanString(str) {
+    if (!str) return "";
+    return str.replace(/~[a-z]~/g, "").trim();
+}
+
+function renderStats() {
+    const lvl = getLevelInfo(STATE.currentXP);
+    document.getElementById('disp-xp').innerText = formatNumber(STATE.currentXP);
+    document.getElementById('disp-level').innerText = lvl.level;
+    
+    const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
+    document.getElementById('level-bar').style.width = pct + "%";
+    document.getElementById('level-text').innerText = pct + "%";
+
+    document.getElementById('disp-session-xp').innerText = formatNumber(STATE.sessionGain) + " XP";
+    
+    let avgDrop = STATE.dropCount > 0 ? Math.round(STATE.sessionGain / STATE.dropCount) : 0;
+    document.getElementById('disp-xp-drop').innerText = avgDrop + " XP";
+    document.getElementById('disp-drops').innerText = STATE.dropCount;
+
+    const needed = Math.round(lvl.expForNext - lvl.expInLevel);
+    document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
+
+    runCalculator();
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toLocaleString();
+}
+
+function getLevelInfo(exp) {
+    let level = 0, xpCap = 5;
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    return { level, expInLevel: exp, expForNext: xpCap };
+}
+
+function getPercentValue(exp, cap) {
+    return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
+}
+
+// --- CALCULATOR ---
+const calcInput = document.getElementById('target-input');
+if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+function setCalc(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator();
+}
+
+function runCalculator() {
+    const val = document.getElementById('target-input').value;
+    const el = document.getElementById('calc-result');
+    
+    if (STATE.dropCount === 0) { 
+        el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; 
+        return; 
+    }
+    if (!val) { 
+        el.innerText = "Enter target above."; 
+        return; 
+    }
+
+    let inputVal = parseInt(val.replace(/,/g, ''));
+    let targetXP = inputVal;
+    
+    if (inputVal < 200) { 
+         let lvlXP = 0; 
+         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
+         targetXP = (5 * inputVal * (inputVal + 1)) / 2;
+    }
+
+    if (targetXP > STATE.currentXP) {
+        const diff = targetXP - STATE.currentXP;
+        const avgDrop = STATE.sessionGain / STATE.dropCount;
+        const estDrops = Math.ceil(diff / avgDrop);
+        
+        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(estDrops)}</b></span>`;
+    } else {
+        el.innerHTML = `Target reached.`;
+    }
+}
+
+// --- DRAG HANDLER ---
+(() => {
+    const app = document.getElementById('tracker-app');
+    const handle = document.getElementById('drag-handle');
+    const rh = document.getElementById('resize-handle');
+    if (!app || !handle) return;
+    
+    let sx=0, sy=0, ax=0, ay=0, dragging=false;
+    let sw=0, sh=0, resizing=false;
+
+    function startDrag(clientX, clientY, e) {
+        if (e && e.target.closest('button, input')) return; 
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        dragging = true; sx = clientX; sy = clientY;
+        const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
+        handle.classList.add('dragging');
+    }
+
+    handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+
+    if (rh) {
+        function startResize(clientX, clientY, e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            resizing = true; sx = e.clientX; sy = e.clientY;
+            const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
+        }
+        rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+    }
+
+    function handleMove(clientX, clientY, e) {
+        if (dragging) {
+            if (e) e.preventDefault();
+            const dx = clientX - sx, dy = clientY - sy;
+            app.style.transform = `translate(${dx}px, ${dy}px)`;
+        } else if (resizing) {
+            if (e) e.preventDefault();
+            const dx = clientX - sx, dy = clientY - sy;
+            app.style.width  = `${Math.max(280, sw + dx)}px`;
+            app.style.height = `${Math.max(120, sh + dy)}px`;
+        }
+    }
+    
+    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+
+    function endDrag() {
+        if (dragging) {
+            const transform = app.style.transform;
+            const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+            if (match) {
+                const dx = parseFloat(match[1]) || 0;
+                const dy = parseFloat(match[2]) || 0;
+                app.style.transform = '';
+                app.style.left = `${ax + dx}px`;
+                app.style.top = `${ay + dy}px`;
+            }
+        }
+        dragging = false; resizing = false;
+        handle.classList.remove('dragging');
+    }
+    window.addEventListener('mouseup', endDrag);
+})();
+</script>
+</body>
+</html>
