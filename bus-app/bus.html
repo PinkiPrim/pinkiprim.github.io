@@ -46,8 +46,8 @@
         /* --- HEADER --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-            height: 36px;
-            padding: 0 12px;
+            height: 32px; /* Smaller Header */
+            padding: 0 10px;
             cursor: move;
             position: relative;
             display: flex; align-items: center; justify-content: space-between;
@@ -58,45 +58,70 @@
             position: absolute; left: 50%; top: 50%;
             transform: translate(-50%, -50%);
             font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; font-size: 1.2em;
+            font-weight: 900; font-size: 1.1em;
             text-transform: uppercase; letter-spacing: 2px;
             color: #000; pointer-events: none; white-space: nowrap;
         }
 
-        .nav-icon { text-decoration: none; font-size: 1.2em; cursor: pointer; }
-        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #000; font-size: 0.9em; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; }
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #000; font-size: 0.85em; }
 
-        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+        #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        /* --- ROUTE INFO --- */
+        /* --- COMPACT ROUTE INFO --- */
         .route-box {
             background: rgba(0, 188, 212, 0.1);
             border: 1px dashed var(--accent);
-            border-radius: 6px; padding: 10px; margin-bottom: 15px;
+            border-radius: 6px; 
+            padding: 6px; /* Reduced Padding */
+            margin-bottom: 8px; /* Reduced Margin */
             text-align: center;
         }
         .route-label {
-            font-size: 0.7em; color: var(--accent);
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 2px;
+            font-size: 0.65em; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px;
         }
         .route-name {
-            font-family: 'Rajdhani', sans-serif; font-size: 1.1em; font-weight: 700;
-            color: #fff; line-height: 1.1; margin-bottom: 5px;
+            font-family: 'Rajdhani', sans-serif; font-size: 1.0em; font-weight: 700;
+            color: #fff; line-height: 1.1; margin-bottom: 2px;
         }
         .route-progress {
-            font-size: 0.9em; color: var(--text-dim); font-weight: bold;
+            font-size: 0.8em; color: var(--text-dim); font-weight: bold;
         }
 
-        /* --- ACTION / TIMER --- */
-        .action-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;
+        /* --- STATUS & TIMER (Stacked) --- */
+        .status-container {
+            background: rgba(255,255,255,0.05); 
+            border-radius: 6px; 
+            padding: 8px; 
+            margin-bottom: 12px;
+            text-align: center;
+            display: flex; flex-direction: column; gap: 4px;
         }
-        .action-cell {
-            background: rgba(255,255,255,0.05); border-radius: 4px; padding: 8px; text-align: center;
+        
+        .status-line {
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 700; 
+            font-size: 0.9em; /* Smaller font to fit long text */
+            color: #fff;
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .action-label { font-size: 0.65em; color: #888; text-transform: uppercase; }
-        .action-val { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 1.1em; color: #fff; }
-        .timer-val { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.4em; color: var(--green); }
+
+        .timer-line {
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; 
+            font-size: 1.3em; 
+            color: var(--text-dim); /* Default dim color */
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+        
+        .timer-line.active { color: var(--green); text-shadow: 0 0 10px rgba(0, 230, 118, 0.4); }
+        .timer-line.urgent { color: var(--red); text-shadow: 0 0 10px rgba(255, 82, 82, 0.6); }
 
         /* --- STATS --- */
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -165,15 +190,9 @@
             <div class="route-progress" id="disp-progress">Stop: -/-</div>
         </div>
 
-        <div class="action-grid">
-            <div class="action-cell">
-                <div class="action-label">Status</div>
-                <div class="action-val" id="disp-status">Idle</div>
-            </div>
-            <div class="action-cell">
-                <div class="action-label">Timer</div>
-                <div class="timer-val" id="disp-timer">--</div>
-            </div>
+        <div class="status-container">
+            <div class="status-line" id="disp-status">IDLE</div>
+            <div class="timer-line" id="disp-timer">--</div>
         </div>
 
         <div class="section">
@@ -275,11 +294,7 @@ window.addEventListener('message', (event) => {
 function processPayload(data) {
     // 1. STATUS PARSING (Route Info) with Anti-Flicker Buffer
     if (data.status) {
-        // We received valid status! Cancel any pending reset.
-        if (routeResetTimeout) {
-            clearTimeout(routeResetTimeout);
-            routeResetTimeout = null;
-        }
+        if (routeResetTimeout) { clearTimeout(routeResetTimeout); routeResetTimeout = null; }
 
         try {
             let statusData = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
@@ -300,43 +315,54 @@ function processPayload(data) {
                     }
                 }
 
-                // Line 1: Action
+                // Line 1: Action (Boarding / Driving)
+                let statusText = "DRIVING";
+                let timerActive = false;
+                
                 if (lines[1]) {
-                    document.getElementById('disp-status').innerText = cleanString(lines[1]);
+                    let rawStatus = cleanString(lines[1]);
+                    document.getElementById('disp-status').innerText = rawStatus;
+                    
+                    // Check if we are in a boarding state to activate timer
+                    if (rawStatus.toUpperCase().includes("BOARD") || rawStatus.toUpperCase().includes("WAIT")) {
+                        timerActive = true;
+                    }
                 } else {
-                    document.getElementById('disp-status').innerText = "Driving";
+                    document.getElementById('disp-status').innerText = "DRIVING";
                 }
 
-                // Line 2: Timer
+                // Line 2: Timer Logic
+                let timerEl = document.getElementById('disp-timer');
+                
                 if (lines[2]) {
                     let timerText = cleanString(lines[2]);
                     let timeMatch = timerText.match(/(\d+)/);
-                    if (timeMatch) {
+                    
+                    if (timeMatch && timerActive) {
                         let sec = timeMatch[1];
-                        let el = document.getElementById('disp-timer');
-                        el.innerText = sec + "s";
+                        timerEl.innerText = sec + "s";
+                        timerEl.className = "timer-line active"; // Make it bright/green
                         
-                        if (sec <= 5) el.style.color = "var(--red)";
-                        else if (sec <= 10) el.style.color = "var(--orange)";
-                        else el.style.color = "var(--green)";
+                        if (sec <= 5) timerEl.className = "timer-line urgent"; // Red
                     } else {
-                        document.getElementById('disp-timer').innerText = "--";
+                        // Timer exists but not active phase or 0
+                        timerEl.innerText = "--";
+                        timerEl.className = "timer-line"; // Dim
                     }
                 } else {
-                    document.getElementById('disp-timer').innerText = "--";
+                    timerEl.innerText = "--";
+                    timerEl.className = "timer-line";
                 }
             }
         } catch (e) {}
     } else {
-        // No status received in this packet.
-        // DO NOT reset immediately. Only set reset timer if not already running.
         if (!routeResetTimeout) {
             routeResetTimeout = setTimeout(() => {
-                // If 3 seconds pass without status, assume route ended.
                 document.getElementById('disp-route-name').innerText = "No Route Active";
                 document.getElementById('disp-progress').innerText = "Stop: -/-";
-                document.getElementById('disp-status').innerText = "Idle";
+                document.getElementById('disp-status').innerText = "IDLE";
                 document.getElementById('disp-timer').innerText = "--";
+                document.getElementById('disp-timer').className = "timer-line";
                 routeResetTimeout = null;
             }, 3000);
         }
@@ -375,7 +401,6 @@ function processPayload(data) {
     }
 }
 
-// Helper to remove FiveM color codes
 function cleanString(str) {
     if (!str) return "";
     return str.replace(/~[a-z]~/g, "").trim();
@@ -402,7 +427,6 @@ function renderStats() {
     runCalculator();
 }
 
-// --- UTILS ---
 function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
     if (num >= 1000) return (num / 1000).toFixed(1) + "K";
@@ -419,7 +443,6 @@ function getPercentValue(exp, cap) {
     return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
 }
 
-// --- CALCULATOR ---
 const calcInput = document.getElementById('target-input');
 if(calcInput) calcInput.addEventListener('input', runCalculator);
 
