@@ -60,7 +60,7 @@
 
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        /* VEHICLE INFO */ 
+        /* VEHICLE INFO */
         .info-display {
             background: rgba(255, 255, 255, 0.05);
             border: 1px dashed var(--accent);
@@ -86,9 +86,6 @@
         }
         .dash-sublabel { font-size: 0.65em; color: #888; text-transform: uppercase; }
         .dash-val { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 1.1em; }
-
-        #speed-display { color: var(--primary); cursor: pointer; }
-        #speed-display:hover { color: #fff; }
 
         /* MISSED STOP WARNING */
         .missed-warning {
@@ -142,19 +139,6 @@
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
 
-        /* FREIGHT SECTION */
-        #freight-section { display: none; }
-        .trunk-header { display: flex; justify-content: space-between; align-items: center; }
-        .sync-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #444; margin-left: 5px; }
-        .sync-dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
-        .sync-dot.cached { background: var(--orange); }
-
-        .trunk-item {
-            display: flex; justify-content: space-between;
-            font-size: 0.85em; padding: 4px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
         /* CALCULATOR */
         input[type="number"] {
             width: 90%; background: rgba(0,0,0,0.3);
@@ -187,8 +171,8 @@
             <div class="info-value" id="disp-vehicle">Waiting...</div>
             
             <div class="dash-grid">
-                <div class="dash-cell" onclick="toggleSpeedUnit()" title="Click to Switch Unit">
-                    <div class="dash-sublabel">Speed</div>
+                <div class="dash-cell" onclick="toggleSpeedUnit()" title="Click to Switch Unit" style="cursor:pointer;">
+                    <div class="dash-sublabel">Speed (Toggle)</div>
                     <div class="dash-val" id="speed-display">0 km/h</div>
                 </div>
                 <div class="dash-cell">
@@ -233,16 +217,6 @@
             </div>
         </div>
 
-        <div class="section" id="freight-section">
-            <div class="trunk-header">
-                <div class="label">📦 Freight Cargo <span id="sync-status" class="sync-dot"></span></div>
-                <div class="label" id="trunk-capacity"></div>
-            </div>
-            <div id="trunk-list" style="min-height:30px; color:#666; font-size:0.8em; font-style:italic;">
-                No cargo loaded.
-            </div>
-        </div>
-
         <div class="section" style="border:none;">
             <div class="label">Level Calculator</div>
             <input type="number" id="target-input" placeholder="e.g. 500000">
@@ -264,15 +238,7 @@
 
 <script>
 // --- STATE ---
-let TRUNK_KEY = null;
-let LAST_VEHICLE = null; 
 let SESSION_START_TIME = Date.now();
-
-let MEMORY = {
-    trunk: {},
-    weight: 0,
-    lastTrunkUpdate: 0
-};
 
 const JOB_EXP_KEY = "exp_train_train"; 
 const JOB_BXP_KEY = "exp_token_a|train|train";
@@ -281,7 +247,6 @@ const STATE = {
     currentXP: 0, 
     startXP: 0,
     sessionGain: 0,
-    inFreightMode: false,
     useMPH: false, 
     
     // Distance / Stop Tracking
@@ -300,11 +265,10 @@ function requestData() {
         try { 
             let keys = [
                 "exp_train_train", "exp_token_a|train|train", 
-                "inventory", "vehicle", "vehicleName", "speed", 
-                "pos_x", "pos_y", "waypoint_x", "waypoint_y",
-                "chest", "trunkCapacity", "trunkWeight"
+                "vehicle", "vehicleName", "speed", 
+                "pos_x", "pos_y", "waypoint_x", "waypoint_y"
             ];
-            if(TRUNK_KEY) keys.push(TRUNK_KEY);
+            // NO INVENTORY, NO CHEST, NO TRUNK REQUESTS
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
             window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
@@ -330,7 +294,7 @@ function processPayload(data) {
     if(vName === "freight") vName = "Freight Train";
     if(vName === "metrotrain") vName = "Metro Train";
     
-    // DIRECT UPDATE: No scanning logic here
+    // DIRECT UPDATE
     document.getElementById('disp-vehicle').innerText = vName;
 
     // 2. SPEED DISPLAY
@@ -382,48 +346,7 @@ function processPayload(data) {
         document.getElementById('missed-warning').style.display = "none";
     }
 
-    // 4. TRUNK LOGIC (Freight Only - JUST FOR DISPLAYING CONTENT IN BOX)
-    let isFreight = (vName.toLowerCase().includes("freight") || (data.trunkCapacity && data.trunkCapacity > 1000));
-    STATE.inFreightMode = isFreight;
-    document.getElementById('freight-section').style.display = isFreight ? "block" : "none";
-
-    if(isFreight) {
-        if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
-            TRUNK_KEY = "chest_" + data.chest;
-        }
-        if(!TRUNK_KEY) {
-            for(let key in data) {
-                if(key.startsWith("chest_") && key.includes("veh_")) { TRUNK_KEY = key; break; }
-            }
-        }
-        
-        let incomingTrunk = null;
-        if(TRUNK_KEY && data[TRUNK_KEY]) {
-            try { incomingTrunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; } catch(e){}
-        }
-
-        const syncDot = document.getElementById('sync-status');
-        const now = Date.now();
-
-        if(incomingTrunk && Object.keys(incomingTrunk).length > 0) {
-            MEMORY.trunk = incomingTrunk;
-            MEMORY.lastTrunkUpdate = now;
-            syncDot.className = "sync-dot live";
-        } else if (data.trunkWeight === 0) {
-            MEMORY.trunk = {};
-            syncDot.className = "sync-dot live";
-        } else {
-            if(now - MEMORY.lastTrunkUpdate > 3000) syncDot.className = "sync-dot cached";
-        }
-        
-        if(data.trunkCapacity) {
-            document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight || 0)}/${Math.round(data.trunkCapacity)}kg`;
-        }
-        
-        renderTrunkList(MEMORY.trunk);
-    }
-
-    // 5. XP LOGIC
+    // 4. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
         if (STATE.startXP === 0) STATE.startXP = currentXP;
@@ -432,10 +355,8 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 6. BXP LOGIC (From Inventory, just for tokens)
-    let inv = data.inventory ? (typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory) : {};
+    // 5. BXP LOGIC (Direct check, no inventory parsing)
     let bxp = data[JOB_BXP_KEY];
-    if(!bxp && inv[JOB_BXP_KEY]) bxp = inv[JOB_BXP_KEY];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         document.getElementById('disp-bxp').innerText = formatNumber(val);
@@ -513,24 +434,6 @@ function runCalculator() {
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Time: <b>${hours}h ${mins}m</b></span>`;
     } else {
         el.innerHTML = `Target reached.`;
-    }
-}
-
-function renderTrunkList(trunk) {
-    const el = document.getElementById('trunk-list');
-    el.innerHTML = "";
-    
-    if(!trunk || Object.keys(trunk).length === 0) {
-        el.innerHTML = "No freight loaded.";
-        return;
-    }
-
-    for(let key in trunk) {
-        let item = trunk[key];
-        let qty = item.amount || item.count || item;
-        if(qty > 0) {
-            el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
-        }
     }
 }
 
