@@ -89,37 +89,31 @@
             font-size: 0.75em; color: var(--text-dim); font-weight: bold;
         }
 
-        /* --- STATUS & TIMER (Extra Compact) --- */
+        /* --- STATUS & TIMER --- */
         .status-container {
             background: rgba(255,255,255,0.05); 
             border-radius: 6px; 
-            padding: 4px; /* Shrunk padding */
+            padding: 4px; 
             margin-bottom: 10px;
             text-align: center;
-            display: flex; flex-direction: column; gap: 2px; /* Tight gap */
+            display: flex; flex-direction: column; gap: 2px;
         }
         
         .status-line {
             font-family: 'Rajdhani', sans-serif; 
             font-weight: 700; 
-            font-size: 0.8em; /* Smaller Status Text */
+            font-size: 0.8em; 
             color: #ccc;
-            white-space: nowrap; 
-            overflow: hidden; 
-            text-overflow: ellipsis;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            text-transform: uppercase; letter-spacing: 1px;
         }
 
         .timer-line {
             font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; 
-            font-size: 1.1em; /* Smaller Timer Text */
-            color: var(--text-dim); 
-            line-height: 1;
+            font-weight: 900; font-size: 1.1em; 
+            color: var(--text-dim); line-height: 1;
             transition: color 0.2s ease;
         }
-        
         .timer-line.active { color: var(--green); text-shadow: 0 0 8px rgba(0, 230, 118, 0.4); }
         .timer-line.urgent { color: var(--red); text-shadow: 0 0 8px rgba(255, 82, 82, 0.6); }
 
@@ -132,7 +126,7 @@
         .value.bxp { color: var(--green); }
 
         .progress-container {
-            position: relative; height: 14px; /* Slimmer Bar */
+            position: relative; height: 14px;
             background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0;
             overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
         }
@@ -166,6 +160,17 @@
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
         
+        /* QUICK BUTTONS */
+        .quick-btn-row {
+            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
+        }
+        .quick-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold;
+        }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
         #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
 </head>
@@ -231,6 +236,13 @@
         <div class="section" style="border:none;">
             <div class="label">Stop Calculator</div>
             <input type="number" id="target-input" placeholder="e.g. 500000">
+            
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+
             <div class="calc-output" id="calc-result">Complete 1 stop to calibrate...</div>
         </div>
 
@@ -323,7 +335,6 @@ function processPayload(data) {
                     let rawStatus = cleanString(lines[1]);
                     document.getElementById('disp-status').innerText = rawStatus;
                     
-                    // Check if we are in a boarding state to activate timer
                     if (rawStatus.toUpperCase().includes("BOARD") || rawStatus.toUpperCase().includes("WAIT")) {
                         timerActive = true;
                     }
@@ -341,12 +352,12 @@ function processPayload(data) {
                     if (timeMatch && timerActive) {
                         let sec = timeMatch[1];
                         timerEl.innerText = sec + "s";
-                        timerEl.className = "timer-line active"; // Bright/Green
+                        timerEl.className = "timer-line active"; 
                         
-                        if (sec <= 5) timerEl.className = "timer-line urgent"; // Red
+                        if (sec <= 5) timerEl.className = "timer-line urgent"; 
                     } else {
                         timerEl.innerText = "--";
-                        timerEl.className = "timer-line"; // Dim
+                        timerEl.className = "timer-line"; 
                     }
                 } else {
                     timerEl.innerText = "--";
@@ -426,7 +437,6 @@ function renderStats() {
     runCalculator();
 }
 
-// --- UTILS ---
 function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
     if (num >= 1000) return (num / 1000).toFixed(1) + "K";
@@ -446,6 +456,11 @@ function getPercentValue(exp, cap) {
 // --- CALCULATOR ---
 const calcInput = document.getElementById('target-input');
 if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+function setCalc(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator();
+}
 
 function runCalculator() {
     const val = document.getElementById('target-input').value;
