@@ -7,7 +7,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Industrial Train Theme */ 
             --primary: #ffb300; 
             --primary-dim: #c68400;
             --bg-glass: rgba(18, 18, 18, 0.95);
@@ -53,9 +52,15 @@
             color: #000;
         }
 
+        #speed-display {
+            cursor: pointer;
+            border-bottom: 1px dotted #000;
+        }
+        #speed-display:hover { opacity: 0.8; }
+
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        /* VEHICLE DASHBOARD */
+        /* VEHICLE INFO */
         .info-display {
             background: rgba(255, 255, 255, 0.05);
             border: 1px dashed var(--accent);
@@ -72,7 +77,7 @@
             padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px;
         }
 
-        /* DASHBOARD GRID (Speed / Distance) */
+        /* DASHBOARD GRID */
         .dash-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
         }
@@ -264,7 +269,6 @@ let LAST_VEHICLE = null;
 let SESSION_START_TIME = Date.now();
 
 let MEMORY = {
-    inventory: {},
     trunk: {},
     weight: 0,
     lastTrunkUpdate: 0
@@ -321,14 +325,15 @@ function toggleSpeedUnit() {
 }
 
 function processPayload(data) {
-    // 1. VEHICLE NAME
+    // 1. VEHICLE NAME (Strictly from Vehicle Data)
     let vName = data.vehicleName || data.vehicle || "Waiting...";
     if(vName === "freight") vName = "Freight Train";
     if(vName === "metrotrain") vName = "Metro Train";
     
+    // DIRECT UPDATE: No scanning logic here
     document.getElementById('disp-vehicle').innerText = vName;
 
-    // 2. SPEED DISPLAY (Dashboard)
+    // 2. SPEED DISPLAY
     if(data.speed !== undefined) {
         let speedVal = 0;
         let unit = "";
@@ -377,8 +382,7 @@ function processPayload(data) {
         document.getElementById('missed-warning').style.display = "none";
     }
 
-    // 4. TRUNK LOGIC (Freight Only)
-    // Simple check: does name have "Freight" or big capacity
+    // 4. TRUNK LOGIC (Freight Only - JUST FOR DISPLAYING CONTENT IN BOX)
     let isFreight = (vName.toLowerCase().includes("freight") || (data.trunkCapacity && data.trunkCapacity > 1000));
     STATE.inFreightMode = isFreight;
     document.getElementById('freight-section').style.display = isFreight ? "block" : "none";
@@ -416,16 +420,10 @@ function processPayload(data) {
             document.getElementById('trunk-capacity').innerText = `${Math.round(data.trunkWeight || 0)}/${Math.round(data.trunkCapacity)}kg`;
         }
         
-        // Scan Cargo (No warnings, just display best cargo)
-        updateCargoDisplay(MEMORY.inventory, MEMORY.trunk);
         renderTrunkList(MEMORY.trunk);
     }
 
-    // 5. INVENTORY & XP
-    if(data.inventory) {
-        try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
-    }
-
+    // 5. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
         if (STATE.startXP === 0) STATE.startXP = currentXP;
@@ -434,45 +432,13 @@ function processPayload(data) {
         renderStats();
     }
 
+    // 6. BXP LOGIC (From Inventory, just for tokens)
+    let inv = data.inventory ? (typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory) : {};
     let bxp = data[JOB_BXP_KEY];
-    if(!bxp && MEMORY.inventory[JOB_BXP_KEY]) bxp = MEMORY.inventory[JOB_BXP_KEY];
+    if(!bxp && inv[JOB_BXP_KEY]) bxp = inv[JOB_BXP_KEY];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         document.getElementById('disp-bxp').innerText = formatNumber(val);
-    }
-}
-
-// --- CARGO DISPLAY (Simplified) ---
-function updateCargoDisplay(pockets, trunk) {
-    let cargoCounts = {};
-    let hasCargo = false;
-
-    const scan = (inv) => {
-        if(!inv) return;
-        for (const key in inv) {
-            let item = inv[key];
-            let qty = (typeof item === 'number') ? item : (item.amount || item.count || 0);
-            if (qty <= 0) continue;
-            
-            const k = key.toUpperCase();
-            if(k.includes("CARGO") || k.includes("FREIGHT") || k.includes("CRATE") || k.includes("BARREL") || k.includes("CONTAINER")) {
-                if(!cargoCounts[key]) cargoCounts[key] = 0;
-                cargoCounts[key] += qty;
-                hasCargo = true;
-            }
-        }
-    };
-
-    scan(trunk);
-    scan(pockets);
-
-    const displayEl = document.getElementById('disp-vehicle');
-
-    if (hasCargo) {
-        let bestKey = Object.keys(cargoCounts).reduce((a, b) => cargoCounts[a] > cargoCounts[b] ? a : b);
-        displayEl.innerText = `Hauling: ${bestKey}`; 
-    } else if (STATE.inFreightMode) {
-        displayEl.innerText = "Freight (Empty)";
     }
 }
 
@@ -579,7 +545,7 @@ function renderTrunkList(trunk) {
     let sw=0, sh=0, resizing=false;
 
     function startDrag(clientX, clientY, e) {
-        if (e && e.target.closest('button, span, .dash-cell')) return; // Avoid drag on interactive elements
+        if (e && e.target.closest('button, span, .dash-cell')) return; 
         if (e) { e.preventDefault(); e.stopPropagation(); }
         dragging = true; sx = clientX; sy = clientY;
         const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
