@@ -7,7 +7,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Industrial Train Theme */
             --primary: #ffb300; 
             --primary-dim: #c68400;
             --bg-glass: rgba(18, 18, 18, 0.95);
@@ -42,7 +41,7 @@
             min-height: 150px;
         }
 
-        /* --- HEADER LAYOUT --- */
+        /* --- HEADER --- */
         header {
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
             height: 36px;
@@ -53,19 +52,13 @@
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        /* Centered Title */
         .header-title {
-            position: absolute;
-            left: 50%; top: 50%;
+            position: absolute; left: 50%; top: 50%;
             transform: translate(-50%, -50%);
             font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; 
-            font-size: 1.2em;
-            text-transform: uppercase; 
-            letter-spacing: 2px;
-            color: #000;
-            pointer-events: none; 
-            white-space: nowrap;
+            font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #000; pointer-events: none; white-space: nowrap;
         }
 
         .nav-icon { text-decoration: none; font-size: 1.2em; cursor: pointer; }
@@ -73,9 +66,10 @@
 
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        /* STATS */
+        /* --- SECTIONS --- */
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
+        
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
@@ -123,13 +117,11 @@
 
 <div id="tracker-app">
     <header id="drag-handle">
-        <div style="display:flex; align-items:center;">
+        <div class="header-left">
             <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
         </div>
-        
         <div class="header-title">🚂 Train Ops</div>
-        
-        <div style="text-align:right;">
+        <div class="header-right">
             <span id="clock">00:00</span>
         </div>
     </header>
@@ -157,22 +149,22 @@
                         <div class="run-val" id="disp-session-xp" style="color:var(--green)">0 XP</div>
                     </div>
                     <div style="text-align:right">
-                        <div class="run-label">Avg XP / Min</div>
-                        <div class="run-val" id="disp-xp-rate">0 XP/m</div>
+                        <div class="run-label">Avg XP / Drop</div>
+                        <div class="run-val" id="disp-xp-drop">0 XP</div>
                     </div>
                 </div>
             </div>
 
             <div class="stat-grid">
                 <div class="stat-box"><div class="label">Train Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
-                <div class="stat-box"><div class="label">Total XP</div><div class="value" id="disp-total-xp" style="color:var(--accent)">0</div></div>
+                <div class="stat-box"><div class="label">Drops Count</div><div class="value" id="disp-drops" style="color:var(--accent)">0</div></div>
             </div>
         </div>
 
         <div class="section" style="border:none;">
-            <div class="label">Level Calculator</div>
+            <div class="label">Drop Calculator</div>
             <input type="number" id="target-input" placeholder="e.g. 500000">
-            <div class="calc-output" id="calc-result">Start driving to calibrate...</div>
+            <div class="calc-output" id="calc-result">Waiting for first XP drop...</div>
         </div>
 
     </div>
@@ -190,14 +182,14 @@
 
 <script>
 // --- STATE ---
-let SESSION_START_TIME = Date.now();
 const JOB_EXP_KEY = "exp_train_train"; 
 const JOB_BXP_KEY = "exp_token_a|train|train";
 
 const STATE = {
     currentXP: 0, 
     startXP: 0,
-    sessionGain: 0
+    sessionGain: 0,
+    dropCount: 0 // New Drop Counter
 };
 
 // --- CLOCK ---
@@ -209,7 +201,6 @@ setInterval(() => {
 function requestData() {
     if(window.parent) {
         try { 
-            // MINIMAL REQUESTS: Only what we need for XP and Tokens
             let keys = [
                 "exp_train_train", "exp_token_a|train|train", 
                 "inventory" 
@@ -230,18 +221,31 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. XP LOGIC
+    // 1. XP LOGIC & DROP DETECTION
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
-        if (STATE.startXP === 0) STATE.startXP = currentXP;
-        STATE.currentXP = currentXP;
-        STATE.sessionGain = currentXP - STATE.startXP;
+        
+        // Initial Load or Reset
+        if (STATE.startXP === 0) {
+            STATE.startXP = currentXP;
+            STATE.currentXP = currentXP;
+        } 
+        // XP INCREASED -> A DROP!
+        else if (currentXP > STATE.currentXP) {
+            STATE.dropCount++;
+            STATE.currentXP = currentXP;
+            STATE.sessionGain = currentXP - STATE.startXP;
+        }
+        // Handle weird resets/reloads without breaking
+        else if (currentXP < STATE.currentXP) {
+            STATE.currentXP = currentXP; // Just sync down, don't count as drop
+        }
+
         renderStats();
     }
 
     // 2. BXP LOGIC
     let bxp = data[JOB_BXP_KEY];
-    // Fallback: Check raw inventory string if the top-level key is missing
     if(!bxp && data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
@@ -259,7 +263,6 @@ function renderStats() {
     const lvl = getLevelInfo(STATE.currentXP);
     document.getElementById('disp-xp').innerText = formatNumber(STATE.currentXP);
     document.getElementById('disp-level').innerText = lvl.level;
-    document.getElementById('disp-total-xp').innerText = formatNumber(STATE.currentXP);
     
     const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
     document.getElementById('level-bar').style.width = pct + "%";
@@ -267,9 +270,10 @@ function renderStats() {
 
     document.getElementById('disp-session-xp').innerText = formatNumber(STATE.sessionGain) + " XP";
     
-    let minutes = (Date.now() - SESSION_START_TIME) / 60000;
-    let rate = minutes > 0 ? Math.round(STATE.sessionGain / minutes) : 0;
-    document.getElementById('disp-xp-rate').innerText = rate + " XP/m";
+    // Average XP Per Drop
+    let avgDrop = STATE.dropCount > 0 ? Math.round(STATE.sessionGain / STATE.dropCount) : 0;
+    document.getElementById('disp-xp-drop').innerText = avgDrop + " XP";
+    document.getElementById('disp-drops').innerText = STATE.dropCount;
 
     const needed = Math.round(lvl.expForNext - lvl.expInLevel);
     document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
@@ -294,7 +298,7 @@ function getPercentValue(exp, cap) {
     return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
 }
 
-// --- CALCULATOR ---
+// --- CALCULATOR (UPDATED FOR DROPS) ---
 const calcInput = document.getElementById('target-input');
 if(calcInput) calcInput.addEventListener('input', runCalculator);
 
@@ -302,12 +306,20 @@ function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
-    if (STATE.sessionGain < 50) { el.innerHTML = "<i>Drive to calibrate...</i>"; return; }
-    if (!val) { el.innerText = "Enter target above."; return; }
+    // Need at least 1 drop to calculate average
+    if (STATE.dropCount === 0) { 
+        el.innerHTML = "<i>Waiting for first XP drop...</i>"; 
+        return; 
+    }
+    if (!val) { 
+        el.innerText = "Enter target above."; 
+        return; 
+    }
 
     let inputVal = parseInt(val.replace(/,/g, ''));
     let targetXP = inputVal;
     
+    // Auto-detect if user entered a Level instead of XP (Level < 200)
     if (inputVal < 200) { 
          let lvlXP = 0; 
          for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
@@ -316,14 +328,12 @@ function runCalculator() {
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
-        let ratePerMin = (STATE.sessionGain / ((Date.now() - SESSION_START_TIME)/60000));
-        if(ratePerMin <= 0) ratePerMin = 1;
+        const avgDrop = STATE.sessionGain / STATE.dropCount;
         
-        let minsLeft = Math.ceil(diff / ratePerMin);
-        let hours = Math.floor(minsLeft / 60);
-        let mins = minsLeft % 60;
+        // Calculate estimated drops needed
+        const estDrops = Math.ceil(diff / avgDrop);
         
-        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Time: <b>${hours}h ${mins}m</b></span>`;
+        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Drops: <b>${formatNumber(estDrops)}</b></span>`;
     } else {
         el.innerHTML = `Target reached.`;
     }
