@@ -7,7 +7,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Airline Theme - Sky Blue/White */
+            /* Airline Theme - Sky Blue/Cloud White */
             --primary: #4fc3f7; 
             --primary-dim: #0288d1;
             --bg-glass: rgba(18, 18, 18, 0.95);
@@ -89,7 +89,7 @@
             font-size: 0.75em; color: var(--text-dim); font-weight: bold;
         }
 
-        /* --- STATUS & TIMER (Extra Compact) --- */
+        /* --- STATUS & TIMER (Stacked) --- */
         .status-container {
             background: rgba(255,255,255,0.05); 
             border-radius: 6px; 
@@ -151,6 +151,17 @@
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; text-align: center; }
+
+        /* INVENTORY ROW */
+        .inv-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.2); padding: 4px 8px;
+            margin-bottom: 4px; border-radius: 4px;
+            border-left: 3px solid var(--text-dim);
+        }
+        .inv-name { font-size: 0.85em; }
+        .inv-stats { font-size: 0.9em; font-weight: bold; text-align: right; }
+        .low-stock { border-left-color: var(--red); background: rgba(255, 82, 82, 0.1); }
 
         /* CALCULATOR */
         input[type="number"] {
@@ -234,6 +245,16 @@
             </div>
         </div>
 
+        <div class="section">
+            <div class="label">Galley Supplies</div>
+            <div class="inv-row" id="row-meal">
+                <div class="inv-name">🍱 Airline Meals</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-meal">0</span>
+                </div>
+            </div>
+        </div>
+
         <div class="section" style="border:none;">
             <div class="label">Flight Calculator</div>
             <input type="number" id="target-input" placeholder="e.g. 500000">
@@ -264,11 +285,14 @@
 // --- STATE ---
 let SESSION_START_TIME = Date.now();
 const JOB_EXP_KEY = "exp_piloting_piloting";
-const JOB_BXP_KEY = "exp_token_a|piloting|piloting";
+const JOB_BXP_KEY_A = "exp_token_a|piloting|piloting";
+const JOB_BXP_KEY_B = "exp_token|piloting|piloting";
+const ITEM_MEAL = "fridge_airline_meal";
 
 // Anti-Flicker & Flight Counting Logic
 let routeResetTimeout = null;
 let hasCountedCurrent = false;
+let TRUNK_KEY = null; // To track aircraft trunk if available
 
 const STATE = {
     currentXP: 0, 
@@ -288,9 +312,10 @@ function requestData() {
     if(window.parent) {
         try { 
             let keys = [
-                "exp_piloting_piloting", "exp_token_a|piloting|piloting", // Requesting XP Keys
-                "status", "inventory" // Requesting Status for Route Info
+                "exp_piloting_piloting", "exp_token_a|piloting|piloting", "exp_token|piloting|piloting",
+                "status", "inventory", "chest", "trunkCapacity", "trunkWeight"
             ];
+            if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
             window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
@@ -319,14 +344,13 @@ function processPayload(data) {
                 
                 // Line 0: Status & Timer
                 if (lines[0]) {
-                    let rawStatusLine = cleanString(lines[0]); // "Status: Boarding (23 seconds)"
+                    let rawStatusLine = cleanString(lines[0]);
                     let cleanStatus = rawStatusLine.replace("Status:", "").replace(/\(\d+\s*seconds?\)/i, "").trim();
                     let timerMatch = rawStatusLine.match(/\((\d+)\s*seconds?\)/i);
                     let timerEl = document.getElementById('disp-timer');
                     
                     document.getElementById('disp-status').innerText = cleanStatus || "ACTIVE";
 
-                    // --- TIMER UI ---
                     if (timerMatch) {
                         let sec = parseInt(timerMatch[1]);
                         timerEl.innerText = sec + "s";
@@ -338,16 +362,13 @@ function processPayload(data) {
                     }
 
                     // --- FLIGHT COUNTING LOGIC (Deboarding Trigger) ---
-                    // If we see "Deboarding", and haven't counted this run yet -> Count it!
                     if (cleanStatus.toUpperCase().includes("DEBOARDING")) {
                         if (!hasCountedCurrent) {
                             STATE.completedRuns++;
-                            hasCountedCurrent = true; // Lock until next flight resets it
+                            hasCountedCurrent = true; // Lock until reset
                             updateAverages();
                         }
                     }
-                    // Reset lock if we start a new flight phase (Boarding or Enroute)
-                    // We check that it does NOT contain "Deboarding" to avoid resetting while still deboarding.
                     else if ((cleanStatus.toUpperCase().includes("BOARDING") || cleanStatus.toUpperCase().includes("ROUTE")) && !cleanStatus.toUpperCase().includes("DEBOARDING")) {
                         hasCountedCurrent = false;
                     }
@@ -379,7 +400,6 @@ function processPayload(data) {
                 document.getElementById('disp-timer').innerText = "--";
                 document.getElementById('disp-timer').className = "timer-line";
                 routeResetTimeout = null;
-                // Reset counting logic if we go completely idle
                 hasCountedCurrent = false; 
             }, 3000);
         }
@@ -400,15 +420,47 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 3. BXP LOGIC
-    let bxp = data[JOB_BXP_KEY];
-    if(!bxp && data.inventory) {
-        try {
-            let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
-            if(inv[JOB_BXP_KEY]) bxp = inv[JOB_BXP_KEY];
-        } catch(e) {}
+    // 3. INVENTORY LOGIC (Meals)
+    // Find Trunk Key
+    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
+        TRUNK_KEY = "chest_" + data.chest;
     }
     
+    // Calculate total meals (Pocket + Trunk)
+    let totalMeals = 0;
+    
+    // Pocket
+    if(data.inventory) {
+        try {
+            let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
+            if(inv[ITEM_MEAL]) totalMeals += (inv[ITEM_MEAL].amount || inv[ITEM_MEAL]);
+            
+            // Check BXP in inventory while we are here
+            if (!data[JOB_BXP_KEY_A] && !data[JOB_BXP_KEY_B]) {
+               let bxpInv = inv[JOB_BXP_KEY_A] || inv[JOB_BXP_KEY_B];
+               if(bxpInv) document.getElementById('disp-bxp').innerText = formatNumber(bxpInv.amount || bxpInv);
+            }
+        } catch(e){}
+    }
+    
+    // Trunk
+    if(TRUNK_KEY && data[TRUNK_KEY]) {
+        try {
+            let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY];
+            if(trunk[ITEM_MEAL]) totalMeals += (trunk[ITEM_MEAL].amount || trunk[ITEM_MEAL]);
+        } catch(e){}
+    }
+    
+    // Update Meal UI
+    const mealEl = document.getElementById('stock-meal');
+    const mealRow = document.getElementById('row-meal');
+    mealEl.innerText = totalMeals;
+    
+    if(totalMeals < 5) mealRow.className = "inv-row low-stock";
+    else mealRow.className = "inv-row";
+
+    // 4. BXP LOGIC (Direct)
+    let bxp = data[JOB_BXP_KEY_A] || data[JOB_BXP_KEY_B];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         document.getElementById('disp-bxp').innerText = formatNumber(val);
@@ -416,7 +468,6 @@ function processPayload(data) {
 }
 
 function updateAverages() {
-    // Only update average if we have completed at least one flight
     if (STATE.completedRuns > 0) {
         STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
     }
@@ -437,8 +488,6 @@ function renderStats() {
     document.getElementById('level-text').innerText = pct + "%";
 
     document.getElementById('disp-session-xp').innerText = formatNumber(STATE.sessionGain) + " XP";
-    
-    // Use the calculated average
     document.getElementById('disp-xp-drop').innerText = Math.round(STATE.avgXP) + " XP";
     document.getElementById('disp-drops').innerText = STATE.completedRuns;
 
@@ -497,10 +546,8 @@ function runCalculator() {
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
-        // Use current average based on COMPLETED flights
         const avgDrop = (STATE.avgXP > 0) ? STATE.avgXP : 1; 
         const estDrops = Math.ceil(diff / avgDrop);
-        
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(estDrops)}</b></span>`;
     } else {
         el.innerHTML = `Target reached.`;
