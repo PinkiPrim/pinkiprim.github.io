@@ -338,7 +338,7 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. STATUS PARSING
+    // 1. STATUS PARSING (Airline Logic)
     if (data.status) {
         if (routeResetTimeout) { clearTimeout(routeResetTimeout); routeResetTimeout = null; }
 
@@ -423,7 +423,7 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 3. INVENTORY LOGIC (Memory-Based)
+    // 3. INVENTORY LOGIC (Memory-Based with Safety)
     
     // Find Trunk Key
     if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
@@ -431,10 +431,13 @@ function processPayload(data) {
     }
     
     // Update Memory: Pockets
+    // Only update if we receive a valid object with keys to prevent empty flashing
     if(data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
-            MEMORY.inventory = inv || {};
+            if(inv && Object.keys(inv).length > 0) {
+                MEMORY.inventory = inv;
+            }
         } catch(e){}
     }
     
@@ -442,7 +445,9 @@ function processPayload(data) {
     if(TRUNK_KEY && data[TRUNK_KEY]) {
         try {
             let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY];
-            MEMORY.trunk = trunk || {};
+            if(trunk && Object.keys(trunk).length > 0) {
+                MEMORY.trunk = trunk;
+            }
         } catch(e){}
     }
     
@@ -450,11 +455,11 @@ function processPayload(data) {
     let totalMeals = 0;
     
     // Check Pocket Memory
-    if(MEMORY.inventory[ITEM_MEAL]) {
+    if(MEMORY.inventory && MEMORY.inventory[ITEM_MEAL]) {
         totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
     }
     // Check Trunk Memory
-    if(MEMORY.trunk[ITEM_MEAL]) {
+    if(MEMORY.trunk && MEMORY.trunk[ITEM_MEAL]) {
         totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
     }
     
@@ -466,10 +471,9 @@ function processPayload(data) {
     if(totalMeals < 5) mealRow.className = "inv-row low-stock";
     else mealRow.className = "inv-row";
 
-    // 4. BXP LOGIC (Direct)
+    // 4. BXP LOGIC (Direct + Memory Fallback)
     let bxp = data[JOB_BXP_KEY_A] || data[JOB_BXP_KEY_B];
     
-    // Fallback to inventory memory if direct data missing
     if (!bxp && MEMORY.inventory) {
         bxp = MEMORY.inventory[JOB_BXP_KEY_A] || MEMORY.inventory[JOB_BXP_KEY_B];
     }
