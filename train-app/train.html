@@ -7,7 +7,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Industrial Train Theme */
             --primary: #ffb300; 
             --primary-dim: #c68400;
             --bg-glass: rgba(18, 18, 18, 0.95);
@@ -53,15 +52,12 @@
             color: #000;
         }
 
-        #speed-display {
-            cursor: pointer;
-            border-bottom: 1px dotted #000;
-        }
+        #speed-display { cursor: pointer; border-bottom: 1px dotted #000; }
         #speed-display:hover { opacity: 0.8; }
 
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        /* VEHICLE INFO */
+        /* INFO BOX */
         .info-display {
             background: rgba(255, 255, 255, 0.05);
             border: 1px dashed var(--accent);
@@ -79,35 +75,24 @@
         }
 
         /* DASHBOARD GRID */
-        .dash-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
-        }
-        .dash-cell {
-            background: rgba(0,0,0,0.3); border-radius: 4px; padding: 5px;
-        }
+        .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .dash-cell { background: rgba(0,0,0,0.3); border-radius: 4px; padding: 5px; }
         .dash-sublabel { font-size: 0.65em; color: #888; text-transform: uppercase; }
         .dash-val { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 1.1em; }
 
-        /* MISSED STOP WARNING */
+        /* WARNINGS */
         .missed-warning {
             display: none;
             margin-top: 8px; font-size: 0.9em; font-weight: bold;
-            color: var(--red);
-            background: rgba(255, 0, 0, 0.1);
-            border: 1px solid var(--red);
-            padding: 4px; border-radius: 4px;
-            text-transform: uppercase; letter-spacing: 1px;
+            color: var(--red); background: rgba(255, 0, 0, 0.1); border: 1px solid var(--red);
+            padding: 4px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;
             animation: flashRed 0.5s infinite alternate;
         }
-        @keyframes flashRed {
-            from { opacity: 0.5; transform: scale(0.98); } 
-            to { opacity: 1; transform: scale(1.02); text-shadow: 0 0 10px red; }
-        }
+        @keyframes flashRed { from { opacity: 0.5; } to { opacity: 1; text-shadow: 0 0 10px red; } }
 
         /* STATS */
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
-
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
@@ -123,7 +108,6 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
         }
-
         .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
         .xp-remaining-text b { color: var(--primary); }
 
@@ -240,7 +224,6 @@
 <script>
 // --- STATE ---
 let SESSION_START_TIME = Date.now();
-
 const JOB_EXP_KEY = "exp_train_train"; 
 const JOB_BXP_KEY = "exp_token_a|train|train";
 
@@ -249,10 +232,9 @@ const STATE = {
     startXP: 0,
     sessionGain: 0,
     useMPH: false, 
-    
-    // Distance / Stop Tracking
     lastWaypointX: 0,
-    lastDistance: null
+    lastDistance: null,
+    onFoot: true // Default to onFoot
 };
 
 // --- CLOCK ---
@@ -264,10 +246,10 @@ setInterval(() => {
 function requestData() {
     if(window.parent) {
         try { 
-            // REMOVED 'vehicle', 'vehicleName' from this list to stop conflicting "Job Vehicle" data
             let keys = [
                 "exp_train_train", "exp_token_a|train|train", 
-                "inventory", "pos_x", "pos_y", "waypoint_x", "waypoint_y"
+                "vehicle", "vehicleName", "speed", 
+                "pos_x", "pos_y", "waypoint_x", "waypoint_y"
             ];
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
             window.parent.postMessage({ type: "getData" }, "*"); 
@@ -289,78 +271,78 @@ function toggleSpeedUnit() {
 }
 
 function processPayload(data) {
-    // 1. VEHICLE NAME - STRICT CHECKING (Fixes Flashing)
-    // We only update if data.vehicle is explicitly present in the payload.
-    // Since we removed it from getNamedData, this only triggers on passive vehicle updates (when inside).
-    if (data.vehicle !== undefined) {
-        let vName = data.vehicleName || data.vehicle;
+    // 1. STRICT VEHICLE CHECK
+    let rawVehicle = data.vehicle; // This is the source of truth (e.g., 'onFoot', 'freight')
+    let rawName = data.vehicleName; // This is the pretty name (e.g., 'Freight Train')
+
+    // If 'vehicle' says onFoot, we are NOT in a train, even if 'vehicleName' remembers the last train.
+    if (rawVehicle === 'onFoot') {
+        STATE.onFoot = true;
+        document.getElementById('disp-vehicle').innerText = "Waiting...";
+        document.getElementById('speed-display').innerText = "0 " + (STATE.useMPH ? "mph" : "km/h");
+        document.getElementById('disp-dist').innerText = "-";
+        document.getElementById('missed-warning').style.display = "none";
+    } 
+    else if (rawVehicle && rawVehicle !== "null" && rawVehicle !== "false") {
+        // We are inside a vehicle
+        STATE.onFoot = false;
         
-        // Check for empty/false strings which imply "On Foot"
-        if (!vName || vName === "null" || vName === "false") {
-            document.getElementById('disp-vehicle').innerText = "Waiting...";
-        } 
-        else {
-            // Valid vehicle found - Clean up name
-            if(vName === "freight") vName = "Freight Train";
-            if(vName === "metrotrain") vName = "Metro Train";
-            
-            document.getElementById('disp-vehicle').innerText = vName;
-        }
-    }
-
-    // 2. SPEED DISPLAY
-    if(data.speed !== undefined) {
-        let speedVal = 0;
-        let unit = "";
-        if(STATE.useMPH) {
-            speedVal = Math.round(data.speed * 2.23694);
-            unit = "mph";
-        } else {
-            speedVal = Math.round(data.speed * 3.6);
-            unit = "km/h";
-        }
-        document.getElementById('speed-display').innerText = `${speedVal} ${unit}`;
-    }
-
-    // 3. DISTANCE & MISSED STOP LOGIC
-    if(data.pos_x && data.waypoint_x) {
-        let dist = Math.hypot(data.waypoint_x - data.pos_x, data.waypoint_y - data.pos_y);
-        let distEl = document.getElementById('disp-dist');
-        distEl.innerText = `${Math.round(dist)}m`;
+        // Use the pretty name if available, otherwise raw code
+        let vName = rawName || rawVehicle;
         
-        if(dist < 50) distEl.style.color = "var(--green)";
-        else if(dist < 300) distEl.style.color = "var(--orange)";
-        else distEl.style.color = "#fff";
-
-        const warnEl = document.getElementById('missed-warning');
+        // Clean up names
+        if (vName === "freight") vName = "Freight Train";
+        if (vName === "metrotrain") vName = "Metro Train";
         
-        // Reset if target changes
-        if (Math.abs(data.waypoint_x - STATE.lastWaypointX) > 5) {
-            STATE.lastWaypointX = data.waypoint_x;
-            STATE.lastDistance = dist;
-            warnEl.style.display = "none";
-        }
+        document.getElementById('disp-vehicle').innerText = vName;
 
-        // Logic: Moving Away AND Close AND Not Stopped
-        if (STATE.lastDistance !== null) {
-            let isMovingAway = dist > (STATE.lastDistance + 0.2); 
-            // Warn if between 20m and 400m
-            if (isMovingAway && dist > 20 && dist < 400) {
-                warnEl.style.display = "block";
+        // 2. SPEED DISPLAY (Only update if in vehicle)
+        if(data.speed !== undefined) {
+            let speedVal = 0;
+            let unit = "";
+            if(STATE.useMPH) {
+                speedVal = Math.round(data.speed * 2.23694);
+                unit = "mph";
             } else {
+                speedVal = Math.round(data.speed * 3.6);
+                unit = "km/h";
+            }
+            document.getElementById('speed-display').innerText = `${speedVal} ${unit}`;
+        }
+
+        // 3. DISTANCE & MISSED STOP LOGIC (Only update if in vehicle)
+        if(data.pos_x && data.waypoint_x) {
+            let dist = Math.hypot(data.waypoint_x - data.pos_x, data.waypoint_y - data.pos_y);
+            let distEl = document.getElementById('disp-dist');
+            distEl.innerText = `${Math.round(dist)}m`;
+            
+            if(dist < 50) distEl.style.color = "var(--green)";
+            else if(dist < 300) distEl.style.color = "var(--orange)";
+            else distEl.style.color = "#fff";
+
+            const warnEl = document.getElementById('missed-warning');
+            
+            // Reset if target changes (new station)
+            if (Math.abs(data.waypoint_x - STATE.lastWaypointX) > 5) {
+                STATE.lastWaypointX = data.waypoint_x;
+                STATE.lastDistance = dist;
                 warnEl.style.display = "none";
             }
-        }
-        STATE.lastDistance = dist;
-    } else {
-        // Only clear if waiting
-        if (document.getElementById('disp-vehicle').innerText === "Waiting...") {
-            document.getElementById('disp-dist').innerText = "-";
-            document.getElementById('missed-warning').style.display = "none";
+
+            // Warning Logic: Moving Away AND Close
+            if (STATE.lastDistance !== null) {
+                let isMovingAway = dist > (STATE.lastDistance + 0.2); 
+                if (isMovingAway && dist > 20 && dist < 400) {
+                    warnEl.style.display = "block";
+                } else {
+                    warnEl.style.display = "none";
+                }
+            }
+            STATE.lastDistance = dist;
         }
     }
 
-    // 4. XP LOGIC
+    // 4. XP LOGIC (Runs regardless of vehicle state)
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
         if (STATE.startXP === 0) STATE.startXP = currentXP;
@@ -369,9 +351,10 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 5. BXP LOGIC (Direct token check)
+    // 5. BXP LOGIC (Runs regardless of vehicle state)
+    // Check main object first, then try to parse inventory string as fallback
     let bxp = data[JOB_BXP_KEY];
-    if(!bxp && data.inventory) {
+    if (!bxp && data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
             if(inv[JOB_BXP_KEY]) bxp = inv[JOB_BXP_KEY];
