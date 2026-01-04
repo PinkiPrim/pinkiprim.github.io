@@ -7,6 +7,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         :root {
+            /* Industrial Train Theme */
             --primary: #ffb300; 
             --primary-dim: #c68400;
             --bg-glass: rgba(18, 18, 18, 0.95);
@@ -263,12 +264,11 @@ setInterval(() => {
 function requestData() {
     if(window.parent) {
         try { 
+            // REMOVED 'vehicle', 'vehicleName' from this list to stop conflicting "Job Vehicle" data
             let keys = [
                 "exp_train_train", "exp_token_a|train|train", 
-                "vehicle", "vehicleName", "speed", 
-                "pos_x", "pos_y", "waypoint_x", "waypoint_y"
+                "inventory", "pos_x", "pos_y", "waypoint_x", "waypoint_y"
             ];
-            // NO INVENTORY, NO CHEST, NO TRUNK REQUESTS
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
             window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
@@ -289,13 +289,24 @@ function toggleSpeedUnit() {
 }
 
 function processPayload(data) {
-    // 1. VEHICLE NAME (Strictly from Vehicle Data)
-    let vName = data.vehicleName || data.vehicle || "Waiting...";
-    if(vName === "freight") vName = "Freight Train";
-    if(vName === "metrotrain") vName = "Metro Train";
-    
-    // DIRECT UPDATE
-    document.getElementById('disp-vehicle').innerText = vName;
+    // 1. VEHICLE NAME - STRICT CHECKING (Fixes Flashing)
+    // We only update if data.vehicle is explicitly present in the payload.
+    // Since we removed it from getNamedData, this only triggers on passive vehicle updates (when inside).
+    if (data.vehicle !== undefined) {
+        let vName = data.vehicleName || data.vehicle;
+        
+        // Check for empty/false strings which imply "On Foot"
+        if (!vName || vName === "null" || vName === "false") {
+            document.getElementById('disp-vehicle').innerText = "Waiting...";
+        } 
+        else {
+            // Valid vehicle found - Clean up name
+            if(vName === "freight") vName = "Freight Train";
+            if(vName === "metrotrain") vName = "Metro Train";
+            
+            document.getElementById('disp-vehicle').innerText = vName;
+        }
+    }
 
     // 2. SPEED DISPLAY
     if(data.speed !== undefined) {
@@ -342,8 +353,11 @@ function processPayload(data) {
         }
         STATE.lastDistance = dist;
     } else {
-        document.getElementById('disp-dist').innerText = "-";
-        document.getElementById('missed-warning').style.display = "none";
+        // Only clear if waiting
+        if (document.getElementById('disp-vehicle').innerText === "Waiting...") {
+            document.getElementById('disp-dist').innerText = "-";
+            document.getElementById('missed-warning').style.display = "none";
+        }
     }
 
     // 4. XP LOGIC
@@ -355,8 +369,15 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 5. BXP LOGIC (Direct check, no inventory parsing)
+    // 5. BXP LOGIC (Direct token check)
     let bxp = data[JOB_BXP_KEY];
+    if(!bxp && data.inventory) {
+        try {
+            let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
+            if(inv[JOB_BXP_KEY]) bxp = inv[JOB_BXP_KEY];
+        } catch(e) {}
+    }
+    
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         document.getElementById('disp-bxp').innerText = formatNumber(val);
