@@ -57,7 +57,6 @@
 
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        /* INFO BOX */
         .info-display {
             background: rgba(255, 255, 255, 0.05);
             border: 1px dashed var(--accent);
@@ -74,13 +73,11 @@
             padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px;
         }
 
-        /* DASHBOARD GRID */
         .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
         .dash-cell { background: rgba(0,0,0,0.3); border-radius: 4px; padding: 5px; }
         .dash-sublabel { font-size: 0.65em; color: #888; text-transform: uppercase; }
         .dash-val { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 1.1em; }
 
-        /* WARNINGS */
         .missed-warning {
             display: none;
             margin-top: 8px; font-size: 0.9em; font-weight: bold;
@@ -88,9 +85,8 @@
             padding: 4px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;
             animation: flashRed 0.5s infinite alternate;
         }
-        @keyframes flashRed { from { opacity: 0.5; } to { opacity: 1; text-shadow: 0 0 10px red; } }
+        @keyframes flashRed { from { opacity: 0.5; transform: scale(0.98); } to { opacity: 1; transform: scale(1.02); text-shadow: 0 0 10px red; } }
 
-        /* STATS */
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
@@ -111,7 +107,6 @@
         .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
         .xp-remaining-text b { color: var(--primary); }
 
-        /* SESSION BOX */
         .run-box {
             background: rgba(251, 192, 45, 0.1);
             border: 1px solid rgba(251, 192, 45, 0.3);
@@ -124,7 +119,6 @@
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
 
-        /* CALCULATOR */
         input[type="number"] {
             width: 90%; background: rgba(0,0,0,0.3);
             border: 1px solid #444; color: white; padding: 5px;
@@ -233,8 +227,7 @@ const STATE = {
     sessionGain: 0,
     useMPH: false, 
     lastWaypointX: 0,
-    lastDistance: null,
-    onFoot: true // Default to onFoot
+    lastDistance: null
 };
 
 // --- CLOCK ---
@@ -248,7 +241,7 @@ function requestData() {
         try { 
             let keys = [
                 "exp_train_train", "exp_token_a|train|train", 
-                "vehicle", "vehicleName", "speed", 
+                "vehicle", "vehicleName", "speed", "waypoint",
                 "pos_x", "pos_y", "waypoint_x", "waypoint_y"
             ];
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
@@ -271,32 +264,23 @@ function toggleSpeedUnit() {
 }
 
 function processPayload(data) {
-    // 1. STRICT VEHICLE CHECK
-    let rawVehicle = data.vehicle; // This is the source of truth (e.g., 'onFoot', 'freight')
-    let rawName = data.vehicleName; // This is the pretty name (e.g., 'Freight Train')
+    // 1. VEHICLE NAME (Strict Check)
+    let rawVehicle = data.vehicle;
+    let vName = data.vehicleName || rawVehicle;
 
-    // If 'vehicle' says onFoot, we are NOT in a train, even if 'vehicleName' remembers the last train.
-    if (rawVehicle === 'onFoot') {
-        STATE.onFoot = true;
+    if (!rawVehicle || rawVehicle === "onFoot" || rawVehicle === "null" || rawVehicle === "false") {
         document.getElementById('disp-vehicle').innerText = "Waiting...";
         document.getElementById('speed-display').innerText = "0 " + (STATE.useMPH ? "mph" : "km/h");
         document.getElementById('disp-dist').innerText = "-";
         document.getElementById('missed-warning').style.display = "none";
     } 
-    else if (rawVehicle && rawVehicle !== "null" && rawVehicle !== "false") {
-        // We are inside a vehicle
-        STATE.onFoot = false;
-        
-        // Use the pretty name if available, otherwise raw code
-        let vName = rawName || rawVehicle;
-        
-        // Clean up names
-        if (vName === "freight") vName = "Freight Train";
-        if (vName === "metrotrain") vName = "Metro Train";
-        
+    else {
+        // CLEAN NAME
+        if(vName === "freight") vName = "Freight Train";
+        if(vName === "metrotrain") vName = "Metro Train";
         document.getElementById('disp-vehicle').innerText = vName;
 
-        // 2. SPEED DISPLAY (Only update if in vehicle)
+        // SPEED
         if(data.speed !== undefined) {
             let speedVal = 0;
             let unit = "";
@@ -310,39 +294,52 @@ function processPayload(data) {
             document.getElementById('speed-display').innerText = `${speedVal} ${unit}`;
         }
 
-        // 3. DISTANCE & MISSED STOP LOGIC (Only update if in vehicle)
-        if(data.pos_x && data.waypoint_x) {
+        // DISTANCE & STOP LOGIC
+        // We only show distance if waypoint is NOT false (active route)
+        // OR if waypoint coordinates are valid and different from 0
+        if (data.waypoint !== false && data.pos_x && data.waypoint_x && data.waypoint_x !== 0) {
             let dist = Math.hypot(data.waypoint_x - data.pos_x, data.waypoint_y - data.pos_y);
             let distEl = document.getElementById('disp-dist');
-            distEl.innerText = `${Math.round(dist)}m`;
-            
-            if(dist < 50) distEl.style.color = "var(--green)";
-            else if(dist < 300) distEl.style.color = "var(--orange)";
-            else distEl.style.color = "#fff";
+            let warnEl = document.getElementById('missed-warning');
 
-            const warnEl = document.getElementById('missed-warning');
-            
-            // Reset if target changes (new station)
+            // "At Station" Logic: If very close and stopped
+            if (dist < 20 && data.speed < 1) {
+                distEl.innerText = "AT STATION";
+                distEl.style.color = "var(--accent)";
+            } else {
+                distEl.innerText = `${Math.round(dist)}m`;
+                
+                if(dist < 50) distEl.style.color = "var(--green)";
+                else if(dist < 300) distEl.style.color = "var(--orange)";
+                else distEl.style.color = "#fff";
+            }
+
+            // Reset logic if target changes
             if (Math.abs(data.waypoint_x - STATE.lastWaypointX) > 5) {
                 STATE.lastWaypointX = data.waypoint_x;
                 STATE.lastDistance = dist;
                 warnEl.style.display = "none";
             }
 
-            // Warning Logic: Moving Away AND Close
+            // Moving AWAY check
             if (STATE.lastDistance !== null) {
-                let isMovingAway = dist > (STATE.lastDistance + 0.2); 
-                if (isMovingAway && dist > 20 && dist < 400) {
+                let isMovingAway = dist > (STATE.lastDistance + 0.5); 
+                // Warn if moving away, but still relatively close (missed it)
+                if (isMovingAway && dist > 30 && dist < 400) {
                     warnEl.style.display = "block";
                 } else {
                     warnEl.style.display = "none";
                 }
             }
             STATE.lastDistance = dist;
+        } else {
+            // No active waypoint from game
+            document.getElementById('disp-dist').innerText = "No Route";
+            document.getElementById('missed-warning').style.display = "none";
         }
     }
 
-    // 4. XP LOGIC (Runs regardless of vehicle state)
+    // 4. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
         if (STATE.startXP === 0) STATE.startXP = currentXP;
@@ -351,10 +348,9 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 5. BXP LOGIC (Runs regardless of vehicle state)
-    // Check main object first, then try to parse inventory string as fallback
+    // 5. BXP LOGIC
     let bxp = data[JOB_BXP_KEY];
-    if (!bxp && data.inventory) {
+    if(!bxp && data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
             if(inv[JOB_BXP_KEY]) bxp = inv[JOB_BXP_KEY];
