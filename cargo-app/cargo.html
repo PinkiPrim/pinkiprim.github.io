@@ -58,6 +58,7 @@
             border: 1px dashed var(--accent);
             border-radius: 6px; padding: 10px; margin-bottom: 15px;
             text-align: center;
+            transition: all 0.3s ease;
         }
         .dest-label {
             font-size: 0.7em; color: var(--accent);
@@ -66,6 +67,22 @@
         .dest-value {
             font-family: 'Rajdhani', sans-serif; font-size: 1.3em; font-weight: 700;
             color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); line-height: 1.1;
+        }
+
+        /* WARNING SYSTEM */
+        .multi-warning {
+            display: none; /* Hidden by default */
+            font-size: 0.75em;
+            margin-top: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: warnPulse 1s infinite alternate;
+        }
+
+        @keyframes warnPulse {
+            from { color: white; text-shadow: 0 0 2px black; }
+            to { color: #ff3333; text-shadow: 0 0 10px red; }
         }
 
         /* STATS */
@@ -142,6 +159,7 @@
         <div class="destination-display" id="dest-box">
             <div class="dest-label">Next Destination</div>
             <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
+            <div id="multi-warning" class="multi-warning">⚠ Multiple Cargo Types ⚠</div>
         </div>
 
         <div class="section">
@@ -287,14 +305,14 @@ function processPayload(data) {
             MEMORY.trunk = {}; 
             MEMORY.weight = 0;
             TRUNK_KEY = null;
-            // Reset run state on vehicle switch? Maybe keep history, but reset current run.
+            // Reset run state on vehicle switch
             STATE.runActive = false;
             STATE.currentRunGain = 0;
         }
         LAST_VEHICLE = incomingPlate;
     }
 
-    // 2. TRUNK KEY DISCOVERY (FILTERED)
+    // 2. TRUNK KEY DISCOVERY
     if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
         TRUNK_KEY = "chest_" + data.chest;
     }
@@ -344,8 +362,7 @@ function processPayload(data) {
         }
     }
 
-    // 4. DESTINATION & RUN DETECTION
-    // We check if "Air Cargo" exists in trunk/pockets to determine if a run is active
+    // 4. DESTINATION & RUN DETECTION (Logic Updated)
     let hasCargo = checkForCargo(MEMORY.inventory, MEMORY.trunk);
     
     // 5. XP LOGIC
@@ -375,54 +392,84 @@ function processPayload(data) {
 // --- FLIGHT SESSION LOGIC ---
 
 function checkForCargo(pockets, trunk) {
-    let destName = "Waiting for cargo...";
-    let found = false;
+    let cargoCounts = {}; // { "LSIA": 5, "SCA": 100 }
+    let cargoFound = false;
 
-    // Helper: Checks for "Air Cargo" or Airport Codes
+    // Helper: Scans an inventory object and counts cargo types
     const scan = (inv) => {
-        if(!inv) return false;
+        if(!inv) return;
         for (const key in inv) {
+            const item = inv[key];
+            
+            // Normalize quantity (handle different data structures)
+            let qty = 0;
+            if (typeof item === 'number') qty = item;
+            else if (typeof item === 'object') qty = item.amount || item.count || 0;
+            
+            if (qty <= 0) continue;
+
             const upperKey = key.toUpperCase();
             if(upperKey.includes("CARGO")) {
                 for(const code in AIRPORTS) {
                     if (upperKey.includes(code)) {
-                        destName = `${code} - ${AIRPORTS[code]}`;
-                        return true;
+                        if (!cargoCounts[code]) cargoCounts[code] = 0;
+                        cargoCounts[code] += qty;
+                        cargoFound = true;
                     }
                 }
             }
         }
-        return false;
     };
 
-    // Scan Trunk first, then pockets
-    let trunkHas = scan(trunk);
-    let pocketsHas = scan(pockets);
+    // Scan Trunk AND Pockets
+    scan(trunk);
+    scan(pockets);
     
-    // Update Destination Display
+    // UI Elements
     const box = document.getElementById('dest-box');
     const txt = document.getElementById('disp-destination');
-    txt.innerText = destName;
+    const warningEl = document.getElementById('multi-warning');
     
-    if(trunkHas || pocketsHas) {
-        box.style.borderColor = "var(--green)";
-        box.style.background = "rgba(0, 230, 118, 0.1)";
-        txt.style.color = "var(--green)";
-        return true; // CARGO PRESENT
-    } else {
+    // Logic: Determine Destination
+    if (!cargoFound) {
+        txt.innerText = "Waiting for cargo...";
         box.style.borderColor = "var(--accent)";
         box.style.background = "rgba(255, 193, 7, 0.1)";
         txt.style.color = "#fff";
+        warningEl.style.display = "none";
         return false; // NO CARGO
     }
+
+    // Find the location with the HIGHEST quantity
+    const locations = Object.keys(cargoCounts);
+    let bestLoc = locations[0];
+    for (let loc of locations) {
+        if (cargoCounts[loc] > cargoCounts[bestLoc]) {
+            bestLoc = loc;
+        }
+    }
+
+    // Update Display
+    txt.innerText = `${bestLoc} - ${AIRPORTS[bestLoc]}`;
+    box.style.borderColor = "var(--green)";
+    box.style.background = "rgba(0, 230, 118, 0.1)";
+    txt.style.color = "var(--green)";
+
+    // WARNING LOGIC: Do we have multiple *different* destinations?
+    if (locations.length > 1) {
+        warningEl.style.display = "block";
+        warningEl.innerText = `⚠ Multiple Cargo Types ⚠`;
+    } else {
+        warningEl.style.display = "none";
+    }
+
+    return true; // CARGO PRESENT
 }
 
 function updateRunLogic(currentXP, hasCargo) {
-    // Initialize if first load
     if (STATE.currentXP === 0) STATE.currentXP = currentXP;
 
     // A. DETECT START OF RUN
-    // If we have cargo, and run is NOT active, start it.
     if (hasCargo && !STATE.runActive) {
         STATE.runActive = true;
         STATE.runStartXP = currentXP;
@@ -431,22 +478,17 @@ function updateRunLogic(currentXP, hasCargo) {
 
     // B. TRACK XP DURING RUN
     if (STATE.runActive) {
-        // Calculate gain since start of this specific flight
         if (currentXP > STATE.runStartXP) {
             STATE.currentRunGain = currentXP - STATE.runStartXP;
         }
     }
 
     // C. DETECT END OF RUN (Delivery)
-    // If run was active, but cargo is gone, flight is done.
     if (!hasCargo && STATE.runActive) {
-        // Wait a tick? No, assume done.
-        // Add this run's total to history
         STATE.completedRuns++;
         STATE.totalRunXP += STATE.currentRunGain;
         STATE.avgRunXP = STATE.totalRunXP / STATE.completedRuns;
         
-        // Reset Run State
         STATE.runActive = false;
         STATE.currentRunGain = 0;
     }
@@ -513,7 +555,6 @@ function runCalculator() {
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
-        // Use Average Flight XP for estimation
         const ops = Math.ceil(diff / STATE.avgRunXP);
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(ops)}</b></span>`;
     } else {
