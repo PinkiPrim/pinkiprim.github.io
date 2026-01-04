@@ -102,6 +102,17 @@
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
         
+        /* QUICK BUTTONS */
+        .quick-btn-row {
+            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
+        }
+        .quick-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
+        }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
         #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
 </head>
@@ -163,6 +174,13 @@
         <div class="section" style="border:none;">
             <div class="label">Target Calculator</div>
             <input type="number" id="target-input" placeholder="e.g. 100000">
+            
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+
             <div class="calc-output" id="calc-result">Start hunting to enable calculator...</div>
         </div>
 
@@ -359,6 +377,11 @@
     const calcInput = document.getElementById('target-input');
     if(calcInput) calcInput.addEventListener('input', runCalculator);
 
+    function setCalc(amount) {
+        document.getElementById('target-input').value = amount;
+        runCalculator();
+    }
+
     function runCalculator() {
         const val = document.getElementById('target-input').value;
         const el = document.getElementById('calc-result');
@@ -413,7 +436,7 @@
         if (rh) {
             function startResize(clientX, clientY, e) {
                 if (e) { e.preventDefault(); e.stopPropagation(); }
-                resizing = true; sx = clientX; sy = clientY;
+                resizing = true; sx = e.clientX; sy = e.clientY;
                 const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
             }
             rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
@@ -453,4 +476,5 @@
     })();
 </script>
 </body>
+
 </html>
