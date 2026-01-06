@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Persistent</title>
+    <title>Dirty Deals - Full Feature</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -10,6 +10,11 @@
             --accent: #5e6bf6; --accent-hover: #4b56c4;
             --bg-glass: #121212; --bg-card: #1e1e1e;
             --border: 1px solid #333; --text-main: #ffffff; --text-dim: #888888;
+            /* High Contrast Status Colors */
+            --st-pending: #f1c40f; 
+            --st-accepted: #3498db; 
+            --st-denied: #e74c3c; 
+            --st-completed: #2ecc71;
         }
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
@@ -27,12 +32,10 @@
             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
 
-        /* STATUS INDICATOR (Top Right) */
+        /* STATUS INDICATOR */
         .status-box { text-align: right; transition: all 0.3s ease; }
         .user-name { font-size: 0.9em; color: #fff; font-weight: bold; }
         .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
-        
-        /* Green flash animation when connected */
         @keyframes connectFlash { 0% { color: #fff; } 50% { color: #2ecc71; } 100% { color: #fff; } }
         .connected .user-name { animation: connectFlash 1s ease; color: #2ecc71; }
 
@@ -81,10 +84,37 @@
         .btn-order.active { opacity: 1; pointer-events: all; }
         .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; }
 
-        /* History & Grinder List */
+        /* LIST & CONTROLS */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; background: var(--st-pending); color: #111; }
+        .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
+        
+        .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .h-info { display: flex; flex-direction: column; }
+        .h-item { font-weight: bold; color: white; font-size: 1.1em; }
+        .h-sub { font-size: 0.85em; color: #888; }
+        
+        .status-badge { 
+            padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; 
+            text-transform: uppercase; color: #000; /* FORCE BLACK TEXT FOR CONTRAST */
+        }
+        .st-Pending { background: var(--st-pending); }
+        .st-Accepted { background: var(--st-accepted); color: white; }
+        .st-Denied { background: var(--st-denied); color: white; }
+        .st-Completed { background: var(--st-completed); }
+
+        .g-controls { display: flex; gap: 5px; margin-top: 8px; justify-content: flex-end; }
+        .g-btn { border: none; padding: 5px 10px; font-size: 0.75em; border-radius: 3px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .gb-accept { background: #2980b9; color: white; }
+        .gb-complete { background: #27ae60; color: white; }
+        .gb-chat { background: #555; color: white; }
+        .gb-accept:hover { background: #3498db; }
+
+        /* Chat Styles */
+        .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
+        .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; }
+        .chat-input-row { display: flex; gap: 5px; }
+        .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
+        .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -282,16 +312,11 @@
         state.username = name;
         state.userId = id;
         
-        // Visual Feedback that we are connected
-        var nameEl = document.getElementById('username-display');
-        var idEl = document.getElementById('userid-display');
-        
-        nameEl.innerText = state.username;
-        idEl.innerText = "ID: " + state.userId;
-        
+        // Visual Feedback
+        document.getElementById('username-display').innerText = state.username;
+        document.getElementById('userid-display').innerText = "ID: " + state.userId;
         document.getElementById('status-box').classList.add('connected');
 
-        // Stop nagging the game, we have the ID now
         if(pollingInterval) clearInterval(pollingInterval);
 
         // Check Hardcoded Grinder List
@@ -369,6 +394,9 @@
         var btns = document.querySelectorAll('.header-btn');
         for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
         document.getElementById('nav-' + view).classList.add('active');
+
+        if(view === 'history') fetchMyOrders();
+        if(view === 'grinder') fetchGlobalOrders();
     }
 
     // --- SEND LOGIC ---
@@ -427,10 +455,7 @@
     // --- HISTORY FETCH ---
     function fetchMyOrders() {
         var c = document.getElementById('history-container');
-        if(state.userId === "0") {
-            c.innerHTML = '<div style="padding:20px; text-align:center;">Waiting for ID...</div>';
-            return;
-        }
+        if(state.userId === "0") { c.innerHTML = '<div style="padding:20px; text-align:center;">Waiting for ID...</div>'; return; }
         c.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
         
         fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId)
@@ -439,11 +464,7 @@
             c.innerHTML = '';
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history found.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                var d = new Date(data[i].timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                var div = document.createElement('div');
-                div.className = "history-item";
-                div.innerHTML = '<div><div style="font-weight:bold; color:white;">'+data[i].item+' x'+data[i].qty+'</div><div style="font-size:0.8em; color:#888;">'+d+' • '+data[i].price+'</div></div><div class="status-badge st-'+data[i].status+'">'+data[i].status+'</div>';
-                c.appendChild(div);
+                c.appendChild(createOrderItem(data[i], false));
             }
         });
     }
@@ -456,13 +477,103 @@
         .then(function(data) {
             c.innerHTML = '';
             if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No pending jobs.</div>'; return; }
-            // Basic rendering for now to ensure stability
             for(var i=0; i<data.length; i++) {
-                var div = document.createElement('div');
-                div.className = "history-item";
-                div.innerHTML = '<div><div style="font-weight:bold; color:white;">'+data[i].item+' x'+data[i].qty+'</div><div style="font-size:0.8em; color:#888;">User: '+data[i].username+'</div></div><div class="status-badge st-'+data[i].status+'">'+data[i].status+'</div>';
-                c.appendChild(div);
+                c.appendChild(createOrderItem(data[i], true));
             }
+        });
+    }
+
+    // --- RENDER ORDER ITEM (FIXED BUTTON LOGIC) ---
+    function createOrderItem(o, isGrinderView) {
+        var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        var status = (o.status || 'Pending');
+        var chatLog = o.chat ? o.chat.split(" | ").join("\n") : "No messages.";
+        
+        // CONTROLS LOGIC
+        var controls = '';
+        if(isGrinderView) {
+            var normStatus = status.toLowerCase();
+            if(normStatus === 'pending') {
+                controls = '<button class="g-btn gb-accept">ACCEPT</button>';
+            } else if(normStatus === 'accepted' && o.grinder === state.username) {
+                controls = '<button class="g-btn gb-complete">COMPLETE</button>';
+            }
+        }
+
+        var chatBtnHTML = (status.toLowerCase() === 'accepted') ? '<button class="g-btn gb-chat">💬</button>' : '';
+
+        var div = document.createElement('div'); 
+        div.className = "history-item";
+        div.innerHTML = 
+            '<div class="h-top">' +
+                '<div class="h-info">' +
+                    '<span class="h-user">' + o.username + ' <span style="color:#555; font-weight:normal;">(' + o.userId + ')</span></span>' +
+                    '<span class="h-item">' + o.item + ' <span style="font-size:0.8em; color:#666;">x' + o.qty + '</span></span>' +
+                    '<span class="h-sub">' + o.price + ' ' + (o.grinder ? '<span style="color:#2ecc71">(Worker: '+o.grinder+')</span>' : '') + '</span>' +
+                '</div>' +
+                '<div style="text-align:right;">' +
+                    '<div class="status-badge st-' + status + '" style="margin-bottom:5px;">' + status + '</div>' +
+                    '<div class="g-controls">' + controls + chatBtnHTML + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="chat-area">' +
+                '<div class="chat-logs">' + chatLog + '</div>' +
+                '<div class="chat-input-row">' +
+                    '<input type="text" class="chat-input" placeholder="Type message...">' +
+                    '<button class="chat-send">SEND</button>' +
+                '</div>' +
+            '</div>';
+
+        // LISTENERS
+        var acceptBtn = div.querySelector('.gb-accept');
+        if(acceptBtn) acceptBtn.onclick = function() { updateOrderStatus(o.timestamp, o.userId, 'Accepted'); };
+        
+        var compBtn = div.querySelector('.gb-complete');
+        if(compBtn) compBtn.onclick = function() { updateOrderStatus(o.timestamp, o.userId, 'Completed'); };
+
+        var chatBtn = div.querySelector('.gb-chat');
+        if(chatBtn) {
+            var chatArea = div.querySelector('.chat-area');
+            chatBtn.onclick = function() { 
+                chatArea.style.display = (chatArea.style.display === 'block') ? 'none' : 'block'; 
+            };
+        }
+
+        var sendBtn = div.querySelector('.chat-send');
+        if(sendBtn) {
+            var input = div.querySelector('.chat-input');
+            sendBtn.onclick = function() {
+                if(!input.value) return;
+                sendChatMessage(o.timestamp, o.userId, input.value);
+                input.value = "Sending...";
+            };
+        }
+
+        return div;
+    }
+
+    function updateOrderStatus(ts, uid, status) {
+        var payload = {
+            action: "updateOrder", orderTimestamp: ts, orderUserId: uid,
+            newStatus: status, grinderName: state.username
+        };
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).then(function() { setTimeout(fetchGlobalOrders, 1000); });
+    }
+
+    function sendChatMessage(ts, uid, msg) {
+        var payload = {
+            action: "sendMessage", orderTimestamp: ts, orderUserId: uid,
+            sender: state.username, message: msg
+        };
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).then(function() { 
+            if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders();
+            else fetchGlobalOrders();
         });
     }
 
