@@ -2,27 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Order Dashboard</title>
+    <title>Dirty Deals Tool</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Purple/Blue Accent */
+            /* Theme Colors */
             --accent: #5e6bf6; 
             --accent-hover: #4b56c4;
-            --bg-body: rgba(0,0,0,0); /* Transparent background for game */
-            --bg-glass: #121212;       /* Solid dark background */
+            --bg-glass: #121212;
             --bg-card: #1e1e1e;
             --border: 1px solid #333;
             --text-main: #ffffff;
             --text-dim: #888888;
         }
 
-        /* GLOBAL RESET to fix layout issues */
-        * {
-            box-sizing: border-box;
-            user-select: none;
-        }
+        * { box-sizing: border-box; user-select: none; }
 
         body {
             margin: 0; padding: 0;
@@ -38,11 +33,11 @@
             position: absolute;
             top: 50px; left: 50px;
             width: 760px; 
-            height: 550px; /* INCREASED HEIGHT to fix cut-off button */
+            height: 550px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.9);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.95);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -53,7 +48,7 @@
         header {
             background: #181818;
             padding: 15px 20px;
-            cursor: move; /* Shows drag cursor */
+            cursor: move;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -69,15 +64,15 @@
         /* --- LAYOUT --- */
         #main-content {
             display: flex;
-            flex: 1; /* Takes remaining height */
-            overflow: hidden; /* Prevents outer scroll */
+            flex: 1;
+            overflow: hidden;
         }
 
         /* LEFT: ITEM GRID */
         .selection-area {
             flex: 2;
             padding: 20px;
-            overflow-y: auto; /* Internal scroll only */
+            overflow-y: auto;
             border-right: var(--border);
             background: #141414;
         }
@@ -169,18 +164,22 @@
 
         /* Total Price */
         .total-box {
-            margin-top: auto; /* Pushes to bottom */
+            margin-top: auto;
             text-align: right;
             border-top: 1px solid #333;
             padding-top: 15px;
             margin-bottom: 10px;
+            overflow: hidden; 
         }
         .total-label { font-size: 0.8em; color: var(--text-dim); }
+        
         .total-price { 
             font-size: 2em; 
             font-weight: 700; 
             color: var(--text-main); 
             font-family: 'Rajdhani', sans-serif; 
+            white-space: nowrap; 
+            transition: font-size 0.2s ease;
         }
 
         /* Order Button */
@@ -205,7 +204,6 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
 
     </style>
 </head>
@@ -215,7 +213,7 @@
     <header id="drag-handle">
         <span style="display:flex; align-items:center; gap:10px;">
             <span style="color:var(--accent); font-size:1.2em;">📦</span> 
-            <span>Place New Order</span>
+            <span>Dirty Deals Ordering Tool</span>
         </span>
         <div style="text-align:right;">
             <div id="username-display" style="font-size:0.9em; color:#fff;">Wait...</div>
@@ -240,8 +238,8 @@
 
             <div class="input-group">
                 <div class="label">Quantity</div>
-                <input type="number" id="input-qty" value="1" min="1">
-                <input type="range" id="range-qty" min="1" max="5000" value="1">
+                <input type="number" id="input-qty" value="1" min="1" max="1000000">
+                <input type="range" id="range-qty" min="1" max="1000000" value="1">
             </div>
 
             <div class="input-group">
@@ -269,6 +267,7 @@
 <script>
     // --- 1. CONFIGURATION ---
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPJmoFYMVnKPX4gc9m66dfGfK28xavtDstfNoWLgP6HLSn0XzcAOJKQucxacVrMPb0/exec";
+    const MAX_QTY = 1000000;
 
     const ITEMS = [
         { id: 'airline', name: 'Airline', price: 6000, icon: '✈️' },
@@ -292,21 +291,16 @@
 
     // --- 2. INITIALIZATION ---
     window.onload = function() {
-        console.log("Dashboard Loading...");
         renderGrid();
         updateCalc();
-        
-        // Start Drag Logic
         initDrag();
-        
-        // Start Data Listener
         requestPlayerData();
         setInterval(requestPlayerData, 2000);
     };
 
     function renderGrid() {
         const container = document.getElementById('item-grid');
-        if(!container) return; // Safety check
+        if(!container) return;
         container.innerHTML = '';
 
         ITEMS.forEach(item => {
@@ -328,6 +322,7 @@
         document.getElementById('disp-item-name').value = item.name;
         document.getElementById('disp-item-name').style.color = "#fff";
         document.getElementById('status-msg').innerText = "Ready to order";
+        document.getElementById('status-msg').style.color = "#555";
         renderGrid(); 
         updateCalc();
     }
@@ -339,8 +334,10 @@
 
     if(qtyInput) {
         qtyInput.addEventListener('input', (e) => {
-            state.qty = parseInt(e.target.value) || 0;
-            if(rangeInput) rangeInput.value = state.qty > 5000 ? 5000 : state.qty; 
+            let val = parseInt(e.target.value) || 0;
+            if (val > MAX_QTY) val = MAX_QTY; 
+            state.qty = val;
+            if(rangeInput) rangeInput.value = state.qty; 
             updateCalc();
         });
     }
@@ -362,9 +359,10 @@
 
     function updateCalc() {
         const btn = document.getElementById('btn-submit');
+        const priceEl = document.getElementById('disp-total');
         
         if (!state.selectedItem) {
-            document.getElementById('disp-total').innerText = "$0";
+            priceEl.innerText = "$0";
             if(btn) btn.disabled = true;
             return;
         }
@@ -375,7 +373,17 @@
             base = base * 1.25; 
         }
 
-        document.getElementById('disp-total').innerText = "$" + Math.floor(base).toLocaleString();
+        const finalPrice = Math.floor(base);
+        const priceString = "$" + finalPrice.toLocaleString();
+        
+        const len = priceString.length;
+        if(len > 18) priceEl.style.fontSize = "1.0em";
+        else if(len > 15) priceEl.style.fontSize = "1.2em";
+        else if(len > 12) priceEl.style.fontSize = "1.5em";
+        else if(len > 9) priceEl.style.fontSize = "1.7em";
+        else priceEl.style.fontSize = "2em";
+
+        priceEl.innerText = priceString;
     }
 
     // --- 4. DATA COMMS ---
@@ -412,6 +420,14 @@
         const btn = document.getElementById('btn-submit');
         const status = document.getElementById('status-msg');
         
+        // --- NEW SECURITY CHECK ---
+        // If the username is still Unknown or Wait..., we block the request.
+        if (state.username === "Unknown" || state.username === "Wait...") {
+            status.innerText = "⚠️ Error: Identity Unknown. Cannot send.";
+            status.style.color = "#ff4444";
+            return; // STOP EXECUTION HERE
+        }
+
         btn.disabled = true;
         btn.innerText = "Processing...";
         status.innerText = "Sending to server...";
