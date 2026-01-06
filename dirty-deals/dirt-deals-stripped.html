@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Mode</title>
+    <style>
+        body { background-color: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; overflow: auto; }
+        h2 { border-bottom: 1px solid #0f0; padding-bottom: 5px; }
+        .log-entry { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; word-wrap: break-word; }
+        .timestamp { color: #888; font-size: 0.8em; }
+        #controls { margin-bottom: 20px; border: 1px solid #555; padding: 10px; }
+        button { background: #333; color: white; border: 1px solid #fff; padding: 5px 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h2>🛠️ CONNECTION DEBUGGER</h2>
+    <div id="controls">
+        <div id="status">Status: Waiting for game data...</div>
+        <br>
+        <button onclick="forceRequest()">FORCE REQUEST DATA</button>
+    </div>
+
+    <div id="logs"></div>
+
+    <script>
+        function log(msg, data) {
+            var logs = document.getElementById('logs');
+            var entry = document.createElement('div');
+            entry.className = "log-entry";
+            
+            var time = new Date().toLocaleTimeString();
+            var json = data ? JSON.stringify(data) : "";
+            
+            entry.innerHTML = `<span class="timestamp">[${time}]</span> <strong>${msg}</strong><br>${json}`;
+            logs.prepend(entry);
+        }
+
+        // 1. LISTEN FOR EVERYTHING
+        window.addEventListener('message', function(event) {
+            var raw = event.data;
+            document.getElementById('status').innerText = "Status: DATA RECEIVED!";
+            document.getElementById('status').style.color = "#0f0";
+            
+            // Log the structure so we can see where the ID is hiding
+            log("Received Message Type: " + (raw.type || "No Type"), raw);
+        });
+
+        // 2. REQUEST DATA ON LOAD
+        window.onload = function() {
+            log("Tool Loaded. Requesting Data...");
+            forceRequest();
+            
+            // Try again in 2 seconds just in case
+            setTimeout(forceRequest, 2000);
+        };
+
+        function forceRequest() {
+            // Method A: Standard NUI
+            if(window.parent) {
+                window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
+            }
+            
+            // Method B: Fetch (For QBCore/ESX sometimes)
+            try {
+                // We don't know the resource name, so this might fail, but worth a try
+                fetch(`https://${GetParentResourceName()}/getPlayerData`, { method: 'POST' }).catch(err => {});
+            } catch(e) {}
+        }
+    </script>
+
+</body>
+</html>
