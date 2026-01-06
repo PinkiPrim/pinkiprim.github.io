@@ -45,11 +45,12 @@
         /* --- LOADING OVERLAY --- */
         #loading-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #121212; z-index: 5000;
+            background: rgba(18, 18, 18, 0.95); z-index: 5000;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             transition: opacity 0.5s ease;
             text-align: center;
+            pointer-events: all;
         }
         .spinner {
             border: 4px solid rgba(255,255,255,0.1);
@@ -208,58 +209,49 @@
     <script>
         // CONFIG
         var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-        // NOTE: These must be strings. The scanner will convert IDs to strings to match these.
-        var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
         
         var state = {
             currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
             username: "Unknown", playerId: "0", isGrinder: false
         };
 
-        // --- NEW: THE DEEP DATA SCANNER ---
+        var pollingInterval = null;
+
+        // --- SAFE DATA LISTENER ---
         window.addEventListener('message', function(event) {
-            // Get the raw message
             var msg = event.data;
             if(!msg) return;
 
-            // Debug logic to see what is arriving (optional, helps visualization)
+            // Debug logic to see what is arriving
             var subText = document.getElementById('loading-sub');
             if(subText && msg.type) {
-               subText.innerText = "Scanning: " + msg.type;
+               subText.innerText = "Received: " + msg.type;
             }
 
-            // Function to recursively find 'user_id' in an object
-            // This handles { user_id: 123 } AND { data: { user_id: 123 } } AND { payload: { data: { user_id: 123 } } }
-            function scanForId(obj, depth) {
-                if(depth > 3 || !obj || typeof obj !== 'object') return;
-                
-                if(obj.user_id) {
-                    var foundName = obj.name || obj.player || "Guest";
-                    foundIdentity(foundName, obj.user_id);
-                    return;
-                }
-                
-                // If not found at this level, check children (data, payload)
-                if(obj.data) scanForId(obj.data, depth + 1);
-                if(obj.payload) scanForId(obj.payload, depth + 1);
+            // 1. Direct Root Check (Based on your dump: { user_id: 123, ... })
+            if (msg.user_id) {
+                foundIdentity(msg.name || "Guest", msg.user_id);
+                return;
             }
 
-            // Start the scan
-            scanForId(msg, 0);
+            // 2. Wrapped "data" Check (Standard NUI: { data: { user_id: 123 } })
+            if (msg.data && msg.data.user_id) {
+                foundIdentity(msg.data.name || "Guest", msg.data.user_id);
+                return;
+            }
         });
 
         function foundIdentity(name, id) {
             if (state.playerId !== "0") return; // Already loaded and locked
 
-            // CRITICAL FIX: Convert ID to string immediately for comparison
             state.username = name;
-            state.playerId = String(id); 
+            state.playerId = String(id); // Force string for safety
 
             // Update UI
             document.getElementById('username-display').innerText = state.username;
             document.getElementById('userid-display').innerText = "ID: " + state.playerId;
 
-            // VISUAL CONFIRMATION (Green Text)
+            // SUCCESS VISUALS
             var title = document.getElementById('loading-title');
             var sub = document.getElementById('loading-sub');
             var spin = document.getElementById('loader-spinner');
@@ -269,16 +261,16 @@
                 title.style.color = "#2ecc71";
             }
             if(sub) sub.innerText = "ID: " + state.playerId;
-            if(spin) spin.style.borderColor = "#2ecc71"; // Turn spinner green
+            if(spin) spin.style.borderColor = "#2ecc71";
 
-            // Stop the backup polling
+            // Stop polling
             if(pollingInterval) clearInterval(pollingInterval);
 
-            // Check permissions with the newly found String ID
+            // AUTH CHECK (Google Sheet)
             checkGrinderPermissionLoop();
 
-            // Wait 1.5s so they can see the name, then fade out
-            setTimeout(hideLoadingScreen, 1500);
+            // Fade out
+            setTimeout(hideLoadingScreen, 1000);
         }
 
         // ... Rest of scripts ...
@@ -377,19 +369,83 @@
 <script>
     // --- REST OF SCRIPT ---
     
-    var pollingInterval = null;
+    // --- DATA ---
+    var CATEGORIES = {
+        "Bonus EXP": [
+            { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
+            { name: "Business XP", price: 3900, limit: 20000, icon: "💼" },
+            { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" },
+            { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" },
+            { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" },
+            { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" },
+            { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" },
+            { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" },
+            { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" },
+            { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" },
+            { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" },
+            { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" },
+            { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" },
+            { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" },
+            { name: "Player XP", price: 500, limit: 50000, icon: "🧍" },
+            { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" },
+            { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" },
+            { name: "Strength XP", price: 500, limit: 50000, icon: "💪" },
+            { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" }
+        ],
+        "Raw Materials": [
+            { name: "Acid", price: 12000, limit: 1500, icon: "🧪" },
+            { name: "Batteries", price: 160000, limit: 500, icon: "🔋" },
+            { name: "Bronze Alloy", price: 45000, limit: 500, icon: "🥉" },
+            { name: "Cement Mix", price: 95000, limit: 2000, icon: "🏗️" },
+            { name: "Ceramic Tiles", price: 85000, limit: 500, icon: "⬜" },
+            { name: "Copper Vouchers", price: 22000, limit: 1000, icon: "🎫" },
+            { name: "Explosives", price: 1000000, limit: 50, icon: "💣" },
+            { name: "Flint", price: 12000, limit: 2500, icon: "🪨" },
+            { name: "Iron Vouchers", price: 18000, limit: 1000, icon: "🎫" },
+            { name: "Kerosene", price: 100000, limit: 500, icon: "🛢️" },
+            { name: "Planks", price: 55000, limit: 1000, icon: "🪵" },
+            { name: "Raw Ore Mix", price: 2500, limit: 1000, icon: "⛰️" },
+            { name: "Refined Amalgam", price: 174000, limit: 1000, icon: "💎" },
+            { name: "Refined Copper", price: 20000, limit: 800, icon: "🟧" },
+            { name: "Refined Solder", price: 60000, limit: 500, icon: "🔌" },
+            { name: "Refined Tin", price: 65000, limit: 500, icon: "🥫" },
+            { name: "Refined Zinc", price: 14000, limit: 800, icon: "🔋" },
+            { name: "Rubber", price: 168000, limit: 250, icon: "⚫" },
+            { name: "Sand", price: 13000, limit: 10000, icon: "⏳" },
+            { name: "Sawdust", price: 3000, limit: 10000, icon: "🪚" },
+            { name: "Scrap Aluminum", price: 8000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Copper", price: 11200, limit: 1000, icon: "🗑️" },
+            { name: "Scrap Gold", price: 55000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Lead", price: 13000, limit: 800, icon: "🗑️" },
+            { name: "Scrap Mercury", price: 65000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Plastic", price: 5000, limit: 2000, icon: "🥤" },
+            { name: "Scrap Tin", price: 32000, limit: 1000, icon: "🗑️" },
+            { name: "Sulfur", price: 30000, limit: 1000, icon: "🔥" },
+            { name: "Treated Water", price: 130000, limit: 500, icon: "💧" },
+            { name: "Waste Water", price: 70000, limit: 500, icon: "🚽" }
+        ],
+        "Product": [
+            { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" },
+            { name: "Concrete", price: 850000, limit: 500, icon: "🧱" },
+            { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" },
+            { name: "Pills", price: 250000, limit: 250, icon: "💊" },
+            { name: "Fish", price: 650, limit: 250000, icon: "🐟" },
+            { name: "Meat", price: 1000, limit: 1000, icon: "🍖" }
+        ]
+    };
 
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
         
+        // IMMEDIATE GRID RENDER (No waiting)
+        renderGrid();
+
         requestPlayerData();
         // Keep checking for the ID actively
-        pollingInterval = setInterval(requestPlayerData, 500); 
+        pollingInterval = setInterval(requestPlayerData, 250); 
         
-        checkGrinderPermissionLoop();
-
-        // SAFETY: Show error if connection fails after 5 seconds
+        // SAFETY: Show error if connection fails after 3.5 seconds
         setTimeout(function() {
             if (state.playerId === "0") {
                 var textEl = document.getElementById('loading-title');
@@ -397,15 +453,18 @@
                 var spinEl = document.getElementById('loader-spinner');
                 
                 if(textEl) {
-                    textEl.innerHTML = "CONNECTION FAILED";
+                    textEl.innerHTML = "LOADING FAILED";
                     textEl.style.color = "#ff4444";
                 }
                 if(subEl) {
-                    subEl.innerHTML = "Could not find Player ID.<br>Try closing and reopening the tool.";
+                    subEl.innerHTML = "Closing in 2 seconds...<br>Please reopen the tool.";
                 }
                 if(spinEl) spinEl.style.display = 'none';
+
+                // Allow guest access anyway after short error display
+                setTimeout(hideLoadingScreen, 2000);
             }
-        }, 5000);
+        }, 3500);
     };
 
     function hideLoadingScreen() {
@@ -449,6 +508,8 @@
 
     function renderGrid() {
         var container = document.getElementById('item-grid'); 
+        if(!container) return; // Safety check
+        
         container.innerHTML = '';
         var items = CATEGORIES[state.currentCategory];
         if(items) {
@@ -518,10 +579,7 @@
         if(state.isGrinder) return;
         if(state.playerId === "0") return; 
         
-        // 1. HARDCODED CHECK (String Comparison)
-        if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
-        
-        // 2. GOOGLE CHECK
+        // GOOGLE CHECK
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
