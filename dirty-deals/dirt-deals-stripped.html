@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Brick 3.5 (Send Only)</title>
+    <title>Dirty Deals - Instant Access</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -20,24 +20,21 @@
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); display: flex; flex-direction: column; overflow: hidden; z-index: 1000;
         }
 
-        #loading-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #121212; z-index: 5000; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; transition: opacity 0.5s ease;
-        }
-        .spinner {
-            border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent);
-            border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; margin-bottom: 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.5em; color: #fff; letter-spacing: 1px; }
-
+        /* --- HEADER --- */
         header {
             background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between;
             align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
 
+        /* STATUS INDICATOR (Top Right) */
+        .status-box { text-align: right; }
+        .user-name { font-size: 0.9em; color: #fff; font-weight: bold; }
+        .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #555; margin-right: 5px; }
+        .status-dot.online { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+
+        /* --- LAYOUT --- */
         #main-content { display: flex; flex: 1; overflow: hidden; }
 
         .selection-area {
@@ -99,9 +96,10 @@
         .btn-order {
             background: var(--accent); color: white; border: none; width: 100%; padding: 15px;
             border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase;
-            cursor: pointer; opacity: 0.5; pointer-events: none;
+            cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s;
         }
         .btn-order.active { opacity: 1; pointer-events: all; }
+        .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
@@ -112,19 +110,15 @@
 <body>
 
 <div id="app-container">
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text" id="status-text">CONNECTING...</div>
-    </div>
-
     <header id="drag-handle">
         <span style="display:flex; align-items:center; gap:10px;">
             <img src="https://files.catbox.moe/u9bulk.png" alt="Logo" style="height: 35px; width: auto;">
             <span>Dirty Deals</span>
         </span>
-        <div style="text-align:right;">
-            <div id="username-display" style="font-size:0.9em; color:#fff;">...</div>
-            <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
+        
+        <div class="status-box">
+            <div class="user-name"><span class="status-dot" id="conn-dot"></span> <span id="username-display">Guest</span></div>
+            <div class="user-id" id="userid-display">ID: --</div>
         </div>
     </header>
 
@@ -164,14 +158,14 @@
             </div>
             <div>
                 <button class="btn-order" id="btn-submit" onclick="submitRealOrder()">CONFIRM ORDER</button>
-                <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;"></div>
+                <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;">Waiting for item selection...</div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- GOOGLE CONFIG ---
+    // --- GOOGLE SHEET CONFIG ---
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
 
     // --- DATA ---
@@ -239,32 +233,29 @@
         ]
     };
 
-    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Unknown", userId: "0" };
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0" };
 
+    // --- INIT ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
-        
-        // IMMEDIATE RENDER
         renderGrid();
-
-        // CONNECTION START
+        
+        // Start Silent Connection
         requestData();
-        setInterval(requestData, 2000); // 2 Second polling
-
-        // SAFETY: FORCE ENTRY AFTER 3s
-        setTimeout(function() {
-            if(state.userId === "0") updateInterface("Guest", "0");
-        }, 3000);
+        setInterval(requestData, 2000); 
     };
 
-    // --- CONNECTION ---
+    // --- SILENT CONNECTION LISTENER ---
     window.addEventListener('message', function(event) {
         var payload = event.data;
-        if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+        if (payload && payload.type === 'data' && payload.data) {
+            payload = payload.data;
+        }
         if (!payload) return;
 
-        var username = "Unknown";
+        // Check Names/IDs
+        var username = null;
         if (payload.name) username = payload.name;
         else if (payload.player && payload.player.name) username = payload.player.name;
         else if (typeof payload.player === 'string') username = payload.player;
@@ -275,22 +266,15 @@
         else if (payload.id) userId = String(payload.id);
 
         if (userId !== "0" && state.userId === "0") {
-            updateInterface(username, userId);
+            state.username = username || "Unknown";
+            state.userId = userId;
+            
+            // Update UI (Green Dot)
+            document.getElementById('username-display').innerText = state.username;
+            document.getElementById('userid-display').innerText = "ID: " + state.userId;
+            document.getElementById('conn-dot').classList.add('online');
         }
     });
-
-    function updateInterface(name, id) {
-        state.username = name;
-        state.userId = id;
-        document.getElementById('username-display').innerText = name;
-        document.getElementById('userid-display').innerText = "ID: " + id;
-        
-        var overlay = document.getElementById('loading-overlay');
-        if(overlay && overlay.style.opacity !== '0') {
-            overlay.style.opacity = '0';
-            setTimeout(() => { overlay.style.display = 'none'; }, 500);
-        }
-    }
 
     function requestData() {
         if(window.parent) {
@@ -333,6 +317,7 @@
         document.getElementById('input-qty').max = item.limit;
         document.getElementById('range-qty').max = item.limit;
         document.getElementById('btn-submit').classList.add('active');
+        document.getElementById('status-msg').innerText = "Ready to order.";
         renderGrid();
         updateCalc();
     }
@@ -351,15 +336,21 @@
         document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
     }
 
-    // --- SEND ORDER LOGIC (Brick 3.5 Feature) ---
+    // --- SEND ORDER ---
     function submitRealOrder() {
         var btn = document.getElementById('btn-submit');
         var msg = document.getElementById('status-msg');
-        var total = document.getElementById('disp-total').innerText;
+        
+        if(state.userId === "0") {
+            msg.innerText = "WAIT! Still connecting to city...";
+            msg.style.color = "#e74c3c";
+            return;
+        }
 
         btn.disabled = true;
         btn.innerText = "SENDING...";
         msg.innerText = "Contacting server...";
+        msg.style.color = "#555";
 
         var payload = {
             action: "placeOrder",
@@ -367,9 +358,9 @@
             userId: state.userId,
             category: state.category,
             item: state.item.name,
-            quantity: state.qty,
+            quantity: document.getElementById('input-qty').value,
             priority: document.getElementById('input-priority').value,
-            totalPrice: total
+            totalPrice: document.getElementById('disp-total').innerText
         };
 
         fetch(GOOGLE_SCRIPT_URL, {
@@ -386,13 +377,14 @@
             setTimeout(function() {
                 btn.disabled = false;
                 btn.innerText = "CONFIRM ORDER";
-                msg.innerText = "";
+                msg.innerText = "Ready for next order.";
+                msg.style.color = "#555";
             }, 3000);
         })
         .catch(function(err) {
             btn.innerText = "ERROR";
-            msg.innerText = "Failed to send.";
-            msg.style.color = "red";
+            msg.innerText = "Failed to send (Network).";
+            msg.style.color = "#e74c3c";
             setTimeout(function() { btn.disabled = false; }, 2000);
         });
     }
