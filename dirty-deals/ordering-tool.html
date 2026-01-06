@@ -45,25 +45,23 @@
         /* --- LOADING OVERLAY --- */
         #loading-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(18, 18, 18, 0.95); z-index: 5000;
+            background: #121212; z-index: 2000;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             transition: opacity 0.5s ease;
             text-align: center;
-            pointer-events: all;
+            pointer-events: none; /* Allow clicks through if stuck invisible */
         }
         .spinner {
             border: 4px solid rgba(255,255,255,0.1);
             border-left-color: var(--accent);
             border-radius: 50%;
-            width: 50px; height: 50px;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 20px;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .loading-title { font-family: 'Rajdhani', sans-serif; font-size: 2em; color: #fff; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
-        .loading-sub { font-family: 'Roboto', sans-serif; font-size: 1em; color: #888; font-family: monospace; }
+        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; color: #fff; letter-spacing: 1px; padding: 0 20px; line-height: 1.5; }
 
         /* --- HEADER --- */
         header {
@@ -205,84 +203,13 @@
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
     </style>
-    
-    <script>
-        // CONFIG
-        var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-        
-        var state = {
-            currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
-            username: "Unknown", playerId: "0", isGrinder: false
-        };
-
-        var pollingInterval = null;
-
-        // --- SAFE DATA LISTENER ---
-        window.addEventListener('message', function(event) {
-            var msg = event.data;
-            if(!msg) return;
-
-            // Debug logic to see what is arriving
-            var subText = document.getElementById('loading-sub');
-            if(subText && msg.type) {
-               subText.innerText = "Received: " + msg.type;
-            }
-
-            // 1. Direct Root Check (Based on your dump: { user_id: 123, ... })
-            if (msg.user_id) {
-                foundIdentity(msg.name || "Guest", msg.user_id);
-                return;
-            }
-
-            // 2. Wrapped "data" Check (Standard NUI: { data: { user_id: 123 } })
-            if (msg.data && msg.data.user_id) {
-                foundIdentity(msg.data.name || "Guest", msg.data.user_id);
-                return;
-            }
-        });
-
-        function foundIdentity(name, id) {
-            if (state.playerId !== "0") return; // Already loaded and locked
-
-            state.username = name;
-            state.playerId = String(id); // Force string for safety
-
-            // Update UI
-            document.getElementById('username-display').innerText = state.username;
-            document.getElementById('userid-display').innerText = "ID: " + state.playerId;
-
-            // SUCCESS VISUALS
-            var title = document.getElementById('loading-title');
-            var sub = document.getElementById('loading-sub');
-            var spin = document.getElementById('loader-spinner');
-            
-            if(title) {
-                title.innerText = "WELCOME, " + state.username.toUpperCase();
-                title.style.color = "#2ecc71";
-            }
-            if(sub) sub.innerText = "ID: " + state.playerId;
-            if(spin) spin.style.borderColor = "#2ecc71";
-
-            // Stop polling
-            if(pollingInterval) clearInterval(pollingInterval);
-
-            // AUTH CHECK (Google Sheet)
-            checkGrinderPermissionLoop();
-
-            // Fade out
-            setTimeout(hideLoadingScreen, 1000);
-        }
-
-        // ... Rest of scripts ...
-    </script>
 </head>
 <body>
 
 <div id="app-container">
     <div id="loading-overlay">
         <div class="spinner" id="loader-spinner"></div>
-        <div class="loading-title" id="loading-title">CONNECTING...</div>
-        <div class="loading-sub" id="loading-sub">Waiting for game data...</div>
+        <div class="loading-text" id="loader-text">CONNECTING TO CITY DATABASE...</div>
     </div>
 
     <header id="drag-handle">
@@ -297,12 +224,13 @@
         </span>
         
         <div style="text-align:right;">
-            <div id="username-display" style="font-size:0.9em; color:#fff;">...</div>
+            <div id="username-display" style="font-size:0.9em; color:#fff;">Connecting...</div>
             <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
         </div>
     </header>
 
     <div id="main-content">
+        
         <div id="view-order">
             <div class="selection-area">
                 <div class="category-tabs">
@@ -310,11 +238,14 @@
                     <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
                     <div class="tab-btn" onclick="setCategory('Product')">Product</div>
                 </div>
+
                 <div class="section-title">Select Item</div>
+                
                 <div class="grid-wrapper">
                     <div class="grid-container" id="item-grid"></div>
                 </div>
             </div>
+
             <div class="details-area">
                 <div class="input-group">
                     <div class="label">Selected Item</div>
@@ -363,11 +294,13 @@
                 <div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div>
             </div>
         </div>
+
     </div>
 </div>
 
 <script>
-    // --- REST OF SCRIPT ---
+    // --- 1. CONFIGURATION ---
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
     
     // --- DATA ---
     var CATEGORIES = {
@@ -434,47 +367,80 @@
         ]
     };
 
+    var state = {
+        currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
+        username: "Unknown", playerId: "0", isGrinder: false
+    };
+
+    var pollingInterval = null;
+
+    // --- 2. INITIALIZATION ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
         
-        // IMMEDIATE GRID RENDER (No waiting)
-        renderGrid();
-
+        // IMMEDIATE: Start scanning for data
         requestPlayerData();
-        // Keep checking for the ID actively
-        pollingInterval = setInterval(requestPlayerData, 250); 
+        // BACKUP: Retry every 500ms
+        pollingInterval = setInterval(requestPlayerData, 500); 
         
-        // SAFETY: Show error if connection fails after 3.5 seconds
+        // SAFETY: If stuck for 3 seconds, let them in as Guest so menu is usable
         setTimeout(function() {
-            if (state.playerId === "0") {
-                var textEl = document.getElementById('loading-title');
-                var subEl = document.getElementById('loading-sub');
-                var spinEl = document.getElementById('loader-spinner');
-                
-                if(textEl) {
-                    textEl.innerHTML = "LOADING FAILED";
-                    textEl.style.color = "#ff4444";
-                }
-                if(subEl) {
-                    subEl.innerHTML = "Closing in 2 seconds...<br>Please reopen the tool.";
-                }
-                if(spinEl) spinEl.style.display = 'none';
-
-                // Allow guest access anyway after short error display
-                setTimeout(hideLoadingScreen, 2000);
+            if(state.playerId === "0") {
+                foundIdentity("Guest", "0"); 
             }
-        }, 3500);
+        }, 3000);
     };
 
-    function hideLoadingScreen() {
+    // --- 3. DATA LISTENER (RESTORED LOGIC) ---
+    window.addEventListener('message', function(event) {
+        var msg = event.data;
+        
+        // Handling Different Data Wrappers from FiveM
+        if (msg.type === 'data' && msg.data) {
+            msg = msg.data;
+        }
+
+        // Check for User ID + Name
+        if (msg.user_id && msg.name) {
+            foundIdentity(msg.name, msg.user_id);
+        } else if (msg.player && msg.player_id) {
+            foundIdentity(msg.player, msg.player_id);
+        } else if (msg.id && msg.name) {
+            foundIdentity(msg.name, msg.id);
+        }
+    });
+
+    function foundIdentity(name, id) {
+        if (state.playerId !== "0" && state.playerId !== 0) return; // Already found real ID
+
+        state.username = name;
+        state.playerId = String(id); 
+
+        // Update UI
+        document.getElementById('username-display').innerText = state.username;
+        document.getElementById('userid-display').innerText = "ID: " + state.playerId;
+
+        // Hide Loader
         var loader = document.getElementById('loading-overlay');
-        if(loader && loader.style.opacity !== '0') {
+        if(loader) {
             loader.style.opacity = '0';
             setTimeout(function(){ loader.style.display = 'none'; }, 500);
         }
+
+        if(pollingInterval) clearInterval(pollingInterval);
+
+        // Check Permissions
+        checkGrinderPermissionLoop();
     }
 
+    function requestPlayerData() {
+        if(window.parent) {
+            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
+        }
+    }
+
+    // --- 4. VIEW SWITCHING ---
     function switchView(viewName) {
         var btns = document.querySelectorAll('.header-btn');
         for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
@@ -490,6 +456,7 @@
         if(viewName === 'grinder') fetchGlobalOrders();
     }
 
+    // --- 5. SELECTION & GRID ---
     function setCategory(catName) {
         state.currentCategory = catName; 
         state.selectedItem = null;
@@ -508,8 +475,6 @@
 
     function renderGrid() {
         var container = document.getElementById('item-grid'); 
-        if(!container) return; // Safety check
-        
         container.innerHTML = '';
         var items = CATEGORIES[state.currentCategory];
         if(items) {
@@ -566,20 +531,10 @@
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    function requestPlayerData() {
-        // NUI callbacks
-        if(window.parent) {
-            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
-        }
-        // Fallback for some frameworks
-        try { fetch(`https://${GetParentResourceName()}/getPlayerData`, { method: 'POST' }).catch(err => {}); } catch(e) {}
-    }
-
+    // --- 6. GRINDER AUTH & LOGIC ---
     function checkGrinderPermissionLoop() {
-        if(state.isGrinder) return;
-        if(state.playerId === "0") return; 
+        if(state.isGrinder || state.playerId === "0" || state.playerId === "Guest") return; 
         
-        // GOOGLE CHECK
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
@@ -614,7 +569,7 @@
         });
     }
 
-    // --- RENDER ORDER ITEM (Shared by History and Grinder) ---
+    // --- 7. HISTORY & ORDERS ---
     function createOrderItem(o, isGrinderView) {
         var grinderHTML = o.grinder ? '<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ' + o.grinder + ')</span>' : '';
         var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
