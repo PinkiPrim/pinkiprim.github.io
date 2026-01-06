@@ -203,6 +203,79 @@
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
     </style>
+    
+    <script>
+        // CONFIG
+        var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+        // NOTE: These match exactly what is in your data dump (numbers/strings handled below)
+        var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
+        
+        var state = {
+            currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
+            username: "Unknown", playerId: "0", isGrinder: false
+        };
+
+        var pollingInterval = null;
+
+        // --- FILTERED DATA LISTENER ---
+        window.addEventListener('message', function(event) {
+            var msg = event.data;
+            if(!msg) return;
+
+            // 1. FILTER OUT NOISE:
+            // - If type is 'data' BUT content is empty array -> IGNORE
+            if (msg.type === 'data' && Array.isArray(msg.data) && msg.data.length === 0) return;
+            
+            // - If data contains 'cam_heading' (camera spam) -> IGNORE
+            if (msg.data && msg.data.cam_heading) return;
+
+            // 2. CHECK FOR REAL DATA (User ID)
+            // Case A: { user_id: 123, ... }
+            if (msg.user_id) {
+                foundIdentity(msg.name || "Guest", msg.user_id);
+                return;
+            }
+
+            // Case B: { data: { user_id: 123, ... } }
+            if (msg.data && msg.data.user_id) {
+                foundIdentity(msg.data.name || "Guest", msg.data.user_id);
+                return;
+            }
+        });
+
+        function foundIdentity(name, id) {
+            if (state.playerId !== "0") return; // Already loaded and locked
+
+            // Convert to string to prevent mismatch
+            state.username = name;
+            state.playerId = String(id); 
+
+            // Update UI
+            document.getElementById('username-display').innerText = state.username;
+            document.getElementById('userid-display').innerText = "ID: " + state.playerId;
+
+            // Update Overlay Text
+            var title = document.querySelector('.loading-text');
+            if(title) {
+                title.innerText = "WELCOME, " + state.username.toUpperCase();
+                title.style.color = "#2ecc71";
+            }
+
+            // Stop backup polling
+            if(pollingInterval) clearInterval(pollingInterval);
+
+            // Check permissions
+            checkGrinderPermissionLoop();
+
+            // RENDER THE GRID NOW THAT WE ARE CONNECTED
+            renderGrid();
+
+            // Fade out
+            setTimeout(hideLoadingScreen, 1500);
+        }
+
+        // ... Rest of scripts ...
+    </script>
 </head>
 <body>
 
@@ -230,7 +303,6 @@
     </header>
 
     <div id="main-content">
-        
         <div id="view-order">
             <div class="selection-area">
                 <div class="category-tabs">
@@ -238,14 +310,11 @@
                     <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
                     <div class="tab-btn" onclick="setCategory('Product')">Product</div>
                 </div>
-
                 <div class="section-title">Select Item</div>
-                
                 <div class="grid-wrapper">
                     <div class="grid-container" id="item-grid"></div>
                 </div>
             </div>
-
             <div class="details-area">
                 <div class="input-group">
                     <div class="label">Selected Item</div>
@@ -294,13 +363,11 @@
                 <div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div>
             </div>
         </div>
-
     </div>
 </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+    // --- REST OF SCRIPT ---
     
     // --- DATA ---
     var CATEGORIES = {
@@ -367,94 +434,47 @@
         ]
     };
 
-    var state = {
-        currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
-        username: "Unknown", playerId: "0", isGrinder: false
-    };
-
-    var pollingInterval = null;
-
-    // --- 2. INITIALIZATION ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
         
-        // INSTANTLY RENDER GRID so user doesn't see blank screen
+        // IMMEDIATE GRID RENDER (No waiting)
         renderGrid();
 
         requestPlayerData();
-        // BACKUP POLLING: Using the exact method from the old script
-        pollingInterval = setInterval(requestPlayerData, 2000); 
+        // Keep checking for the ID actively
+        pollingInterval = setInterval(requestPlayerData, 500); 
         
-        // SAFETY: If stuck for 3 seconds, let them in as Guest so menu is usable
+        // SAFETY: Show error if connection fails after 3.5 seconds
         setTimeout(function() {
-            if(state.playerId === "0") {
-                foundIdentity("Guest", "0"); 
+            if (state.playerId === "0") {
+                var textEl = document.querySelector('.loading-text');
+                var spinEl = document.querySelector('.spinner');
+                
+                if(textEl) {
+                    textEl.innerHTML = "CONNECTION FAILED.<br>CLOSING IN 2 SECONDS...";
+                    textEl.style.color = "#ff4444";
+                }
+                if(spinEl) spinEl.style.display = 'none';
+
+                // Allow guest access anyway after short error display
+                setTimeout(function() {
+                    hideLoadingScreen();
+                    // Fallback to guest mode so UI is usable
+                    foundIdentity("Guest", "0");
+                }, 2000);
             }
-        }, 3000);
+        }, 3500);
     };
 
-    // --- 3. DATA LISTENER (RESTORED FROM OLD SCRIPT) ---
-    window.addEventListener('message', function(event) {
-        var payload = event.data;
-        
-        // Standard NUI wrapper check
-        if (payload && payload.type === 'data' && payload.data) {
-            payload = payload.data;
-        }
-        
-        if (!payload) return;
-
-        // Check for Name
-        if (payload.name) {
-            state.username = payload.name;
-        } else if (payload.player && payload.player.name) {
-            state.username = payload.player.name;
-        } else if (typeof payload.player === 'string') {
-            state.username = payload.player;
-        }
-
-        // Check for ID
-        if (payload.user_id) {
-            state.playerId = String(payload.user_id);
-        } else if (payload.player_id) {
-            state.playerId = String(payload.player_id);
-        } else if (payload.id) {
-            state.playerId = String(payload.id);
-        }
-
-        // If we found the ID, update UI and unlock everything
-        if (state.playerId !== "0") {
-            foundIdentity(state.username, state.playerId);
-        }
-    });
-
-    function foundIdentity(name, id) {
-        state.username = name;
-        state.playerId = id;
-
-        // Update Header
-        document.getElementById('username-display').innerText = state.username;
-        document.getElementById('userid-display').innerText = "ID: " + state.playerId;
-
-        // Hide Loader
+    function hideLoadingScreen() {
         var loader = document.getElementById('loading-overlay');
-        if(loader) {
+        if(loader && loader.style.opacity !== '0') {
             loader.style.opacity = '0';
             setTimeout(function(){ loader.style.display = 'none'; }, 500);
         }
-
-        // Check Permissions (Google Sheet)
-        checkGrinderPermissionLoop();
     }
 
-    function requestPlayerData() {
-        if(window.parent) {
-            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
-        }
-    }
-
-    // --- 4. VIEW SWITCHING ---
     function switchView(viewName) {
         var btns = document.querySelectorAll('.header-btn');
         for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
@@ -470,7 +490,6 @@
         if(viewName === 'grinder') fetchGlobalOrders();
     }
 
-    // --- 5. SELECTION & GRID ---
     function setCategory(catName) {
         state.currentCategory = catName; 
         state.selectedItem = null;
@@ -489,6 +508,8 @@
 
     function renderGrid() {
         var container = document.getElementById('item-grid'); 
+        if(!container) return; // Safety check
+        
         container.innerHTML = '';
         var items = CATEGORIES[state.currentCategory];
         if(items) {
@@ -545,10 +566,20 @@
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    // --- 6. GRINDER AUTH & LOGIC ---
+    function requestPlayerData() {
+        // NUI callbacks
+        if(window.parent) {
+            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
+        }
+        // Fallback for some frameworks
+        try { fetch(`https://${GetParentResourceName()}/getPlayerData`, { method: 'POST' }).catch(err => {}); } catch(e) {}
+    }
+
     function checkGrinderPermissionLoop() {
-        if(state.isGrinder || state.playerId === "0" || state.playerId === "Guest") return; 
+        if(state.isGrinder) return;
+        if(state.playerId === "0") return; 
         
+        // GOOGLE CHECK
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
@@ -583,7 +614,7 @@
         });
     }
 
-    // --- 7. HISTORY & ORDERS ---
+    // --- RENDER ORDER ITEM (Shared by History and Grinder) ---
     function createOrderItem(o, isGrinderView) {
         var grinderHTML = o.grinder ? '<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ' + o.grinder + ')</span>' : '';
         var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
