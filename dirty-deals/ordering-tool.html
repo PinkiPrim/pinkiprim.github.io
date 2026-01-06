@@ -32,7 +32,7 @@
             position: absolute;
             top: 50px; left: 50px;
             width: 760px; 
-            height: 580px; /* Slight height increase for comfort */
+            height: 580px; 
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -161,15 +161,13 @@
             width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer;
         }
 
-        /* Total Price (FIXED: Added min-height and flex-shrink) */
+        /* Total Price Box */
         .total-box {
             margin-top: auto; 
             text-align: right;
             border-top: 1px solid #333;
             padding-top: 10px;
             margin-bottom: 5px;
-            
-            /* The Fix: Force it to keep its space */
             flex-shrink: 0; 
             min-height: 80px; 
             display: flex;
@@ -180,12 +178,12 @@
         .total-label { font-size: 0.8em; color: var(--text-dim); margin-bottom: 5px; }
         
         .total-price { 
-            font-size: 2.2em; /* Slightly larger default */
+            font-size: 2.2em; 
             font-weight: 700; 
             color: var(--text-main); 
             font-family: 'Rajdhani', sans-serif; 
             white-space: nowrap; 
-            line-height: 1.1; /* Ensure text doesn't overlap lines */
+            line-height: 1.1; 
             transition: font-size 0.2s ease;
         }
 
@@ -203,7 +201,7 @@
             cursor: pointer;
             transition: 0.2s;
             letter-spacing: 1px;
-            flex-shrink: 0; /* Ensure button doesn't shrink either */
+            flex-shrink: 0; 
         }
         .btn-order:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(94, 107, 246, 0.4); }
         .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
@@ -395,12 +393,13 @@
         priceEl.innerText = priceString;
     }
 
-    // --- 4. DATA COMMS ---
+    // --- 4. DATA COMMS (FIXED KEYS) ---
     function requestPlayerData() {
         if(window.parent) {
+            // FIX: Using keys "name" and "user_id" based on data log
             window.parent.postMessage({ 
                 type: "getNamedData", 
-                keys: ["player", "player_id"] 
+                keys: ["name", "user_id"] 
             }, "*");
         }
     }
@@ -412,14 +411,15 @@
         }
         if (!payload) return;
 
-        if (payload.player) {
-            const name = typeof payload.player === 'object' ? (payload.player.name || "Player") : payload.player;
-            state.username = name;
+        // FIX: Looking for payload.name instead of payload.player
+        if (payload.name) {
+            state.username = payload.name;
             document.getElementById('username-display').innerText = state.username;
         }
 
-        if (payload.player_id) {
-            state.playerId = payload.player_id;
+        // FIX: Looking for payload.user_id instead of payload.player_id
+        if (payload.user_id) {
+            state.playerId = payload.user_id;
             document.getElementById('userid-display').innerText = "ID: " + state.playerId;
         }
     });
