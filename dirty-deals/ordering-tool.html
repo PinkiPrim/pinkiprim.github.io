@@ -331,8 +331,11 @@
 </div>
 
 <script>
-    // --- CONFIGURATION ---
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrcV5Y8uBVVlDgbD_UBiYnZqhEYhljdYkjy2i1pUvccbHkmpuFQbXOLfMvMxehqWrX/exec";
+    // --- 1. CONFIGURATION ---
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyPR3W9ZI8h3Z1f-Z7F7-Prf6at4D82IgQk1Eew0auy2hCV63fwDLakSAGGlsPvC-Y/exec";
+    
+    // --- ADD YOUR GRINDER IDs HERE (As text strings) ---
+    const AUTHORIZED_IDS = ["757858"]; 
 
     // --- DATA ---
     const CATEGORIES = {
@@ -408,7 +411,7 @@
         setCategory("Bonus EXP");
         initDrag();
         requestPlayerData();
-        setInterval(requestPlayerData, 2000); // Retry fetching ID every 2s
+        setInterval(requestPlayerData, 2000);
         setTimeout(checkGrinderStatus, 3000);
     };
 
@@ -447,18 +450,15 @@
         renderGrid();
     }
 
-    // --- GRINDER AUTH ---
+    // --- GRINDER AUTH (HARDCODED) ---
     function checkGrinderStatus() {
         if(state.playerId === "0") { setTimeout(checkGrinderStatus, 2000); return; }
         
-        fetch(`${GOOGLE_SCRIPT_URL}?action=checkAuth&userId=${state.playerId}`)
-        .then(r => r.json())
-        .then(data => {
-            if(data.authorized) {
-                state.isGrinder = true;
-                document.getElementById('nav-grinder').style.display = 'inline-block';
-            }
-        });
+        // This checks if the user's ID is in the AUTHORIZED_IDS list we made at the top
+        if(AUTHORIZED_IDS.includes(String(state.playerId))) {
+            state.isGrinder = true;
+            document.getElementById('nav-grinder').style.display = 'inline-block';
+        }
     }
 
     // --- GRINDER LOGIC ---
@@ -574,7 +574,7 @@
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    // --- KEY FIX: Request ALL possible keys to ensure we catch the right one ---
+    // --- Request ALL possible keys to ensure we catch the right one ---
     function requestPlayerData() {
         if(window.parent) {
             window.parent.postMessage({ 
@@ -585,7 +585,7 @@
         }
     }
 
-    // --- KEY FIX: Check ALL possible keys in the response ---
+    // --- Check ALL possible keys in the response ---
     window.addEventListener('message', (event) => {
         let p = event.data?.data || event.data;
         if(!p) return;
