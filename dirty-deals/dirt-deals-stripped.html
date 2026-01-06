@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Stable</title>
+    <title>Dirty Deals - Delayed Load</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -207,10 +207,9 @@
 </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-    
-    // --- DATA ---
+    var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
+
     var CATEGORIES = {
         "Bonus EXP": [
             { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
@@ -282,19 +281,15 @@
 
     var pollingInterval = null;
 
-    // --- 2. INITIALIZATION ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
-        
-        // IMMEDIATE RENDER
-        renderGrid();
+        renderGrid(); // IMMEDIATE UI
 
         requestPlayerData();
-        // BACKUP POLLING (2s) - Exact match from your working script
         pollingInterval = setInterval(requestPlayerData, 2000); 
         
-        // SAFETY: Fallback to Guest after 3s to remove overlay
+        // SAFETY: If stuck for 3 seconds, force entry
         setTimeout(function() {
             if(state.playerId === "0") {
                 foundIdentity("Guest", "0"); 
@@ -302,44 +297,38 @@
         }, 3000);
     };
 
-    // --- 3. DATA LISTENER (RESTORED FROM SUCCESSFUL TEST) ---
     window.addEventListener('message', function(event) {
         var payload = event.data;
-
-        // 1. Unwrap if nested in 'data' or 'type:data'
         if (payload && payload.type === 'data' && payload.data) {
             payload = payload.data;
         }
-
-        // 2. Validate Payload
         if (!payload) return;
 
-        // 3. Extract Name
-        var foundName = null;
-        if (payload.name) foundName = payload.name;
-        else if (payload.player && payload.player.name) foundName = payload.player.name;
-        else if (typeof payload.player === 'string') foundName = payload.player;
+        var username = "Unknown";
+        if (payload.name) username = payload.name;
+        else if (payload.player && payload.player.name) username = payload.player.name;
+        else if (typeof payload.player === 'string') username = payload.player;
 
-        // 4. Extract ID
-        var foundId = "0";
-        if (payload.user_id) foundId = String(payload.user_id);
-        else if (payload.player_id) foundId = String(payload.player_id);
-        else if (payload.id) foundId = String(payload.id);
+        var userId = "0";
+        if (payload.user_id) userId = String(payload.user_id);
+        else if (payload.player_id) userId = String(payload.player_id);
+        else if (payload.id) userId = String(payload.id);
 
-        // 5. Success Check
-        if (foundId !== "0" && state.playerId === "0") {
-            foundIdentity(foundName || "Unknown", foundId);
+        if (userId !== "0") {
+            foundIdentity(username, userId);
         }
     });
 
     function foundIdentity(name, id) {
+        if(state.playerId !== "0" && id === "0") return; // Don't overwrite real ID with Guest
+
         state.username = name;
         state.playerId = id;
 
         document.getElementById('username-display').innerText = state.username;
         document.getElementById('userid-display').innerText = "ID: " + state.playerId;
 
-        // Hide Loader
+        // UNLOCK UI
         var loader = document.getElementById('loading-overlay');
         if(loader) {
             loader.style.opacity = '0';
@@ -348,17 +337,18 @@
 
         if(pollingInterval) clearInterval(pollingInterval);
 
-        // Check Permissions (Google Sheet)
-        checkGrinderPermissionLoop();
+        // --- THE FIX: WAIT 6 SECONDS BEFORE TOUCHING GOOGLE ---
+        setTimeout(function() {
+            checkGrinderPermissionLoop();
+        }, 6000);
     }
 
     function requestPlayerData() {
         if(window.parent) {
-            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
+            window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
         }
     }
 
-    // --- 4. VIEW SWITCHING ---
     function switchView(viewName) {
         var btns = document.querySelectorAll('.header-btn');
         for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
@@ -374,7 +364,6 @@
         if(viewName === 'grinder') fetchGlobalOrders();
     }
 
-    // --- 5. SELECTION & GRID ---
     function setCategory(catName) {
         state.currentCategory = catName; 
         state.selectedItem = null;
@@ -450,10 +439,14 @@
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    // --- 6. GRINDER AUTH & LOGIC ---
+    // --- GOOGLE SHEETS LOGIC (DELAYED START) ---
     function checkGrinderPermissionLoop() {
         if(state.isGrinder || state.playerId === "0" || state.playerId === "Guest") return; 
         
+        // 1. HARDCODED CHECK (Instant)
+        if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
+        
+        // 2. GOOGLE CHECK (Fetched)
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
@@ -488,7 +481,6 @@
         });
     }
 
-    // --- 7. HISTORY & ORDERS ---
     function createOrderItem(o, isGrinderView) {
         var grinderHTML = o.grinder ? '<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ' + o.grinder + ')</span>' : '';
         var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -496,7 +488,6 @@
         
         var controls = '';
         if(isGrinderView) {
-            // NO DENY BUTTON HERE - ONLY ACCEPT/COMPLETE
             if(o.status === 'Pending') {
                 controls = '<button class="g-btn gb-accept">ACCEPT</button>';
             } else if(o.status === 'Accepted' && o.grinder === state.username) {
@@ -504,7 +495,6 @@
             }
         }
 
-        // --- CHAT LOGIC: Only show chat button if Accepted ---
         var chatBtnHTML = '';
         if(o.status === 'Accepted') {
             chatBtnHTML = '<button class="g-btn gb-chat">💬</button>';
