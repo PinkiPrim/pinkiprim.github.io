@@ -49,6 +49,7 @@
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             transition: opacity 0.5s ease;
+            text-align: center;
         }
         .spinner {
             border: 4px solid rgba(255,255,255,0.1);
@@ -59,7 +60,7 @@
             margin-bottom: 15px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; color: #fff; letter-spacing: 1px; }
+        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; color: #fff; letter-spacing: 1px; padding: 0 20px; line-height: 1.5; }
 
         /* --- HEADER --- */
         header {
@@ -222,7 +223,7 @@
         </span>
         
         <div style="text-align:right;">
-            <div id="username-display" style="font-size:0.9em; color:#fff;">Guest</div>
+            <div id="username-display" style="font-size:0.9em; color:#fff;">Connecting...</div>
             <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
         </div>
     </header>
@@ -299,8 +300,6 @@
 <script>
     // --- 1. CONFIGURATION ---
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-    
-    // --- AUTHORIZATION LIST ---
     var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
 
     // --- DATA ---
@@ -386,13 +385,19 @@
         // Start permission loop
         checkGrinderPermissionLoop();
 
-        // SAFETY: Force removal of loading screen after 5 seconds
+        // SAFETY: Show error if connection fails after 5 seconds
         setTimeout(function() {
-            var loader = document.getElementById('loading-overlay');
-            if(loader && loader.style.display !== 'none') {
-                console.log("Forcing load due to timeout...");
-                loader.style.opacity = '0';
-                setTimeout(function(){ loader.style.display = 'none'; }, 500);
+            if (state.username === "Unknown" || state.playerId === "0") {
+                var loaderText = document.querySelector('.loading-text');
+                var spinner = document.querySelector('.spinner');
+                
+                if(loaderText) {
+                    loaderText.innerText = "CONNECTION TIMED OUT.\nPLEASE CLOSE & REOPEN THE TOOL.";
+                    loaderText.style.color = "#ff4444";
+                }
+                if(spinner) {
+                    spinner.style.display = 'none';
+                }
             }
         }, 5000);
     };
@@ -516,7 +521,7 @@
         if(state.playerId !== "0") {
             document.getElementById('userid-display').innerText = "ID: " + state.playerId;
             
-            // ID Found! Hide loading screen immediately
+            // ID FOUND! HIDE OVERLAY
             hideLoadingScreen();
 
             if(pollingInterval) { clearInterval(pollingInterval); pollingInterval = setInterval(requestPlayerData, 5000); }
@@ -528,10 +533,8 @@
         if(state.isGrinder) return;
         if(state.playerId === "0") return; 
         
-        // 1. HARDCODED CHECK
         if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
         
-        // 2. GOOGLE CHECK
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
@@ -582,7 +585,7 @@
             }
         }
 
-        // --- NEW LOGIC: Only show chat button if Accepted ---
+        // --- CHAT LOGIC: Only show chat button if Accepted ---
         var chatBtnHTML = '';
         if(o.status === 'Accepted') {
             chatBtnHTML = '<button class="g-btn gb-chat">💬</button>';
