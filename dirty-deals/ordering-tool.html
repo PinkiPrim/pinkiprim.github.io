@@ -332,15 +332,11 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    // PASTE YOUR LATEST DEPLOYMENT URL HERE
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-    
-    // --- AUTHORIZATION LIST (Hardcoded for reliability) ---
-    // Add IDs as strings: ["123", "456"]
-    const AUTHORIZED_IDS = ["757858"]; 
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+    var AUTHORIZED_IDS = ["757858"]; 
 
     // --- DATA ---
-    const CATEGORIES = {
+    var CATEGORIES = {
         "Bonus EXP": [
             { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
             { name: "Business XP", price: 3900, limit: 20000, icon: "💼" },
@@ -404,31 +400,30 @@
         ]
     };
 
-    let state = {
+    var state = {
         currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
         username: "Unknown", playerId: "0", isGrinder: false
     };
 
-    let pollingInterval = null;
+    var pollingInterval = null;
 
     // --- INITIALIZATION ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
         
-        // 1. Immediately request data
         requestPlayerData();
+        // Aggressive Polling to catch the ID
+        pollingInterval = setInterval(requestPlayerData, 500); 
         
-        // 2. Start aggressive polling (Every 250ms) to unstick the "Wait..."
-        pollingInterval = setInterval(requestPlayerData, 250);
-        
-        // 3. Start checking if user is a grinder
+        // Start permission loop
         checkGrinderPermissionLoop();
     };
 
     // --- VIEW SWITCHING ---
     function switchView(viewName) {
-        document.querySelectorAll('.header-btn').forEach(b => b.classList.remove('active'));
+        var btns = document.querySelectorAll('.header-btn');
+        for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
         document.getElementById('nav-' + viewName).classList.add('active');
         
         document.getElementById('view-order').style.display = 'none';
@@ -446,14 +441,16 @@
         state.currentCategory = catName; 
         state.selectedItem = null;
         
-        const tabs = document.querySelectorAll('.tab-btn');
-        tabs.forEach(tab => {
-            if(catName.startsWith(tab.innerText.substring(0, 3))) {
-                tab.classList.add('active');
+        var tabs = document.querySelectorAll('.tab-btn');
+        for(var i=0; i<tabs.length; i++) {
+            var t = tabs[i];
+            // Safe substring match
+            if(catName.substring(0, 3) === t.innerText.substring(0, 3)) {
+                t.classList.add('active');
             } else {
-                tab.classList.remove('active');
+                t.classList.remove('active');
             }
-        });
+        }
 
         document.getElementById('disp-item-name').value = "";
         document.getElementById('status-msg').innerText = "Select an item to start";
@@ -463,21 +460,24 @@
     }
 
     function renderGrid() {
-        const container = document.getElementById('item-grid'); 
+        var container = document.getElementById('item-grid'); 
         container.innerHTML = '';
-        if(CATEGORIES[state.currentCategory]) {
-            CATEGORIES[state.currentCategory].forEach(item => {
-                const div = document.createElement('div');
-                div.className = `grid-item ${state.selectedItem && state.selectedItem.name === item.name ? 'active' : ''}`;
-                div.onclick = () => selectItem(item);
-                div.innerHTML = `
-                    <div class="check-mark">✔</div>
-                    <span class="item-icon">${item.icon}</span>
-                    <span class="item-name">${item.name}</span>
-                    <span class="item-price">$${item.price.toLocaleString()}</span>
-                `;
-                container.appendChild(div);
-            });
+        var items = CATEGORIES[state.currentCategory];
+        if(items) {
+            for(var i=0; i<items.length; i++) {
+                (function(item) {
+                    var div = document.createElement('div');
+                    var isActive = (state.selectedItem && state.selectedItem.name === item.name) ? 'active' : '';
+                    div.className = 'grid-item ' + isActive;
+                    div.onclick = function() { selectItem(item); };
+                    div.innerHTML = 
+                        '<div class="check-mark">✔</div>' +
+                        '<span class="item-icon">' + item.icon + '</span>' +
+                        '<span class="item-name">' + item.name + '</span>' +
+                        '<span class="item-price">$' + item.price.toLocaleString() + '</span>';
+                    container.appendChild(div);
+                })(items[i]);
+            }
         }
     }
 
@@ -486,13 +486,13 @@
         state.qty = 1; 
         document.getElementById('disp-item-name').value = item.name;
         document.getElementById('status-msg').innerText = "Ready to order";
-        document.getElementById('limit-display').innerText = `(Max: ${item.limit.toLocaleString()})`;
+        document.getElementById('limit-display').innerText = "(Max: " + item.limit.toLocaleString() + ")";
         
-        const q = document.getElementById('input-qty'); 
+        var q = document.getElementById('input-qty'); 
         q.max = item.limit; 
         q.value = 1;
         
-        const r = document.getElementById('range-qty'); 
+        var r = document.getElementById('range-qty'); 
         r.max = item.limit; 
         r.value = 1;
         
@@ -500,42 +500,43 @@
         updateCalc();
     }
 
-    const qtyInput = document.getElementById('input-qty');
-    const rangeInput = document.getElementById('range-qty');
-    const prioInput = document.getElementById('input-priority');
+    // --- INPUT LISTENERS ---
+    var qtyInput = document.getElementById('input-qty');
+    var rangeInput = document.getElementById('range-qty');
+    var prioInput = document.getElementById('input-priority');
 
-    qtyInput.addEventListener('input', (e) => {
-        let val = parseInt(e.target.value) || 0;
+    qtyInput.oninput = function(e) {
+        var val = parseInt(e.target.value) || 0;
         if(state.selectedItem && val > state.selectedItem.limit) { val = state.selectedItem.limit; qtyInput.value = val; }
         state.qty = val; 
         rangeInput.value = state.qty; 
         updateCalc();
-    });
-    rangeInput.addEventListener('input', (e) => {
+    };
+    rangeInput.oninput = function(e) {
         state.qty = parseInt(e.target.value); 
         qtyInput.value = state.qty; 
         updateCalc();
-    });
-    prioInput.addEventListener('change', (e) => { 
+    };
+    prioInput.onchange = function(e) { 
         state.priority = e.target.value; 
         updateCalc(); 
-    });
+    };
 
     function updateCalc() {
-        const btn = document.getElementById('btn-submit');
-        const priceEl = document.getElementById('disp-total');
+        var btn = document.getElementById('btn-submit');
+        var priceEl = document.getElementById('disp-total');
         if (!state.selectedItem) { 
             priceEl.innerText = "$0"; 
             btn.disabled = true; 
             return; 
         }
         btn.disabled = false;
-        let base = state.selectedItem.price * state.qty;
+        var base = state.selectedItem.price * state.qty;
         if (state.priority === 'high') base = base * 1.25; 
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    // --- AGGRESSIVE DATA REQUEST ---
+    // --- DATA COMMS (SAFE MODE) ---
     function requestPlayerData() {
         if(window.parent) {
             window.parent.postMessage({ 
@@ -545,51 +546,51 @@
         }
     }
 
-    window.addEventListener('message', (event) => {
-        let p = event.data?.data || event.data;
+    window.addEventListener('message', function(event) {
+        var p = event.data && event.data.data ? event.data.data : event.data;
         if(!p) return;
 
-        // Check Username
+        // SAFE CHECK FOR NAME
         if (p.name) state.username = p.name;
-        else if (p.player && typeof p.player === 'string') state.username = p.player;
-        else if (p.player && p.player.name) state.username = p.player.name;
+        else if (p.player) {
+            if (typeof p.player === 'string') state.username = p.player;
+            else if (p.player.name) state.username = p.player.name;
+        }
 
-        // Check ID
+        // SAFE CHECK FOR ID
         if (p.user_id) state.playerId = p.user_id;
         else if (p.player_id) state.playerId = p.player_id;
         else if (p.id) state.playerId = p.id;
 
-        // If found, update UI and slow down polling
-        if(state.username !== "Unknown" && state.playerId !== "0") {
-            document.getElementById('username-display').innerText = state.username;
+        // UPDATE UI IF FOUND
+        if(state.username !== "Unknown") document.getElementById('username-display').innerText = state.username;
+        if(state.playerId !== "0") {
             document.getElementById('userid-display').innerText = "ID: " + state.playerId;
             
-            // Stop aggressive polling, switch to keep-alive (5s)
+            // Slow down polling once we found the ID
             if(pollingInterval) {
                 clearInterval(pollingInterval);
                 pollingInterval = setInterval(requestPlayerData, 5000);
             }
-            
-            // Check Grinder Perms immediately
-            checkGrinderPermissionLoop();
+            checkGrinderPermissionLoop(); // Check perms now that we have ID
         }
     });
 
     // --- GRINDER AUTH ---
     function checkGrinderPermissionLoop() {
         if(state.isGrinder) return;
-        if(state.playerId === "0") return; // Wait for ID
+        if(state.playerId === "0") return; 
 
-        // 1. Hardcoded List Check
-        if(AUTHORIZED_IDS.includes(String(state.playerId))) {
+        // 1. HARDCODED CHECK
+        if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) {
             enableGrinderMode();
             return;
         }
 
-        // 2. Google Sheet Check
-        fetch(`${GOOGLE_SCRIPT_URL}?action=checkAuth&userId=${state.playerId}`)
-        .then(r => r.json())
-        .then(data => {
+        // 2. GOOGLE CHECK
+        fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
             if(data.authorized) enableGrinderMode();
         });
     }
@@ -599,10 +600,10 @@
         document.getElementById('nav-grinder').style.display = 'inline-block';
     }
 
-    // --- SERVER COMMS ---
+    // --- SUBMIT ---
     function submitOrder() {
-        const btn = document.getElementById('btn-submit');
-        const status = document.getElementById('status-msg');
+        var btn = document.getElementById('btn-submit');
+        var status = document.getElementById('status-msg');
         if (state.username === "Unknown" || state.username === "Wait...") { 
             status.innerText = "Error: Identity Unknown."; 
             return; 
@@ -610,7 +611,7 @@
         btn.disabled = true; 
         btn.innerText = "Sending...";
         
-        const payload = {
+        var payload = {
             action: "placeOrder", 
             username: state.username, 
             userId: state.playerId,
@@ -626,10 +627,10 @@
             mode: "no-cors", 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
-        }).then(() => {
+        }).then(function() {
             status.innerText = "ORDER SENT"; 
             btn.innerText = "Done";
-            setTimeout(() => { 
+            setTimeout(function() { 
                 status.innerText = "Ready"; 
                 btn.innerText = "Confirm Order"; 
                 btn.disabled = false;
@@ -640,82 +641,100 @@
         });
     }
 
+    // --- FETCH HISTORY ---
     function fetchMyOrders() {
-        const c = document.getElementById('history-container');
+        var c = document.getElementById('history-container');
         c.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
-        fetch(`${GOOGLE_SCRIPT_URL}?userId=${state.playerId}`)
-        .then(r => r.json())
-        .then(data => {
+        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.playerId)
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
             c.innerHTML = '';
             if(!data || !data.length) { 
                 c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; 
                 return; 
             }
-            data.forEach(o => {
-                let grinderHTML = o.grinder ? `<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ${o.grinder})</span>` : '';
-                let d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                let div = document.createElement('div'); 
+            for(var i=0; i<data.length; i++) {
+                var o = data[i];
+                var grinderHTML = o.grinder ? '<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ' + o.grinder + ')</span>' : '';
+                
+                var div = document.createElement('div'); 
                 div.className = "history-item";
-                div.innerHTML = `
-                    <div class="h-info">
-                        <span class="h-item">${o.item} x${o.qty}</span>
-                        <span class="h-sub">${d} • ${o.price} ${grinderHTML}</span>
-                    </div>
-                    <div class="status-badge st-${o.status}">${o.status}</div>
-                `;
+                div.innerHTML = 
+                    '<div class="h-info">' +
+                        '<span class="h-item">' + o.item + ' x' + o.qty + '</span>' +
+                        '<span class="h-sub">' + o.price + ' ' + grinderHTML + '</span>' +
+                    '</div>' +
+                    '<div class="status-badge st-' + (o.status || 'Pending') + '">' + (o.status || 'Pending') + '</div>';
                 c.appendChild(div);
-            });
+            }
         });
     }
 
+    // --- GRINDER LOGIC ---
     function fetchGlobalOrders() {
-        const container = document.getElementById('grinder-container');
+        var container = document.getElementById('grinder-container');
         container.innerHTML = '<div style="padding:20px; text-align:center;">Loading global jobs...</div>';
 
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders`)
-        .then(r => r.json())
-        .then(data => {
+        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders")
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
             container.innerHTML = '';
             if(!data || data.length === 0) {
                 container.innerHTML = '<div style="padding:20px; text-align:center;">No pending jobs.</div>';
                 return;
             }
 
-            data.forEach(order => {
-                let d = new Date(order.timestamp);
-                let dateStr = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                let assignedText = order.grinder ? `<br><span style="color:#2ecc71; font-size:0.8em">Worker: ${order.grinder}</span>` : '';
+            for(var i=0; i<data.length; i++) {
+                (function(order) {
+                    var assignedText = order.grinder ? '<br><span style="color:#2ecc71; font-size:0.8em">Worker: ' + order.grinder + '</span>' : '';
+                    
+                    var controls = '';
+                    if(order.status === 'Pending') {
+                        controls = 
+                        '<div class="g-controls">' +
+                            '<button class="g-btn gb-accept">ACCEPT</button>' +
+                            '<button class="g-btn gb-deny">DENY</button>' +
+                        '</div>';
+                    } else if(order.status === 'Accepted' && order.grinder === state.username) {
+                        controls = 
+                        '<div class="g-controls">' +
+                            '<button class="g-btn gb-complete">COMPLETE</button>' +
+                        '</div>';
+                    }
 
-                const div = document.createElement('div');
-                div.className = "history-item";
-                div.innerHTML = `
-                    <div class="h-info">
-                        <span class="h-user">${order.username} <span style="color:#555; font-weight:normal;">(${order.userId})</span></span>
-                        <span class="h-item">${order.item} <span style="font-size:0.8em; color:#666;">x${order.qty}</span></span>
-                        <span class="h-sub">${dateStr} • ${order.price} ${assignedText}</span>
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="status-badge st-${order.status}" style="margin-bottom:5px;">${order.status}</div>
-                        ${order.status === 'Pending' ? `
-                        <div class="g-controls">
-                            <button class="g-btn gb-accept" onclick="updateOrderStatus('${order.timestamp}', '${order.userId}', 'Accepted')">ACCEPT</button>
-                            <button class="g-btn gb-deny" onclick="updateOrderStatus('${order.timestamp}', '${order.userId}', 'Denied')">DENY</button>
-                        </div>` : ''}
-                        ${order.status === 'Accepted' && order.grinder === state.username ? `
-                        <div class="g-controls">
-                            <button class="g-btn gb-complete" onclick="updateOrderStatus('${order.timestamp}', '${order.userId}', 'Completed')">COMPLETE</button>
-                        </div>` : ''}
-                    </div>
-                `;
-                container.appendChild(div);
-            });
+                    var div = document.createElement('div');
+                    div.className = "history-item";
+                    div.innerHTML = 
+                        '<div class="h-info">' +
+                            '<span class="h-user">' + order.username + ' <span style="color:#555; font-weight:normal;">(' + order.userId + ')</span></span>' +
+                            '<span class="h-item">' + order.item + ' <span style="font-size:0.8em; color:#666;">x' + order.qty + '</span></span>' +
+                            '<span class="h-sub">' + order.price + ' ' + assignedText + '</span>' +
+                        '</div>' +
+                        '<div style="text-align:right;">' +
+                            '<div class="status-badge st-' + order.status + '" style="margin-bottom:5px;">' + order.status + '</div>' +
+                            controls +
+                        '</div>';
+                    
+                    // Attach event listeners manually to avoid quoting hell
+                    var acceptBtn = div.querySelector('.gb-accept');
+                    if(acceptBtn) acceptBtn.onclick = function() { updateOrderStatus(order.timestamp, order.userId, 'Accepted'); };
+                    
+                    var denyBtn = div.querySelector('.gb-deny');
+                    if(denyBtn) denyBtn.onclick = function() { updateOrderStatus(order.timestamp, order.userId, 'Denied'); };
+                    
+                    var compBtn = div.querySelector('.gb-complete');
+                    if(compBtn) compBtn.onclick = function() { updateOrderStatus(order.timestamp, order.userId, 'Completed'); };
+
+                    container.appendChild(div);
+                })(data[i]);
+            }
         });
     }
 
     function updateOrderStatus(ts, uid, status) {
-        if(!confirm(`Mark this order as ${status}?`)) return;
+        if(!confirm("Mark this order as " + status + "?")) return;
 
-        const payload = {
+        var payload = {
             action: "updateOrder",
             orderTimestamp: ts,
             orderUserId: uid,
@@ -728,20 +747,20 @@
             mode: "no-cors",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
-        }).then(() => {
+        }).then(function() {
             setTimeout(fetchGlobalOrders, 1000); 
         });
     }
 
     // --- DRAG & SECURITY ---
-    const elmnt = document.getElementById("app-container");
-    const handle = document.getElementById("drag-handle");
-    let pos1=0, pos2=0, pos3=0, pos4=0;
-    if(handle) handle.onmousedown = (e) => { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elmDrag; };
+    var elmnt = document.getElementById("app-container");
+    var handle = document.getElementById("drag-handle");
+    var pos1=0, pos2=0, pos3=0, pos4=0;
+    if(handle) handle.onmousedown = function(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elmDrag; };
     function elmDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
     function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
 
-    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     document.onkeydown = function(e) { 
         if(e.keyCode==123 || (e.ctrlKey && e.shiftKey && (e.keyCode==73 || e.keyCode==74 || e.keyCode==67)) || (e.ctrlKey && e.keyCode==85)) return false; 
     }
