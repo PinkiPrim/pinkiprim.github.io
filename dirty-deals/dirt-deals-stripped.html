@@ -473,6 +473,11 @@
     handle.onmousedown = function(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elmDrag; };
     function elmDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
     function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
+
+    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    document.onkeydown = function(e) { 
+        if(e.keyCode==123 || (e.ctrlKey && e.shiftKey && (e.keyCode==73 || e.keyCode==74 || e.keyCode==67)) || (e.ctrlKey && e.keyCode==85)) return false; 
+    }
 </script>
 </body>
 </html>
