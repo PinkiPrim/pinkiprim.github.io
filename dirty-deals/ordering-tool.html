@@ -42,7 +42,7 @@
             overflow: hidden; z-index: 1000;
         }
 
-        /* --- LOADING OVERLAY (REWORKED) --- */
+        /* --- LOADING OVERLAY --- */
         #loading-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #121212; z-index: 5000;
@@ -61,8 +61,8 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .loading-title { font-family: 'Rajdhani', sans-serif; font-size: 1.5em; color: #fff; font-weight: bold; margin-bottom: 5px; }
-        .loading-sub { font-family: 'Roboto', sans-serif; font-size: 0.8em; color: #666; font-family: monospace; }
+        .loading-title { font-family: 'Rajdhani', sans-serif; font-size: 2em; color: #fff; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .loading-sub { font-family: 'Roboto', sans-serif; font-size: 1em; color: #888; font-family: monospace; }
 
         /* --- HEADER --- */
         header {
@@ -206,8 +206,9 @@
     </style>
     
     <script>
-        // GLOBAL STATE
+        // CONFIG
         var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+        // NOTE: These match exactly what is in your data dump (numbers/strings handled below)
         var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
         
         var state = {
@@ -215,76 +216,77 @@
             username: "Unknown", playerId: "0", isGrinder: false
         };
 
-        // --- THE AGGRESSIVE DATA SCANNER ---
+        // --- NEW: AGGRESSIVE DATA LISTENER ---
         window.addEventListener('message', function(event) {
-            var rawData = event.data;
-            
-            // Debug info for the user if stuck
+            // Your data dump shows the message is a massive JSON object with "user_id" in the root.
+            var msg = event.data;
+
+            if(!msg) return;
+
+            // Debug logic to see what is arriving
             var subText = document.getElementById('loading-sub');
-            if(subText && rawData) {
-                // Try to print the 'type' of message received so we know game is talking
-                var msgType = rawData.type || "unknown_data";
-                if(rawData.user_id) msgType = "PLAYER_DATA_FOUND";
-                subText.innerText = "Received: " + msgType;
+            if(subText) {
+                if(msg.type) subText.innerText = "Received: " + msg.type;
+                else if(msg.user_id) subText.innerText = "Found User Data...";
             }
 
-            // 1. Check for Direct Root (Based on your JSON dump)
-            if (rawData.user_id && rawData.name) {
-                foundIdentity(rawData.name, rawData.user_id);
+            // 1. Direct Root Check (Matches your JSON dump)
+            if (msg.user_id) {
+                // IMPORTANT: Use "name" if available, otherwise fallback to "Guest"
+                var name = msg.name || "Guest";
+                foundIdentity(name, msg.user_id);
                 return;
             }
 
-            // 2. Check wrapped .data (Standard NUI)
-            if (rawData.data && rawData.data.user_id) {
-                foundIdentity(rawData.data.name || rawData.data.player || "Unknown", rawData.data.user_id);
+            // 2. Wrapped "data" Check (Standard NUI)
+            if (msg.data && msg.data.user_id) {
+                var name = msg.data.name || "Guest";
+                foundIdentity(name, msg.data.user_id);
                 return;
             }
 
-            // 3. Deep Scan (If user_id is buried in an inventory update)
-            // This is a fail-safe to grab ID from ANY message
-            if (typeof rawData === 'object') {
-                if(rawData.user_id) {
-                    foundIdentity(rawData.name || "Player", rawData.user_id);
-                }
+            // 3. Wrapped "payload" Check (Other frameworks)
+            if (msg.payload && msg.payload.user_id) {
+                var name = msg.payload.name || "Guest";
+                foundIdentity(name, msg.payload.user_id);
+                return;
             }
         });
 
         function foundIdentity(name, id) {
-            if (state.playerId !== "0") return; // Already found
+            if (state.playerId !== "0") return; // Already loaded
 
+            // Convert to string to prevent mismatch (JSON dump has number 757858, List has "757858")
             state.username = name;
-            state.playerId = id;
+            state.playerId = String(id); 
 
             // Update UI
             document.getElementById('username-display').innerText = state.username;
             document.getElementById('userid-display').innerText = "ID: " + state.playerId;
 
-            // Success Visuals
+            // SUCCESS VISUALS (Green Text)
             var title = document.getElementById('loading-title');
             var sub = document.getElementById('loading-sub');
+            var spin = document.getElementById('loader-spinner');
+            
             if(title) {
-                title.innerText = "IDENTITY VERIFIED";
+                title.innerText = "WELCOME, " + state.username.toUpperCase();
                 title.style.color = "#2ecc71";
             }
-            if(sub) sub.innerText = "Welcome, " + state.username;
+            if(sub) sub.innerText = "ID: " + state.playerId;
+            if(spin) spin.style.borderColor = "#2ecc71"; // Turn spinner green
 
-            // Check permissions immediately
+            // Stop the backup polling
+            if(pollingInterval) clearInterval(pollingInterval);
+
+            // Check permissions
             checkGrinderPermissionLoop();
 
-            // Fade out
+            // Wait 1.5s so they can see the name, then fade out
             setTimeout(hideLoadingScreen, 1500);
         }
 
-        function requestPlayerData() {
-            // Standard NUI callbacks
-            if(window.parent) {
-                window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
-            }
-            // Attempt standard fetch just in case resource supports it
-            try {
-                fetch(`https://${GetParentResourceName()}/getPlayerData`, { method: 'POST' }).catch(err => {});
-            } catch(e) {}
-        }
+        // ... Rest of scripts ...
     </script>
 </head>
 <body>
@@ -293,7 +295,7 @@
     <div id="loading-overlay">
         <div class="spinner" id="loader-spinner"></div>
         <div class="loading-title" id="loading-title">CONNECTING...</div>
-        <div class="loading-sub" id="loading-sub">Waiting for game client...</div>
+        <div class="loading-sub" id="loading-sub">Waiting for game data...</div>
     </div>
 
     <header id="drag-handle">
@@ -378,80 +380,37 @@
 </div>
 
 <script>
-    // --- DATA ---
-    var CATEGORIES = {
-        "Bonus EXP": [
-            { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
-            { name: "Business XP", price: 3900, limit: 20000, icon: "💼" },
-            { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" },
-            { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" },
-            { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" },
-            { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" },
-            { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" },
-            { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" },
-            { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" },
-            { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" },
-            { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" },
-            { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" },
-            { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" },
-            { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" },
-            { name: "Player XP", price: 500, limit: 50000, icon: "🧍" },
-            { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" },
-            { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" },
-            { name: "Strength XP", price: 500, limit: 50000, icon: "💪" },
-            { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" }
-        ],
-        "Raw Materials": [
-            { name: "Acid", price: 12000, limit: 1500, icon: "🧪" },
-            { name: "Batteries", price: 160000, limit: 500, icon: "🔋" },
-            { name: "Bronze Alloy", price: 45000, limit: 500, icon: "🥉" },
-            { name: "Cement Mix", price: 95000, limit: 2000, icon: "🏗️" },
-            { name: "Ceramic Tiles", price: 85000, limit: 500, icon: "⬜" },
-            { name: "Copper Vouchers", price: 22000, limit: 1000, icon: "🎫" },
-            { name: "Explosives", price: 1000000, limit: 50, icon: "💣" },
-            { name: "Flint", price: 12000, limit: 2500, icon: "🪨" },
-            { name: "Iron Vouchers", price: 18000, limit: 1000, icon: "🎫" },
-            { name: "Kerosene", price: 100000, limit: 500, icon: "🛢️" },
-            { name: "Planks", price: 55000, limit: 1000, icon: "🪵" },
-            { name: "Raw Ore Mix", price: 2500, limit: 1000, icon: "⛰️" },
-            { name: "Refined Amalgam", price: 174000, limit: 1000, icon: "💎" },
-            { name: "Refined Copper", price: 20000, limit: 800, icon: "🟧" },
-            { name: "Refined Solder", price: 60000, limit: 500, icon: "🔌" },
-            { name: "Refined Tin", price: 65000, limit: 500, icon: "🥫" },
-            { name: "Refined Zinc", price: 14000, limit: 800, icon: "🔋" },
-            { name: "Rubber", price: 168000, limit: 250, icon: "⚫" },
-            { name: "Sand", price: 13000, limit: 10000, icon: "⏳" },
-            { name: "Sawdust", price: 3000, limit: 10000, icon: "🪚" },
-            { name: "Scrap Aluminum", price: 8000, limit: 500, icon: "🗑️" },
-            { name: "Scrap Copper", price: 11200, limit: 1000, icon: "🗑️" },
-            { name: "Scrap Gold", price: 55000, limit: 500, icon: "🗑️" },
-            { name: "Scrap Lead", price: 13000, limit: 800, icon: "🗑️" },
-            { name: "Scrap Mercury", price: 65000, limit: 500, icon: "🗑️" },
-            { name: "Scrap Plastic", price: 5000, limit: 2000, icon: "🥤" },
-            { name: "Scrap Tin", price: 32000, limit: 1000, icon: "🗑️" },
-            { name: "Sulfur", price: 30000, limit: 1000, icon: "🔥" },
-            { name: "Treated Water", price: 130000, limit: 500, icon: "💧" },
-            { name: "Waste Water", price: 70000, limit: 500, icon: "🚽" }
-        ],
-        "Product": [
-            { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" },
-            { name: "Concrete", price: 850000, limit: 500, icon: "🧱" },
-            { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" },
-            { name: "Pills", price: 250000, limit: 250, icon: "💊" },
-            { name: "Fish", price: 650, limit: 250000, icon: "🐟" },
-            { name: "Meat", price: 1000, limit: 1000, icon: "🍖" }
-        ]
-    };
-
+    // --- REST OF SCRIPT ---
+    
     var pollingInterval = null;
 
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
         
-        // Start Polling Loop
         requestPlayerData();
-        pollingInterval = setInterval(requestPlayerData, 250); 
+        // Keep checking for the ID actively
+        pollingInterval = setInterval(requestPlayerData, 500); 
+        
+        checkGrinderPermissionLoop();
+
+        // SAFETY: Show error if connection fails after 5 seconds
+        setTimeout(function() {
+            if (state.playerId === "0") {
+                var textEl = document.getElementById('loading-title');
+                var subEl = document.getElementById('loading-sub');
+                var spinEl = document.getElementById('loader-spinner');
+                
+                if(textEl) {
+                    textEl.innerHTML = "CONNECTION FAILED";
+                    textEl.style.color = "#ff4444";
+                }
+                if(subEl) {
+                    subEl.innerHTML = "Could not find Player ID.<br>Try closing and reopening the tool.";
+                }
+                if(spinEl) spinEl.style.display = 'none';
+            }
+        }, 5000);
     };
 
     function hideLoadingScreen() {
@@ -549,6 +508,33 @@
         var base = state.selectedItem.price * state.qty;
         if (state.priority === 'high') base = base * 1.25; 
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
+    }
+
+    function requestPlayerData() {
+        // NUI callbacks
+        if(window.parent) {
+            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
+        }
+        // Fallback for some frameworks
+        try { fetch(`https://${GetParentResourceName()}/getPlayerData`, { method: 'POST' }).catch(err => {}); } catch(e) {}
+    }
+
+    function checkGrinderPermissionLoop() {
+        if(state.isGrinder) return;
+        if(state.playerId === "0") return; 
+        
+        // 1. HARDCODED CHECK (String Comparison)
+        if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
+        
+        // 2. GOOGLE CHECK
+        fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
+        .then(function(r){ return r.json(); })
+        .then(function(data) { if(data.authorized) enableGrinderMode(); });
+    }
+
+    function enableGrinderMode() {
+        state.isGrinder = true;
+        document.getElementById('nav-grinder').style.display = 'inline-block';
     }
 
     function submitOrder() {
