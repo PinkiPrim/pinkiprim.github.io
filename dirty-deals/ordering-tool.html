@@ -16,7 +16,8 @@
             --text-dim: #888888;
         }
 
-        * { box-sizing: border-box; user-select: none; }
+        /* DISABLE SELECTION */
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
 
         body {
             margin: 0; padding: 0;
@@ -31,7 +32,7 @@
         #app-container {
             position: absolute;
             top: 50px; left: 50px;
-            width: 800px; /* Slightly wider for tabs */
+            width: 800px;
             height: 600px; 
             background: var(--bg-glass);
             border: var(--border);
@@ -71,7 +72,7 @@
         .selection-area {
             flex: 2;
             padding: 20px;
-            overflow-y: hidden; /* Handle scroll in inner container */
+            overflow-y: hidden;
             border-right: var(--border);
             background: #141414;
             display: flex;
@@ -120,7 +121,7 @@
         .grid-wrapper {
             overflow-y: auto;
             flex: 1;
-            padding-right: 5px; /* Space for scrollbar */
+            padding-right: 5px;
         }
 
         .grid-container {
@@ -408,9 +409,8 @@
 
     function setCategory(catName) {
         state.currentCategory = catName;
-        state.selectedItem = null; // Reset selection on category change
+        state.selectedItem = null;
         
-        // Update Tabs UI
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(tab => {
             if(tab.innerText.includes(catName.substring(0, 4))) {
@@ -420,7 +420,6 @@
             }
         });
 
-        // Reset Form
         document.getElementById('disp-item-name').value = "";
         document.getElementById('status-msg').innerText = "Select an item to start";
         document.getElementById('limit-display').innerText = "";
@@ -451,15 +450,13 @@
 
     function selectItem(item) {
         state.selectedItem = item;
-        state.qty = 1; // Reset qty on new selection
+        state.qty = 1; 
         
-        // Update UI
         document.getElementById('disp-item-name').value = item.name;
         document.getElementById('disp-item-name').style.color = "#fff";
         document.getElementById('status-msg').innerText = "Ready to order";
         document.getElementById('status-msg').style.color = "#555";
         
-        // Update Limits
         const limit = item.limit;
         document.getElementById('limit-display').innerText = `(Max: ${limit.toLocaleString()})`;
         
@@ -481,7 +478,6 @@
     const rangeInput = document.getElementById('range-qty');
     const prioInput = document.getElementById('input-priority');
 
-    // STRICT LIMIT ENFORCEMENT
     function validateQty(val) {
         if(!state.selectedItem) return 1;
         const max = state.selectedItem.limit;
@@ -493,13 +489,10 @@
     if(qtyInput) {
         qtyInput.addEventListener('input', (e) => {
             let val = parseInt(e.target.value) || 0;
-            
-            // Hard Limit Logic
             if(state.selectedItem && val > state.selectedItem.limit) {
                 val = state.selectedItem.limit;
-                qtyInput.value = val; // Force UI update immediately
+                qtyInput.value = val;
             }
-
             state.qty = val;
             if(rangeInput) rangeInput.value = state.qty; 
             updateCalc();
@@ -540,7 +533,6 @@
         const finalPrice = Math.floor(base);
         const priceString = "$" + finalPrice.toLocaleString();
         
-        // Auto-Resize Font Logic
         const len = priceString.length;
         if(len > 18) priceEl.style.fontSize = "1.0em";
         else if(len > 15) priceEl.style.fontSize = "1.2em";
@@ -584,7 +576,6 @@
         const btn = document.getElementById('btn-submit');
         const status = document.getElementById('status-msg');
         
-        // Security Check
         if (state.username === "Unknown" || state.username === "Wait...") {
             status.innerText = "⚠️ Error: Identity Unknown. Cannot send.";
             status.style.color = "#ff4444";
@@ -624,7 +615,6 @@
                 btn.innerText = "Confirm Order";
                 btn.disabled = false;
                 
-                // Optional: Reset selections
                 state.qty = 1;
                 document.getElementById('input-qty').value = 1;
                 document.getElementById('range-qty').value = 1;
@@ -671,6 +661,17 @@
             document.onmouseup = null;
             document.onmousemove = null;
         }
+    }
+
+    // --- 7. SECURITY (NO RIGHT CLICK / KEY BLOCKERS) ---
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    
+    document.onkeydown = function(e) {
+        if(e.keyCode == 123) { return false; } // F12
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)){ return false; } // Ctrl+Shift+I
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)){ return false; } // Ctrl+Shift+J
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)){ return false; } // Ctrl+Shift+C
+        if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)){ return false; } // Ctrl+U
     }
 
 </script>
