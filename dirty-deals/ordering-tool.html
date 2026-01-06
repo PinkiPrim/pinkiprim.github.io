@@ -7,49 +7,99 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            --accent: #5e6bf6; --accent-hover: #4b56c4;
-            --bg-glass: #121212; --bg-card: #1e1e1e;
-            --border: 1px solid #333; --text-main: #ffffff; --text-dim: #888888;
-            --st-pending: #f1c40f; --st-accepted: #3498db; --st-denied: #e74c3c; --st-completed: #2ecc71;
+            --accent: #5e6bf6; 
+            --accent-hover: #4b56c4;
+            --bg-glass: #121212;
+            --bg-card: #1e1e1e;
+            --border: 1px solid #333;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            --st-pending: #f1c40f;
+            --st-accepted: #3498db;
+            --st-denied: #e74c3c;
+            --st-completed: #2ecc71;
         }
+
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+        }
 
         #app-container {
-            position: absolute; top: 50px; left: 50px; width: 850px; height: 600px; 
-            background: var(--bg-glass); border: var(--border); border-radius: 8px;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.95); display: flex; flex-direction: column; overflow: hidden; z-index: 1000;
+            position: absolute; top: 50px; left: 50px;
+            width: 850px; height: 600px; 
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.95);
+            display: flex; flex-direction: column;
+            overflow: hidden; z-index: 1000;
         }
 
         header {
-            background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between;
-            align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
-            text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
+            background: #181818; padding: 0 20px;
+            cursor: move; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: var(--border);
+            font-family: 'Rajdhani', sans-serif; text-transform: uppercase;
+            letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
+
         .header-btn {
-            background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em;
-            cursor: pointer; margin-left: 10px; border-radius: 4px; transition: 0.2s;
+            background: #252525; border: 1px solid #333; color: #ccc;
+            padding: 5px 12px; font-size: 0.8em; cursor: pointer; margin-left: 10px;
+            border-radius: 4px; transition: 0.2s;
         }
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-        .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
+        
+        .grinder-btn {
+            background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none;
+        }
         .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
 
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
+
         #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
 
-        .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
+        .selection-area {
+            flex: 2; padding: 20px; overflow-y: hidden;
+            border-right: var(--border); background: #141414;
+            display: flex; flex-direction: column;
+        }
+        
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
-        .tab-btn { flex: 1; background: #252525; border: 1px solid #333; color: #888; padding: 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center; }
-        .tab-btn:hover, .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3); }
+
+        .tab-btn {
+            flex: 1; background: #252525; border: 1px solid #333; color: #888;
+            padding: 10px; border-radius: 4px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center;
+        }
+        .tab-btn:hover, .tab-btn.active { 
+            background: var(--accent); color: white; border-color: var(--accent);
+            box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3);
+        }
 
         .section-title { color: var(--text-main); font-size: 1.1em; margin-bottom: 10px; font-family: 'Rajdhani', sans-serif; }
         .grid-wrapper { overflow-y: auto; flex: 1; padding-right: 5px; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 20px; }
-        .grid-item { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer; height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+        .grid-item {
+            background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer;
+            height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
         .grid-item:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
-        .grid-item.active { border: 1px solid var(--accent); background: rgba(94, 107, 246, 0.1); box-shadow: inset 0 0 15px rgba(94, 107, 246, 0.1); }
+        .grid-item.active {
+            border: 1px solid var(--accent); background: rgba(94, 107, 246, 0.1);
+            box-shadow: inset 0 0 15px rgba(94, 107, 246, 0.1);
+        }
         .check-mark { position: absolute; top: 5px; right: 5px; color: var(--accent); font-size: 12px; opacity: 0; }
         .grid-item.active .check-mark { opacity: 1; }
         .item-icon { font-size: 28px; margin-bottom: 5px; display: block; filter: grayscale(100%); }
@@ -61,19 +111,37 @@
         .input-group { margin-bottom: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
         .label span { float: right; color: var(--accent); font-weight: bold; }
-        input[type="text"], input[type="number"], select { width: 100%; background: #252525; border: 1px solid #383838; color: white; padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em; }
+        
+        input[type="text"], input[type="number"], select {
+            width: 100%; background: #252525; border: 1px solid #383838; color: white;
+            padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em;
+        }
         input:focus, select:focus { outline: none; border-color: var(--accent); }
         input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
 
-        .total-box { margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px; margin-bottom: 5px; flex-shrink: 0; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+        .total-box {
+            margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px;
+            margin-bottom: 5px; flex-shrink: 0; min-height: 80px; display: flex; flex-direction: column; justify-content: center;
+        }
         .total-label { font-size: 0.8em; color: var(--text-dim); margin-bottom: 5px; }
-        .total-price { font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif; white-space: nowrap; line-height: 1.1; transition: font-size 0.2s ease; }
-        .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 1px; flex-shrink: 0; }
+        .total-price { 
+            font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif;
+            white-space: nowrap; line-height: 1.1; transition: font-size 0.2s ease;
+        }
+
+        .btn-order {
+            background: var(--accent); color: white; border: none; width: 100%; padding: 15px;
+            border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase;
+            cursor: pointer; transition: 0.2s; letter-spacing: 1px; flex-shrink: 0; 
+        }
         .btn-order:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(94, 107, 246, 0.4); }
         .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
 
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
-        .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; font-size: 0.9em; }
+        .history-item {
+            display: flex; flex-direction: column; padding: 12px 15px;
+            border-bottom: 1px solid #2a2a2a; font-size: 0.9em;
+        }
         .history-item:hover { background: #222; }
         
         .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
@@ -81,14 +149,20 @@
         .h-item { font-weight: bold; color: white; font-size: 1.1em; }
         .h-sub { font-size: 0.85em; color: #888; }
         .h-user { color: var(--accent); font-weight: bold; font-size: 0.9em; margin-bottom: 2px;}
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; color: #111; }
+
+        .status-badge {
+            padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold;
+            text-transform: uppercase; font-family: 'Rajdhani', sans-serif; color: #111;
+        }
         .st-Pending { background: var(--st-pending); }
         .st-Accepted { background: var(--st-accepted); }
         .st-Denied { background: var(--st-denied); color: white; }
         .st-Completed { background: var(--st-completed); }
 
         .g-controls { display: flex; gap: 5px; margin-top: 5px; }
-        .g-btn { border: none; padding: 4px 8px; font-size: 0.7em; border-radius: 3px; cursor: pointer; font-weight: bold; }
+        .g-btn {
+            border: none; padding: 4px 8px; font-size: 0.7em; border-radius: 3px; cursor: pointer; font-weight: bold;
+        }
         .gb-accept { background: #2980b9; color: white; }
         .gb-complete { background: #27ae60; color: white; }
         .gb-chat { background: #555; color: white; }
@@ -101,9 +175,11 @@
         .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
         .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
 
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
     </style>
 </head>
 <body>
@@ -113,10 +189,13 @@
         <span style="display:flex; align-items:center; gap:10px;">
             <img src="https://files.catbox.moe/u9bulk.png" alt="Logo" style="height: 35px; width: auto;">
             <span>Dirty Deals</span>
+            
             <button class="header-btn active" id="nav-order" onclick="switchView('order')">New Order</button>
             <button class="header-btn" id="nav-history" onclick="switchView('history')">My Orders</button>
+            
             <button class="header-btn grinder-btn" id="nav-grinder" onclick="switchView('grinder')">🔴 Grinder Panel</button>
         </span>
+        
         <div style="text-align:right;">
             <div id="username-display" style="font-size:0.9em; color:#fff;">Connecting...</div>
             <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
@@ -124,6 +203,7 @@
     </header>
 
     <div id="main-content">
+        
         <div id="view-order">
             <div class="selection-area">
                 <div class="category-tabs">
@@ -131,11 +211,14 @@
                     <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
                     <div class="tab-btn" onclick="setCategory('Product')">Product</div>
                 </div>
+
                 <div class="section-title">Select Item</div>
+                
                 <div class="grid-wrapper">
                     <div class="grid-container" id="item-grid"></div>
                 </div>
             </div>
+
             <div class="details-area">
                 <div class="input-group">
                     <div class="label">Selected Item</div>
@@ -184,15 +267,20 @@
                 <div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div>
             </div>
         </div>
+
     </div>
 </div>
 
 <script>
-    // --- CONFIGURATION ---
-    // PASTE YOUR NEW DEPLOYED SCRIPT URL HERE
-    var GOOGLE_SCRIPT_URL = "YOUR_NEW_GOOGLE_SCRIPT_URL";
-    var AUTHORIZED_IDS = ["757858"]; 
+    // --- 1. CONFIGURATION ---
+    // Ensure this matches your latest deployed Web App URL
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+    
+    // --- AUTHORIZATION LIST ---
+    // Added 744622 and 637174
+    var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
 
+    // --- DATA ---
     var CATEGORIES = {
         "Bonus EXP": [
             { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
@@ -391,8 +479,10 @@
         if(state.isGrinder) return;
         if(state.playerId === "0") return; 
         
+        // 1. HARDCODED CHECK
         if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
         
+        // 2. GOOGLE CHECK
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
@@ -435,6 +525,7 @@
         
         var controls = '';
         if(isGrinderView) {
+            // NO DENY BUTTON HERE - ONLY ACCEPT/COMPLETE
             if(o.status === 'Pending') {
                 controls = '<button class="g-btn gb-accept">ACCEPT</button>';
             } else if(o.status === 'Accepted' && o.grinder === state.username) {
@@ -519,6 +610,7 @@
     }
 
     function updateOrderStatus(ts, uid, status) {
+        // --- CRASH FIX: REMOVED CONFIRMATION DIALOG ---
         var payload = {
             action: "updateOrder", orderTimestamp: ts, orderUserId: uid,
             newStatus: status, grinderName: state.username
@@ -538,7 +630,6 @@
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         }).then(function() { 
-            // Refresh current view to show new message
             if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders();
             else fetchGlobalOrders();
         });
