@@ -42,10 +42,10 @@
             overflow: hidden; z-index: 1000;
         }
 
-        /* --- LOADING OVERLAY --- */
+        /* --- LOADING OVERLAY (REWORKED) --- */
         #loading-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #121212; z-index: 2000;
+            background: #121212; z-index: 5000;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             transition: opacity 0.5s ease;
@@ -55,12 +55,14 @@
             border: 4px solid rgba(255,255,255,0.1);
             border-left-color: var(--accent);
             border-radius: 50%;
-            width: 40px; height: 40px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
+            width: 50px; height: 50px;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; color: #fff; letter-spacing: 1px; padding: 0 20px; line-height: 1.5; text-transform: uppercase;}
+        
+        .loading-title { font-family: 'Rajdhani', sans-serif; font-size: 1.5em; color: #fff; font-weight: bold; margin-bottom: 5px; }
+        .loading-sub { font-family: 'Roboto', sans-serif; font-size: 0.8em; color: #666; font-family: monospace; }
 
         /* --- HEADER --- */
         header {
@@ -202,13 +204,96 @@
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
     </style>
+    
+    <script>
+        // GLOBAL STATE
+        var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+        var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
+        
+        var state = {
+            currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
+            username: "Unknown", playerId: "0", isGrinder: false
+        };
+
+        // --- THE AGGRESSIVE DATA SCANNER ---
+        window.addEventListener('message', function(event) {
+            var rawData = event.data;
+            
+            // Debug info for the user if stuck
+            var subText = document.getElementById('loading-sub');
+            if(subText && rawData) {
+                // Try to print the 'type' of message received so we know game is talking
+                var msgType = rawData.type || "unknown_data";
+                if(rawData.user_id) msgType = "PLAYER_DATA_FOUND";
+                subText.innerText = "Received: " + msgType;
+            }
+
+            // 1. Check for Direct Root (Based on your JSON dump)
+            if (rawData.user_id && rawData.name) {
+                foundIdentity(rawData.name, rawData.user_id);
+                return;
+            }
+
+            // 2. Check wrapped .data (Standard NUI)
+            if (rawData.data && rawData.data.user_id) {
+                foundIdentity(rawData.data.name || rawData.data.player || "Unknown", rawData.data.user_id);
+                return;
+            }
+
+            // 3. Deep Scan (If user_id is buried in an inventory update)
+            // This is a fail-safe to grab ID from ANY message
+            if (typeof rawData === 'object') {
+                if(rawData.user_id) {
+                    foundIdentity(rawData.name || "Player", rawData.user_id);
+                }
+            }
+        });
+
+        function foundIdentity(name, id) {
+            if (state.playerId !== "0") return; // Already found
+
+            state.username = name;
+            state.playerId = id;
+
+            // Update UI
+            document.getElementById('username-display').innerText = state.username;
+            document.getElementById('userid-display').innerText = "ID: " + state.playerId;
+
+            // Success Visuals
+            var title = document.getElementById('loading-title');
+            var sub = document.getElementById('loading-sub');
+            if(title) {
+                title.innerText = "IDENTITY VERIFIED";
+                title.style.color = "#2ecc71";
+            }
+            if(sub) sub.innerText = "Welcome, " + state.username;
+
+            // Check permissions immediately
+            checkGrinderPermissionLoop();
+
+            // Fade out
+            setTimeout(hideLoadingScreen, 1500);
+        }
+
+        function requestPlayerData() {
+            // Standard NUI callbacks
+            if(window.parent) {
+                window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
+            }
+            // Attempt standard fetch just in case resource supports it
+            try {
+                fetch(`https://${GetParentResourceName()}/getPlayerData`, { method: 'POST' }).catch(err => {});
+            } catch(e) {}
+        }
+    </script>
 </head>
 <body>
 
 <div id="app-container">
     <div id="loading-overlay">
         <div class="spinner" id="loader-spinner"></div>
-        <div class="loading-text" id="loader-text">CONNECTING TO CITY DATABASE...</div>
+        <div class="loading-title" id="loading-title">CONNECTING...</div>
+        <div class="loading-sub" id="loading-sub">Waiting for game client...</div>
     </div>
 
     <header id="drag-handle">
@@ -223,13 +308,12 @@
         </span>
         
         <div style="text-align:right;">
-            <div id="username-display" style="font-size:0.9em; color:#fff;">Connecting...</div>
+            <div id="username-display" style="font-size:0.9em; color:#fff;">...</div>
             <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
         </div>
     </header>
 
     <div id="main-content">
-        
         <div id="view-order">
             <div class="selection-area">
                 <div class="category-tabs">
@@ -237,14 +321,11 @@
                     <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
                     <div class="tab-btn" onclick="setCategory('Product')">Product</div>
                 </div>
-
                 <div class="section-title">Select Item</div>
-                
                 <div class="grid-wrapper">
                     <div class="grid-container" id="item-grid"></div>
                 </div>
             </div>
-
             <div class="details-area">
                 <div class="input-group">
                     <div class="label">Selected Item</div>
@@ -293,15 +374,10 @@
                 <div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div>
             </div>
         </div>
-
     </div>
 </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-    var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
-
     // --- DATA ---
     var CATEGORIES = {
         "Bonus EXP": [
@@ -367,80 +443,16 @@
         ]
     };
 
-    var state = {
-        currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
-        username: "Unknown", playerId: "0", isGrinder: false
-    };
-
     var pollingInterval = null;
 
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
         
+        // Start Polling Loop
         requestPlayerData();
-        pollingInterval = setInterval(requestPlayerData, 250); // Fallback Polling
-        
-        checkGrinderPermissionLoop();
-
-        // SAFETY: Force removal of loading screen after 5 seconds
-        setTimeout(function() {
-            if (state.playerId === "0") {
-                var textEl = document.getElementById('loader-text');
-                var spinEl = document.getElementById('loader-spinner');
-                
-                if(textEl) {
-                    textEl.innerHTML = "CONNECTION TIMED OUT.<br>PLEASE CLOSE & REOPEN TOOL.";
-                    textEl.style.color = "#ff4444";
-                }
-                if(spinEl) spinEl.style.display = 'none';
-            }
-        }, 5000);
+        pollingInterval = setInterval(requestPlayerData, 250); 
     };
-
-    // --- CRITICAL FIX: DATA LISTENER ---
-    // This now looks for the data structure you provided in the JSON dump
-    window.addEventListener('message', function(event) {
-        var item = event.data;
-        // FiveM sometimes wraps data, sometimes it doesn't. We check both.
-        if (item.data) item = item.data;
-
-        // Check for specific keys found in your JSON dump
-        if (item.user_id && item.name) {
-            foundIdentity(item.name, item.user_id);
-        }
-        // Fallback for standard ESX/QBCore naming just in case
-        else if (item.player && item.player_id) {
-            foundIdentity(item.player, item.player_id);
-        }
-    });
-
-    function foundIdentity(name, id) {
-        if (state.playerId !== "0") return; // Already found
-
-        state.username = name;
-        state.playerId = id;
-
-        // Update UI
-        document.getElementById('username-display').innerText = state.username;
-        document.getElementById('userid-display').innerText = "ID: " + state.playerId;
-
-        // Update Loading Screen text to show success
-        var loaderText = document.getElementById('loader-text');
-        if(loaderText) {
-            loaderText.innerHTML = "WELCOME, " + state.username.toUpperCase() + "<br>ID: " + state.playerId;
-            loaderText.style.color = "#2ecc71"; // Green color
-        }
-
-        // Stop polling
-        if(pollingInterval) clearInterval(pollingInterval);
-
-        // Check Permissions
-        checkGrinderPermissionLoop();
-
-        // Fade out after 1.5 seconds so user sees the success message
-        setTimeout(hideLoadingScreen, 1500);
-    }
 
     function hideLoadingScreen() {
         var loader = document.getElementById('loading-overlay');
@@ -539,28 +551,6 @@
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    function requestPlayerData() {
-        if(window.parent) {
-            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
-        }
-    }
-
-    function checkGrinderPermissionLoop() {
-        if(state.isGrinder) return;
-        if(state.playerId === "0") return; 
-        
-        if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
-        
-        fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
-        .then(function(r){ return r.json(); })
-        .then(function(data) { if(data.authorized) enableGrinderMode(); });
-    }
-
-    function enableGrinderMode() {
-        state.isGrinder = true;
-        document.getElementById('nav-grinder').style.display = 'inline-block';
-    }
-
     function submitOrder() {
         var btn = document.getElementById('btn-submit');
         var status = document.getElementById('status-msg');
@@ -601,7 +591,7 @@
             }
         }
 
-        // --- NEW LOGIC: Only show chat button if Accepted ---
+        // --- CHAT LOGIC: Only show chat button if Accepted ---
         var chatBtnHTML = '';
         if(o.status === 'Accepted') {
             chatBtnHTML = '<button class="g-btn gb-chat">💬</button>';
