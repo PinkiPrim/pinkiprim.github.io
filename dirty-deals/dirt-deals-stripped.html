@@ -2,15 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Brick 2</title>
+    <title>Dirty Deals - Brick 3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         :root {
             --accent: #5e6bf6; 
+            --accent-hover: #4b56c4;
             --bg-glass: #121212;
+            --bg-card: #1e1e1e;
             --border: 1px solid #333;
             --text-main: #ffffff;
+            --text-dim: #888888;
         }
 
         * { box-sizing: border-box; user-select: none; }
@@ -60,13 +63,79 @@
             cursor: move; display: flex; justify-content: space-between;
             align-items: center; border-bottom: var(--border);
             font-family: 'Rajdhani', sans-serif; text-transform: uppercase;
-            letter-spacing: 1px; font-weight: 700; height: 60px;
+            letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
 
-        #main-content { 
-            flex: 1; display: flex; justify-content: center; align-items: center; 
-            color: #555; font-family: monospace;
+        /* --- LAYOUT --- */
+        #main-content { display: flex; flex: 1; overflow: hidden; }
+
+        .selection-area {
+            flex: 2; padding: 20px; overflow-y: hidden;
+            border-right: var(--border); background: #141414;
+            display: flex; flex-direction: column;
         }
+        
+        .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
+
+        .tab-btn {
+            flex: 1; background: #252525; border: 1px solid #333; color: #888;
+            padding: 10px; border-radius: 4px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center;
+        }
+        .tab-btn.active { 
+            background: var(--accent); color: white; border-color: var(--accent);
+            box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3);
+        }
+
+        .section-title { color: var(--text-main); font-size: 1.1em; margin-bottom: 10px; font-family: 'Rajdhani', sans-serif; }
+        .grid-wrapper { overflow-y: auto; flex: 1; padding-right: 5px; }
+        .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 20px; }
+
+        .grid-item {
+            background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer;
+            height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .grid-item:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
+        .grid-item.active {
+            border: 1px solid var(--accent); background: rgba(94, 107, 246, 0.1);
+            box-shadow: inset 0 0 15px rgba(94, 107, 246, 0.1);
+        }
+        .item-icon { font-size: 28px; margin-bottom: 5px; display: block; filter: grayscale(100%); }
+        .grid-item.active .item-icon { filter: grayscale(0%); }
+        .item-name { display: block; font-weight: bold; font-size: 0.85em; margin-bottom: 2px; color: #fff; }
+        .item-price { display: block; font-size: 0.75em; color: var(--text-dim); }
+
+        .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
+        .input-group { margin-bottom: 5px; }
+        .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
+        
+        input[type="text"], input[type="number"], select {
+            width: 100%; background: #252525; border: 1px solid #383838; color: white;
+            padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+        input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
+
+        .total-box {
+            margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px;
+            margin-bottom: 5px; flex-shrink: 0;
+        }
+        .total-price { 
+            font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif;
+        }
+
+        .btn-order {
+            background: var(--accent); color: white; border: none; width: 100%; padding: 15px;
+            border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase;
+            cursor: pointer; opacity: 0.5; pointer-events: none;
+        }
+        .btn-order.active { opacity: 1; pointer-events: all; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
     </style>
 </head>
 <body>
@@ -82,7 +151,6 @@
             <img src="https://files.catbox.moe/u9bulk.png" alt="Logo" style="height: 35px; width: auto;">
             <span>Dirty Deals</span>
         </span>
-        
         <div style="text-align:right;">
             <div id="username-display" style="font-size:0.9em; color:#fff;">...</div>
             <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
@@ -90,75 +158,221 @@
     </header>
 
     <div id="main-content">
-        UI Shell Loaded. Waiting for ID...
+        <div class="selection-area">
+            <div class="category-tabs">
+                <div class="tab-btn active" onclick="setCategory('Bonus EXP')">Bonus EXP</div>
+                <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
+                <div class="tab-btn" onclick="setCategory('Product')">Product</div>
+            </div>
+            <div class="section-title">Select Item</div>
+            <div class="grid-wrapper">
+                <div class="grid-container" id="item-grid"></div>
+            </div>
+        </div>
+
+        <div class="details-area">
+            <div class="input-group">
+                <div class="label">Selected Item</div>
+                <input type="text" id="disp-item-name" placeholder="Select from grid..." readonly>
+            </div>
+            <div class="input-group">
+                <div class="label">Quantity <span id="limit-display" style="float:right;color:var(--accent);"></span></div>
+                <input type="number" id="input-qty" value="1" min="1" oninput="updateCalc()">
+                <input type="range" id="range-qty" min="1" value="1" oninput="updateCalc()">
+            </div>
+            <div class="input-group">
+                <div class="label">Priority Level</div>
+                <select id="input-priority" onchange="updateCalc()">
+                    <option value="normal">Normal (100%)</option>
+                    <option value="high">High Priority (125% Cost)</option>
+                </select>
+            </div>
+            <div class="total-box">
+                <div class="label">Total Price</div>
+                <div class="total-price" id="disp-total">$0</div>
+            </div>
+            <div>
+                <button class="btn-order" id="btn-submit">CONFIRM ORDER</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- THIS IS THE EXACT LOGIC FROM THE WORKING TEST SCRIPT ---
-    
+    // --- DATA ---
+    var CATEGORIES = {
+        "Bonus EXP": [
+            { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
+            { name: "Business XP", price: 3900, limit: 20000, icon: "💼" },
+            { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" },
+            { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" },
+            { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" },
+            { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" },
+            { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" },
+            { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" },
+            { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" },
+            { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" },
+            { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" },
+            { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" },
+            { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" },
+            { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" },
+            { name: "Player XP", price: 500, limit: 50000, icon: "🧍" },
+            { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" },
+            { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" },
+            { name: "Strength XP", price: 500, limit: 50000, icon: "💪" },
+            { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" }
+        ],
+        "Raw Materials": [
+            { name: "Acid", price: 12000, limit: 1500, icon: "🧪" },
+            { name: "Batteries", price: 160000, limit: 500, icon: "🔋" },
+            { name: "Bronze Alloy", price: 45000, limit: 500, icon: "🥉" },
+            { name: "Cement Mix", price: 95000, limit: 2000, icon: "🏗️" },
+            { name: "Ceramic Tiles", price: 85000, limit: 500, icon: "⬜" },
+            { name: "Copper Vouchers", price: 22000, limit: 1000, icon: "🎫" },
+            { name: "Explosives", price: 1000000, limit: 50, icon: "💣" },
+            { name: "Flint", price: 12000, limit: 2500, icon: "🪨" },
+            { name: "Iron Vouchers", price: 18000, limit: 1000, icon: "🎫" },
+            { name: "Kerosene", price: 100000, limit: 500, icon: "🛢️" },
+            { name: "Planks", price: 55000, limit: 1000, icon: "🪵" },
+            { name: "Raw Ore Mix", price: 2500, limit: 1000, icon: "⛰️" },
+            { name: "Refined Amalgam", price: 174000, limit: 1000, icon: "💎" },
+            { name: "Refined Copper", price: 20000, limit: 800, icon: "🟧" },
+            { name: "Refined Solder", price: 60000, limit: 500, icon: "🔌" },
+            { name: "Refined Tin", price: 65000, limit: 500, icon: "🥫" },
+            { name: "Refined Zinc", price: 14000, limit: 800, icon: "🔋" },
+            { name: "Rubber", price: 168000, limit: 250, icon: "⚫" },
+            { name: "Sand", price: 13000, limit: 10000, icon: "⏳" },
+            { name: "Sawdust", price: 3000, limit: 10000, icon: "🪚" },
+            { name: "Scrap Aluminum", price: 8000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Copper", price: 11200, limit: 1000, icon: "🗑️" },
+            { name: "Scrap Gold", price: 55000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Lead", price: 13000, limit: 800, icon: "🗑️" },
+            { name: "Scrap Mercury", price: 65000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Plastic", price: 5000, limit: 2000, icon: "🥤" },
+            { name: "Scrap Tin", price: 32000, limit: 1000, icon: "🗑️" },
+            { name: "Sulfur", price: 30000, limit: 1000, icon: "🔥" },
+            { name: "Treated Water", price: 130000, limit: 500, icon: "💧" },
+            { name: "Waste Water", price: 70000, limit: 500, icon: "🚽" }
+        ],
+        "Product": [
+            { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" },
+            { name: "Concrete", price: 850000, limit: 500, icon: "🧱" },
+            { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" },
+            { name: "Pills", price: 250000, limit: 250, icon: "💊" },
+            { name: "Fish", price: 650, limit: 250000, icon: "🐟" },
+            { name: "Meat", price: 1000, limit: 1000, icon: "🍖" }
+        ]
+    };
+
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal' };
+
+    // --- LOGIC ---
+    window.onload = function() {
+        setCategory("Bonus EXP");
+        
+        // Start Request Loop (Same as Brick 1)
+        requestData();
+        setInterval(requestData, 1000);
+
+        // DRAG LOGIC
+        var elmnt = document.getElementById("app-container");
+        var handle = document.getElementById("drag-handle");
+        var pos1=0, pos2=0, pos3=0, pos4=0;
+        handle.onmousedown = function(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elmDrag; };
+        function elmDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
+        function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
+    };
+
+    // --- CONNECTION (EXACTLY FROM BRICK 1) ---
     window.addEventListener('message', function(event) {
         var payload = event.data;
-
-        // 1. Unwrap if nested
         if (payload && payload.type === 'data' && payload.data) {
             payload = payload.data;
         }
-
-        // 2. Validate
         if (!payload) return;
 
-        // 3. Extract Name
         var username = "Unknown";
         if (payload.name) username = payload.name;
         else if (payload.player && payload.player.name) username = payload.player.name;
         else if (typeof payload.player === 'string') username = payload.player;
 
-        // 4. Extract ID
         var userId = "0";
         if (payload.user_id) userId = String(payload.user_id);
         else if (payload.player_id) userId = String(payload.player_id);
         else if (payload.id) userId = String(payload.id);
 
-        // 5. Success Check -> UPDATE UI
         if (userId !== "0") {
-            updateInterface(username, userId);
+            // Update UI
+            document.getElementById('username-display').innerText = username;
+            document.getElementById('userid-display').innerText = "ID: " + userId;
+            
+            // Hide Overlay
+            var overlay = document.getElementById('loading-overlay');
+            if(overlay && overlay.style.opacity !== '0') {
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.style.display = 'none'; }, 500);
+            }
         }
     });
 
-    function updateInterface(name, id) {
-        // Update Header
-        document.getElementById('username-display').innerText = name;
-        document.getElementById('userid-display').innerText = "ID: " + id;
-        
-        // Remove Loader
-        var overlay = document.getElementById('loading-overlay');
-        if(overlay && overlay.style.opacity !== '0') {
-            overlay.style.opacity = '0';
-            setTimeout(() => { overlay.style.display = 'none'; }, 500);
-        }
-        
-        document.getElementById('main-content').innerText = "CONNECTION SUCCESSFUL.\nNext Step: Add Grid.";
-    }
-
-    // --- TRIGGER REQUEST (SAME AS TEST) ---
     function requestData() {
         if(window.parent) {
             window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
         }
     }
 
-    // Start immediately and poll just like the test script
-    requestData();
-    setInterval(requestData, 1000);
+    // --- UI FUNCTIONS ---
+    function setCategory(cat) {
+        state.category = cat;
+        var tabs = document.querySelectorAll('.tab-btn');
+        for(var i=0; i<tabs.length; i++) {
+            if(tabs[i].innerText === cat) tabs[i].classList.add('active');
+            else tabs[i].classList.remove('active');
+        }
+        renderGrid();
+    }
 
-    // --- DRAG LOGIC (Safe to keep) ---
-    var elmnt = document.getElementById("app-container");
-    var handle = document.getElementById("drag-handle");
-    var pos1=0, pos2=0, pos3=0, pos4=0;
-    handle.onmousedown = function(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elmDrag; };
-    function elmDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
-    function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
+    function renderGrid() {
+        var container = document.getElementById('item-grid');
+        container.innerHTML = '';
+        var items = CATEGORIES[state.category];
+        for(var i=0; i<items.length; i++) {
+            (function(item){
+                var div = document.createElement('div');
+                div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : '');
+                div.onclick = function() { selectItem(item); };
+                div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+item.price.toLocaleString()+'</span>';
+                if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>';
+                container.appendChild(div);
+            })(items[i]);
+        }
+    }
+
+    function selectItem(item) {
+        state.item = item;
+        document.getElementById('disp-item-name').value = item.name;
+        document.getElementById('limit-display').innerText = "(Max: " + item.limit + ")";
+        document.getElementById('input-qty').max = item.limit;
+        document.getElementById('range-qty').max = item.limit;
+        document.getElementById('btn-submit').classList.add('active');
+        renderGrid();
+        updateCalc();
+    }
+
+    function updateCalc() {
+        if(!state.item) return;
+        var qInput = document.getElementById('input-qty');
+        var rInput = document.getElementById('range-qty');
+        var val = parseInt(qInput.value);
+        
+        // Sync inputs (simplest way)
+        if(document.activeElement === rInput) val = parseInt(rInput.value);
+        qInput.value = val; rInput.value = val;
+        
+        var total = state.item.price * val;
+        if(document.getElementById('input-priority').value === 'high') total *= 1.25;
+        document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
+    }
 </script>
 </body>
 </html>
