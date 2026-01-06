@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Manual Sync</title>
+    <title>Dirty Deals - Brick 3.5 (Send Only)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -10,7 +10,6 @@
             --accent: #5e6bf6; --accent-hover: #4b56c4;
             --bg-glass: #121212; --bg-card: #1e1e1e;
             --border: 1px solid #333; --text-main: #ffffff; --text-dim: #888888;
-            --st-pending: #f1c40f; --st-accepted: #3498db; --st-denied: #e74c3c; --st-completed: #2ecc71;
         }
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
@@ -21,62 +20,58 @@
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); display: flex; flex-direction: column; overflow: hidden; z-index: 1000;
         }
 
-        /* LOADING OVERLAY */
         #loading-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #121212; z-index: 5000; display: flex; flex-direction: column;
             justify-content: center; align-items: center; transition: opacity 0.5s ease;
-            text-align: center; pointer-events: all; /* Blocks clicks until gone */
         }
         .spinner {
             border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent);
             border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; margin-bottom: 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.5em; color: #fff; letter-spacing: 1px; margin-bottom: 20px; }
+        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.5em; color: #fff; letter-spacing: 1px; }
 
-        /* SYNC BUTTON (Hidden initially) */
-        #btn-sync {
-            display: none;
-            background: #2ecc71; color: white; border: none; padding: 15px 30px;
-            font-family: 'Rajdhani', sans-serif; font-size: 1.2em; font-weight: bold;
-            border-radius: 4px; cursor: pointer; text-transform: uppercase;
-            box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); transition: 0.2s;
-        }
-        #btn-sync:hover { background: #27ae60; transform: scale(1.05); }
-
-        /* HEADER */
         header {
             background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between;
             align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
-        .header-btn {
-            background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em;
-            cursor: pointer; margin-left: 10px; border-radius: 4px; transition: 0.2s;
+
+        #main-content { display: flex; flex: 1; overflow: hidden; }
+
+        .selection-area {
+            flex: 2; padding: 20px; overflow-y: hidden;
+            border-right: var(--border); background: #141414;
+            display: flex; flex-direction: column;
         }
-        .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-        .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
-        .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
-
-        #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
-        #view-order { display: flex; }
-        #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
-
-        .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
+        
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
-        .tab-btn { flex: 1; background: #252525; border: 1px solid #333; color: #888; padding: 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center; }
-        .tab-btn:hover, .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3); }
+
+        .tab-btn {
+            flex: 1; background: #252525; border: 1px solid #333; color: #888;
+            padding: 10px; border-radius: 4px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center;
+        }
+        .tab-btn.active { 
+            background: var(--accent); color: white; border-color: var(--accent);
+            box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3);
+        }
 
         .section-title { color: var(--text-main); font-size: 1.1em; margin-bottom: 10px; font-family: 'Rajdhani', sans-serif; }
         .grid-wrapper { overflow-y: auto; flex: 1; padding-right: 5px; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 20px; }
-        .grid-item { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer; height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+        .grid-item {
+            background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer;
+            height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
         .grid-item:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
-        .grid-item.active { border: 1px solid var(--accent); background: rgba(94, 107, 246, 0.1); box-shadow: inset 0 0 15px rgba(94, 107, 246, 0.1); }
-        .check-mark { position: absolute; top: 5px; right: 5px; color: var(--accent); font-size: 12px; opacity: 0; }
-        .grid-item.active .check-mark { opacity: 1; }
+        .grid-item.active {
+            border: 1px solid var(--accent); background: rgba(94, 107, 246, 0.1);
+            box-shadow: inset 0 0 15px rgba(94, 107, 246, 0.1);
+        }
         .item-icon { font-size: 28px; margin-bottom: 5px; display: block; filter: grayscale(100%); }
         .grid-item.active .item-icon { filter: grayscale(0%); }
         .item-name { display: block; font-weight: bold; font-size: 0.85em; margin-bottom: 2px; color: #fff; }
@@ -85,46 +80,30 @@
         .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
         .input-group { margin-bottom: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
-        input[type="text"], input[type="number"], select { width: 100%; background: #252525; border: 1px solid #383838; color: white; padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em; }
+        
+        input[type="text"], input[type="number"], select {
+            width: 100%; background: #252525; border: 1px solid #383838; color: white;
+            padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600;
+        }
         input:focus, select:focus { outline: none; border-color: var(--accent); }
         input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
 
-        .total-box { margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px; margin-bottom: 5px; flex-shrink: 0; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
-        .total-label { font-size: 0.8em; color: var(--text-dim); margin-bottom: 5px; }
-        .total-price { font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif; white-space: nowrap; line-height: 1.1; transition: font-size 0.2s ease; }
-        .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 1px; flex-shrink: 0; }
-        .btn-order:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(94, 107, 246, 0.4); }
-        .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
+        .total-box {
+            margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px;
+            margin-bottom: 5px; flex-shrink: 0;
+        }
+        .total-price { 
+            font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif;
+        }
 
-        .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
-        .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; font-size: 0.9em; }
-        .history-item:hover { background: #222; }
-        
-        .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .h-info { display: flex; flex-direction: column; }
-        .h-item { font-weight: bold; color: white; font-size: 1.1em; }
-        .h-sub { font-size: 0.85em; color: #888; }
-        .h-user { color: var(--accent); font-weight: bold; font-size: 0.9em; margin-bottom: 2px;}
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; color: #111; }
-        .st-Pending { background: var(--st-pending); }
-        .st-Accepted { background: var(--st-accepted); }
-        .st-Denied { background: var(--st-denied); color: white; }
-        .st-Completed { background: var(--st-completed); }
+        .btn-order {
+            background: var(--accent); color: white; border: none; width: 100%; padding: 15px;
+            border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase;
+            cursor: pointer; opacity: 0.5; pointer-events: none;
+        }
+        .btn-order.active { opacity: 1; pointer-events: all; }
 
-        .g-controls { display: flex; gap: 5px; margin-top: 5px; }
-        .g-btn { border: none; padding: 4px 8px; font-size: 0.7em; border-radius: 3px; cursor: pointer; font-weight: bold; }
-        .gb-accept { background: #2980b9; color: white; }
-        .gb-complete { background: #27ae60; color: white; }
-        .gb-chat { background: #555; color: white; }
-        .gb-accept:hover { background: #3498db; }
-
-        /* Chat Styles */
-        .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
-        .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; }
-        .chat-input-row { display: flex; gap: 5px; }
-        .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
-        .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
-
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
@@ -134,93 +113,66 @@
 
 <div id="app-container">
     <div id="loading-overlay">
-        <div class="spinner" id="loader-spinner"></div>
-        <div class="loading-text" id="loader-text">CONNECTING...</div>
-        <button id="btn-sync" onclick="activateSync()">CONNECT TO SERVER</button>
+        <div class="spinner"></div>
+        <div class="loading-text" id="status-text">CONNECTING...</div>
     </div>
 
     <header id="drag-handle">
         <span style="display:flex; align-items:center; gap:10px;">
             <img src="https://files.catbox.moe/u9bulk.png" alt="Logo" style="height: 35px; width: auto;">
             <span>Dirty Deals</span>
-            <button class="header-btn active" id="nav-order" onclick="switchView('order')">New Order</button>
-            <button class="header-btn" id="nav-history" onclick="switchView('history')">My Orders</button>
-            <button class="header-btn grinder-btn" id="nav-grinder" onclick="switchView('grinder')">🔴 Grinder Panel</button>
         </span>
         <div style="text-align:right;">
-            <div id="username-display" style="font-size:0.9em; color:#fff;">Guest</div>
+            <div id="username-display" style="font-size:0.9em; color:#fff;">...</div>
             <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
         </div>
     </header>
 
     <div id="main-content">
-        <div id="view-order">
-            <div class="selection-area">
-                <div class="category-tabs">
-                    <div class="tab-btn active" onclick="setCategory('Bonus EXP')">Bonus EXP</div>
-                    <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
-                    <div class="tab-btn" onclick="setCategory('Product')">Product</div>
-                </div>
-                <div class="section-title">Select Item</div>
-                <div class="grid-wrapper">
-                    <div class="grid-container" id="item-grid"></div>
-                </div>
+        <div class="selection-area">
+            <div class="category-tabs">
+                <div class="tab-btn active" onclick="setCategory('Bonus EXP')">Bonus EXP</div>
+                <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
+                <div class="tab-btn" onclick="setCategory('Product')">Product</div>
             </div>
-            <div class="details-area">
-                <div class="input-group">
-                    <div class="label">Selected Item</div>
-                    <input type="text" id="disp-item-name" placeholder="Select from grid..." readonly 
-                           style="background:#1a1a1a; border-color:transparent; color:#888;">
-                </div>
-                <div class="input-group">
-                    <div class="label">Quantity <span id="limit-display"></span></div>
-                    <input type="number" id="input-qty" value="1" min="1" oninput="updateCalc()">
-                    <input type="range" id="range-qty" min="1" value="1" oninput="updateCalc()">
-                </div>
-                <div class="input-group">
-                    <div class="label">Priority Level</div>
-                    <select id="input-priority" onchange="updateCalc()">
-                        <option value="normal">Normal (100%)</option>
-                        <option value="high">High Priority (125% Cost)</option>
-                    </select>
-                </div>
-                <div class="total-box">
-                    <div class="total-label">Total Price</div>
-                    <div class="total-price" id="disp-total">$0</div>
-                </div>
-                <div>
-                    <button class="btn-order" id="btn-submit" onclick="submitOrder()" disabled>Confirm Order</button>
-                    <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:8px; color:#555;">Select an item to start</div>
-                </div>
+            <div class="section-title">Select Item</div>
+            <div class="grid-wrapper">
+                <div class="grid-container" id="item-grid"></div>
             </div>
         </div>
 
-        <div id="view-history">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span class="section-title" style="margin:0;">Recent Orders</span>
-                <button class="header-btn" onclick="fetchMyOrders()">↻ Refresh</button>
+        <div class="details-area">
+            <div class="input-group">
+                <div class="label">Selected Item</div>
+                <input type="text" id="disp-item-name" placeholder="Select from grid..." readonly>
             </div>
-            <div class="history-list" id="history-container">
-                <div style="padding:20px; text-align:center; color:#555;">Loading history...</div>
+            <div class="input-group">
+                <div class="label">Quantity <span id="limit-display" style="float:right;color:var(--accent);"></span></div>
+                <input type="number" id="input-qty" value="1" min="1" oninput="updateCalc()">
+                <input type="range" id="range-qty" min="1" value="1" oninput="updateCalc()">
             </div>
-        </div>
-
-        <div id="view-grinder">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
-                <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
+            <div class="input-group">
+                <div class="label">Priority Level</div>
+                <select id="input-priority" onchange="updateCalc()">
+                    <option value="normal">Normal (100%)</option>
+                    <option value="high">High Priority (125% Cost)</option>
+                </select>
             </div>
-            <div class="history-list" id="grinder-container">
-                <div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div>
+            <div class="total-box">
+                <div class="label">Total Price</div>
+                <div class="total-price" id="disp-total">$0</div>
+            </div>
+            <div>
+                <button class="btn-order" id="btn-submit" onclick="submitRealOrder()">CONFIRM ORDER</button>
+                <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;"></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
+    // --- GOOGLE CONFIG ---
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-    var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
 
     // --- DATA ---
     var CATEGORIES = {
@@ -287,39 +239,29 @@
         ]
     };
 
-    var state = {
-        currentCategory: "Bonus EXP", selectedItem: null, qty: 1, priority: 'normal',
-        username: "Unknown", playerId: "0", isGrinder: false
-    };
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Unknown", userId: "0" };
 
-    var pollingInterval = null;
-
-    // --- 2. INITIALIZATION ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
         
-        // INSTANTLY RENDER GRID so user doesn't see blank screen
+        // IMMEDIATE RENDER
         renderGrid();
 
-        requestPlayerData();
-        // BACKUP POLLING (2s) - Exact match from your working script
-        pollingInterval = setInterval(requestPlayerData, 2000); 
-        
-        // SAFETY: Fallback to Guest after 3s to show button anyway
+        // CONNECTION START
+        requestData();
+        setInterval(requestData, 2000); // 2 Second polling
+
+        // SAFETY: FORCE ENTRY AFTER 3s
         setTimeout(function() {
-            if(state.playerId === "0") {
-                foundIdentity("Guest", "0"); 
-            }
+            if(state.userId === "0") updateInterface("Guest", "0");
         }, 3000);
     };
 
-    // --- 3. DATA LISTENER (RESTORED) ---
+    // --- CONNECTION ---
     window.addEventListener('message', function(event) {
         var payload = event.data;
-        if (payload && payload.type === 'data' && payload.data) {
-            payload = payload.data;
-        }
+        if (payload && payload.type === 'data' && payload.data) payload = payload.data;
         if (!payload) return;
 
         var username = "Unknown";
@@ -332,82 +274,38 @@
         else if (payload.player_id) userId = String(payload.player_id);
         else if (payload.id) userId = String(payload.id);
 
-        if (userId !== "0") {
-            foundIdentity(username, userId);
+        if (userId !== "0" && state.userId === "0") {
+            updateInterface(username, userId);
         }
     });
 
-    function foundIdentity(name, id) {
-        if(state.playerId !== "0" && id === "0") return; // Don't overwrite real ID with Guest
-
+    function updateInterface(name, id) {
         state.username = name;
-        state.playerId = id;
-
-        document.getElementById('username-display').innerText = state.username;
-        document.getElementById('userid-display').innerText = "ID: " + state.playerId;
-
-        // STOP SPINNER & SHOW BUTTON
-        var spinner = document.getElementById('loader-spinner');
-        var text = document.getElementById('loader-text');
-        var btn = document.getElementById('btn-sync');
-
-        if(spinner) spinner.style.display = 'none';
-        if(text) {
-            text.innerHTML = "IDENTITY CONFIRMED<br><span style='font-size:0.7em; color:#888'>" + state.username + "</span>";
-            text.style.color = "#2ecc71";
-        }
-        if(btn) btn.style.display = 'block'; // Show the button
-
-        if(pollingInterval) clearInterval(pollingInterval);
-    }
-
-    // --- 4. MANUAL SYNC FUNCTION ---
-    function activateSync() {
+        state.userId = id;
+        document.getElementById('username-display').innerText = name;
+        document.getElementById('userid-display').innerText = "ID: " + id;
+        
         var overlay = document.getElementById('loading-overlay');
-        if(overlay) {
+        if(overlay && overlay.style.opacity !== '0') {
             overlay.style.opacity = '0';
-            setTimeout(function(){ overlay.style.display = 'none'; }, 500);
+            setTimeout(() => { overlay.style.display = 'none'; }, 500);
         }
-        
-        // NOW we trigger Google Sheets
-        checkGrinderPermissionLoop();
-        // Removed fetchMyOrders() from auto-run to be safe. User can click tab.
     }
 
-    function requestPlayerData() {
+    function requestData() {
         if(window.parent) {
-            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
+            window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
         }
     }
 
-    function switchView(viewName) {
-        var btns = document.querySelectorAll('.header-btn');
-        for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
-        document.getElementById('nav-' + viewName).classList.add('active');
-        
-        document.getElementById('view-order').style.display = 'none';
-        document.getElementById('view-history').style.display = 'none';
-        document.getElementById('view-grinder').style.display = 'none';
-        
-        document.getElementById('view-' + viewName).style.display = 'flex';
-
-        if(viewName === 'history') fetchMyOrders();
-        if(viewName === 'grinder') fetchGlobalOrders();
-    }
-
-    function setCategory(catName) {
-        state.currentCategory = catName; 
-        state.selectedItem = null;
+    // --- GRID LOGIC ---
+    function setCategory(cat) {
+        state.category = cat;
         var tabs = document.querySelectorAll('.tab-btn');
         for(var i=0; i<tabs.length; i++) {
-            var t = tabs[i];
-            if(catName.substring(0, 3) === t.innerText.substring(0, 3)) t.classList.add('active');
-            else t.classList.remove('active');
+            if(tabs[i].innerText === cat) tabs[i].classList.add('active');
+            else tabs[i].classList.remove('active');
         }
-        document.getElementById('disp-item-name').value = "";
-        document.getElementById('status-msg').innerText = "Select an item to start";
-        document.getElementById('limit-display').innerText = "";
-        updateCalc();
         renderGrid();
     }
 
@@ -415,240 +313,97 @@
         var container = document.getElementById('item-grid'); 
         if(!container) return; 
         container.innerHTML = '';
-        var items = CATEGORIES[state.currentCategory];
-        if(items) {
-            for(var i=0; i<items.length; i++) {
-                (function(item) {
-                    var div = document.createElement('div');
-                    var isActive = (state.selectedItem && state.selectedItem.name === item.name) ? 'active' : '';
-                    div.className = 'grid-item ' + isActive;
-                    div.onclick = function() { selectItem(item); };
-                    div.innerHTML = 
-                        '<div class="check-mark">✔</div>' +
-                        '<span class="item-icon">' + item.icon + '</span>' +
-                        '<span class="item-name">' + item.name + '</span>' +
-                        '<span class="item-price">$' + item.price.toLocaleString() + '</span>';
-                    container.appendChild(div);
-                })(items[i]);
-            }
+        var items = CATEGORIES[state.category];
+        for(var i=0; i<items.length; i++) {
+            (function(item){
+                var div = document.createElement('div');
+                div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : '');
+                div.onclick = function() { selectItem(item); };
+                div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+item.price.toLocaleString()+'</span>';
+                if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>';
+                container.appendChild(div);
+            })(items[i]);
         }
     }
 
     function selectItem(item) {
-        state.selectedItem = item; state.qty = 1; 
+        state.item = item;
         document.getElementById('disp-item-name').value = item.name;
-        document.getElementById('status-msg').innerText = "Ready to order";
-        document.getElementById('limit-display').innerText = "(Max: " + item.limit.toLocaleString() + ")";
-        
-        var q = document.getElementById('input-qty'); q.max = item.limit; q.value = 1;
-        var r = document.getElementById('range-qty'); r.max = item.limit; r.value = 1;
-        
-        renderGrid(); updateCalc();
+        document.getElementById('limit-display').innerText = "(Max: " + item.limit + ")";
+        document.getElementById('input-qty').max = item.limit;
+        document.getElementById('range-qty').max = item.limit;
+        document.getElementById('btn-submit').classList.add('active');
+        renderGrid();
+        updateCalc();
     }
-
-    var qtyInput = document.getElementById('input-qty');
-    var rangeInput = document.getElementById('range-qty');
-    var prioInput = document.getElementById('input-priority');
-
-    qtyInput.oninput = function(e) {
-        var val = parseInt(e.target.value) || 0;
-        if(state.selectedItem && val > state.selectedItem.limit) { val = state.selectedItem.limit; qtyInput.value = val; }
-        state.qty = val; rangeInput.value = state.qty; updateCalc();
-    };
-    rangeInput.oninput = function(e) {
-        state.qty = parseInt(e.target.value); qtyInput.value = state.qty; updateCalc();
-    };
-    prioInput.onchange = function(e) { state.priority = e.target.value; updateCalc(); };
 
     function updateCalc() {
+        if(!state.item) return;
+        var qInput = document.getElementById('input-qty');
+        var rInput = document.getElementById('range-qty');
+        var val = parseInt(qInput.value);
+        
+        if(document.activeElement === rInput) val = parseInt(rInput.value);
+        qInput.value = val; rInput.value = val;
+        
+        var total = state.item.price * val;
+        if(document.getElementById('input-priority').value === 'high') total *= 1.25;
+        document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
+    }
+
+    // --- SEND ORDER LOGIC (Brick 3.5 Feature) ---
+    function submitRealOrder() {
         var btn = document.getElementById('btn-submit');
-        var priceEl = document.getElementById('disp-total');
-        if (!state.selectedItem) { priceEl.innerText = "$0"; btn.disabled = true; return; }
-        btn.disabled = false;
-        var base = state.selectedItem.price * state.qty;
-        if (state.priority === 'high') base = base * 1.25; 
-        priceEl.innerText = "$" + Math.floor(base).toLocaleString();
-    }
+        var msg = document.getElementById('status-msg');
+        var total = document.getElementById('disp-total').innerText;
 
-    // --- 6. GRINDER AUTH & LOGIC ---
-    function checkGrinderPermissionLoop() {
-        if(state.isGrinder || state.playerId === "0" || state.playerId === "Guest") return; 
-        
-        // 1. HARDCODED CHECK (Instant)
-        if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
-        
-        // 2. GOOGLE CHECK (Only runs AFTER button click)
-        fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
-        .then(function(r){ return r.json(); })
-        .then(function(data) { if(data.authorized) enableGrinderMode(); });
-    }
+        btn.disabled = true;
+        btn.innerText = "SENDING...";
+        msg.innerText = "Contacting server...";
 
-    function enableGrinderMode() {
-        state.isGrinder = true;
-        document.getElementById('nav-grinder').style.display = 'inline-block';
-    }
-
-    function submitOrder() {
-        var btn = document.getElementById('btn-submit');
-        var status = document.getElementById('status-msg');
-        if (state.username === "Unknown" || state.username === "Wait...") { status.innerText = "Error: Identity Unknown."; return; }
-        btn.disabled = true; btn.innerText = "Sending...";
-        
         var payload = {
-            action: "placeOrder", username: state.username, userId: state.playerId,
-            category: state.currentCategory, item: state.selectedItem.name,
-            quantity: state.qty, priority: state.priority, totalPrice: document.getElementById('disp-total').innerText
+            action: "placeOrder",
+            username: state.username,
+            userId: state.userId,
+            category: state.category,
+            item: state.item.name,
+            quantity: state.qty,
+            priority: document.getElementById('input-priority').value,
+            totalPrice: total
         };
 
         fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
-        }).then(function() {
-            status.innerText = "ORDER SENT"; btn.innerText = "Done";
-            setTimeout(function() { 
-                status.innerText = "Ready"; btn.innerText = "Confirm Order"; btn.disabled = false;
-                state.qty = 1; document.getElementById('input-qty').value = 1; updateCalc();
+        })
+        .then(function() {
+            btn.innerText = "SENT!";
+            msg.innerText = "Order placed successfully.";
+            msg.style.color = "#2ecc71";
+            
+            setTimeout(function() {
+                btn.disabled = false;
+                btn.innerText = "CONFIRM ORDER";
+                msg.innerText = "";
             }, 3000);
+        })
+        .catch(function(err) {
+            btn.innerText = "ERROR";
+            msg.innerText = "Failed to send.";
+            msg.style.color = "red";
+            setTimeout(function() { btn.disabled = false; }, 2000);
         });
     }
 
-    // --- 7. HISTORY & ORDERS ---
-    function createOrderItem(o, isGrinderView) {
-        var grinderHTML = o.grinder ? '<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ' + o.grinder + ')</span>' : '';
-        var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        var chatLog = o.chat ? o.chat.split(" | ").join("\n") : "No messages.";
-        
-        var controls = '';
-        if(isGrinderView) {
-            // NO DENY BUTTON HERE - ONLY ACCEPT/COMPLETE
-            if(o.status === 'Pending') {
-                controls = '<button class="g-btn gb-accept">ACCEPT</button>';
-            } else if(o.status === 'Accepted' && o.grinder === state.username) {
-                controls = '<button class="g-btn gb-complete">COMPLETE</button>';
-            }
-        }
-
-        // --- CHAT LOGIC: Only show chat button if Accepted ---
-        var chatBtnHTML = '';
-        if(o.status === 'Accepted') {
-            chatBtnHTML = '<button class="g-btn gb-chat">💬</button>';
-        }
-
-        var div = document.createElement('div'); 
-        div.className = "history-item";
-        div.innerHTML = 
-            '<div class="h-top">' +
-                '<div class="h-info">' +
-                    '<span class="h-user">' + o.username + ' <span style="color:#555; font-weight:normal;">(' + o.userId + ')</span></span>' +
-                    '<span class="h-item">' + o.item + ' <span style="font-size:0.8em; color:#666;">x' + o.qty + '</span></span>' +
-                    '<span class="h-sub">' + o.price + ' ' + grinderHTML + '</span>' +
-                '</div>' +
-                '<div style="text-align:right;">' +
-                    '<div class="status-badge st-' + (o.status || 'Pending') + '" style="margin-bottom:5px;">' + (o.status || 'Pending') + '</div>' +
-                    '<div class="g-controls">' + controls + chatBtnHTML + '</div>' +
-                '</div>' +
-            '</div>' +
-            '<div class="chat-area">' +
-                '<div class="chat-logs">' + chatLog + '</div>' +
-                '<div class="chat-input-row">' +
-                    '<input type="text" class="chat-input" placeholder="Type message...">' +
-                    '<button class="chat-send">SEND</button>' +
-                '</div>' +
-            '</div>';
-
-        // Listeners
-        var chatBtn = div.querySelector('.gb-chat');
-        if(chatBtn) {
-            var chatArea = div.querySelector('.chat-area');
-            chatBtn.onclick = function() { 
-                chatArea.style.display = (chatArea.style.display === 'block') ? 'none' : 'block'; 
-            };
-        }
-
-        var sendBtn = div.querySelector('.chat-send');
-        if(sendBtn) {
-            var input = div.querySelector('.chat-input');
-            sendBtn.onclick = function() {
-                if(!input.value) return;
-                sendChatMessage(o.timestamp, o.userId, input.value);
-                input.value = "Sending...";
-            };
-        }
-
-        if(isGrinderView) {
-            var acceptBtn = div.querySelector('.gb-accept');
-            if(acceptBtn) acceptBtn.onclick = function() { updateOrderStatus(o.timestamp, o.userId, 'Accepted'); };
-            var compBtn = div.querySelector('.gb-complete');
-            if(compBtn) compBtn.onclick = function() { updateOrderStatus(o.timestamp, o.userId, 'Completed'); };
-        }
-
-        return div;
-    }
-
-    function fetchMyOrders() {
-        var c = document.getElementById('history-container');
-        c.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
-        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.playerId)
-        .then(function(r){ return r.json(); })
-        .then(function(data) {
-            c.innerHTML = '';
-            if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
-            for(var i=0; i<data.length; i++) {
-                c.appendChild(createOrderItem(data[i], false));
-            }
-        });
-    }
-
-    function fetchGlobalOrders() {
-        var c = document.getElementById('grinder-container');
-        c.innerHTML = '<div style="padding:20px; text-align:center;">Loading global jobs...</div>';
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders")
-        .then(function(r){ return r.json(); })
-        .then(function(data) {
-            c.innerHTML = '';
-            if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No pending jobs.</div>'; return; }
-            for(var i=0; i<data.length; i++) {
-                c.appendChild(createOrderItem(data[i], true));
-            }
-        });
-    }
-
-    function updateOrderStatus(ts, uid, status) {
-        var payload = {
-            action: "updateOrder", orderTimestamp: ts, orderUserId: uid,
-            newStatus: status, grinderName: state.username
-        };
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).then(function() { setTimeout(fetchGlobalOrders, 1000); });
-    }
-
-    function sendChatMessage(ts, uid, msg) {
-        var payload = {
-            action: "sendMessage", orderTimestamp: ts, orderUserId: uid,
-            sender: state.username, message: msg
-        };
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).then(function() { 
-            if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders();
-            else fetchGlobalOrders();
-        });
-    }
-
+    // --- DRAG ---
     var elmnt = document.getElementById("app-container");
     var handle = document.getElementById("drag-handle");
     var pos1=0, pos2=0, pos3=0, pos4=0;
-    if(handle) handle.onmousedown = function(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elmDrag; };
+    handle.onmousedown = function(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elmDrag; };
     function elmDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
     function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
-
-    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-    document.onkeydown = function(e) { 
-        if(e.keyCode==123 || (e.ctrlKey && e.shiftKey && (e.keyCode==73 || e.keyCode==74 || e.keyCode==67)) || (e.ctrlKey && e.keyCode==85)) return false; 
-    }
 </script>
 </body>
 </html>
