@@ -207,8 +207,8 @@
 
 <div id="app-container">
     <div id="loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">CONNECTING TO CITY DATABASE...</div>
+        <div class="spinner" id="loader-spinner"></div>
+        <div class="loading-text" id="loader-text">CONNECTING TO CITY DATABASE...</div>
     </div>
 
     <header id="drag-handle">
@@ -385,19 +385,19 @@
         // Start permission loop
         checkGrinderPermissionLoop();
 
-        // SAFETY: Show error if connection fails after 5 seconds
+        // SAFETY TIMER: Check after 5 seconds if connection failed
         setTimeout(function() {
-            if (state.username === "Unknown" || state.playerId === "0") {
-                var loaderText = document.querySelector('.loading-text');
-                var spinner = document.querySelector('.spinner');
+            if (state.playerId === "0") {
+                var textEl = document.getElementById('loader-text');
+                var spinEl = document.getElementById('loader-spinner');
                 
-                if(loaderText) {
-                    loaderText.innerText = "CONNECTION TIMED OUT.\nPLEASE CLOSE & REOPEN THE TOOL.";
-                    loaderText.style.color = "#ff4444";
+                if(textEl) {
+                    textEl.innerHTML = "CONNECTION TIMED OUT.<br>PLEASE CLOSE & REOPEN TOOL.";
+                    textEl.style.color = "#ff4444";
                 }
-                if(spinner) {
-                    spinner.style.display = 'none';
-                }
+                if(spinEl) spinEl.style.display = 'none';
+                
+                // Do NOT hide the overlay, so the user knows to restart
             }
         }, 5000);
     };
@@ -533,8 +533,10 @@
         if(state.isGrinder) return;
         if(state.playerId === "0") return; 
         
+        // 1. HARDCODED CHECK
         if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
         
+        // 2. GOOGLE CHECK
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
