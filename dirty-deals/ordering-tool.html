@@ -45,23 +45,23 @@
         /* --- LOADING OVERLAY --- */
         #loading-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #121212; z-index: 2000;
+            background: #121212; z-index: 5000;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             transition: opacity 0.5s ease;
             text-align: center;
-            pointer-events: none; /* Allow clicks through if stuck invisible */
+            pointer-events: none;
         }
         .spinner {
             border: 4px solid rgba(255,255,255,0.1);
             border-left-color: var(--accent);
             border-radius: 50%;
-            width: 40px; height: 40px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
+            width: 50px; height: 50px;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; color: #fff; letter-spacing: 1px; padding: 0 20px; line-height: 1.5; }
+        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.5em; color: #fff; letter-spacing: 1px; }
 
         /* --- HEADER --- */
         header {
@@ -209,7 +209,7 @@
 <div id="app-container">
     <div id="loading-overlay">
         <div class="spinner" id="loader-spinner"></div>
-        <div class="loading-text" id="loader-text">CONNECTING TO CITY DATABASE...</div>
+        <div class="loading-text" id="loader-text">CONNECTING...</div>
     </div>
 
     <header id="drag-handle">
@@ -224,7 +224,7 @@
         </span>
         
         <div style="text-align:right;">
-            <div id="username-display" style="font-size:0.9em; color:#fff;">Connecting...</div>
+            <div id="username-display" style="font-size:0.9em; color:#fff;">...</div>
             <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
         </div>
     </header>
@@ -379,10 +379,12 @@
         setCategory("Bonus EXP");
         initDrag();
         
-        // IMMEDIATE: Start scanning for data
+        // INSTANTLY RENDER GRID so user doesn't see blank screen
+        renderGrid();
+
         requestPlayerData();
-        // BACKUP: Retry every 500ms
-        pollingInterval = setInterval(requestPlayerData, 500); 
+        // BACKUP POLLING: Using the exact method from the old script
+        pollingInterval = setInterval(requestPlayerData, 2000); 
         
         // SAFETY: If stuck for 3 seconds, let them in as Guest so menu is usable
         setTimeout(function() {
@@ -392,32 +394,46 @@
         }, 3000);
     };
 
-    // --- 3. DATA LISTENER (RESTORED LOGIC) ---
+    // --- 3. DATA LISTENER (RESTORED FROM OLD SCRIPT) ---
     window.addEventListener('message', function(event) {
-        var msg = event.data;
+        var payload = event.data;
         
-        // Handling Different Data Wrappers from FiveM
-        if (msg.type === 'data' && msg.data) {
-            msg = msg.data;
+        // Standard NUI wrapper check
+        if (payload && payload.type === 'data' && payload.data) {
+            payload = payload.data;
+        }
+        
+        if (!payload) return;
+
+        // Check for Name
+        if (payload.name) {
+            state.username = payload.name;
+        } else if (payload.player && payload.player.name) {
+            state.username = payload.player.name;
+        } else if (typeof payload.player === 'string') {
+            state.username = payload.player;
         }
 
-        // Check for User ID + Name
-        if (msg.user_id && msg.name) {
-            foundIdentity(msg.name, msg.user_id);
-        } else if (msg.player && msg.player_id) {
-            foundIdentity(msg.player, msg.player_id);
-        } else if (msg.id && msg.name) {
-            foundIdentity(msg.name, msg.id);
+        // Check for ID
+        if (payload.user_id) {
+            state.playerId = String(payload.user_id);
+        } else if (payload.player_id) {
+            state.playerId = String(payload.player_id);
+        } else if (payload.id) {
+            state.playerId = String(payload.id);
+        }
+
+        // If we found the ID, update UI and unlock everything
+        if (state.playerId !== "0") {
+            foundIdentity(state.username, state.playerId);
         }
     });
 
     function foundIdentity(name, id) {
-        if (state.playerId !== "0" && state.playerId !== 0) return; // Already found real ID
-
         state.username = name;
-        state.playerId = String(id); 
+        state.playerId = id;
 
-        // Update UI
+        // Update Header
         document.getElementById('username-display').innerText = state.username;
         document.getElementById('userid-display').innerText = "ID: " + state.playerId;
 
@@ -428,9 +444,7 @@
             setTimeout(function(){ loader.style.display = 'none'; }, 500);
         }
 
-        if(pollingInterval) clearInterval(pollingInterval);
-
-        // Check Permissions
+        // Check Permissions (Google Sheet)
         checkGrinderPermissionLoop();
     }
 
