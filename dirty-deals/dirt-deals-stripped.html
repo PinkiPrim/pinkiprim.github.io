@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Delayed Load</title>
+    <title>Dirty Deals - Manual Sync</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -26,15 +26,26 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #121212; z-index: 5000; display: flex; flex-direction: column;
             justify-content: center; align-items: center; transition: opacity 0.5s ease;
-            text-align: center; pointer-events: none;
+            text-align: center; pointer-events: all; /* Blocks clicks until gone */
         }
         .spinner {
             border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent);
             border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; margin-bottom: 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.5em; color: #fff; letter-spacing: 1px; }
+        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.5em; color: #fff; letter-spacing: 1px; margin-bottom: 20px; }
 
+        /* SYNC BUTTON (Hidden initially) */
+        #btn-sync {
+            display: none;
+            background: #2ecc71; color: white; border: none; padding: 15px 30px;
+            font-family: 'Rajdhani', sans-serif; font-size: 1.2em; font-weight: bold;
+            border-radius: 4px; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); transition: 0.2s;
+        }
+        #btn-sync:hover { background: #27ae60; transform: scale(1.05); }
+
+        /* HEADER */
         header {
             background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between;
             align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
@@ -74,14 +85,12 @@
         .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
         .input-group { margin-bottom: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
-        .label span { float: right; color: var(--accent); font-weight: bold; }
         input[type="text"], input[type="number"], select { width: 100%; background: #252525; border: 1px solid #383838; color: white; padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em; }
         input:focus, select:focus { outline: none; border-color: var(--accent); }
         input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
 
         .total-box { margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px; margin-bottom: 5px; flex-shrink: 0; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
-        .total-label { font-size: 0.8em; color: var(--text-dim); margin-bottom: 5px; }
-        .total-price { font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif; white-space: nowrap; line-height: 1.1; transition: font-size 0.2s ease; }
+        .total-price { font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif; }
         .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 1px; flex-shrink: 0; }
         .btn-order:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(94, 107, 246, 0.4); }
         .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
@@ -126,6 +135,7 @@
     <div id="loading-overlay">
         <div class="spinner" id="loader-spinner"></div>
         <div class="loading-text" id="loader-text">CONNECTING...</div>
+        <button id="btn-sync" onclick="activateSync()">CONNECT TO SERVER</button>
     </div>
 
     <header id="drag-handle">
@@ -174,7 +184,7 @@
                     </select>
                 </div>
                 <div class="total-box">
-                    <div class="total-label">Total Price</div>
+                    <div class="label">Total Price</div>
                     <div class="total-price" id="disp-total">$0</div>
                 </div>
                 <div>
@@ -207,9 +217,11 @@
 </div>
 
 <script>
+    // --- 1. CONFIGURATION ---
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
     var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
 
+    // --- DATA ---
     var CATEGORIES = {
         "Bonus EXP": [
             { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
@@ -281,15 +293,19 @@
 
     var pollingInterval = null;
 
+    // --- 2. INITIALIZATION ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
-        renderGrid(); // IMMEDIATE UI
+        
+        // INSTANTLY RENDER GRID so user doesn't see blank screen
+        renderGrid();
 
         requestPlayerData();
+        // BACKUP POLLING (2s) - Exact match from your working script
         pollingInterval = setInterval(requestPlayerData, 2000); 
         
-        // SAFETY: If stuck for 3 seconds, force entry
+        // SAFETY: Fallback to Guest after 3s to show button anyway
         setTimeout(function() {
             if(state.playerId === "0") {
                 foundIdentity("Guest", "0"); 
@@ -297,6 +313,7 @@
         }, 3000);
     };
 
+    // --- 3. DATA LISTENER (RESTORED) ---
     window.addEventListener('message', function(event) {
         var payload = event.data;
         if (payload && payload.type === 'data' && payload.data) {
@@ -328,24 +345,36 @@
         document.getElementById('username-display').innerText = state.username;
         document.getElementById('userid-display').innerText = "ID: " + state.playerId;
 
-        // UNLOCK UI
-        var loader = document.getElementById('loading-overlay');
-        if(loader) {
-            loader.style.opacity = '0';
-            setTimeout(function(){ loader.style.display = 'none'; }, 500);
+        // STOP SPINNER & SHOW BUTTON
+        var spinner = document.getElementById('loader-spinner');
+        var text = document.getElementById('loader-text');
+        var btn = document.getElementById('btn-sync');
+
+        if(spinner) spinner.style.display = 'none';
+        if(text) {
+            text.innerHTML = "IDENTITY CONFIRMED<br><span style='font-size:0.7em; color:#888'>" + state.username + "</span>";
+            text.style.color = "#2ecc71";
         }
+        if(btn) btn.style.display = 'block'; // Show the button
 
         if(pollingInterval) clearInterval(pollingInterval);
+    }
 
-        // --- THE FIX: WAIT 6 SECONDS BEFORE TOUCHING GOOGLE ---
-        setTimeout(function() {
-            checkGrinderPermissionLoop();
-        }, 6000);
+    // --- 4. MANUAL SYNC FUNCTION ---
+    function activateSync() {
+        var overlay = document.getElementById('loading-overlay');
+        if(overlay) {
+            overlay.style.opacity = '0';
+            setTimeout(function(){ overlay.style.display = 'none'; }, 500);
+        }
+        
+        // NOW we trigger Google Sheets
+        checkGrinderPermissionLoop();
     }
 
     function requestPlayerData() {
         if(window.parent) {
-            window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
+            window.parent.postMessage({ type: "getNamedData", keys: ["player", "player_id", "user_id", "name", "id"] }, "*");
         }
     }
 
@@ -439,14 +468,14 @@
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    // --- GOOGLE SHEETS LOGIC (DELAYED START) ---
+    // --- 6. GRINDER AUTH & LOGIC ---
     function checkGrinderPermissionLoop() {
         if(state.isGrinder || state.playerId === "0" || state.playerId === "Guest") return; 
         
         // 1. HARDCODED CHECK (Instant)
         if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
         
-        // 2. GOOGLE CHECK (Fetched)
+        // 2. GOOGLE CHECK (Only runs AFTER button click)
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
@@ -481,6 +510,7 @@
         });
     }
 
+    // --- 7. HISTORY & ORDERS ---
     function createOrderItem(o, isGrinderView) {
         var grinderHTML = o.grinder ? '<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ' + o.grinder + ')</span>' : '';
         var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -488,6 +518,7 @@
         
         var controls = '';
         if(isGrinderView) {
+            // NO DENY BUTTON HERE - ONLY ACCEPT/COMPLETE
             if(o.status === 'Pending') {
                 controls = '<button class="g-btn gb-accept">ACCEPT</button>';
             } else if(o.status === 'Accepted' && o.grinder === state.username) {
@@ -495,6 +526,7 @@
             }
         }
 
+        // --- CHAT LOGIC: Only show chat button if Accepted ---
         var chatBtnHTML = '';
         if(o.status === 'Accepted') {
             chatBtnHTML = '<button class="g-btn gb-chat">💬</button>';
