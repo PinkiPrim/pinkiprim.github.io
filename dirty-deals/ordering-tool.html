@@ -256,7 +256,7 @@
         </span>
         
         <div style="text-align:right;">
-            <div id="username-display" style="font-size:0.9em; color:#fff;">Wait...</div>
+            <div id="username-display" style="font-size:0.9em; color:#fff;">Connecting...</div>
             <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
         </div>
     </header>
@@ -332,10 +332,11 @@
 
 <script>
     // --- 1. CONFIGURATION ---
+    // PASTE YOUR LATEST DEPLOYMENT URL HERE
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
     
-    // --- AUTHORIZATION LIST (Immediate Access) ---
-    // Add IDs here as strings
+    // --- AUTHORIZATION LIST (Hardcoded for reliability) ---
+    // Add IDs as strings: ["123", "456"]
     const AUTHORIZED_IDS = ["757858"]; 
 
     // --- DATA ---
@@ -408,54 +409,22 @@
         username: "Unknown", playerId: "0", isGrinder: false
     };
 
+    let pollingInterval = null;
+
+    // --- INITIALIZATION ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
+        
+        // 1. Immediately request data
         requestPlayerData();
-        setInterval(requestPlayerData, 1000); // Check every 1s
-        checkGrinderPermissionLoop(); // Start the loop
+        
+        // 2. Start aggressive polling (Every 250ms) to unstick the "Wait..."
+        pollingInterval = setInterval(requestPlayerData, 250);
+        
+        // 3. Start checking if user is a grinder
+        checkGrinderPermissionLoop();
     };
-
-    // --- RECURSIVE PERMISSION CHECK LOOP ---
-    function checkGrinderPermissionLoop() {
-        // If already authorized, stop checking
-        if(state.isGrinder) return;
-
-        // If ID is not loaded yet, retry in 1s
-        if(state.playerId === "0") {
-            setTimeout(checkGrinderPermissionLoop, 1000);
-            return;
-        }
-
-        // 1. HARDCODED CHECK (Instant)
-        if(AUTHORIZED_IDS.includes(String(state.playerId))) {
-            console.log("Authorized via List");
-            enableGrinderMode();
-            return;
-        }
-
-        // 2. GOOGLE SHEET CHECK (Backup)
-        fetch(`${GOOGLE_SCRIPT_URL}?action=checkAuth&userId=${state.playerId}`)
-        .then(r => r.json())
-        .then(data => {
-            if(data.authorized) {
-                console.log("Authorized via Google Sheet");
-                enableGrinderMode();
-            } else {
-                // Retry every 5s if not found (in case they get added later)
-                setTimeout(checkGrinderPermissionLoop, 5000);
-            }
-        })
-        .catch(e => {
-            // If fetch fails, retry in 5s
-            setTimeout(checkGrinderPermissionLoop, 5000);
-        });
-    }
-
-    function enableGrinderMode() {
-        state.isGrinder = true;
-        document.getElementById('nav-grinder').style.display = 'inline-block';
-    }
 
     // --- VIEW SWITCHING ---
     function switchView(viewName) {
@@ -472,7 +441,7 @@
         if(viewName === 'grinder') fetchGlobalOrders();
     }
 
-    // --- CATEGORY & GRID ---
+    // --- SELECTION & CALCS ---
     function setCategory(catName) {
         state.currentCategory = catName; 
         state.selectedItem = null;
@@ -531,7 +500,6 @@
         updateCalc();
     }
 
-    // --- INPUTS ---
     const qtyInput = document.getElementById('input-qty');
     const rangeInput = document.getElementById('range-qty');
     const prioInput = document.getElementById('input-priority');
@@ -567,7 +535,7 @@
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    // --- DATA COMMS ---
+    // --- AGGRESSIVE DATA REQUEST ---
     function requestPlayerData() {
         if(window.parent) {
             window.parent.postMessage({ 
@@ -581,22 +549,57 @@
         let p = event.data?.data || event.data;
         if(!p) return;
 
-        // Username
+        // Check Username
         if (p.name) state.username = p.name;
         else if (p.player && typeof p.player === 'string') state.username = p.player;
         else if (p.player && p.player.name) state.username = p.player.name;
 
-        // ID
+        // Check ID
         if (p.user_id) state.playerId = p.user_id;
         else if (p.player_id) state.playerId = p.player_id;
         else if (p.id) state.playerId = p.id;
 
-        // UI Update
-        if(state.username !== "Unknown") document.getElementById('username-display').innerText = state.username;
-        if(state.playerId !== "0") document.getElementById('userid-display').innerText = "ID: " + state.playerId;
+        // If found, update UI and slow down polling
+        if(state.username !== "Unknown" && state.playerId !== "0") {
+            document.getElementById('username-display').innerText = state.username;
+            document.getElementById('userid-display').innerText = "ID: " + state.playerId;
+            
+            // Stop aggressive polling, switch to keep-alive (5s)
+            if(pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = setInterval(requestPlayerData, 5000);
+            }
+            
+            // Check Grinder Perms immediately
+            checkGrinderPermissionLoop();
+        }
     });
 
-    // --- SUBMIT ---
+    // --- GRINDER AUTH ---
+    function checkGrinderPermissionLoop() {
+        if(state.isGrinder) return;
+        if(state.playerId === "0") return; // Wait for ID
+
+        // 1. Hardcoded List Check
+        if(AUTHORIZED_IDS.includes(String(state.playerId))) {
+            enableGrinderMode();
+            return;
+        }
+
+        // 2. Google Sheet Check
+        fetch(`${GOOGLE_SCRIPT_URL}?action=checkAuth&userId=${state.playerId}`)
+        .then(r => r.json())
+        .then(data => {
+            if(data.authorized) enableGrinderMode();
+        });
+    }
+
+    function enableGrinderMode() {
+        state.isGrinder = true;
+        document.getElementById('nav-grinder').style.display = 'inline-block';
+    }
+
+    // --- SERVER COMMS ---
     function submitOrder() {
         const btn = document.getElementById('btn-submit');
         const status = document.getElementById('status-msg');
@@ -637,7 +640,6 @@
         });
     }
 
-    // --- FETCH HISTORY ---
     function fetchMyOrders() {
         const c = document.getElementById('history-container');
         c.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
@@ -666,7 +668,6 @@
         });
     }
 
-    // --- GRINDER LOGIC ---
     function fetchGlobalOrders() {
         const container = document.getElementById('grinder-container');
         container.innerHTML = '<div style="padding:20px; text-align:center;">Loading global jobs...</div>';
