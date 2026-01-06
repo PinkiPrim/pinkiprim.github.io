@@ -31,8 +31,8 @@
         #app-container {
             position: absolute;
             top: 50px; left: 50px;
-            width: 760px; 
-            height: 580px; 
+            width: 800px; /* Slightly wider for tabs */
+            height: 600px; 
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -71,22 +71,62 @@
         .selection-area {
             flex: 2;
             padding: 20px;
-            overflow-y: auto;
+            overflow-y: hidden; /* Handle scroll in inner container */
             border-right: var(--border);
             background: #141414;
+            display: flex;
+            flex-direction: column;
         }
         
+        /* CATEGORY TABS */
+        .category-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: #252525;
+            border: 1px solid #333;
+            color: #888;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .tab-btn:hover { background: #333; color: white; }
+        
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3);
+        }
+
         .section-title {
             color: var(--text-main);
             font-size: 1.1em;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             font-family: 'Rajdhani', sans-serif;
+        }
+
+        .grid-wrapper {
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 5px; /* Space for scrollbar */
         }
 
         .grid-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            gap: 10px;
             padding-bottom: 20px;
         }
 
@@ -94,12 +134,12 @@
             background: var(--bg-card);
             border: 1px solid rgba(255,255,255,0.05);
             border-radius: 6px;
-            padding: 15px 10px;
+            padding: 10px 5px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
-            height: 110px;
+            height: 100px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -118,16 +158,16 @@
         }
         
         .check-mark {
-            position: absolute; top: 6px; right: 6px;
-            color: var(--accent); font-size: 14px; opacity: 0;
+            position: absolute; top: 5px; right: 5px;
+            color: var(--accent); font-size: 12px; opacity: 0;
         }
         .grid-item.active .check-mark { opacity: 1; }
 
-        .item-icon { font-size: 32px; margin-bottom: 8px; display: block; filter: grayscale(100%); transition: 0.2s; }
+        .item-icon { font-size: 28px; margin-bottom: 5px; display: block; filter: grayscale(100%); transition: 0.2s; }
         .grid-item.active .item-icon { filter: grayscale(0%); }
         
-        .item-name { display: block; font-weight: bold; font-size: 0.9em; margin-bottom: 4px; color: #fff; }
-        .item-price { display: block; font-size: 0.8em; color: var(--text-dim); }
+        .item-name { display: block; font-weight: bold; font-size: 0.85em; margin-bottom: 2px; color: #fff; }
+        .item-price { display: block; font-size: 0.75em; color: var(--text-dim); }
 
         /* RIGHT: ORDER FORM */
         .details-area {
@@ -142,6 +182,7 @@
 
         .input-group { margin-bottom: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
+        .label span { float: right; color: var(--accent); font-weight: bold; }
         
         input[type="text"], input[type="number"], select {
             width: 100%;
@@ -229,9 +270,18 @@
 
     <div id="main-content">
         <div class="selection-area">
+            <div class="category-tabs">
+                <div class="tab-btn active" onclick="setCategory('Bonus EXP')">Bonus EXP</div>
+                <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
+                <div class="tab-btn" onclick="setCategory('Product')">Product</div>
+            </div>
+
             <div class="section-title">Select Item</div>
-            <div class="grid-container" id="item-grid">
-                </div>
+            
+            <div class="grid-wrapper">
+                <div class="grid-container" id="item-grid">
+                    </div>
+            </div>
         </div>
 
         <div class="details-area">
@@ -243,9 +293,9 @@
             </div>
 
             <div class="input-group">
-                <div class="label">Quantity</div>
-                <input type="number" id="input-qty" value="1" min="1" max="1000000">
-                <input type="range" id="range-qty" min="1" max="1000000" value="1">
+                <div class="label">Quantity <span id="limit-display"></span></div>
+                <input type="number" id="input-qty" value="1" min="1">
+                <input type="range" id="range-qty" min="1" value="1">
             </div>
 
             <div class="input-group">
@@ -273,21 +323,74 @@
 <script>
     // --- 1. CONFIGURATION ---
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPJmoFYMVnKPX4gc9m66dfGfK28xavtDstfNoWLgP6HLSn0XzcAOJKQucxacVrMPb0/exec";
-    const MAX_QTY = 1000000;
 
-    const ITEMS = [
-        { id: 'airline', name: 'Airline', price: 6000, icon: '✈️' },
-        { id: 'biz', name: 'Biz', price: 3000, icon: '🏢' },
-        { id: 'bus', name: 'Bus', price: 7000, icon: '🚌' },
-        { id: 'cargo', name: 'Cargo', price: 8000, icon: '📦' },
-        { id: 'conductor', name: 'Conductor', price: 3000, icon: '🎫' },
-        { id: 'ems', name: 'EMS', price: 5000, icon: '🚑' },
-        { id: 'farming', name: 'Farming', price: 2500, icon: '🚜' },
-        { id: 'fire', name: 'Firefighter', price: 9000, icon: '🔥' },
-        { id: 'police', name: 'Police', price: 4000, icon: '🚓' },
-    ];
+    // --- DATA TRANSCRIPTION FROM SPREADSHEET ---
+    const CATEGORIES = {
+        "Bonus EXP": [
+            { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
+            { name: "Business XP", price: 3900, limit: 20000, icon: "💼" },
+            { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" },
+            { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" },
+            { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" },
+            { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" },
+            { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" },
+            { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" },
+            { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" },
+            { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" },
+            { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" },
+            { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" },
+            { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" },
+            { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" },
+            { name: "Player XP", price: 500, limit: 50000, icon: "🧍" },
+            { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" },
+            { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" },
+            { name: "Strength XP", price: 500, limit: 50000, icon: "💪" },
+            { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" }
+        ],
+        "Raw Materials": [
+            { name: "Acid", price: 12000, limit: 1500, icon: "🧪" },
+            { name: "Batteries", price: 160000, limit: 500, icon: "🔋" },
+            { name: "Bronze Alloy", price: 45000, limit: 500, icon: "🥉" },
+            { name: "Cement Mix", price: 95000, limit: 2000, icon: "🏗️" },
+            { name: "Ceramic Tiles", price: 85000, limit: 500, icon: "⬜" },
+            { name: "Copper Vouchers", price: 22000, limit: 1000, icon: "🎫" },
+            { name: "Explosives", price: 1000000, limit: 50, icon: "💣" },
+            { name: "Flint", price: 12000, limit: 2500, icon: "🪨" },
+            { name: "Iron Vouchers", price: 18000, limit: 1000, icon: "🎫" },
+            { name: "Kerosene", price: 100000, limit: 500, icon: "🛢️" },
+            { name: "Planks", price: 55000, limit: 1000, icon: "🪵" },
+            { name: "Raw Ore Mix", price: 2500, limit: 1000, icon: "⛰️" },
+            { name: "Refined Amalgam", price: 174000, limit: 1000, icon: "💎" },
+            { name: "Refined Copper", price: 20000, limit: 800, icon: "🟧" },
+            { name: "Refined Solder", price: 60000, limit: 500, icon: "🔌" },
+            { name: "Refined Tin", price: 65000, limit: 500, icon: "🥫" },
+            { name: "Refined Zinc", price: 14000, limit: 800, icon: "🔋" },
+            { name: "Rubber", price: 168000, limit: 250, icon: "⚫" },
+            { name: "Sand", price: 13000, limit: 10000, icon: "⏳" },
+            { name: "Sawdust", price: 3000, limit: 10000, icon: "🪚" },
+            { name: "Scrap Aluminum", price: 8000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Copper", price: 11200, limit: 1000, icon: "🗑️" },
+            { name: "Scrap Gold", price: 55000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Lead", price: 13000, limit: 800, icon: "🗑️" },
+            { name: "Scrap Mercury", price: 65000, limit: 500, icon: "🗑️" },
+            { name: "Scrap Plastic", price: 5000, limit: 2000, icon: "🥤" },
+            { name: "Scrap Tin", price: 32000, limit: 1000, icon: "🗑️" },
+            { name: "Sulfur", price: 30000, limit: 1000, icon: "🔥" },
+            { name: "Treated Water", price: 130000, limit: 500, icon: "💧" },
+            { name: "Waste Water", price: 70000, limit: 500, icon: "🚽" }
+        ],
+        "Product": [
+            { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" },
+            { name: "Concrete", price: 850000, limit: 500, icon: "🧱" },
+            { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" },
+            { name: "Pills", price: 250000, limit: 250, icon: "💊" },
+            { name: "Fish", price: 650, limit: 250000, icon: "🐟" },
+            { name: "Meat", price: 1000, limit: 1000, icon: "🍖" }
+        ]
+    };
 
     let state = {
+        currentCategory: "Bonus EXP",
         selectedItem: null,
         qty: 1,
         priority: 'normal',
@@ -297,21 +400,44 @@
 
     // --- 2. INITIALIZATION ---
     window.onload = function() {
-        renderGrid();
-        updateCalc();
+        setCategory("Bonus EXP");
         initDrag();
         requestPlayerData();
         setInterval(requestPlayerData, 2000);
     };
+
+    function setCategory(catName) {
+        state.currentCategory = catName;
+        state.selectedItem = null; // Reset selection on category change
+        
+        // Update Tabs UI
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(tab => {
+            if(tab.innerText.includes(catName.substring(0, 4))) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        // Reset Form
+        document.getElementById('disp-item-name').value = "";
+        document.getElementById('status-msg').innerText = "Select an item to start";
+        document.getElementById('limit-display').innerText = "";
+        updateCalc();
+        renderGrid();
+    }
 
     function renderGrid() {
         const container = document.getElementById('item-grid');
         if(!container) return;
         container.innerHTML = '';
 
-        ITEMS.forEach(item => {
+        const items = CATEGORIES[state.currentCategory];
+
+        items.forEach(item => {
             const div = document.createElement('div');
-            div.className = `grid-item ${state.selectedItem && state.selectedItem.id === item.id ? 'active' : ''}`;
+            div.className = `grid-item ${state.selectedItem && state.selectedItem.name === item.name ? 'active' : ''}`;
             div.onclick = () => selectItem(item);
             div.innerHTML = `
                 <div class="check-mark">✔</div>
@@ -325,10 +451,27 @@
 
     function selectItem(item) {
         state.selectedItem = item;
+        state.qty = 1; // Reset qty on new selection
+        
+        // Update UI
         document.getElementById('disp-item-name').value = item.name;
         document.getElementById('disp-item-name').style.color = "#fff";
         document.getElementById('status-msg').innerText = "Ready to order";
         document.getElementById('status-msg').style.color = "#555";
+        
+        // Update Limits
+        const limit = item.limit;
+        document.getElementById('limit-display').innerText = `(Max: ${limit.toLocaleString()})`;
+        
+        const qtyIn = document.getElementById('input-qty');
+        const rangeIn = document.getElementById('range-qty');
+        
+        qtyIn.max = limit;
+        qtyIn.value = 1;
+        
+        rangeIn.max = limit;
+        rangeIn.value = 1;
+
         renderGrid(); 
         updateCalc();
     }
@@ -338,10 +481,25 @@
     const rangeInput = document.getElementById('range-qty');
     const prioInput = document.getElementById('input-priority');
 
+    // STRICT LIMIT ENFORCEMENT
+    function validateQty(val) {
+        if(!state.selectedItem) return 1;
+        const max = state.selectedItem.limit;
+        if(val > max) return max;
+        if(val < 1) return 1;
+        return val;
+    }
+
     if(qtyInput) {
         qtyInput.addEventListener('input', (e) => {
             let val = parseInt(e.target.value) || 0;
-            if (val > MAX_QTY) val = MAX_QTY; 
+            
+            // Hard Limit Logic
+            if(state.selectedItem && val > state.selectedItem.limit) {
+                val = state.selectedItem.limit;
+                qtyInput.value = val; // Force UI update immediately
+            }
+
             state.qty = val;
             if(rangeInput) rangeInput.value = state.qty; 
             updateCalc();
@@ -393,10 +551,9 @@
         priceEl.innerText = priceString;
     }
 
-    // --- 4. DATA COMMS (FIXED KEYS) ---
+    // --- 4. DATA COMMS ---
     function requestPlayerData() {
         if(window.parent) {
-            // FIX: Using keys "name" and "user_id" based on data log
             window.parent.postMessage({ 
                 type: "getNamedData", 
                 keys: ["name", "user_id"] 
@@ -411,13 +568,11 @@
         }
         if (!payload) return;
 
-        // FIX: Looking for payload.name instead of payload.player
         if (payload.name) {
             state.username = payload.name;
             document.getElementById('username-display').innerText = state.username;
         }
 
-        // FIX: Looking for payload.user_id instead of payload.player_id
         if (payload.user_id) {
             state.playerId = payload.user_id;
             document.getElementById('userid-display').innerText = "ID: " + state.playerId;
@@ -445,6 +600,7 @@
 
         const payload = {
             username: `${state.username} (ID: ${state.playerId})`, 
+            category: state.currentCategory,
             item: state.selectedItem.name,
             quantity: state.qty,
             priority: state.priority,
@@ -467,6 +623,12 @@
                 status.style.color = "#555";
                 btn.innerText = "Confirm Order";
                 btn.disabled = false;
+                
+                // Optional: Reset selections
+                state.qty = 1;
+                document.getElementById('input-qty').value = 1;
+                document.getElementById('range-qty').value = 1;
+                updateCalc();
             }, 3000);
         })
         .catch(err => {
