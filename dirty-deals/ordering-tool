@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NoPerk Trading Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            /* Theme Colors based on the reference image */
+            --accent: #5e6bf6; 
+            --accent-hover: #4b56c4;
+            --bg-glass: rgba(18, 18, 20, 0.98); /* Dark, near-opaque */
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --border: 1px solid rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-dim: #888888;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        /* --- DRAGGABLE CONTAINER --- */
+        #app-container {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 750px; 
+            height: 480px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background: rgba(255,255,255,0.02);
+            padding: 12px 20px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: var(--border);
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        /* --- LAYOUT --- */
+        #main-content {
+            display: flex;
+            height: 100%;
+        }
+
+        /* LEFT: ITEM GRID */
+        .selection-area {
+            flex: 2;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: var(--border);
+        }
+        
+        .section-title {
+            color: var(--text-main);
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .grid-item {
+            background: var(--bg-card);
+            border: var(--border);
+            border-radius: 6px;
+            padding: 20px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .grid-item:hover { 
+            background: rgba(255,255,255,0.08); 
+            transform: translateY(-2px);
+        }
+        
+        .grid-item.active {
+            border: 1px solid var(--accent);
+            background: rgba(94, 107, 246, 0.08);
+            box-shadow: 0 4px 12px rgba(94, 107, 246, 0.15);
+        }
+        
+        .check-mark {
+            position: absolute; top: 8px; right: 8px;
+            color: var(--accent); font-size: 14px; opacity: 0;
+            background: rgba(94, 107, 246, 0.2);
+            border-radius: 3px; padding: 2px;
+        }
+        .grid-item.active .check-mark { opacity: 1; }
+
+        .item-icon { font-size: 28px; margin-bottom: 10px; display: block; filter: grayscale(100%); transition: 0.2s; }
+        .grid-item.active .item-icon { filter: grayscale(0%); }
+        
+        .item-name { display: block; font-weight: bold; font-size: 0.95em; margin-bottom: 4px; color: #fff; }
+        .item-price { display: block; font-size: 0.8em; color: var(--text-dim); }
+
+        /* RIGHT: ORDER FORM */
+        .details-area {
+            flex: 1;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .input-group { margin-bottom: 5px; }
+        .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; }
+        
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            background: #252525;
+            border: 1px solid #383838;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            width: 100%; margin-top: 8px; accent-color: var(--accent); cursor: pointer;
+        }
+
+        /* Total Price Display */
+        .total-box {
+            margin-top: auto;
+            text-align: right;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+        }
+        .total-label { font-size: 0.8em; color: var(--text-dim); }
+        .total-price { 
+            font-size: 1.8em; 
+            font-weight: 700; 
+            color: var(--text-main); 
+            font-family: 'Rajdhani', sans-serif; 
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* Order Button */
+        .btn-order {
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.2s;
+            letter-spacing: 0.5px;
+        }
+        .btn-order:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(94, 107, 246, 0.4); }
+        .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header id="drag-handle">
+        <span style="display:flex; align-items:center; gap:10px;">
+            <span style="color:var(--accent);">📦</span> Place New Order
+        </span>
+        <div style="text-align:right;">
+            <div id="username-display" style="font-size:0.9em; color:#fff;">Loading...</div>
+            <div id="userid-display" style="font-size:0.7em; color:#555;">ID: --</div>
+        </div>
+    </header>
+
+    <div id="main-content">
+        <div class="selection-area">
+            <div class="section-title">Select Item</div>
+            <div class="grid-container" id="item-grid">
+                </div>
+        </div>
+
+        <div class="details-area">
+            
+            <div class="input-group">
+                <div class="label">Selected Item</div>
+                <input type="text" id="disp-item-name" placeholder="Select from grid..." readonly 
+                       style="background:#1a1a1a; border-color:transparent;">
+            </div>
+
+            <div class="input-group">
+                <div class="label">Quantity</div>
+                <input type="number" id="input-qty" value="1" min="1">
+                <input type="range" id="range-qty" min="1" max="5000" value="1">
+                <div style="text-align:right; font-size:0.65em; color:#555; margin-top:2px;">No Limit</div>
+            </div>
+
+            <div class="input-group">
+                <div class="label">Priority Level</div>
+                <select id="input-priority">
+                    <option value="normal">Normal (100%)</option>
+                    <option value="high">High Priority (125% Cost)</option>
+                </select>
+            </div>
+
+            <div class="total-box">
+                <div class="total-label">Total Price</div>
+                <div class="total-price" id="disp-total">$0</div>
+            </div>
+
+            <div>
+                <button class="btn-order" id="btn-submit" onclick="submitOrder()">Confirm Order</button>
+                <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:8px; color:#555; height:15px;">Waiting for input...</div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 1. CONFIGURATION ---
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPJmoFYMVnKPX4gc9m66dfGfK28xavtDstfNoWLgP6HLSn0XzcAOJKQucxacVrMPb0/exec";
+
+    const ITEMS = [
+        { id: 'airline', name: 'Airline', price: 6000, icon: '✈️' },
+        { id: 'biz', name: 'Biz', price: 3000, icon: '🏢' },
+        { id: 'bus', name: 'Bus', price: 7000, icon: '🚌' },
+        { id: 'cargo', name: 'Cargo', price: 8000, icon: '📦' },
+        { id: 'conductor', name: 'Conductor', price: 3000, icon: '🎫' },
+        { id: 'ems', name: 'EMS', price: 5000, icon: '🚑' },
+        { id: 'farming', name: 'Farming', price: 2500, icon: '🚜' },
+        { id: 'fire', name: 'Firefighter', price: 9000, icon: '🔥' },
+        { id: 'police', name: 'Police', price: 4000, icon: '🚓' },
+    ];
+
+    let state = {
+        selectedItem: null,
+        qty: 1,
+        priority: 'normal',
+        username: "Unknown",
+        playerId: "0"
+    };
+
+    // --- 2. COMMS WITH FIVEM (Get Username) ---
+    function requestPlayerData() {
+        if(window.parent) {
+            // Ask the game for the player data
+            window.parent.postMessage({ 
+                type: "getNamedData", 
+                keys: ["player", "player_id"] 
+            }, "*");
+        }
+    }
+
+    // Listen for the response
+    window.addEventListener('message', (event) => {
+        let payload = event.data;
+        if (payload && payload.type === 'data' && payload.data) {
+            payload = payload.data;
+        }
+        if (!payload) return;
+
+        // Process Player Name
+        if (payload.player) {
+            // Handles if server sends object {name: "Bob"} or string "Bob"
+            const name = typeof payload.player === 'object' ? (payload.player.name || "Player") : payload.player;
+            state.username = name;
+            document.getElementById('username-display').innerText = state.username;
+        }
+
+        // Process Player ID
+        if (payload.player_id) {
+            state.playerId = payload.player_id;
+            document.getElementById('userid-display').innerText = "ID: " + state.playerId;
+        }
+    });
+
+    // --- 3. UI LOGIC ---
+    function init() {
+        renderGrid();
+        updateCalc();
+        
+        // Start asking for data immediately, and retry every 2s until we get it
+        requestPlayerData();
+        setInterval(requestPlayerData, 2000);
+    }
+
+    function renderGrid() {
+        const container = document.getElementById('item-grid');
+        container.innerHTML = '';
+
+        ITEMS.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `grid-item ${state.selectedItem && state.selectedItem.id === item.id ? 'active' : ''}`;
+            div.onclick = () => selectItem(item);
+            div.innerHTML = `
+                <div class="check-mark">✔</div>
+                <span class="item-icon">${item.icon}</span>
+                <span class="item-name">${item.name}</span>
+                <span class="item-price">$${item.price.toLocaleString()}</span>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function selectItem(item) {
+        state.selectedItem = item;
+        document.getElementById('disp-item-name').value = item.name;
+        renderGrid(); 
+        updateCalc();
+    }
+
+    // Input Listeners
+    const qtyInput = document.getElementById('input-qty');
+    const rangeInput = document.getElementById('range-qty');
+    const prioInput = document.getElementById('input-priority');
+
+    qtyInput.addEventListener('input', (e) => {
+        state.qty = parseInt(e.target.value) || 0;
+        // Update range slider visually but cap it so it doesn't break if user types 999999
+        rangeInput.value = state.qty > 5000 ? 5000 : state.qty; 
+        updateCalc();
+    });
+
+    rangeInput.addEventListener('input', (e) => {
+        state.qty = parseInt(e.target.value);
+        qtyInput.value = state.qty;
+        updateCalc();
+    });
+
+    prioInput.addEventListener('change', (e) => {
+        state.priority = e.target.value;
+        updateCalc();
+    });
+
+    function updateCalc() {
+        if (!state.selectedItem) {
+            document.getElementById('disp-total').innerText = "$0";
+            document.getElementById('btn-submit').disabled = true;
+            return;
+        }
+        document.getElementById('btn-submit').disabled = false;
+
+        let base = state.selectedItem.price * state.qty;
+        if (state.priority === 'high') {
+            base = base * 1.25; // 125% Cost
+        }
+
+        document.getElementById('disp-total').innerText = "$" + Math.floor(base).toLocaleString();
+    }
+
+    // --- 4. SEND TO GOOGLE ---
+    function submitOrder() {
+        const btn = document.getElementById('btn-submit');
+        const status = document.getElementById('status-msg');
+        
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+        status.innerText = "Sending order to headquarters...";
+        status.style.color = "var(--accent)";
+
+        const totalString = document.getElementById('disp-total').innerText; 
+
+        const payload = {
+            username: `${state.username} (ID: ${state.playerId})`, // Combine Name and ID
+            item: state.selectedItem.name,
+            quantity: state.qty,
+            priority: state.priority,
+            totalPrice: totalString
+        };
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors", 
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify
