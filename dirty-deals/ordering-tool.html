@@ -7,99 +7,49 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            --accent: #5e6bf6; 
-            --accent-hover: #4b56c4;
-            --bg-glass: #121212;
-            --bg-card: #1e1e1e;
-            --border: 1px solid #333;
-            --text-main: #ffffff;
-            --text-dim: #888888;
-            --st-pending: #f1c40f;
-            --st-accepted: #3498db;
-            --st-denied: #e74c3c;
-            --st-completed: #2ecc71;
+            --accent: #5e6bf6; --accent-hover: #4b56c4;
+            --bg-glass: #121212; --bg-card: #1e1e1e;
+            --border: 1px solid #333; --text-main: #ffffff; --text-dim: #888888;
+            --st-pending: #f1c40f; --st-accepted: #3498db; --st-denied: #e74c3c; --st-completed: #2ecc71;
         }
-
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-
-        body {
-            margin: 0; padding: 0;
-            font-family: 'Roboto', sans-serif;
-            background-color: transparent;
-            color: var(--text-main);
-            overflow: hidden;
-            height: 100vh; width: 100vw;
-        }
+        body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
         #app-container {
-            position: absolute; top: 50px; left: 50px;
-            width: 850px; height: 600px; 
-            background: var(--bg-glass);
-            border: var(--border);
-            border-radius: 8px;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.95);
-            display: flex; flex-direction: column;
-            overflow: hidden; z-index: 1000;
+            position: absolute; top: 50px; left: 50px; width: 850px; height: 600px; 
+            background: var(--bg-glass); border: var(--border); border-radius: 8px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.95); display: flex; flex-direction: column; overflow: hidden; z-index: 1000;
         }
 
         header {
-            background: #181818; padding: 0 20px;
-            cursor: move; display: flex; justify-content: space-between;
-            align-items: center; border-bottom: var(--border);
-            font-family: 'Rajdhani', sans-serif; text-transform: uppercase;
-            letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
+            background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
+            text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
-
         .header-btn {
-            background: #252525; border: 1px solid #333; color: #ccc;
-            padding: 5px 12px; font-size: 0.8em; cursor: pointer; margin-left: 10px;
-            border-radius: 4px; transition: 0.2s;
+            background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em;
+            cursor: pointer; margin-left: 10px; border-radius: 4px; transition: 0.2s;
         }
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-        
-        .grinder-btn {
-            background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none;
-        }
+        .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
         .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
 
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-
         #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
 
-        .selection-area {
-            flex: 2; padding: 20px; overflow-y: hidden;
-            border-right: var(--border); background: #141414;
-            display: flex; flex-direction: column;
-        }
-        
+        .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
-
-        .tab-btn {
-            flex: 1; background: #252525; border: 1px solid #333; color: #888;
-            padding: 10px; border-radius: 4px; cursor: pointer;
-            font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center;
-        }
-        .tab-btn:hover, .tab-btn.active { 
-            background: var(--accent); color: white; border-color: var(--accent);
-            box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3);
-        }
+        .tab-btn { flex: 1; background: #252525; border: 1px solid #333; color: #888; padding: 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center; }
+        .tab-btn:hover, .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3); }
 
         .section-title { color: var(--text-main); font-size: 1.1em; margin-bottom: 10px; font-family: 'Rajdhani', sans-serif; }
         .grid-wrapper { overflow-y: auto; flex: 1; padding-right: 5px; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 20px; }
-
-        .grid-item {
-            background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer;
-            height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
+        .grid-item { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer; height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .grid-item:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
-        .grid-item.active {
-            border: 1px solid var(--accent); background: rgba(94, 107, 246, 0.1);
-            box-shadow: inset 0 0 15px rgba(94, 107, 246, 0.1);
-        }
+        .grid-item.active { border: 1px solid var(--accent); background: rgba(94, 107, 246, 0.1); box-shadow: inset 0 0 15px rgba(94, 107, 246, 0.1); }
         .check-mark { position: absolute; top: 5px; right: 5px; color: var(--accent); font-size: 12px; opacity: 0; }
         .grid-item.active .check-mark { opacity: 1; }
         .item-icon { font-size: 28px; margin-bottom: 5px; display: block; filter: grayscale(100%); }
@@ -111,59 +61,45 @@
         .input-group { margin-bottom: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
         .label span { float: right; color: var(--accent); font-weight: bold; }
-        
-        input[type="text"], input[type="number"], select {
-            width: 100%; background: #252525; border: 1px solid #383838; color: white;
-            padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em;
-        }
+        input[type="text"], input[type="number"], select { width: 100%; background: #252525; border: 1px solid #383838; color: white; padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em; }
         input:focus, select:focus { outline: none; border-color: var(--accent); }
         input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
 
-        .total-box {
-            margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px;
-            margin-bottom: 5px; flex-shrink: 0; min-height: 80px; display: flex; flex-direction: column; justify-content: center;
-        }
+        .total-box { margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px; margin-bottom: 5px; flex-shrink: 0; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
         .total-label { font-size: 0.8em; color: var(--text-dim); margin-bottom: 5px; }
-        .total-price { 
-            font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif;
-            white-space: nowrap; line-height: 1.1; transition: font-size 0.2s ease;
-        }
-
-        .btn-order {
-            background: var(--accent); color: white; border: none; width: 100%; padding: 15px;
-            border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase;
-            cursor: pointer; transition: 0.2s; letter-spacing: 1px; flex-shrink: 0; 
-        }
+        .total-price { font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif; white-space: nowrap; line-height: 1.1; transition: font-size 0.2s ease; }
+        .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 1px; flex-shrink: 0; }
         .btn-order:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(94, 107, 246, 0.4); }
         .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
 
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
-        .history-item {
-            display: flex; justify-content: space-between; align-items: center; padding: 12px 15px;
-            border-bottom: 1px solid #2a2a2a; font-size: 0.9em;
-        }
+        .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; font-size: 0.9em; }
         .history-item:hover { background: #222; }
+        
+        .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .h-info { display: flex; flex-direction: column; }
         .h-item { font-weight: bold; color: white; font-size: 1.1em; }
         .h-sub { font-size: 0.85em; color: #888; }
         .h-user { color: var(--accent); font-weight: bold; font-size: 0.9em; margin-bottom: 2px;}
-
-        .status-badge {
-            padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold;
-            text-transform: uppercase; font-family: 'Rajdhani', sans-serif; color: #111;
-        }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; color: #111; }
         .st-Pending { background: var(--st-pending); }
         .st-Accepted { background: var(--st-accepted); }
         .st-Denied { background: var(--st-denied); color: white; }
         .st-Completed { background: var(--st-completed); }
 
         .g-controls { display: flex; gap: 5px; margin-top: 5px; }
-        .g-btn {
-            border: none; padding: 4px 8px; font-size: 0.7em; border-radius: 3px; cursor: pointer; font-weight: bold;
-        }
+        .g-btn { border: none; padding: 4px 8px; font-size: 0.7em; border-radius: 3px; cursor: pointer; font-weight: bold; }
         .gb-accept { background: #2980b9; color: white; }
         .gb-complete { background: #27ae60; color: white; }
+        .gb-chat { background: #555; color: white; }
         .gb-accept:hover { background: #3498db; }
+
+        /* Chat Styles */
+        .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
+        .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; }
+        .chat-input-row { display: flex; gap: 5px; }
+        .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
+        .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -253,7 +189,8 @@
 
 <script>
     // --- CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+    // PASTE YOUR NEW DEPLOYED SCRIPT URL HERE
+    var GOOGLE_SCRIPT_URL = "YOUR_NEW_GOOGLE_SCRIPT_URL";
     var AUTHORIZED_IDS = ["757858"]; 
 
     var CATEGORIES = {
@@ -331,7 +268,7 @@
         setCategory("Bonus EXP");
         initDrag();
         requestPlayerData();
-        pollingInterval = setInterval(requestPlayerData, 500); 
+        pollingInterval = setInterval(requestPlayerData, 250); 
         checkGrinderPermissionLoop();
     };
 
@@ -453,7 +390,9 @@
     function checkGrinderPermissionLoop() {
         if(state.isGrinder) return;
         if(state.playerId === "0") return; 
+        
         if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
+        
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
@@ -488,6 +427,69 @@
         });
     }
 
+    // --- RENDER ORDER ITEM (Shared by History and Grinder) ---
+    function createOrderItem(o, isGrinderView) {
+        var grinderHTML = o.grinder ? '<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ' + o.grinder + ')</span>' : '';
+        var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        var chatLog = o.chat ? o.chat.split(" | ").join("\n") : "No messages.";
+        
+        var controls = '';
+        if(isGrinderView) {
+            if(o.status === 'Pending') {
+                controls = '<button class="g-btn gb-accept">ACCEPT</button>';
+            } else if(o.status === 'Accepted' && o.grinder === state.username) {
+                controls = '<button class="g-btn gb-complete">COMPLETE</button>';
+            }
+        }
+
+        var div = document.createElement('div'); 
+        div.className = "history-item";
+        div.innerHTML = 
+            '<div class="h-top">' +
+                '<div class="h-info">' +
+                    '<span class="h-user">' + o.username + ' <span style="color:#555; font-weight:normal;">(' + o.userId + ')</span></span>' +
+                    '<span class="h-item">' + o.item + ' <span style="font-size:0.8em; color:#666;">x' + o.qty + '</span></span>' +
+                    '<span class="h-sub">' + o.price + ' ' + grinderHTML + '</span>' +
+                '</div>' +
+                '<div style="text-align:right;">' +
+                    '<div class="status-badge st-' + (o.status || 'Pending') + '" style="margin-bottom:5px;">' + (o.status || 'Pending') + '</div>' +
+                    '<div class="g-controls">' + controls + 
+                    '<button class="g-btn gb-chat">💬</button></div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="chat-area">' +
+                '<div class="chat-logs">' + chatLog + '</div>' +
+                '<div class="chat-input-row">' +
+                    '<input type="text" class="chat-input" placeholder="Type message...">' +
+                    '<button class="chat-send">SEND</button>' +
+                '</div>' +
+            '</div>';
+
+        // Listeners
+        var chatBtn = div.querySelector('.gb-chat');
+        var chatArea = div.querySelector('.chat-area');
+        chatBtn.onclick = function() { 
+            chatArea.style.display = (chatArea.style.display === 'block') ? 'none' : 'block'; 
+        };
+
+        var sendBtn = div.querySelector('.chat-send');
+        var input = div.querySelector('.chat-input');
+        sendBtn.onclick = function() {
+            if(!input.value) return;
+            sendChatMessage(o.timestamp, o.userId, input.value);
+            input.value = "Sending...";
+        };
+
+        if(isGrinderView) {
+            var acceptBtn = div.querySelector('.gb-accept');
+            if(acceptBtn) acceptBtn.onclick = function() { updateOrderStatus(o.timestamp, o.userId, 'Accepted'); };
+            var compBtn = div.querySelector('.gb-complete');
+            if(compBtn) compBtn.onclick = function() { updateOrderStatus(o.timestamp, o.userId, 'Completed'); };
+        }
+
+        return div;
+    }
+
     function fetchMyOrders() {
         var c = document.getElementById('history-container');
         c.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
@@ -497,55 +499,26 @@
             c.innerHTML = '';
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                var o = data[i];
-                var grinderHTML = o.grinder ? '<span style="color:#2ecc71; font-size:0.8em; margin-left:5px;">(Worker: ' + o.grinder + ')</span>' : '';
-                var div = document.createElement('div'); div.className = "history-item";
-                div.innerHTML = '<div class="h-info"><span class="h-item">' + o.item + ' x' + o.qty + '</span><span class="h-sub">' + o.price + ' ' + grinderHTML + '</span></div><div class="status-badge st-' + (o.status || 'Pending') + '">' + (o.status || 'Pending') + '</div>';
-                c.appendChild(div);
+                c.appendChild(createOrderItem(data[i], false));
             }
         });
     }
 
     function fetchGlobalOrders() {
-        var container = document.getElementById('grinder-container');
-        container.innerHTML = '<div style="padding:20px; text-align:center;">Loading global jobs...</div>';
+        var c = document.getElementById('grinder-container');
+        c.innerHTML = '<div style="padding:20px; text-align:center;">Loading global jobs...</div>';
         fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders")
         .then(function(r){ return r.json(); })
         .then(function(data) {
-            container.innerHTML = '';
-            if(!data || data.length === 0) { container.innerHTML = '<div style="padding:20px; text-align:center;">No pending jobs.</div>'; return; }
+            c.innerHTML = '';
+            if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No pending jobs.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                (function(order) {
-                    var assignedText = order.grinder ? '<br><span style="color:#2ecc71; font-size:0.8em">Worker: ' + order.grinder + '</span>' : '';
-                    var controls = '';
-                    if(order.status === 'Pending') {
-                        controls = '<div class="g-controls"><button class="g-btn gb-accept">ACCEPT</button></div>';
-                    } else if(order.status === 'Accepted' && order.grinder === state.username) {
-                        controls = '<div class="g-controls"><button class="g-btn gb-complete">COMPLETE</button></div>';
-                    }
-                    var div = document.createElement('div'); div.className = "history-item";
-                    div.innerHTML = 
-                        '<div class="h-info">' +
-                            '<span class="h-user">' + order.username + ' <span style="color:#555; font-weight:normal;">(' + order.userId + ')</span></span>' +
-                            '<span class="h-item">' + order.item + ' <span style="font-size:0.8em; color:#666;">x' + order.qty + '</span></span>' +
-                            '<span class="h-sub">' + order.price + ' ' + assignedText + '</span>' +
-                        '</div>' +
-                        '<div style="text-align:right;">' +
-                            '<div class="status-badge st-' + order.status + '" style="margin-bottom:5px;">' + order.status + '</div>' + controls +
-                        '</div>';
-                    
-                    var acceptBtn = div.querySelector('.gb-accept');
-                    if(acceptBtn) acceptBtn.onclick = function() { updateOrderStatus(order.timestamp, order.userId, 'Accepted'); };
-                    var compBtn = div.querySelector('.gb-complete');
-                    if(compBtn) compBtn.onclick = function() { updateOrderStatus(order.timestamp, order.userId, 'Completed'); };
-                    container.appendChild(div);
-                })(data[i]);
+                c.appendChild(createOrderItem(data[i], true));
             }
         });
     }
 
     function updateOrderStatus(ts, uid, status) {
-        // --- CRITICAL FIX: REMOVED CONFIRMATION DIALOG ---
         var payload = {
             action: "updateOrder", orderTimestamp: ts, orderUserId: uid,
             newStatus: status, grinderName: state.username
@@ -553,8 +526,21 @@
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
-        }).then(function() {
-            setTimeout(fetchGlobalOrders, 1000); 
+        }).then(function() { setTimeout(fetchGlobalOrders, 1000); });
+    }
+
+    function sendChatMessage(ts, uid, msg) {
+        var payload = {
+            action: "sendMessage", orderTimestamp: ts, orderUserId: uid,
+            sender: state.username, message: msg
+        };
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).then(function() { 
+            // Refresh current view to show new message
+            if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders();
+            else fetchGlobalOrders();
         });
     }
 
