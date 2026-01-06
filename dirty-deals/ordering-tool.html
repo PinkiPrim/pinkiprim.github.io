@@ -331,10 +331,11 @@
 </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
+    // --- CONFIGURATION ---
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyPR3W9ZI8h3Z1f-Z7F7-Prf6at4D82IgQk1Eew0auy2hCV63fwDLakSAGGlsPvC-Y/exec";
     
-    // --- ADD YOUR GRINDER IDs HERE (As text strings) ---
+    // --- SECURITY: HARDCODED LIST (Most Reliable Method) ---
+    // Add your ID here as a string. e.g. ["757858", "123456"]
     const AUTHORIZED_IDS = ["757858"]; 
 
     // --- DATA ---
@@ -411,9 +412,54 @@
         setCategory("Bonus EXP");
         initDrag();
         requestPlayerData();
-        setInterval(requestPlayerData, 2000);
-        setTimeout(checkGrinderStatus, 3000);
+        // Aggressively request data every second
+        setInterval(requestPlayerData, 1000);
+        // Start checking for permission immediately and repeatedly
+        checkGrinderPermissionLoop();
     };
+
+    // --- NEW: Persistent Permission Loop ---
+    function checkGrinderPermissionLoop() {
+        // If we already confirmed they are a grinder, stop checking
+        if(state.isGrinder) return;
+
+        // If ID is still 0, we can't check yet. Retry in 1s.
+        if(state.playerId === "0") {
+            setTimeout(checkGrinderPermissionLoop, 1000);
+            return;
+        }
+
+        console.log("Checking ID:", state.playerId, "against list:", AUTHORIZED_IDS);
+
+        // Check Hardcoded List First (Instant)
+        if(AUTHORIZED_IDS.includes(String(state.playerId))) {
+            console.log("AUTHORIZED VIA LIST!");
+            enableGrinderMode();
+            return; 
+        }
+
+        // If not in list, check Google Sheet (Backup)
+        fetch(`${GOOGLE_SCRIPT_URL}?action=checkAuth&userId=${state.playerId}`)
+        .then(r => r.json())
+        .then(data => {
+            if(data.authorized) {
+                console.log("AUTHORIZED VIA GOOGLE!");
+                enableGrinderMode();
+            } else {
+                // Not authorized yet, but keep checking every 5s just in case they are added later
+                setTimeout(checkGrinderPermissionLoop, 5000);
+            }
+        })
+        .catch(e => setTimeout(checkGrinderPermissionLoop, 5000));
+    }
+
+    function enableGrinderMode() {
+        state.isGrinder = true;
+        const btn = document.getElementById('nav-grinder');
+        btn.style.display = 'inline-block'; // Force show
+        // Add a visual flash to indicate it loaded
+        btn.style.animation = "flash 1s";
+    }
 
     function switchView(viewName) {
         document.querySelectorAll('.header-btn').forEach(b => b.classList.remove('active'));
@@ -429,7 +475,6 @@
         if(viewName === 'grinder') fetchGlobalOrders();
     }
 
-    // --- KEY FIX: Updated setCategory to safely find the active tab ---
     function setCategory(catName) {
         state.currentCategory = catName; 
         state.selectedItem = null;
@@ -448,17 +493,6 @@
         document.getElementById('limit-display').innerText = "";
         updateCalc();
         renderGrid();
-    }
-
-    // --- GRINDER AUTH (HARDCODED) ---
-    function checkGrinderStatus() {
-        if(state.playerId === "0") { setTimeout(checkGrinderStatus, 2000); return; }
-        
-        // This checks if the user's ID is in the AUTHORIZED_IDS list we made at the top
-        if(AUTHORIZED_IDS.includes(String(state.playerId))) {
-            state.isGrinder = true;
-            document.getElementById('nav-grinder').style.display = 'inline-block';
-        }
     }
 
     // --- GRINDER LOGIC ---
@@ -574,33 +608,28 @@
         priceEl.innerText = "$" + Math.floor(base).toLocaleString();
     }
 
-    // --- Request ALL possible keys to ensure we catch the right one ---
+    // --- COMMS ---
     function requestPlayerData() {
         if(window.parent) {
             window.parent.postMessage({ 
                 type: "getNamedData", 
-                // We ask for ALL of them. One of these pairs will work.
                 keys: ["player", "player_id", "user_id", "name", "id"] 
             }, "*");
         }
     }
 
-    // --- Check ALL possible keys in the response ---
     window.addEventListener('message', (event) => {
         let p = event.data?.data || event.data;
         if(!p) return;
 
-        // Check for Username
         if (p.name) state.username = p.name;
         else if (p.player && typeof p.player === 'string') state.username = p.player;
         else if (p.player && p.player.name) state.username = p.player.name;
 
-        // Check for ID
         if (p.user_id) state.playerId = p.user_id;
         else if (p.player_id) state.playerId = p.player_id;
         else if (p.id) state.playerId = p.id;
 
-        // Update UI
         if(state.username !== "Unknown") document.getElementById('username-display').innerText = state.username;
         if(state.playerId !== "0") document.getElementById('userid-display').innerText = "ID: " + state.playerId;
     });
