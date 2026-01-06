@@ -60,7 +60,7 @@
             margin-bottom: 15px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; color: #fff; letter-spacing: 1px; padding: 0 20px; line-height: 1.5; }
+        .loading-text { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; color: #fff; letter-spacing: 1px; padding: 0 20px; line-height: 1.5; text-transform: uppercase;}
 
         /* --- HEADER --- */
         header {
@@ -379,13 +379,11 @@
         initDrag();
         
         requestPlayerData();
-        // Aggressive Polling to catch the ID
-        pollingInterval = setInterval(requestPlayerData, 250); 
+        pollingInterval = setInterval(requestPlayerData, 250); // Fallback Polling
         
-        // Start permission loop
         checkGrinderPermissionLoop();
 
-        // SAFETY TIMER: Check after 5 seconds if connection failed
+        // SAFETY: Force removal of loading screen after 5 seconds
         setTimeout(function() {
             if (state.playerId === "0") {
                 var textEl = document.getElementById('loader-text');
@@ -396,11 +394,53 @@
                     textEl.style.color = "#ff4444";
                 }
                 if(spinEl) spinEl.style.display = 'none';
-                
-                // Do NOT hide the overlay, so the user knows to restart
             }
         }, 5000);
     };
+
+    // --- CRITICAL FIX: DATA LISTENER ---
+    // This now looks for the data structure you provided in the JSON dump
+    window.addEventListener('message', function(event) {
+        var item = event.data;
+        // FiveM sometimes wraps data, sometimes it doesn't. We check both.
+        if (item.data) item = item.data;
+
+        // Check for specific keys found in your JSON dump
+        if (item.user_id && item.name) {
+            foundIdentity(item.name, item.user_id);
+        }
+        // Fallback for standard ESX/QBCore naming just in case
+        else if (item.player && item.player_id) {
+            foundIdentity(item.player, item.player_id);
+        }
+    });
+
+    function foundIdentity(name, id) {
+        if (state.playerId !== "0") return; // Already found
+
+        state.username = name;
+        state.playerId = id;
+
+        // Update UI
+        document.getElementById('username-display').innerText = state.username;
+        document.getElementById('userid-display').innerText = "ID: " + state.playerId;
+
+        // Update Loading Screen text to show success
+        var loaderText = document.getElementById('loader-text');
+        if(loaderText) {
+            loaderText.innerHTML = "WELCOME, " + state.username.toUpperCase() + "<br>ID: " + state.playerId;
+            loaderText.style.color = "#2ecc71"; // Green color
+        }
+
+        // Stop polling
+        if(pollingInterval) clearInterval(pollingInterval);
+
+        // Check Permissions
+        checkGrinderPermissionLoop();
+
+        // Fade out after 1.5 seconds so user sees the success message
+        setTimeout(hideLoadingScreen, 1500);
+    }
 
     function hideLoadingScreen() {
         var loader = document.getElementById('loading-overlay');
@@ -505,38 +545,12 @@
         }
     }
 
-    window.addEventListener('message', function(event) {
-        var p = event.data && event.data.data ? event.data.data : event.data;
-        if(!p) return;
-        if (p.name) state.username = p.name;
-        else if (p.player) {
-            if (typeof p.player === 'string') state.username = p.player;
-            else if (p.player.name) state.username = p.player.name;
-        }
-        if (p.user_id) state.playerId = p.user_id;
-        else if (p.player_id) state.playerId = p.player_id;
-        else if (p.id) state.playerId = p.id;
-
-        if(state.username !== "Unknown") document.getElementById('username-display').innerText = state.username;
-        if(state.playerId !== "0") {
-            document.getElementById('userid-display').innerText = "ID: " + state.playerId;
-            
-            // ID FOUND! HIDE OVERLAY
-            hideLoadingScreen();
-
-            if(pollingInterval) { clearInterval(pollingInterval); pollingInterval = setInterval(requestPlayerData, 5000); }
-            checkGrinderPermissionLoop();
-        }
-    });
-
     function checkGrinderPermissionLoop() {
         if(state.isGrinder) return;
         if(state.playerId === "0") return; 
         
-        // 1. HARDCODED CHECK
         if(AUTHORIZED_IDS.indexOf(String(state.playerId)) > -1) { enableGrinderMode(); return; }
         
-        // 2. GOOGLE CHECK
         fetch(GOOGLE_SCRIPT_URL + "?action=checkAuth&userId=" + state.playerId)
         .then(function(r){ return r.json(); })
         .then(function(data) { if(data.authorized) enableGrinderMode(); });
@@ -587,7 +601,7 @@
             }
         }
 
-        // --- CHAT LOGIC: Only show chat button if Accepted ---
+        // --- NEW LOGIC: Only show chat button if Accepted ---
         var chatBtnHTML = '';
         if(o.status === 'Accepted') {
             chatBtnHTML = '<button class="g-btn gb-chat">💬</button>';
