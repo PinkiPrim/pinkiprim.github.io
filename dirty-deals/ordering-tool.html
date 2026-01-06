@@ -208,7 +208,7 @@
     <script>
         // CONFIG
         var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-        // NOTE: These match exactly what is in your data dump (numbers/strings handled below)
+        // NOTE: These must be strings. The scanner will convert IDs to strings to match these.
         var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
         
         var state = {
@@ -216,47 +216,42 @@
             username: "Unknown", playerId: "0", isGrinder: false
         };
 
-        // --- NEW: AGGRESSIVE DATA LISTENER ---
+        // --- NEW: THE DEEP DATA SCANNER ---
         window.addEventListener('message', function(event) {
-            // Your data dump shows the message is a massive JSON object with "user_id" in the root.
+            // Get the raw message
             var msg = event.data;
-
             if(!msg) return;
 
-            // Debug logic to see what is arriving
+            // Debug logic to see what is arriving (optional, helps visualization)
             var subText = document.getElementById('loading-sub');
-            if(subText) {
-                if(msg.type) subText.innerText = "Received: " + msg.type;
-                else if(msg.user_id) subText.innerText = "Found User Data...";
+            if(subText && msg.type) {
+               subText.innerText = "Scanning: " + msg.type;
             }
 
-            // 1. Direct Root Check (Matches your JSON dump)
-            if (msg.user_id) {
-                // IMPORTANT: Use "name" if available, otherwise fallback to "Guest"
-                var name = msg.name || "Guest";
-                foundIdentity(name, msg.user_id);
-                return;
+            // Function to recursively find 'user_id' in an object
+            // This handles { user_id: 123 } AND { data: { user_id: 123 } } AND { payload: { data: { user_id: 123 } } }
+            function scanForId(obj, depth) {
+                if(depth > 3 || !obj || typeof obj !== 'object') return;
+                
+                if(obj.user_id) {
+                    var foundName = obj.name || obj.player || "Guest";
+                    foundIdentity(foundName, obj.user_id);
+                    return;
+                }
+                
+                // If not found at this level, check children (data, payload)
+                if(obj.data) scanForId(obj.data, depth + 1);
+                if(obj.payload) scanForId(obj.payload, depth + 1);
             }
 
-            // 2. Wrapped "data" Check (Standard NUI)
-            if (msg.data && msg.data.user_id) {
-                var name = msg.data.name || "Guest";
-                foundIdentity(name, msg.data.user_id);
-                return;
-            }
-
-            // 3. Wrapped "payload" Check (Other frameworks)
-            if (msg.payload && msg.payload.user_id) {
-                var name = msg.payload.name || "Guest";
-                foundIdentity(name, msg.payload.user_id);
-                return;
-            }
+            // Start the scan
+            scanForId(msg, 0);
         });
 
         function foundIdentity(name, id) {
-            if (state.playerId !== "0") return; // Already loaded
+            if (state.playerId !== "0") return; // Already loaded and locked
 
-            // Convert to string to prevent mismatch (JSON dump has number 757858, List has "757858")
+            // CRITICAL FIX: Convert ID to string immediately for comparison
             state.username = name;
             state.playerId = String(id); 
 
@@ -264,7 +259,7 @@
             document.getElementById('username-display').innerText = state.username;
             document.getElementById('userid-display').innerText = "ID: " + state.playerId;
 
-            // SUCCESS VISUALS (Green Text)
+            // VISUAL CONFIRMATION (Green Text)
             var title = document.getElementById('loading-title');
             var sub = document.getElementById('loading-sub');
             var spin = document.getElementById('loader-spinner');
@@ -279,7 +274,7 @@
             // Stop the backup polling
             if(pollingInterval) clearInterval(pollingInterval);
 
-            // Check permissions
+            // Check permissions with the newly found String ID
             checkGrinderPermissionLoop();
 
             // Wait 1.5s so they can see the name, then fade out
