@@ -7,7 +7,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Theme Colors */
             --accent: #5e6bf6; 
             --accent-hover: #4b56c4;
             --bg-glass: #121212;
@@ -33,7 +32,7 @@
             position: absolute;
             top: 50px; left: 50px;
             width: 760px; 
-            height: 550px;
+            height: 580px; /* Slight height increase for comfort */
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -162,23 +161,31 @@
             width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer;
         }
 
-        /* Total Price */
+        /* Total Price (FIXED: Added min-height and flex-shrink) */
         .total-box {
-            margin-top: auto;
+            margin-top: auto; 
             text-align: right;
             border-top: 1px solid #333;
-            padding-top: 15px;
-            margin-bottom: 10px;
-            overflow: hidden; 
+            padding-top: 10px;
+            margin-bottom: 5px;
+            
+            /* The Fix: Force it to keep its space */
+            flex-shrink: 0; 
+            min-height: 80px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        .total-label { font-size: 0.8em; color: var(--text-dim); }
+        
+        .total-label { font-size: 0.8em; color: var(--text-dim); margin-bottom: 5px; }
         
         .total-price { 
-            font-size: 2em; 
+            font-size: 2.2em; /* Slightly larger default */
             font-weight: 700; 
             color: var(--text-main); 
             font-family: 'Rajdhani', sans-serif; 
             white-space: nowrap; 
+            line-height: 1.1; /* Ensure text doesn't overlap lines */
             transition: font-size 0.2s ease;
         }
 
@@ -196,6 +203,7 @@
             cursor: pointer;
             transition: 0.2s;
             letter-spacing: 1px;
+            flex-shrink: 0; /* Ensure button doesn't shrink either */
         }
         .btn-order:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(94, 107, 246, 0.4); }
         .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
@@ -376,12 +384,13 @@
         const finalPrice = Math.floor(base);
         const priceString = "$" + finalPrice.toLocaleString();
         
+        // Auto-Resize Font Logic
         const len = priceString.length;
         if(len > 18) priceEl.style.fontSize = "1.0em";
         else if(len > 15) priceEl.style.fontSize = "1.2em";
         else if(len > 12) priceEl.style.fontSize = "1.5em";
-        else if(len > 9) priceEl.style.fontSize = "1.7em";
-        else priceEl.style.fontSize = "2em";
+        else if(len > 9) priceEl.style.fontSize = "1.8em";
+        else priceEl.style.fontSize = "2.2em";
 
         priceEl.innerText = priceString;
     }
@@ -420,12 +429,11 @@
         const btn = document.getElementById('btn-submit');
         const status = document.getElementById('status-msg');
         
-        // --- NEW SECURITY CHECK ---
-        // If the username is still Unknown or Wait..., we block the request.
+        // Security Check
         if (state.username === "Unknown" || state.username === "Wait...") {
             status.innerText = "⚠️ Error: Identity Unknown. Cannot send.";
             status.style.color = "#ff4444";
-            return; // STOP EXECUTION HERE
+            return; 
         }
 
         btn.disabled = true;
