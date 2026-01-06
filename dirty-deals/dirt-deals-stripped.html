@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Full Feature</title>
+    <title>Dirty Deals - Final Polish</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -10,7 +10,6 @@
             --accent: #5e6bf6; --accent-hover: #4b56c4;
             --bg-glass: #121212; --bg-card: #1e1e1e;
             --border: 1px solid #333; --text-main: #ffffff; --text-dim: #888888;
-            /* High Contrast Status Colors */
             --st-pending: #f1c40f; 
             --st-accepted: #3498db; 
             --st-denied: #e74c3c; 
@@ -32,10 +31,16 @@
             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
 
-        /* STATUS INDICATOR */
-        .status-box { text-align: right; transition: all 0.3s ease; }
+        /* STATUS INDICATOR (CLICKABLE NOW) */
+        .status-box { 
+            text-align: right; cursor: pointer; padding: 5px 10px; border-radius: 4px; transition: background 0.2s; 
+            border: 1px solid transparent;
+        }
+        .status-box:hover { background: #252525; border-color: #444; }
+        
         .user-name { font-size: 0.9em; color: #fff; font-weight: bold; }
         .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
+        
         @keyframes connectFlash { 0% { color: #fff; } 50% { color: #2ecc71; } 100% { color: #fff; } }
         .connected .user-name { animation: connectFlash 1s ease; color: #2ecc71; }
 
@@ -87,15 +92,17 @@
         /* LIST & CONTROLS */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
+        .history-item:hover { background: #222; }
         
         .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .h-info { display: flex; flex-direction: column; }
         .h-item { font-weight: bold; color: white; font-size: 1.1em; }
         .h-sub { font-size: 0.85em; color: #888; }
+        .h-user { color: var(--accent); font-weight: bold; font-size: 0.9em; margin-bottom: 2px;}
         
         .status-badge { 
             padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; 
-            text-transform: uppercase; color: #000; /* FORCE BLACK TEXT FOR CONTRAST */
+            text-transform: uppercase; color: #000;
         }
         .st-Pending { background: var(--st-pending); }
         .st-Accepted { background: var(--st-accepted); color: white; }
@@ -132,9 +139,9 @@
             <button class="header-btn" id="nav-history" onclick="switchView('history')">My Orders</button>
             <button class="header-btn grinder-btn" id="nav-grinder" onclick="switchView('grinder')">🔴 Grinder Panel</button>
         </span>
-        <div class="status-box" id="status-box">
+        <div class="status-box" id="status-box" onclick="manualRefreshID()" title="Click to refresh identity">
             <div class="user-name" id="username-display">Guest</div>
-            <div class="user-id" id="userid-display">Connecting...</div>
+            <div class="user-id" id="userid-display">Tap to Refresh</div>
         </div>
     </header>
 
@@ -281,9 +288,14 @@
         initDrag();
         renderGrid();
         
-        // Start "Nagging" the game for ID
+        // AGGRESSIVE START: Polling immediately
         requestData();
-        // Keep asking every 1 second until we get an answer
+        // Ask 4 times quickly in the first second
+        setTimeout(requestData, 250);
+        setTimeout(requestData, 500);
+        setTimeout(requestData, 750);
+        
+        // Then settle into a 1-second persistent poll
         pollingInterval = setInterval(requestData, 1000); 
     };
 
@@ -326,6 +338,14 @@
         }
     }
 
+    function manualRefreshID() {
+        // Reset and force new request
+        document.getElementById('username-display').innerText = "Refreshing...";
+        state.userId = "0";
+        requestData();
+        if(!pollingInterval) pollingInterval = setInterval(requestData, 1000);
+    }
+
     function requestData() {
         if(window.parent) {
             window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
@@ -363,7 +383,7 @@
     function selectItem(item) {
         state.item = item;
         document.getElementById('disp-item-name').value = item.name;
-        document.getElementById('limit-display').innerText = "(Max: " + item.limit + ")";
+        document.getElementById('limit-display').innerText = "(Max: " + item.limit.toLocaleString() + ")";
         document.getElementById('input-qty').max = item.limit;
         document.getElementById('range-qty').max = item.limit;
         document.getElementById('btn-submit').classList.add('active');
@@ -483,19 +503,19 @@
         });
     }
 
-    // --- RENDER ORDER ITEM (FIXED BUTTON LOGIC) ---
+    // --- RENDER ITEM + BUTTONS (RESTORED) ---
     function createOrderItem(o, isGrinderView) {
         var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         var status = (o.status || 'Pending');
         var chatLog = o.chat ? o.chat.split(" | ").join("\n") : "No messages.";
         
-        // CONTROLS LOGIC
+        // CONTROLS
         var controls = '';
         if(isGrinderView) {
-            var normStatus = status.toLowerCase();
-            if(normStatus === 'pending') {
+            var s = status.toLowerCase();
+            if(s === 'pending') {
                 controls = '<button class="g-btn gb-accept">ACCEPT</button>';
-            } else if(normStatus === 'accepted' && o.grinder === state.username) {
+            } else if(s === 'accepted' && o.grinder === state.username) {
                 controls = '<button class="g-btn gb-complete">COMPLETE</button>';
             }
         }
@@ -533,10 +553,8 @@
 
         var chatBtn = div.querySelector('.gb-chat');
         if(chatBtn) {
-            var chatArea = div.querySelector('.chat-area');
-            chatBtn.onclick = function() { 
-                chatArea.style.display = (chatArea.style.display === 'block') ? 'none' : 'block'; 
-            };
+            var area = div.querySelector('.chat-area');
+            chatBtn.onclick = function() { area.style.display = (area.style.display==='block'?'none':'block'); };
         }
 
         var sendBtn = div.querySelector('.chat-send');
