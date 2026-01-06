@@ -2,72 +2,98 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Debug Mode</title>
+    <title>Connection Test</title>
     <style>
-        body { background-color: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; overflow: auto; }
-        h2 { border-bottom: 1px solid #0f0; padding-bottom: 5px; }
-        .log-entry { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; word-wrap: break-word; }
-        .timestamp { color: #888; font-size: 0.8em; }
-        #controls { margin-bottom: 20px; border: 1px solid #555; padding: 10px; }
-        button { background: #333; color: white; border: 1px solid #fff; padding: 5px 10px; cursor: pointer; }
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .status-box {
+            border: 2px solid #333;
+            padding: 40px;
+            text-align: center;
+            background: #1e1e1e;
+            border-radius: 10px;
+        }
+        h1 { margin: 0 0 20px 0; color: #888; }
+        .data { font-size: 1.5em; color: #5e6bf6; font-weight: bold; }
+        .success { color: #2ecc71; }
+        .fail { color: #e74c3c; }
     </style>
 </head>
 <body>
 
-    <h2>🛠️ CONNECTION DEBUGGER</h2>
-    <div id="controls">
-        <div id="status">Status: Waiting for game data...</div>
+    <div class="status-box">
+        <h1 id="status-title">WAITING FOR DATA...</h1>
+        <div id="data-display" class="data">---</div>
         <br>
-        <button onclick="forceRequest()">FORCE REQUEST DATA</button>
+        <div style="font-size:0.8em; color:#555;">Attempting NUI Handshake...</div>
     </div>
 
-    <div id="logs"></div>
+<script>
+    // --- THE PROVEN LISTENER (FROM YOUR OLD SCRIPT) ---
+    window.addEventListener('message', function(event) {
+        var payload = event.data;
 
-    <script>
-        function log(msg, data) {
-            var logs = document.getElementById('logs');
-            var entry = document.createElement('div');
-            entry.className = "log-entry";
-            
-            var time = new Date().toLocaleTimeString();
-            var json = data ? JSON.stringify(data) : "";
-            
-            entry.innerHTML = `<span class="timestamp">[${time}]</span> <strong>${msg}</strong><br>${json}`;
-            logs.prepend(entry);
+        // 1. Unwrap if nested in 'data' or 'type:data'
+        if (payload && payload.type === 'data' && payload.data) {
+            payload = payload.data;
         }
 
-        // 1. LISTEN FOR EVERYTHING
-        window.addEventListener('message', function(event) {
-            var raw = event.data;
-            document.getElementById('status').innerText = "Status: DATA RECEIVED!";
-            document.getElementById('status').style.color = "#0f0";
-            
-            // Log the structure so we can see where the ID is hiding
-            log("Received Message Type: " + (raw.type || "No Type"), raw);
-        });
+        // 2. Validate Payload
+        if (!payload) return;
 
-        // 2. REQUEST DATA ON LOAD
-        window.onload = function() {
-            log("Tool Loaded. Requesting Data...");
-            forceRequest();
-            
-            // Try again in 2 seconds just in case
-            setTimeout(forceRequest, 2000);
-        };
+        // 3. Extract Name
+        var username = "Unknown";
+        if (payload.name) username = payload.name;
+        else if (payload.player && payload.player.name) username = payload.player.name;
+        else if (typeof payload.player === 'string') username = payload.player;
 
-        function forceRequest() {
-            // Method A: Standard NUI
-            if(window.parent) {
-                window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
-            }
-            
-            // Method B: Fetch (For QBCore/ESX sometimes)
-            try {
-                // We don't know the resource name, so this might fail, but worth a try
-                fetch(`https://${GetParentResourceName()}/getPlayerData`, { method: 'POST' }).catch(err => {});
-            } catch(e) {}
+        // 4. Extract ID
+        var userId = "0";
+        if (payload.user_id) userId = String(payload.user_id);
+        else if (payload.player_id) userId = String(payload.player_id);
+        else if (payload.id) userId = String(payload.id);
+
+        // 5. Success Check
+        if (userId !== "0") {
+            showSuccess(username, userId);
         }
-    </script>
+    });
 
+    function showSuccess(name, id) {
+        var title = document.getElementById('status-title');
+        var display = document.getElementById('data-display');
+        
+        title.innerText = "SUCCESS!";
+        title.className = "success";
+        
+        display.innerText = "Connected as: " + name + " (ID: " + id + ")";
+    }
+
+    // --- TRIGGER REQUEST ---
+    function requestData() {
+        if(window.parent) {
+            // Standard NUI Callback
+            window.parent.postMessage({ 
+                type: "getNamedData", 
+                keys: ["name", "user_id"] 
+            }, "*");
+        }
+    }
+
+    // Start immediately
+    requestData();
+    // Retry every 1 second (Safety Net)
+    setInterval(requestData, 1000);
+
+</script>
 </body>
 </html>
