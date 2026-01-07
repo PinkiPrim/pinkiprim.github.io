@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final Polish v2.3</title>
+    <title>Dirty Deals - Final Production v2.4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -50,9 +50,15 @@
         }
         body.mini-mode #mini-header-title { display: block; }
         
-        /* Show both lists in Mini Mode with LABELS */
-        body.mini-mode #view-history, body.mini-mode #view-grinder { padding: 0; display: flex !important; flex-direction: column; height: 50%; overflow: hidden; }
-        body.mini-mode #view-history { border-bottom: 1px solid #333; }
+        /* --- DYNAMIC LAYOUT FOR MINI MODE --- */
+        
+        /* Default (Customer): History takes 100% */
+        body.mini-mode #view-history { padding: 0; display: flex !important; flex-direction: column; height: 100%; overflow: hidden; border: none; }
+        body.mini-mode #view-grinder { display: none !important; }
+
+        /* Grinder Override: Split 50/50 */
+        body.mini-mode.role-grinder #view-history { height: 50%; border-bottom: 1px solid #333; }
+        body.mini-mode.role-grinder #view-grinder { padding: 0; display: flex !important; flex-direction: column; height: 50%; overflow: hidden; }
         
         body.mini-mode .mini-label { display: block; padding: 4px 10px; font-size: 0.75em; font-weight: bold; background: #222; color: #888; text-transform: uppercase; letter-spacing: 1px; }
         body.mini-mode #view-history .mini-label { color: var(--accent); }
@@ -145,6 +151,11 @@
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
         
+        .history-list.compact .history-item { padding: 5px 10px; flex-direction: row; align-items: center; justify-content: space-between; }
+        .history-list.compact .h-top { margin-bottom: 0; flex: 1; }
+        .history-list.compact .chat-area { display: none !important; }
+        .history-list.compact .g-controls { margin-top: 0; }
+
         .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .h-info { display: flex; flex-direction: column; }
         .h-item { font-weight: bold; color: white; font-size: 1.1em; }
@@ -182,6 +193,7 @@
 
         /* View Control Bar */
         .view-controls { display: flex; gap: 10px; }
+        body.mini-mode .view-controls { display: none; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -259,7 +271,8 @@
         </div>
 
         <div id="view-history">
-            <div class="mini-label">MY ORDERS</div> <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <div class="mini-label">MY ORDERS</div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0;">Recent Orders</span>
                 <div class="view-controls">
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
@@ -272,7 +285,8 @@
         </div>
 
         <div id="view-grinder">
-            <div class="mini-label">PENDING JOBS</div> <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <div class="mini-label">PENDING JOBS</div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
@@ -414,6 +428,7 @@
         if(GRINDER_ROSTER[state.userId]) {
             state.isGrinder = true;
             state.grinderRank = GRINDER_ROSTER[state.userId];
+            document.body.classList.add('role-grinder'); // Used for CSS Mini Layout
             document.getElementById('nav-grinder').style.display = 'inline-block';
             document.getElementById('rank-display').innerText = state.grinderRank;
         }
