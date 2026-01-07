@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final Polish</title>
+    <title>Dirty Deals - Ultimate</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -19,7 +19,7 @@
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
         #app-container {
-            position: absolute; top: 50px; left: 50px; width: 850px; height: 600px; 
+            position: absolute; top: 50px; left: 50px; width: 900px; height: 650px; 
             background: var(--bg-glass); border: var(--border); border-radius: 8px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); display: flex; flex-direction: column; overflow: hidden; z-index: 1000;
         }
@@ -31,26 +31,29 @@
             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
 
-        /* STATUS INDICATOR (CLICKABLE NOW) */
-        .status-box { 
-            text-align: right; cursor: pointer; padding: 5px 10px; border-radius: 4px; transition: background 0.2s; 
-            border: 1px solid transparent;
-        }
-        .status-box:hover { background: #252525; border-color: #444; }
-        
-        .user-name { font-size: 0.9em; color: #fff; font-weight: bold; }
-        .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
-        
-        @keyframes connectFlash { 0% { color: #fff; } 50% { color: #2ecc71; } 100% { color: #fff; } }
-        .connected .user-name { animation: connectFlash 1s ease; color: #2ecc71; }
-
+        .header-left { display: flex; align-items: center; gap: 10px; }
         .header-btn {
             background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em;
-            cursor: pointer; margin-left: 10px; border-radius: 4px; transition: 0.2s;
+            cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s;
         }
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
         .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
+
+        /* STATUS & MAIL */
+        .status-wrapper { display: flex; align-items: center; gap: 15px; }
+        .mail-icon { font-size: 1.4em; position: relative; cursor: pointer; display: none; margin-right: 10px; }
+        .mail-icon.has-mail { display: block; animation: bounce 1s infinite; }
+        .mail-badge { position: absolute; top: 0; right: -2px; width: 10px; height: 10px; background: #e74c3c; border-radius: 50%; border: 1px solid #181818; }
+        
+        .status-box { text-align: right; cursor: pointer; }
+        .user-name { font-size: 0.9em; color: #fff; font-weight: bold; }
+        .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
+        .rank-tag { font-size: 0.65em; color: var(--accent); display: block; letter-spacing: 0.5px; }
+
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        @keyframes connectFlash { 0% { color: #fff; } 50% { color: #2ecc71; } 100% { color: #fff; } }
+        .connected .user-name { animation: connectFlash 1s ease; color: #2ecc71; }
 
         /* LAYOUT */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
@@ -69,12 +72,12 @@
         .grid-item { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer; height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .grid-item:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
         .grid-item.active { border: 1px solid var(--accent); background: rgba(94, 107, 246, 0.1); box-shadow: inset 0 0 15px rgba(94, 107, 246, 0.1); }
-        .check-mark { position: absolute; top: 5px; right: 5px; color: var(--accent); font-size: 12px; opacity: 0; }
-        .grid-item.active .check-mark { opacity: 1; }
         .item-icon { font-size: 28px; margin-bottom: 5px; display: block; filter: grayscale(100%); }
         .grid-item.active .item-icon { filter: grayscale(0%); }
         .item-name { display: block; font-weight: bold; font-size: 0.85em; margin-bottom: 2px; color: #fff; }
         .item-price { display: block; font-size: 0.75em; color: var(--text-dim); }
+        .check-mark { position: absolute; top: 5px; right: 5px; color: var(--accent); font-size: 12px; opacity: 0; }
+        .grid-item.active .check-mark { opacity: 1; }
 
         .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
         .input-group { margin-bottom: 5px; }
@@ -89,11 +92,16 @@
         .btn-order.active { opacity: 1; pointer-events: all; }
         .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; }
 
-        /* LIST & CONTROLS */
+        /* LIST & COMPACT */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
         
+        .history-list.compact .history-item { padding: 5px 10px; flex-direction: row; align-items: center; justify-content: space-between; }
+        .history-list.compact .h-top { margin-bottom: 0; flex: 1; }
+        .history-list.compact .chat-area { display: none !important; }
+        .history-list.compact .g-controls { margin-top: 0; }
+
         .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .h-info { display: flex; flex-direction: column; }
         .h-item { font-weight: bold; color: white; font-size: 1.1em; }
@@ -109,19 +117,23 @@
         .st-Denied { background: var(--st-denied); color: white; }
         .st-Completed { background: var(--st-completed); }
 
-        .g-controls { display: flex; gap: 5px; margin-top: 8px; justify-content: flex-end; }
+        .g-controls { display: flex; gap: 5px; margin-top: 8px; justify-content: flex-end; align-items: center; }
         .g-btn { border: none; padding: 5px 10px; font-size: 0.75em; border-radius: 3px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
         .gb-accept { background: #2980b9; color: white; }
         .gb-complete { background: #27ae60; color: white; }
         .gb-chat { background: #555; color: white; }
         .gb-accept:hover { background: #3498db; }
 
-        /* Chat Styles */
+        /* Chat */
         .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
         .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; }
         .chat-input-row { display: flex; gap: 5px; }
         .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
         .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+
+        /* Progress Input */
+        .prog-input { background: #000; border: 1px solid #333; color: #2ecc71; width: 60px; font-size: 0.8em; padding: 4px; text-align: center; border-radius: 3px; }
+        .prog-label { color: #2ecc71; font-size: 0.8em; margin-right: 5px; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -132,16 +144,23 @@
 
 <div id="app-container">
     <header id="drag-handle">
-        <span style="display:flex; align-items:center; gap:10px;">
+        <div class="header-left">
             <img src="https://files.catbox.moe/u9bulk.png" alt="Logo" style="height: 35px; width: auto;">
             <span>Dirty Deals</span>
             <button class="header-btn active" id="nav-order" onclick="switchView('order')">New Order</button>
             <button class="header-btn" id="nav-history" onclick="switchView('history')">My Orders</button>
             <button class="header-btn grinder-btn" id="nav-grinder" onclick="switchView('grinder')">🔴 Grinder Panel</button>
-        </span>
-        <div class="status-box" id="status-box" onclick="manualRefreshID()" title="Click to refresh identity">
-            <div class="user-name" id="username-display">Guest</div>
-            <div class="user-id" id="userid-display">Tap to Refresh</div>
+        </div>
+        
+        <div class="status-wrapper">
+            <div class="mail-icon" id="mail-alert" title="New Message!">
+                📩<div class="mail-badge"></div>
+            </div>
+            <div class="status-box" id="status-box" onclick="manualRefreshID()" title="Click to refresh identity">
+                <div class="user-name" id="username-display">Guest</div>
+                <div class="user-id" id="userid-display">Tap to Refresh</div>
+                <div class="rank-tag" id="rank-display"></div>
+            </div>
         </div>
     </header>
 
@@ -183,6 +202,7 @@
                 <div>
                     <button class="btn-order" id="btn-submit" onclick="submitRealOrder()">CONFIRM ORDER</button>
                     <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;">Waiting for item selection...</div>
+                    <div id="limit-warning" style="text-align:center; font-size:0.7em; color:#e74c3c; margin-top:5px;"></div>
                 </div>
             </div>
         </div>
@@ -190,7 +210,10 @@
         <div id="view-history">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0;">Recent Orders</span>
-                <button class="header-btn" onclick="fetchMyOrders()">↻ Refresh</button>
+                <div>
+                    <button class="header-btn" onclick="toggleCompactMode('history-container')">📑 Compact</button>
+                    <button class="header-btn" onclick="fetchMyOrders()">↻ Refresh</button>
+                </div>
             </div>
             <div class="history-list" id="history-container">
                 <div style="padding:20px; text-align:center; color:#555;">History will appear here...</div>
@@ -200,7 +223,10 @@
         <div id="view-grinder">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
-                <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
+                <div>
+                    <button class="header-btn" onclick="toggleCompactMode('grinder-container')">📑 Compact</button>
+                    <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
+                </div>
             </div>
             <div class="history-list" id="grinder-container">
                 <div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div>
@@ -210,9 +236,22 @@
 </div>
 
 <script>
-    // --- GOOGLE CONFIG ---
+    // --- 1. CONFIGURATION ---
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
-    var AUTHORIZED_IDS = ["757858", "744622", "637174"]; 
+    
+    // --- 2. GRINDER ROSTER ---
+    var GRINDER_ROSTER = {
+        "757858": "Top Grinder",
+        "744622": "Top Grinder",
+        "637174": "Top Grinder"
+        // Add others: "123456": "Trainee Grinder"
+    };
+
+    var GRINDER_LIMITS = {
+        "Top Grinder": 9999,
+        "Usual Grinder": 5,
+        "Trainee Grinder": 3
+    };
 
     // --- DATA ---
     var CATEGORIES = {
@@ -279,7 +318,7 @@
         ]
     };
 
-    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", isGrinder: false };
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0 };
     var pollingInterval = null;
 
     // --- INIT ---
@@ -288,18 +327,17 @@
         initDrag();
         renderGrid();
         
-        // AGGRESSIVE START: Polling immediately
+        // Start "Nagging"
         requestData();
-        // Ask 4 times quickly in the first second
         setTimeout(requestData, 250);
         setTimeout(requestData, 500);
-        setTimeout(requestData, 750);
-        
-        // Then settle into a 1-second persistent poll
         pollingInterval = setInterval(requestData, 1000); 
+        
+        // Auto-fetch polling for Mail (5s)
+        setInterval(checkForMail, 5000);
     };
 
-    // --- CONNECTION LISTENER ---
+    // --- CONNECTION ---
     window.addEventListener('message', function(event) {
         var payload = event.data;
         if (payload && payload.type === 'data' && payload.data) payload = payload.data;
@@ -324,22 +362,25 @@
         state.username = name;
         state.userId = id;
         
-        // Visual Feedback
         document.getElementById('username-display').innerText = state.username;
         document.getElementById('userid-display').innerText = "ID: " + state.userId;
         document.getElementById('status-box').classList.add('connected');
 
         if(pollingInterval) clearInterval(pollingInterval);
 
-        // Check Hardcoded Grinder List
-        if(AUTHORIZED_IDS.indexOf(state.userId) > -1) {
-            document.getElementById('nav-grinder').style.display = 'inline-block';
+        // Check Grinder Roster
+        if(GRINDER_ROSTER[state.userId]) {
             state.isGrinder = true;
+            state.grinderRank = GRINDER_ROSTER[state.userId];
+            document.getElementById('nav-grinder').style.display = 'inline-block';
+            document.getElementById('rank-display').innerText = state.grinderRank;
         }
+
+        // Fetch History to Determine Tier
+        fetchMyOrders();
     }
 
     function manualRefreshID() {
-        // Reset and force new request
         document.getElementById('username-display').innerText = "Refreshing...";
         state.userId = "0";
         requestData();
@@ -349,6 +390,27 @@
     function requestData() {
         if(window.parent) {
             window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
+        }
+    }
+
+    // --- ORDER LIMIT LOGIC ---
+    function calculateOrderLimit() {
+        if(state.completedOrders >= 5) return 8;
+        if(state.completedOrders >= 1) return 3;
+        return 1; // Default
+    }
+
+    function checkOrderCapability() {
+        var limit = calculateOrderLimit();
+        var pending = state.activeOrders;
+        var warn = document.getElementById('limit-warning');
+        
+        if(pending >= limit) {
+            document.getElementById('btn-submit').disabled = true;
+            warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")";
+        } else {
+            document.getElementById('btn-submit').disabled = false;
+            warn.innerText = "Active Orders: " + pending + "/" + limit;
         }
     }
 
@@ -383,13 +445,13 @@
     function selectItem(item) {
         state.item = item;
         document.getElementById('disp-item-name').value = item.name;
-        document.getElementById('limit-display').innerText = "(Max: " + item.limit.toLocaleString() + ")";
+        document.getElementById('limit-display').innerText = "(Max: " + item.limit + ")";
         document.getElementById('input-qty').max = item.limit;
         document.getElementById('range-qty').max = item.limit;
         document.getElementById('btn-submit').classList.add('active');
-        document.getElementById('status-msg').innerText = "Ready to order.";
         renderGrid();
         updateCalc();
+        checkOrderCapability();
     }
 
     function updateCalc() {
@@ -403,6 +465,11 @@
         var total = state.item.price * val;
         if(document.getElementById('input-priority').value === 'high') total *= 1.25;
         document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
+    }
+
+    function toggleCompactMode(containerId) {
+        var el = document.getElementById(containerId);
+        el.classList.toggle('compact');
     }
 
     function switchView(view) {
@@ -419,21 +486,12 @@
         if(view === 'grinder') fetchGlobalOrders();
     }
 
-    // --- SEND LOGIC ---
+    // --- NETWORKING ---
     function submitRealOrder() {
-        var btn = document.getElementById('btn-submit');
-        var msg = document.getElementById('status-msg');
+        if(state.userId === "0") return;
         
-        if(state.userId === "0") {
-            msg.innerText = "Still connecting... Please wait a moment.";
-            msg.style.color = "#e74c3c";
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = "SENDING...";
-        msg.innerText = "Contacting server...";
-        msg.style.color = "#555";
+        var btn = document.getElementById('btn-submit');
+        btn.disabled = true; btn.innerText = "SENDING...";
 
         var payload = {
             action: "placeOrder",
@@ -447,89 +505,110 @@
         };
 
         fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
+            method: "POST", mode: "no-cors",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
-        })
-        .then(function() {
+        }).then(function() {
             btn.innerText = "SENT!";
-            msg.innerText = "Order placed successfully.";
-            msg.style.color = "#2ecc71";
-            
-            setTimeout(function() {
-                btn.disabled = false;
-                btn.innerText = "CONFIRM ORDER";
-                msg.innerText = "Ready for next order.";
-                msg.style.color = "#555";
-            }, 3000);
-        })
-        .catch(function(err) {
-            btn.innerText = "ERROR";
-            msg.innerText = "Failed to send (Network).";
-            msg.style.color = "#e74c3c";
-            setTimeout(function() { btn.disabled = false; }, 2000);
+            setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000);
         });
     }
 
-    // --- HISTORY FETCH ---
+    function checkForMail() {
+        if(state.userId === "0") return;
+        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId)
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            if(!data) return;
+            var hasUnread = false;
+            for(var i=0; i<data.length; i++) {
+                if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) {
+                    hasUnread = true; break;
+                }
+            }
+            var icon = document.getElementById('mail-alert');
+            if(hasUnread) icon.classList.add('has-mail');
+            else icon.classList.remove('has-mail');
+        });
+    }
+
     function fetchMyOrders() {
         var c = document.getElementById('history-container');
         if(state.userId === "0") { c.innerHTML = '<div style="padding:20px; text-align:center;">Waiting for ID...</div>'; return; }
-        c.innerHTML = '<div style="padding:20px; text-align:center;">Loading...</div>';
         
         fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId)
         .then(function(r){ return r.json(); })
         .then(function(data) {
             c.innerHTML = '';
-            if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history found.</div>'; return; }
+            state.activeOrders = 0;
+            state.completedOrders = 0;
+
+            if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
+            
             for(var i=0; i<data.length; i++) {
+                if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
+                if(data[i].status === 'Completed') state.completedOrders++;
                 c.appendChild(createOrderItem(data[i], false));
             }
+            checkOrderCapability();
         });
     }
 
     function fetchGlobalOrders() {
         var c = document.getElementById('grinder-container');
-        c.innerHTML = '<div style="padding:20px; text-align:center;">Loading jobs...</div>';
         fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders")
         .then(function(r){ return r.json(); })
         .then(function(data) {
             c.innerHTML = '';
-            if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No pending jobs.</div>'; return; }
+            var myActiveJobs = 0;
+            for(var k=0; k<data.length; k++) {
+                if(data[k].status === 'Accepted' && data[k].grinder === state.username) myActiveJobs++;
+            }
+
+            if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No jobs.</div>'; return; }
+            
             for(var i=0; i<data.length; i++) {
-                c.appendChild(createOrderItem(data[i], true));
+                c.appendChild(createOrderItem(data[i], true, myActiveJobs));
             }
         });
     }
 
-    // --- RENDER ITEM + BUTTONS (RESTORED) ---
-    function createOrderItem(o, isGrinderView) {
+    function createOrderItem(o, isGrinderView, myJobCount) {
         var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         var status = (o.status || 'Pending');
-        var chatLog = o.chat ? o.chat.split(" | ").join("\n") : "No messages.";
+        var chatLog = o.chat ? o.chat.split(" | ").join("\n") : "";
+        var progress = o.progress || "0";
         
         // CONTROLS
         var controls = '';
         if(isGrinderView) {
             var s = status.toLowerCase();
+            var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3;
+            
             if(s === 'pending') {
-                controls = '<button class="g-btn gb-accept">ACCEPT</button>';
+                if(myJobCount >= maxJobs) controls = '<span style="color:red; font-size:0.7em;">LIMIT REACHED</span>';
+                else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
             } else if(s === 'accepted' && o.grinder === state.username) {
-                controls = '<button class="g-btn gb-complete">COMPLETE</button>';
+                controls = `
+                    <span class="prog-label">Prog:</span>
+                    <input type="text" class="prog-input" value="${progress}" placeholder="0" onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)">
+                    <button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button>
+                `;
             }
+        } else {
+            if(status === 'Accepted') controls = `<span style="font-size:0.8em; color:#2ecc71;">Progress: ${progress} / ${o.qty}</span>`;
         }
 
-        var chatBtnHTML = (status.toLowerCase() === 'accepted') ? '<button class="g-btn gb-chat">💬</button>' : '';
+        var chatBtnHTML = (status === 'Accepted') ? '<button class="g-btn gb-chat">💬</button>' : '';
 
         var div = document.createElement('div'); 
         div.className = "history-item";
         div.innerHTML = 
             '<div class="h-top">' +
                 '<div class="h-info">' +
-                    '<span class="h-user">' + o.username + ' <span style="color:#555; font-weight:normal;">(' + o.userId + ')</span></span>' +
+                    '<span class="h-user">' + o.username + ' <span style="color:#555;">(' + o.userId + ')</span></span>' +
                     '<span class="h-item">' + o.item + ' <span style="font-size:0.8em; color:#666;">x' + o.qty + '</span></span>' +
-                    '<span class="h-sub">' + o.price + ' ' + (o.grinder ? '<span style="color:#2ecc71">(Worker: '+o.grinder+')</span>' : '') + '</span>' +
+                    '<span class="h-sub">' + o.price + ' ' + (o.grinder ? '<span style="color:#2ecc71; margin-left:5px;">Worker: '+o.grinder+'</span>' : '') + '</span>' +
                 '</div>' +
                 '<div style="text-align:right;">' +
                     '<div class="status-badge st-' + status + '" style="margin-bottom:5px;">' + status + '</div>' +
@@ -537,35 +616,23 @@
                 '</div>' +
             '</div>' +
             '<div class="chat-area">' +
-                '<div class="chat-logs">' + chatLog + '</div>' +
+                '<div class="chat-logs">' + (chatLog || "No messages.") + '</div>' +
                 '<div class="chat-input-row">' +
                     '<input type="text" class="chat-input" placeholder="Type message...">' +
                     '<button class="chat-send">SEND</button>' +
                 '</div>' +
             '</div>';
 
-        // LISTENERS
-        var acceptBtn = div.querySelector('.gb-accept');
-        if(acceptBtn) acceptBtn.onclick = function() { updateOrderStatus(o.timestamp, o.userId, 'Accepted'); };
-        
-        var compBtn = div.querySelector('.gb-complete');
-        if(compBtn) compBtn.onclick = function() { updateOrderStatus(o.timestamp, o.userId, 'Completed'); };
-
+        // Event Listeners
         var chatBtn = div.querySelector('.gb-chat');
-        if(chatBtn) {
-            var area = div.querySelector('.chat-area');
-            chatBtn.onclick = function() { area.style.display = (area.style.display==='block'?'none':'block'); };
-        }
+        if(chatBtn) chatBtn.onclick = function() { var a = div.querySelector('.chat-area'); a.style.display = (a.style.display==='block'?'none':'block'); };
 
         var sendBtn = div.querySelector('.chat-send');
-        if(sendBtn) {
+        if(sendBtn) sendBtn.onclick = function() {
             var input = div.querySelector('.chat-input');
-            sendBtn.onclick = function() {
-                if(!input.value) return;
-                sendChatMessage(o.timestamp, o.userId, input.value);
-                input.value = "Sending...";
-            };
-        }
+            sendChatMessage(o.timestamp, o.orderUserId || o.userId, input.value);
+            input.value = "Sending...";
+        };
 
         return div;
     }
@@ -573,12 +640,22 @@
     function updateOrderStatus(ts, uid, status) {
         var payload = {
             action: "updateOrder", orderTimestamp: ts, orderUserId: uid,
-            newStatus: status, grinderName: state.username
+            newStatus: status, grinderName: state.username, grinderRank: state.grinderRank
         };
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         }).then(function() { setTimeout(fetchGlobalOrders, 1000); });
+    }
+
+    function updateProgress(ts, uid, amount) {
+        var payload = {
+            action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount
+        };
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
     }
 
     function sendChatMessage(ts, uid, msg) {
@@ -595,7 +672,7 @@
         });
     }
 
-    // --- DRAG ---
+    // --- DRAG & ESC ---
     var elmnt = document.getElementById("app-container");
     var handle = document.getElementById("drag-handle");
     var pos1=0, pos2=0, pos3=0, pos4=0;
@@ -605,7 +682,10 @@
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     document.onkeydown = function(e) { 
-        if(e.keyCode==123 || (e.ctrlKey && e.shiftKey && (e.keyCode==73 || e.keyCode==74 || e.keyCode==67)) || (e.ctrlKey && e.keyCode==85)) return false; 
+        if(e.keyCode==27) { 
+            fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err=>{});
+            document.body.style.display = "none"; 
+        }
     }
 </script>
 </body>
