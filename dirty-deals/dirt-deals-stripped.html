@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final v3.0</title>
+    <title>Dirty Deals - Final v3.1 (Bug Fixes)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -28,7 +28,7 @@
         /* --- MINI WIDGET MODE --- */
         body.mini-mode #app-container {
             width: 380px !important;
-            height: 450px !important; /* Taller to fit split view */
+            height: 450px !important;
             background: rgba(18, 18, 18, 0.95);
             border: 1px solid var(--accent);
         }
@@ -51,12 +51,9 @@
         body.mini-mode #mini-header-title { display: block; }
         
         /* --- DYNAMIC LAYOUT FOR MINI MODE --- */
-        
-        /* Default (Customer): History takes 100% */
         body.mini-mode #view-history { padding: 0; display: flex !important; flex-direction: column; height: 100%; overflow: hidden; border: none; }
         body.mini-mode #view-grinder { display: none !important; }
 
-        /* Grinder Override: Split 50/50 Top/Bottom */
         body.mini-mode.role-grinder #view-history { height: 50%; border-bottom: 1px solid #333; }
         body.mini-mode.role-grinder #view-grinder { padding: 0; display: flex !important; flex-direction: column; height: 50%; overflow: hidden; }
         
@@ -65,13 +62,10 @@
         body.mini-mode #view-grinder .mini-label { color: #e74c3c; }
 
         body.mini-mode .history-list { background: transparent; border: none; overflow-y: auto; flex: 1; }
-        body.mini-mode .history-item { 
-            padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); 
-            font-size: 0.85em;
-        }
+        body.mini-mode .history-item { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.85em; }
         body.mini-mode .chat-area { display: none !important; }
 
-        .mini-label { display: none; } /* Hidden normally */
+        .mini-label { display: none; }
 
         /* HEADER */
         header {
@@ -113,6 +107,8 @@
         #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
+        
+        body.mini-mode #view-history, body.mini-mode #view-grinder { padding: 10px; background: transparent; }
 
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
@@ -120,7 +116,8 @@
         .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3); }
 
         .section-title { color: var(--text-main); font-size: 1.1em; margin-bottom: 10px; font-family: 'Rajdhani', sans-serif; }
-        
+        body.mini-mode .section-title { display: none; }
+
         .grid-wrapper { overflow-y: auto; flex: 1; padding-right: 5px; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 20px; }
         .grid-item { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer; height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -275,6 +272,7 @@
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0;">Recent Orders</span>
                 <div class="view-controls">
+                    <button class="header-btn" id="btn-toggle-my-done" onclick="toggleMyHistoryDone()">Show Done</button>
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchMyOrders()">↻ Refresh</button>
                 </div>
@@ -289,7 +287,7 @@
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
-                    <button class="header-btn" id="btn-toggle-done" onclick="toggleCompletedJobs()">Hide Done</button>
+                    <button class="header-btn" id="btn-toggle-grinder-done" onclick="toggleGrinderDone()">Show Done</button>
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
                 </div>
@@ -379,7 +377,13 @@
         ]
     };
 
-    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showCompleted: false };
+    var state = { 
+        category: "Bonus EXP", item: null, qty: 1, priority: 'normal', 
+        username: "Guest", userId: "0", isGrinder: false, grinderRank: "", 
+        activeOrders: 0, completedOrders: 0,
+        showMyHistoryDone: false, // Default HIDDEN
+        showGrinderDone: false    // Default HIDDEN
+    };
     var pollingInterval = null;
 
     // --- INIT ---
@@ -479,8 +483,19 @@
         state.item = item;
         document.getElementById('disp-item-name').value = item.name;
         document.getElementById('limit-display').innerText = "(Max: " + item.limit.toLocaleString() + ")";
-        document.getElementById('input-qty').max = item.limit;
-        document.getElementById('range-qty').max = item.limit;
+        
+        // BUG FIX: FORCE QUANTITY DOWN IF EXCEEDS LIMIT
+        var qInput = document.getElementById('input-qty');
+        var rInput = document.getElementById('range-qty');
+        
+        var currentVal = parseInt(qInput.value) || 1;
+        if(currentVal > item.limit) currentVal = item.limit;
+        
+        qInput.max = item.limit;
+        rInput.max = item.limit;
+        qInput.value = currentVal;
+        rInput.value = currentVal;
+
         document.getElementById('btn-submit').classList.add('active');
         renderGrid();
         updateCalc();
@@ -507,9 +522,15 @@
         }
     }
 
-    function toggleCompletedJobs() {
-        state.showCompleted = !state.showCompleted;
-        document.getElementById('btn-toggle-done').innerText = state.showCompleted ? "Hide Done" : "Show Done";
+    function toggleMyHistoryDone() {
+        state.showMyHistoryDone = !state.showMyHistoryDone;
+        document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done";
+        fetchMyOrders();
+    }
+
+    function toggleGrinderDone() {
+        state.showGrinderDone = !state.showGrinderDone;
+        document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done";
         fetchGlobalOrders();
     }
 
@@ -606,8 +627,13 @@
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
             for(var i=0; i<data.length; i++) {
                 if(!data[i].item || data[i].item === "") continue; 
+                
                 if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
                 if(data[i].status === 'Completed') state.completedOrders++;
+                
+                // Toggle Hidden Logic
+                if(!state.showMyHistoryDone && data[i].status === 'Completed') continue;
+
                 c.appendChild(createOrderItem(data[i], false));
             }
             checkOrderCapability();
@@ -627,8 +653,8 @@
             }
             if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No jobs.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                if(!data[i].item || data[i].item === "") continue; // Filter Ghosts
-                if(!state.showCompleted && data[i].status === "Completed") continue; // Filter Done
+                if(!data[i].item || data[i].item === "") continue; 
+                if(!state.showGrinderDone && data[i].status === "Completed") continue; // Filter Done
                 c.appendChild(createOrderItem(data[i], true, myActiveJobs));
             }
         });
@@ -645,7 +671,6 @@
             var s = status.toLowerCase();
             var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3;
             
-            // CASE INSENSITIVE CHECK for "My Job"
             var isMyJob = (o.grinder && o.grinder.toLowerCase().includes(state.username.toLowerCase()));
 
             if(s === 'pending') {
