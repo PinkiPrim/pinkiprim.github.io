@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Ultimate v4.0</title>
+    <title>Dirty Deals - Final Polish v4.1</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -27,70 +27,64 @@
 
         /* --- MINI WIDGET MODE --- */
         body.mini-mode #app-container {
-            width: 380px !important;
-            height: 450px !important;
-            background: rgba(18, 18, 18, 0.95);
+            width: 350px !important;
+            height: 500px !important;
+            background: rgba(18, 18, 18, 0.98);
             border: 1px solid var(--accent);
         }
-        /* Hide regular UI elements */
-        body.mini-mode header .header-left, 
+        
+        /* Hide Main UI in Mini */
+        body.mini-mode .header-left, 
         body.mini-mode #view-order,
         body.mini-mode .selection-area,
         body.mini-mode .details-area,
         body.mini-mode .status-wrapper,
         body.mini-mode .section-title,
-        body.mini-mode .view-controls {
+        body.mini-mode .view-controls,
+        body.mini-mode #main-header-content {
             display: none !important;
         }
-        
-        /* Mini Header */
-        body.mini-mode header {
-            height: 40px; padding: 0 5px;
-            justify-content: center; background: rgba(0,0,0,0.5);
-            border-bottom: 1px solid #333;
-            flex-direction: row; gap: 5px;
-        }
-        body.mini-mode #mini-header-title { display: block; }
-        
-        /* Grinder Tabs in Mini Mode */
-        #mini-grinder-tabs { display: none; gap: 5px; width: 100%; justify-content: center; }
-        body.mini-mode.role-grinder #mini-header-title { display: none; } /* Hide title for grinders, show tabs */
+
+        /* Mini Header Structure */
+        #mini-drag-strip { display: none; height: 25px; background: #000; cursor: move; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #333; }
+        #mini-title { font-size: 0.8em; color: var(--accent); font-weight: bold; letter-spacing: 1px; }
+        #max-btn { background: #222; border: 1px solid #444; color: white; font-size: 0.65em; cursor: pointer; padding: 1px 6px; border-radius: 2px; }
+        #max-btn:hover { background: var(--accent); }
+
+        body.mini-mode #mini-drag-strip { display: flex; }
+        body.mini-mode header { height: auto; padding: 0; display: block; background: transparent; border: none; }
+
+        /* Mini Tabs */
+        #mini-grinder-tabs { display: none; width: 100%; height: 35px; border-bottom: 1px solid #333; }
         body.mini-mode.role-grinder #mini-grinder-tabs { display: flex; }
-
+        
         .mini-tab-btn {
-            background: #222; border: 1px solid #444; color: #888; 
-            padding: 4px 10px; border-radius: 4px; font-size: 0.8em; cursor: pointer; font-weight: bold;
-            flex: 1; text-align: center;
+            flex: 1; background: #1a1a1a; border: none; color: #666; font-weight: bold; font-family: 'Rajdhani', sans-serif;
+            cursor: pointer; transition: 0.2s; border-right: 1px solid #222;
         }
-        .mini-tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .mini-tab-btn.active { background: #222; color: white; border-bottom: 2px solid var(--accent); }
 
-        /* Mini Views */
+        /* Mini Content Layout */
         body.mini-mode #view-history, body.mini-mode #view-grinder { 
             padding: 0; display: none !important; flex-direction: column; height: 100%; overflow: hidden; border: none; 
         }
-        
-        /* Default Customer: Show History always */
-        body.mini-mode:not(.role-grinder) #view-history { display: flex !important; }
+        /* Logic for Customer vs Grinder in Mini */
+        body.mini-mode:not(.role-grinder) #view-history { display: flex !important; margin-top: 0; height: calc(100% - 25px); }
+        body.mini-mode.role-grinder.show-jobs #view-grinder { display: flex !important; height: calc(100% - 60px); }
+        body.mini-mode.role-grinder.show-orders #view-history { display: flex !important; height: calc(100% - 60px); }
 
-        /* Grinder: Show based on active tab state (handled by JS) */
-        body.mini-mode.role-grinder.show-jobs #view-grinder { display: flex !important; }
-        body.mini-mode.role-grinder.show-orders #view-history { display: flex !important; }
-
+        /* Item Styling Updates */
         body.mini-mode .history-list { background: transparent; border: none; overflow-y: auto; flex: 1; }
-        body.mini-mode .history-item { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.85em; }
-        body.mini-mode .chat-area { display: none !important; }
+        body.mini-mode .history-item { padding: 0; border-bottom: 1px solid #333; margin-bottom: 5px; background: rgba(0,0,0,0.3); }
+        body.mini-mode .h-top { padding: 10px; }
 
-        /* HEADER */
+        /* REGULAR HEADER */
         header {
             background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between;
             align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
-        #mini-header-title { display: none; color: var(--accent); font-size: 1em; letter-spacing: 2px; margin-right: 20px; }
         
-        #max-btn { display: none; position: absolute; right: 5px; top: 5px; background: #333; border: 1px solid #555; color: white; padding: 2px 6px; cursor: pointer; border-radius: 3px; font-size: 0.7em; z-index: 2000; }
-        body.mini-mode #max-btn { display: block; }
-
         .header-left { display: flex; align-items: center; gap: 10px; }
         .header-btn {
             background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em;
@@ -166,21 +160,13 @@
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
         
-        .history-list.compact .history-item { padding: 5px 10px; flex-direction: row; align-items: center; justify-content: space-between; }
-        .history-list.compact .h-top { margin-bottom: 0; flex: 1; }
-        .history-list.compact .chat-area { display: none !important; }
-        .history-list.compact .g-controls { margin-top: 0; }
-
         .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .h-info { display: flex; flex-direction: column; }
         .h-item { font-weight: bold; color: white; font-size: 1.1em; }
         .h-sub { font-size: 0.85em; color: #888; }
         .h-user { color: var(--accent); font-weight: bold; font-size: 0.9em; margin-bottom: 2px;}
         
-        .status-badge { 
-            padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; 
-            text-transform: uppercase; color: #000;
-        }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; color: #000; }
         .st-Pending { background: var(--st-pending); }
         .st-Accepted { background: var(--st-accepted); color: white; }
         .st-Denied { background: var(--st-denied); color: white; }
@@ -190,8 +176,15 @@
         .g-btn { border: none; padding: 6px 12px; font-size: 0.75em; border-radius: 3px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
         .gb-accept { background: #2980b9; color: white; }
         .gb-complete { background: #27ae60; color: white; }
-        .gb-chat { background: #555; color: white; }
+        .gb-chat { background: #555; color: white; position: relative; }
         .gb-accept:hover { background: #3498db; }
+
+        /* Unread Badge on Chat Button */
+        .unread-badge { 
+            position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; 
+            border-radius: 50%; width: 14px; height: 14px; font-size: 9px; 
+            display: flex; justify-content: center; align-items: center; border: 1px solid #111;
+        }
 
         /* Chat */
         .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
@@ -200,15 +193,17 @@
         .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
         .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
 
-        /* Progress Input */
-        .prog-container { display: flex; align-items: center; gap: 5px; background: #222; padding: 2px 5px; border-radius: 4px; border: 1px solid #444; }
-        .prog-input { background: transparent; border: none; color: white; width: 60px; font-size: 0.9em; padding: 4px; text-align: center; font-weight: bold; }
-        .prog-input:focus { outline: none; }
-        .prog-label { color: var(--accent); font-size: 0.8em; font-weight: bold; }
+        /* Progress STRIP (New Thin Style) */
+        .progress-strip {
+            width: 100%; background: #000; border: none; border-top: 1px solid #333;
+            color: #2ecc71; text-align: center; font-size: 0.85em; font-weight: bold;
+            padding: 4px; margin-top: 5px; cursor: text;
+        }
+        .progress-strip:focus { outline: none; background: #0a0a0a; }
+        .progress-strip::placeholder { color: #333; }
 
         /* View Control Bar */
         .view-controls { display: flex; gap: 10px; }
-        body.mini-mode .view-controls { display: none; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -218,32 +213,35 @@
 <body>
 
 <div id="app-container">
-    <header id="drag-handle">
-        <div id="mini-header-title">DIRTY DEALS</div>
-        
-        <div id="mini-grinder-tabs">
-            <div class="mini-tab-btn active" id="mt-orders" onclick="setMiniTab('orders')">MY ORDERS</div>
-            <div class="mini-tab-btn" id="mt-jobs" onclick="setMiniTab('jobs')">JOBS</div>
-        </div>
-
+    <div id="mini-drag-strip">
+        <span id="mini-title">DIRTY DEALS</span>
         <button id="max-btn" onclick="toggleMiniMode()">[ MAXIMIZE ]</button>
+    </div>
 
-        <div class="header-left">
-            <img src="https://files.catbox.moe/u9bulk.png" alt="Logo" style="height: 35px; width: auto;">
-            <span>Dirty Deals</span>
-            <button class="header-btn active" id="nav-order" onclick="switchView('order')">New Order</button>
-            <button class="header-btn" id="nav-history" onclick="switchView('history')">My Orders</button>
-            <button class="header-btn grinder-btn" id="nav-grinder" onclick="switchView('grinder')">🔴 Grinder Panel</button>
+    <header id="drag-handle">
+        <div id="mini-grinder-tabs">
+            <button class="mini-tab-btn active" id="mt-orders" onclick="setMiniTab('orders')">MY ORDERS</button>
+            <button class="mini-tab-btn" id="mt-jobs" onclick="setMiniTab('jobs')">JOBS</button>
         </div>
-        
-        <div class="status-wrapper">
-            <div class="mail-icon" id="mail-alert" title="New Message!">
-                📩<div class="mail-badge"></div>
+
+        <div id="main-header-content" style="display:flex; width:100%; justify-content:space-between; align-items:center;">
+            <div class="header-left">
+                <img src="https://files.catbox.moe/u9bulk.png" alt="Logo" style="height: 35px; width: auto;">
+                <span>Dirty Deals</span>
+                <button class="header-btn active" id="nav-order" onclick="switchView('order')">New Order</button>
+                <button class="header-btn" id="nav-history" onclick="switchView('history')">My Orders</button>
+                <button class="header-btn grinder-btn" id="nav-grinder" onclick="switchView('grinder')">🔴 Grinder Panel</button>
             </div>
-            <div class="status-box" id="status-box" onclick="manualRefreshID()" title="Click to refresh identity">
-                <div class="user-name" id="username-display">Guest</div>
-                <div class="user-id" id="userid-display">Tap to Refresh</div>
-                <div class="rank-tag" id="rank-display"></div>
+            
+            <div class="status-wrapper">
+                <div class="mail-icon" id="mail-alert" title="New Message!">
+                    📩<div class="mail-badge"></div>
+                </div>
+                <div class="status-box" id="status-box" onclick="manualRefreshID()" title="Click to refresh identity">
+                    <div class="user-name" id="username-display">Guest</div>
+                    <div class="user-id" id="userid-display">Tap to Refresh</div>
+                    <div class="rank-tag" id="rank-display"></div>
+                </div>
             </div>
         </div>
     </header>
@@ -293,8 +291,8 @@
         </div>
 
         <div id="view-history">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span class="section-title" style="margin:0;">Recent Orders</span>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;" class="section-title">
+                <span style="margin:0;">Recent Orders</span>
                 <div class="view-controls">
                     <button class="header-btn" id="btn-toggle-my-done" onclick="toggleMyHistoryDone()">Show Done</button>
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
@@ -307,8 +305,8 @@
         </div>
 
         <div id="view-grinder">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;" class="section-title">
+                <span style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
                     <button class="header-btn" id="btn-toggle-grinder-done" onclick="toggleGrinderDone()">Show Done</button>
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
@@ -423,8 +421,7 @@
         pollingInterval = setInterval(requestData, 1000); 
         setInterval(checkForMail, 5000);
         
-        // Init Mini Tab
-        document.body.classList.add('show-orders');
+        document.body.classList.add('show-orders'); // Default Mini Tab
     };
 
     // --- CONNECTION ---
@@ -518,15 +515,13 @@
         var currentVal = parseInt(qInput.value) || 1;
         
         if (!state.customOrderMode) {
-            // CLAMP IF NOT CUSTOM
             if(currentVal > item.limit) currentVal = item.limit;
             qInput.max = item.limit;
             rInput.max = item.limit;
             rInput.disabled = false;
         } else {
-            // CUSTOM MODE
             qInput.max = 1000000;
-            rInput.disabled = true; // Disable slider in custom mode
+            rInput.disabled = true;
         }
         
         qInput.value = currentVal;
@@ -544,7 +539,6 @@
         var rInput = document.getElementById('range-qty');
         var val = parseInt(qInput.value);
         
-        // Sync slider only if not custom
         if(!state.customOrderMode && document.activeElement === rInput) {
             val = parseInt(rInput.value);
             qInput.value = val;
@@ -568,8 +562,6 @@
             btn.classList.remove('active');
             btn.innerText = "🔓 Custom Order (Unlimited Qty)";
         }
-        
-        // Re-run selection logic to apply/remove limits
         if(state.item) selectItem(state.item);
     }
 
@@ -584,7 +576,6 @@
         state.miniView = view;
         document.body.classList.remove('show-orders', 'show-jobs');
         document.body.classList.add(view === 'orders' ? 'show-orders' : 'show-jobs');
-        
         document.getElementById('mt-orders').classList.toggle('active', view === 'orders');
         document.getElementById('mt-jobs').classList.toggle('active', view === 'jobs');
     }
@@ -630,9 +621,7 @@
         var warn = document.getElementById('limit-warning');
         var custBtn = document.getElementById('btn-custom-toggle');
 
-        if(limit >= 8) {
-            custBtn.style.display = 'block'; // Show Unlock Button for Tier 3
-        }
+        if(limit >= 8) custBtn.style.display = 'block';
 
         if(pending >= limit) {
             document.getElementById('btn-submit').disabled = true;
@@ -704,7 +693,6 @@
                 if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
                 if(data[i].status === 'Completed') state.completedOrders++;
                 
-                // Toggle Hidden Logic
                 if(!state.showMyHistoryDone && data[i].status === 'Completed') continue;
 
                 c.appendChild(createOrderItem(data[i], false));
@@ -727,7 +715,7 @@
             if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No jobs.</div>'; return; }
             for(var i=0; i<data.length; i++) {
                 if(!data[i].item || data[i].item === "") continue; 
-                if(!state.showGrinderDone && data[i].status === "Completed") continue; // Filter Done
+                if(!state.showGrinderDone && data[i].status === "Completed") continue;
                 c.appendChild(createOrderItem(data[i], true, myActiveJobs));
             }
         });
@@ -740,32 +728,46 @@
         var progress = o.progress || "0";
         var controls = '';
 
+        // Check for Unread Message (Last message not from me)
+        var hasUnread = false;
+        if(o.chat && !o.chat.trim().endsWith(state.username)) hasUnread = true;
+
         if(isGrinderView) {
             var s = status.toLowerCase();
             var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3;
-            
             var isMyJob = (o.grinder && o.grinder.toLowerCase().includes(state.username.toLowerCase()));
 
             if(s === 'pending') {
                 if(myJobCount >= maxJobs) controls = '<span style="color:red; font-size:0.7em;">LIMIT REACHED</span>';
                 else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
             } else if(s === 'accepted' && isMyJob) {
+                // THIN PROGRESS STRIP FOR GRINDERS
                 controls = `
-                    <div class="prog-container">
-                        <span class="prog-label">Prog:</span>
-                        <input type="text" class="prog-input" value="${progress}" onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)">
+                    <div style="width:100%; display:flex; flex-direction:column;">
+                        <div class="g-controls" style="margin-top:0; margin-bottom:5px;">
+                            <button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button>
+                        </div>
+                        <input type="text" class="progress-strip" value="${progress}" placeholder="Enter Progress..." onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)">
                     </div>
-                    <button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button>
                 `;
             }
         } else {
             if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span>`;
         }
 
-        var chatBtnHTML = (status === 'Accepted') ? '<button class="g-btn gb-chat">💬</button>' : '';
+        var chatBadge = hasUnread ? '<div class="unread-badge">1</div>' : '';
+        var chatBtnHTML = (status === 'Accepted') ? `<button class="g-btn gb-chat">${chatBadge}💬</button>` : '';
+
+        // Adjust controls container if grinder view (custom layout)
+        var finalControls = isGrinderView && status.toLowerCase() === 'accepted' && (o.grinder && o.grinder.toLowerCase().includes(state.username.toLowerCase())) 
+            ? controls + `<div style="position:absolute; top:10px; right:10px;">${chatBtnHTML}</div>` 
+            : `<div class="g-controls">${controls} ${chatBtnHTML}</div>`;
 
         var div = document.createElement('div'); 
         div.className = "history-item";
+        // Position relative needed for absolute chat button positioning in grinder view
+        if(isGrinderView) div.style.position = 'relative';
+
         div.innerHTML = 
             '<div class="h-top">' +
                 '<div class="h-info">' +
@@ -775,7 +777,7 @@
                 '</div>' +
                 '<div style="text-align:right;">' +
                     '<div class="status-badge st-' + status + '" style="margin-bottom:5px;">' + status + '</div>' +
-                    '<div class="g-controls">' + controls + chatBtnHTML + '</div>' +
+                    finalControls +
                 '</div>' +
             '</div>' +
             '<div class="chat-area">' +
@@ -819,12 +821,17 @@
         });
     }
 
-    var elmnt = document.getElementById("app-container");
     var handle = document.getElementById("drag-handle");
+    var miniHandle = document.getElementById("mini-drag-strip");
+    var elmnt = document.getElementById("app-container");
     var pos1=0, pos2=0, pos3=0, pos4=0;
-    handle.onmousedown = function(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elmDrag; };
-    function elmDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
+
+    function dragMouseDown(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elementDrag; }
+    function elementDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
     function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
+
+    handle.onmousedown = dragMouseDown;
+    miniHandle.onmousedown = dragMouseDown;
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     document.onkeydown = function(e) { 
