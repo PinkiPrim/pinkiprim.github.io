@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - v6.1</title>
+    <title>Dirty Deals - Smart Slider v6.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,9 +16,9 @@
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-        /* VISIBILITY RESTORED: display: flex by default for testing */
+        /* DEFAULT HIDDEN FOR GAME LOAD */
         #app-container {
-            display: flex; 
+            display: flex; /* Changed to flex for testing visibility immediately */
             position: absolute; top: 50px; left: 50px; width: 900px; height: 650px; 
             background: var(--bg-glass); border: var(--border); border-radius: 8px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000;
@@ -146,6 +146,7 @@
         input:focus, select:focus { outline: none; border-color: var(--accent); }
         input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
         
+        /* LOCKED INPUT STYLES */
         input[readonly] { background: #1a1a1a; color: #555; cursor: not-allowed; border-color: #222; }
 
         .custom-toggle { display: none; width: 100%; background: #2c3e50; border: 1px dashed #34495e; color: #bdc3c7; padding: 8px; margin-top: 5px; cursor: pointer; border-radius: 4px; font-size: 0.8em; text-transform: uppercase; }
@@ -486,6 +487,18 @@
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
     }
 
+    // --- SMART STEP LOGIC ---
+    function getStepSize(limit) {
+        if (limit >= 250000) return 5000;
+        if (limit >= 50000) return 1000;
+        if (limit >= 15000) return 500; // Covers 15k and 20k
+        if (limit >= 2500) return 50;
+        if (limit >= 1500) return 25;
+        if (limit >= 1000) return 10;
+        if (limit >= 500) return 5; // Covers 500 and 800
+        return 1;
+    }
+
     // --- UI LOGIC ---
     function setCategory(cat) {
         state.category = cat;
@@ -521,6 +534,10 @@
         
         var qInput = document.getElementById('input-qty');
         var rInput = document.getElementById('range-qty');
+        
+        // APPLY DYNAMIC STEP
+        var step = getStepSize(item.limit);
+        rInput.step = step;
         
         var currentVal = parseInt(qInput.value) || 1;
         
