@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final Production v2.4</title>
+    <title>Dirty Deals - Final v3.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -28,8 +28,8 @@
         /* --- MINI WIDGET MODE --- */
         body.mini-mode #app-container {
             width: 380px !important;
-            height: 400px !important;
-            background: rgba(18, 18, 18, 0.90);
+            height: 450px !important; /* Taller to fit split view */
+            background: rgba(18, 18, 18, 0.95);
             border: 1px solid var(--accent);
         }
         /* Hide regular UI elements */
@@ -56,7 +56,7 @@
         body.mini-mode #view-history { padding: 0; display: flex !important; flex-direction: column; height: 100%; overflow: hidden; border: none; }
         body.mini-mode #view-grinder { display: none !important; }
 
-        /* Grinder Override: Split 50/50 */
+        /* Grinder Override: Split 50/50 Top/Bottom */
         body.mini-mode.role-grinder #view-history { height: 50%; border-bottom: 1px solid #333; }
         body.mini-mode.role-grinder #view-grinder { padding: 0; display: flex !important; flex-direction: column; height: 50%; overflow: hidden; }
         
@@ -289,6 +289,7 @@
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
+                    <button class="header-btn" id="btn-toggle-done" onclick="toggleCompletedJobs()">Hide Done</button>
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
                 </div>
@@ -378,7 +379,7 @@
         ]
     };
 
-    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0 };
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showCompleted: false };
     var pollingInterval = null;
 
     // --- INIT ---
@@ -428,7 +429,7 @@
         if(GRINDER_ROSTER[state.userId]) {
             state.isGrinder = true;
             state.grinderRank = GRINDER_ROSTER[state.userId];
-            document.body.classList.add('role-grinder'); // Used for CSS Mini Layout
+            document.body.classList.add('role-grinder');
             document.getElementById('nav-grinder').style.display = 'inline-block';
             document.getElementById('rank-display').innerText = state.grinderRank;
         }
@@ -501,14 +502,18 @@
 
     function toggleMiniMode() {
         document.body.classList.toggle('mini-mode');
-        // If entering Mini Mode, switch back to History view default
         if(document.body.classList.contains('mini-mode')) {
             switchView('history'); 
         }
     }
 
+    function toggleCompletedJobs() {
+        state.showCompleted = !state.showCompleted;
+        document.getElementById('btn-toggle-done').innerText = state.showCompleted ? "Hide Done" : "Show Done";
+        fetchGlobalOrders();
+    }
+
     function switchView(view) {
-        // In Mini Mode, we show BOTH History and Grinder stacked
         if(!document.body.classList.contains('mini-mode')) {
             document.getElementById('view-order').style.display = 'none';
             document.getElementById('view-history').style.display = 'none';
@@ -600,9 +605,7 @@
             state.completedOrders = 0;
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                // FILTER GHOSTS
                 if(!data[i].item || data[i].item === "") continue; 
-                
                 if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
                 if(data[i].status === 'Completed') state.completedOrders++;
                 c.appendChild(createOrderItem(data[i], false));
@@ -625,6 +628,7 @@
             if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No jobs.</div>'; return; }
             for(var i=0; i<data.length; i++) {
                 if(!data[i].item || data[i].item === "") continue; // Filter Ghosts
+                if(!state.showCompleted && data[i].status === "Completed") continue; // Filter Done
                 c.appendChild(createOrderItem(data[i], true, myActiveJobs));
             }
         });
@@ -648,7 +652,6 @@
                 if(myJobCount >= maxJobs) controls = '<span style="color:red; font-size:0.7em;">LIMIT REACHED</span>';
                 else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
             } else if(s === 'accepted' && isMyJob) {
-                // FIXED: Input box ALWAYS shows if status is Accepted and you are the grinder (Case Insensitive)
                 controls = `
                     <div class="prog-container">
                         <span class="prog-label">Prog:</span>
