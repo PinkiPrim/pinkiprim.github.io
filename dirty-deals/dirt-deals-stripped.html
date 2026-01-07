@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Production v2.2</title>
+    <title>Dirty Deals - Progress Fix</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -22,17 +22,17 @@
             position: absolute; top: 50px; left: 50px; width: 900px; height: 650px; 
             background: var(--bg-glass); border: var(--border); border-radius: 8px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); display: flex; flex-direction: column; overflow: hidden; z-index: 1000;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            /* Instant Drag, Smooth Resize */
+            transition: width 0.3s ease, height 0.3s ease, background 0.3s ease;
         }
 
-        /* --- MINI MODE STYLES (THE WIDGET) --- */
+        /* --- MINI MODE --- */
         body.mini-mode #app-container {
             width: 360px !important;
             height: 300px !important;
-            background: rgba(18, 18, 18, 0.85); /* More transparent */
+            background: rgba(18, 18, 18, 0.95);
             border: 1px solid rgba(94, 107, 246, 0.3);
         }
-        /* Hide complex elements in mini mode */
         body.mini-mode header .header-left, 
         body.mini-mode #view-order,
         body.mini-mode .selection-area,
@@ -40,7 +40,6 @@
         body.mini-mode .status-box {
             display: none !important;
         }
-        /* Show only specific elements in mini mode */
         body.mini-mode header {
             height: 40px; padding: 0 10px;
             justify-content: center; background: rgba(0,0,0,0.5);
@@ -94,7 +93,7 @@
         #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
-        /* Remove padding in mini mode */
+        
         body.mini-mode #view-history, body.mini-mode #view-grinder { padding: 10px; background: transparent; }
 
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
@@ -103,7 +102,7 @@
         .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3); }
 
         .section-title { color: var(--text-main); font-size: 1.1em; margin-bottom: 10px; font-family: 'Rajdhani', sans-serif; }
-        body.mini-mode .section-title { display: none; } /* Hide title in mini */
+        body.mini-mode .section-title { display: none; }
 
         .grid-wrapper { overflow-y: auto; flex: 1; padding-right: 5px; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 20px; }
@@ -135,6 +134,11 @@
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
         
+        .history-list.compact .history-item { padding: 5px 10px; flex-direction: row; align-items: center; justify-content: space-between; }
+        .history-list.compact .h-top { margin-bottom: 0; flex: 1; }
+        .history-list.compact .chat-area { display: none !important; }
+        .history-list.compact .g-controls { margin-top: 0; }
+
         .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .h-info { display: flex; flex-direction: column; }
         .h-item { font-weight: bold; color: white; font-size: 1.1em; }
@@ -150,8 +154,8 @@
         .st-Denied { background: var(--st-denied); color: white; }
         .st-Completed { background: var(--st-completed); }
 
-        .g-controls { display: flex; gap: 5px; margin-top: 8px; justify-content: flex-end; align-items: center; }
-        .g-btn { border: none; padding: 5px 10px; font-size: 0.75em; border-radius: 3px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .g-controls { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; align-items: center; }
+        .g-btn { border: none; padding: 6px 12px; font-size: 0.75em; border-radius: 3px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
         .gb-accept { background: #2980b9; color: white; }
         .gb-complete { background: #27ae60; color: white; }
         .gb-chat { background: #555; color: white; }
@@ -164,13 +168,15 @@
         .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
         .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
 
-        /* Progress Input */
-        .prog-input { background: #000; border: 1px solid #333; color: #2ecc71; width: 60px; font-size: 0.8em; padding: 4px; text-align: center; border-radius: 3px; }
-        .prog-label { color: #2ecc71; font-size: 0.8em; margin-right: 5px; }
+        /* Progress Input (FIXED VISIBILITY) */
+        .prog-container { display: flex; align-items: center; gap: 5px; background: #222; padding: 2px 5px; border-radius: 4px; border: 1px solid #444; }
+        .prog-input { background: transparent; border: none; color: white; width: 60px; font-size: 0.9em; padding: 4px; text-align: center; font-weight: bold; }
+        .prog-input:focus { outline: none; }
+        .prog-label { color: var(--accent); font-size: 0.8em; font-weight: bold; }
 
         /* View Control Bar */
         .view-controls { display: flex; gap: 10px; }
-        body.mini-mode .view-controls { display: none; } /* Hide normal controls in mini */
+        body.mini-mode .view-controls { display: none; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -283,8 +289,7 @@
     var GRINDER_ROSTER = {
         "757858": "Top Grinder",
         "744622": "Top Grinder",
-        "637174": "Top Grinder",
-        "123456": "Trainee Grinder"
+        "637174": "Top Grinder"
     };
 
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
@@ -568,7 +573,7 @@
             state.completedOrders = 0;
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                if(!data[i].item) continue; // FILTER GHOSTS
+                if(!data[i].item) continue; 
                 if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
                 if(data[i].status === 'Completed') state.completedOrders++;
                 c.appendChild(createOrderItem(data[i], false));
@@ -585,12 +590,12 @@
             c.innerHTML = '';
             var myActiveJobs = 0;
             for(var k=0; k<data.length; k++) {
-                if(!data[k].item) continue; // FILTER GHOSTS
+                if(!data[k].item) continue;
                 if(data[k].status === 'Accepted' && data[k].grinder === state.username) myActiveJobs++;
             }
             if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No jobs.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                if(!data[i].item) continue; // FILTER GHOSTS
+                if(!data[i].item) continue;
                 c.appendChild(createOrderItem(data[i], true, myActiveJobs));
             }
         });
@@ -610,14 +615,17 @@
                 if(myJobCount >= maxJobs) controls = '<span style="color:red; font-size:0.7em;">LIMIT REACHED</span>';
                 else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
             } else if(s === 'accepted' && o.grinder === state.username) {
+                // FIXED: PROGRESS BOX IS HERE
                 controls = `
-                    <span class="prog-label">Prog:</span>
-                    <input type="text" class="prog-input" value="${progress}" placeholder="0" onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)">
+                    <div class="prog-container">
+                        <span class="prog-label">Prog:</span>
+                        <input type="text" class="prog-input" value="${progress}" onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)">
+                    </div>
                     <button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button>
                 `;
             }
         } else {
-            if(status === 'Accepted') controls = `<span style="font-size:0.8em; color:#2ecc71;">Progress: ${progress} / ${o.qty}</span>`;
+            if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span>`;
         }
 
         var chatBtnHTML = (status === 'Accepted') ? '<button class="g-btn gb-chat">💬</button>' : '';
