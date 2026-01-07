@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final v3.1 (Bug Fixes)</title>
+    <title>Dirty Deals - Ultimate v4.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -42,30 +42,43 @@
         body.mini-mode .view-controls {
             display: none !important;
         }
+        
         /* Mini Header */
         body.mini-mode header {
-            height: 35px; padding: 0 10px;
+            height: 40px; padding: 0 5px;
             justify-content: center; background: rgba(0,0,0,0.5);
             border-bottom: 1px solid #333;
+            flex-direction: row; gap: 5px;
         }
         body.mini-mode #mini-header-title { display: block; }
         
-        /* --- DYNAMIC LAYOUT FOR MINI MODE --- */
-        body.mini-mode #view-history { padding: 0; display: flex !important; flex-direction: column; height: 100%; overflow: hidden; border: none; }
-        body.mini-mode #view-grinder { display: none !important; }
+        /* Grinder Tabs in Mini Mode */
+        #mini-grinder-tabs { display: none; gap: 5px; width: 100%; justify-content: center; }
+        body.mini-mode.role-grinder #mini-header-title { display: none; } /* Hide title for grinders, show tabs */
+        body.mini-mode.role-grinder #mini-grinder-tabs { display: flex; }
 
-        body.mini-mode.role-grinder #view-history { height: 50%; border-bottom: 1px solid #333; }
-        body.mini-mode.role-grinder #view-grinder { padding: 0; display: flex !important; flex-direction: column; height: 50%; overflow: hidden; }
+        .mini-tab-btn {
+            background: #222; border: 1px solid #444; color: #888; 
+            padding: 4px 10px; border-radius: 4px; font-size: 0.8em; cursor: pointer; font-weight: bold;
+            flex: 1; text-align: center;
+        }
+        .mini-tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Mini Views */
+        body.mini-mode #view-history, body.mini-mode #view-grinder { 
+            padding: 0; display: none !important; flex-direction: column; height: 100%; overflow: hidden; border: none; 
+        }
         
-        body.mini-mode .mini-label { display: block; padding: 4px 10px; font-size: 0.75em; font-weight: bold; background: #222; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-        body.mini-mode #view-history .mini-label { color: var(--accent); }
-        body.mini-mode #view-grinder .mini-label { color: #e74c3c; }
+        /* Default Customer: Show History always */
+        body.mini-mode:not(.role-grinder) #view-history { display: flex !important; }
+
+        /* Grinder: Show based on active tab state (handled by JS) */
+        body.mini-mode.role-grinder.show-jobs #view-grinder { display: flex !important; }
+        body.mini-mode.role-grinder.show-orders #view-history { display: flex !important; }
 
         body.mini-mode .history-list { background: transparent; border: none; overflow-y: auto; flex: 1; }
         body.mini-mode .history-item { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.85em; }
         body.mini-mode .chat-area { display: none !important; }
-
-        .mini-label { display: none; }
 
         /* HEADER */
         header {
@@ -73,9 +86,9 @@
             align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
-        #mini-header-title { display: none; color: var(--accent); font-size: 1em; letter-spacing: 2px; }
+        #mini-header-title { display: none; color: var(--accent); font-size: 1em; letter-spacing: 2px; margin-right: 20px; }
         
-        #max-btn { display: none; position: absolute; right: 5px; top: 5px; background: #333; border: 1px solid #555; color: white; padding: 2px 6px; cursor: pointer; border-radius: 3px; font-size: 0.7em; }
+        #max-btn { display: none; position: absolute; right: 5px; top: 5px; background: #333; border: 1px solid #555; color: white; padding: 2px 6px; cursor: pointer; border-radius: 3px; font-size: 0.7em; z-index: 2000; }
         body.mini-mode #max-btn { display: block; }
 
         .header-left { display: flex; align-items: center; gap: 10px; }
@@ -107,8 +120,6 @@
         #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
-        
-        body.mini-mode #view-history, body.mini-mode #view-grinder { padding: 10px; background: transparent; }
 
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
@@ -116,8 +127,7 @@
         .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3); }
 
         .section-title { color: var(--text-main); font-size: 1.1em; margin-bottom: 10px; font-family: 'Rajdhani', sans-serif; }
-        body.mini-mode .section-title { display: none; }
-
+        
         .grid-wrapper { overflow-y: auto; flex: 1; padding-right: 5px; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 20px; }
         .grid-item { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer; height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -136,6 +146,14 @@
         input[type="text"], input[type="number"], select { width: 100%; background: #252525; border: 1px solid #383838; color: white; padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em; }
         input:focus, select:focus { outline: none; border-color: var(--accent); }
         input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
+
+        /* CUSTOM ORDER TOGGLE */
+        .custom-toggle { 
+            display: none; width: 100%; background: #2c3e50; border: 1px dashed #34495e; 
+            color: #bdc3c7; padding: 8px; margin-top: 5px; cursor: pointer; border-radius: 4px;
+            font-size: 0.8em; text-transform: uppercase;
+        }
+        .custom-toggle.active { background: #8e44ad; border-color: #9b59b6; color: white; }
 
         .total-box { margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px; margin-bottom: 5px; flex-shrink: 0; }
         .total-price { font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif; }
@@ -202,6 +220,12 @@
 <div id="app-container">
     <header id="drag-handle">
         <div id="mini-header-title">DIRTY DEALS</div>
+        
+        <div id="mini-grinder-tabs">
+            <div class="mini-tab-btn active" id="mt-orders" onclick="setMiniTab('orders')">MY ORDERS</div>
+            <div class="mini-tab-btn" id="mt-jobs" onclick="setMiniTab('jobs')">JOBS</div>
+        </div>
+
         <button id="max-btn" onclick="toggleMiniMode()">[ MAXIMIZE ]</button>
 
         <div class="header-left">
@@ -247,6 +271,7 @@
                     <div class="label">Quantity <span id="limit-display" style="float:right;color:var(--accent);"></span></div>
                     <input type="number" id="input-qty" value="1" min="1" oninput="updateCalc()">
                     <input type="range" id="range-qty" min="1" value="1" oninput="updateCalc()">
+                    <button id="btn-custom-toggle" class="custom-toggle" onclick="toggleCustomOrder()">🔓 Custom Order (Unlimited Qty)</button>
                 </div>
                 <div class="input-group">
                     <div class="label">Priority Level</div>
@@ -268,7 +293,6 @@
         </div>
 
         <div id="view-history">
-            <div class="mini-label">MY ORDERS</div>
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0;">Recent Orders</span>
                 <div class="view-controls">
@@ -283,7 +307,6 @@
         </div>
 
         <div id="view-grinder">
-            <div class="mini-label">PENDING JOBS</div>
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
@@ -382,7 +405,9 @@
         username: "Guest", userId: "0", isGrinder: false, grinderRank: "", 
         activeOrders: 0, completedOrders: 0,
         showMyHistoryDone: false, // Default HIDDEN
-        showGrinderDone: false    // Default HIDDEN
+        showGrinderDone: false,    // Default HIDDEN
+        customOrderMode: false,
+        miniView: 'orders' // 'orders' or 'jobs'
     };
     var pollingInterval = null;
 
@@ -397,6 +422,9 @@
         setTimeout(requestData, 500);
         pollingInterval = setInterval(requestData, 1000); 
         setInterval(checkForMail, 5000);
+        
+        // Init Mini Tab
+        document.body.classList.add('show-orders');
     };
 
     // --- CONNECTION ---
@@ -482,17 +510,25 @@
     function selectItem(item) {
         state.item = item;
         document.getElementById('disp-item-name').value = item.name;
-        document.getElementById('limit-display').innerText = "(Max: " + item.limit.toLocaleString() + ")";
+        document.getElementById('limit-display').innerText = state.customOrderMode ? "(Unlimited)" : "(Max: " + item.limit.toLocaleString() + ")";
         
-        // BUG FIX: FORCE QUANTITY DOWN IF EXCEEDS LIMIT
         var qInput = document.getElementById('input-qty');
         var rInput = document.getElementById('range-qty');
         
         var currentVal = parseInt(qInput.value) || 1;
-        if(currentVal > item.limit) currentVal = item.limit;
         
-        qInput.max = item.limit;
-        rInput.max = item.limit;
+        if (!state.customOrderMode) {
+            // CLAMP IF NOT CUSTOM
+            if(currentVal > item.limit) currentVal = item.limit;
+            qInput.max = item.limit;
+            rInput.max = item.limit;
+            rInput.disabled = false;
+        } else {
+            // CUSTOM MODE
+            qInput.max = 1000000;
+            rInput.disabled = true; // Disable slider in custom mode
+        }
+        
         qInput.value = currentVal;
         rInput.value = currentVal;
 
@@ -507,12 +543,34 @@
         var qInput = document.getElementById('input-qty');
         var rInput = document.getElementById('range-qty');
         var val = parseInt(qInput.value);
-        if(document.activeElement === rInput) val = parseInt(rInput.value);
-        qInput.value = val; rInput.value = val;
+        
+        // Sync slider only if not custom
+        if(!state.customOrderMode && document.activeElement === rInput) {
+            val = parseInt(rInput.value);
+            qInput.value = val;
+        } else if (!state.customOrderMode) {
+            rInput.value = val;
+        }
         
         var total = state.item.price * val;
         if(document.getElementById('input-priority').value === 'high') total *= 1.25;
         document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
+    }
+
+    function toggleCustomOrder() {
+        state.customOrderMode = !state.customOrderMode;
+        var btn = document.getElementById('btn-custom-toggle');
+        
+        if (state.customOrderMode) {
+            btn.classList.add('active');
+            btn.innerText = "🔓 Custom Order Active";
+        } else {
+            btn.classList.remove('active');
+            btn.innerText = "🔓 Custom Order (Unlimited Qty)";
+        }
+        
+        // Re-run selection logic to apply/remove limits
+        if(state.item) selectItem(state.item);
     }
 
     function toggleMiniMode() {
@@ -520,6 +578,15 @@
         if(document.body.classList.contains('mini-mode')) {
             switchView('history'); 
         }
+    }
+
+    function setMiniTab(view) {
+        state.miniView = view;
+        document.body.classList.remove('show-orders', 'show-jobs');
+        document.body.classList.add(view === 'orders' ? 'show-orders' : 'show-jobs');
+        
+        document.getElementById('mt-orders').classList.toggle('active', view === 'orders');
+        document.getElementById('mt-jobs').classList.toggle('active', view === 'jobs');
     }
 
     function toggleMyHistoryDone() {
@@ -561,6 +628,12 @@
         var limit = calculateOrderLimit();
         var pending = state.activeOrders;
         var warn = document.getElementById('limit-warning');
+        var custBtn = document.getElementById('btn-custom-toggle');
+
+        if(limit >= 8) {
+            custBtn.style.display = 'block'; // Show Unlock Button for Tier 3
+        }
+
         if(pending >= limit) {
             document.getElementById('btn-submit').disabled = true;
             warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")";
