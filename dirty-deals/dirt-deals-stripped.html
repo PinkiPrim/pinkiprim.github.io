@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final Production</title>
+    <title>Dirty Deals - Final Polish v2.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -22,18 +22,17 @@
             position: absolute; top: 50px; left: 50px; width: 900px; height: 650px; 
             background: var(--bg-glass); border: var(--border); border-radius: 8px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); display: flex; flex-direction: column; overflow: hidden; z-index: 1000;
-            /* Instant Drag (Position), Smooth Resize (Width/Height) */
             transition: width 0.3s ease, height 0.3s ease, background 0.3s ease; 
         }
 
         /* --- MINI WIDGET MODE --- */
         body.mini-mode #app-container {
             width: 380px !important;
-            height: 350px !important;
-            background: rgba(18, 18, 18, 0.90); /* Transparent */
+            height: 400px !important;
+            background: rgba(18, 18, 18, 0.90);
             border: 1px solid var(--accent);
         }
-        /* Hide complex elements in mini mode */
+        /* Hide regular UI elements */
         body.mini-mode header .header-left, 
         body.mini-mode #view-order,
         body.mini-mode .selection-area,
@@ -43,7 +42,7 @@
         body.mini-mode .view-controls {
             display: none !important;
         }
-        /* Adjust header for widget */
+        /* Mini Header */
         body.mini-mode header {
             height: 35px; padding: 0 10px;
             justify-content: center; background: rgba(0,0,0,0.5);
@@ -51,14 +50,22 @@
         }
         body.mini-mode #mini-header-title { display: block; }
         
-        /* Adjust Lists for Widget */
-        body.mini-mode #view-history, body.mini-mode #view-grinder { padding: 0; display: flex !important; }
-        body.mini-mode .history-list { background: transparent; border: none; }
+        /* Show both lists in Mini Mode with LABELS */
+        body.mini-mode #view-history, body.mini-mode #view-grinder { padding: 0; display: flex !important; flex-direction: column; height: 50%; overflow: hidden; }
+        body.mini-mode #view-history { border-bottom: 1px solid #333; }
+        
+        body.mini-mode .mini-label { display: block; padding: 4px 10px; font-size: 0.75em; font-weight: bold; background: #222; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        body.mini-mode #view-history .mini-label { color: var(--accent); }
+        body.mini-mode #view-grinder .mini-label { color: #e74c3c; }
+
+        body.mini-mode .history-list { background: transparent; border: none; overflow-y: auto; flex: 1; }
         body.mini-mode .history-item { 
             padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); 
             font-size: 0.85em;
         }
-        body.mini-mode .chat-area { display: none !important; } /* No chat in widget mode */
+        body.mini-mode .chat-area { display: none !important; }
+
+        .mini-label { display: none; } /* Hidden normally */
 
         /* HEADER */
         header {
@@ -167,7 +174,7 @@
         .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
         .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
 
-        /* Progress Input (Always Visible for Grinder) */
+        /* Progress Input */
         .prog-container { display: flex; align-items: center; gap: 5px; background: #222; padding: 2px 5px; border-radius: 4px; border: 1px solid #444; }
         .prog-input { background: transparent; border: none; color: white; width: 60px; font-size: 0.9em; padding: 4px; text-align: center; font-weight: bold; }
         .prog-input:focus { outline: none; }
@@ -252,7 +259,7 @@
         </div>
 
         <div id="view-history">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <div class="mini-label">MY ORDERS</div> <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0;">Recent Orders</span>
                 <div class="view-controls">
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
@@ -265,7 +272,7 @@
         </div>
 
         <div id="view-grinder">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <div class="mini-label">PENDING JOBS</div> <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
@@ -424,26 +431,6 @@
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
     }
 
-    // --- ORDER LIMIT LOGIC ---
-    function calculateOrderLimit() {
-        if(state.completedOrders >= 5) return 8;
-        if(state.completedOrders >= 1) return 3;
-        return 1;
-    }
-
-    function checkOrderCapability() {
-        var limit = calculateOrderLimit();
-        var pending = state.activeOrders;
-        var warn = document.getElementById('limit-warning');
-        if(pending >= limit) {
-            document.getElementById('btn-submit').disabled = true;
-            warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")";
-        } else {
-            document.getElementById('btn-submit').disabled = false;
-            warn.innerText = "Active Orders: " + pending + "/" + limit;
-        }
-    }
-
     // --- UI LOGIC ---
     function setCategory(cat) {
         state.category = cat;
@@ -499,13 +486,20 @@
 
     function toggleMiniMode() {
         document.body.classList.toggle('mini-mode');
+        // If entering Mini Mode, switch back to History view default
+        if(document.body.classList.contains('mini-mode')) {
+            switchView('history'); 
+        }
     }
 
     function switchView(view) {
-        document.getElementById('view-order').style.display = 'none';
-        document.getElementById('view-history').style.display = 'none';
-        document.getElementById('view-grinder').style.display = 'none';
-        document.getElementById('view-' + view).style.display = 'flex';
+        // In Mini Mode, we show BOTH History and Grinder stacked
+        if(!document.body.classList.contains('mini-mode')) {
+            document.getElementById('view-order').style.display = 'none';
+            document.getElementById('view-history').style.display = 'none';
+            document.getElementById('view-grinder').style.display = 'none';
+            document.getElementById('view-' + view).style.display = 'flex';
+        }
         
         var btns = document.querySelectorAll('.header-btn');
         for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
@@ -515,7 +509,26 @@
         if(view === 'grinder') fetchGlobalOrders();
     }
 
-    // --- NETWORKING ---
+    // --- LOGIC ---
+    function calculateOrderLimit() {
+        if(state.completedOrders >= 5) return 8;
+        if(state.completedOrders >= 1) return 3;
+        return 1;
+    }
+
+    function checkOrderCapability() {
+        var limit = calculateOrderLimit();
+        var pending = state.activeOrders;
+        var warn = document.getElementById('limit-warning');
+        if(pending >= limit) {
+            document.getElementById('btn-submit').disabled = true;
+            warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")";
+        } else {
+            document.getElementById('btn-submit').disabled = false;
+            warn.innerText = "Active Orders: " + pending + "/" + limit;
+        }
+    }
+
     function submitRealOrder() {
         if(state.userId === "0") return;
         var btn = document.getElementById('btn-submit');
@@ -572,7 +585,7 @@
             state.completedOrders = 0;
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                // GHOST FILTER: Ignore rows with empty item names
+                // FILTER GHOSTS
                 if(!data[i].item || data[i].item === "") continue; 
                 
                 if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
@@ -596,8 +609,7 @@
             }
             if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No jobs.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                // GHOST FILTER
-                if(!data[i].item || data[i].item === "") continue;
+                if(!data[i].item || data[i].item === "") continue; // Filter Ghosts
                 c.appendChild(createOrderItem(data[i], true, myActiveJobs));
             }
         });
@@ -621,7 +633,7 @@
                 if(myJobCount >= maxJobs) controls = '<span style="color:red; font-size:0.7em;">LIMIT REACHED</span>';
                 else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
             } else if(s === 'accepted' && isMyJob) {
-                // FIXED: Input box ALWAYS shows if status is Accepted and you are the grinder
+                // FIXED: Input box ALWAYS shows if status is Accepted and you are the grinder (Case Insensitive)
                 controls = `
                     <div class="prog-container">
                         <span class="prog-label">Prog:</span>
