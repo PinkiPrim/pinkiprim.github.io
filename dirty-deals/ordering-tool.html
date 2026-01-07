@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final v5.2</title>
+    <title>Dirty Deals - Final v5.4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -272,7 +272,7 @@
                     <div class="label">Priority Level</div>
                     <select id="input-priority" onchange="updateCalc()">
                         <option value="normal">Normal (100%)</option>
-                        <option value="high">High Priority (125% Cost)</option>
+                        <option value="high">High Priority (+5% Fee)</option>
                     </select>
                 </div>
                 <div class="total-box">
@@ -418,7 +418,7 @@
         pollingInterval = setInterval(requestData, 1000); 
         setInterval(checkForMail, 5000);
         
-        document.body.classList.add('show-orders');
+        document.body.classList.add('show-orders'); // Default Mini Tab
     };
 
     // --- CONNECTION ---
@@ -544,8 +544,8 @@
         }
         
         var total = state.item.price * val;
-        if(document.getElementById('input-priority').value === 'high') total *= 1.25;
-        if(state.customOrderMode) total *= 1.05; // 5% Custom Fee
+        if(document.getElementById('input-priority').value === 'high') total *= 1.05; // 5%
+        if(state.customOrderMode) total *= 1.10; // 10% Custom Fee
 
         document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
     }
@@ -556,7 +556,7 @@
         
         if (state.customOrderMode) {
             btn.classList.add('active');
-            btn.innerText = "🔓 Custom Order Active (+5% Fee)";
+            btn.innerText = "🔓 Custom Order Active (+10% Fee)";
         } else {
             btn.classList.remove('active');
             btn.innerText = "🔓 Custom Order (Unlimited Qty)";
@@ -821,8 +821,9 @@
         });
     }
 
-    var handle = document.getElementById("drag-handle");
-    var miniHandle = document.getElementById("mini-drag-strip");
+    // --- DRAG LOGIC (Dual Handler) ---
+    var mainHeader = document.getElementById("main-header");
+    var miniStrip = document.getElementById("mini-drag-strip");
     var elmnt = document.getElementById("app-container");
     var pos1=0, pos2=0, pos3=0, pos4=0;
 
@@ -830,8 +831,8 @@
     function elementDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
     function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
 
-    if(handle) handle.onmousedown = dragMouseDown;
-    if(miniHandle) miniHandle.onmousedown = dragMouseDown;
+    if(mainHeader) mainHeader.onmousedown = dragMouseDown;
+    if(miniStrip) miniStrip.onmousedown = dragMouseDown;
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     document.onkeydown = function(e) { 
