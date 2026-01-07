@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Smart Slider v6.2</title>
+    <title>Dirty Deals - Precision v6.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,9 +16,8 @@
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-        /* DEFAULT HIDDEN FOR GAME LOAD */
         #app-container {
-            display: flex; /* Changed to flex for testing visibility immediately */
+            display: flex; /* Visible for setup/testing */
             position: absolute; top: 50px; left: 50px; width: 900px; height: 650px; 
             background: var(--bg-glass); border: var(--border); border-radius: 8px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000;
@@ -33,7 +32,6 @@
             border: 1px solid var(--accent);
         }
         
-        /* Elements to HIDE in Mini Mode */
         body.mini-mode #main-header, 
         body.mini-mode #view-order,
         body.mini-mode .selection-area,
@@ -41,7 +39,7 @@
             display: none !important;
         }
 
-        /* MINI HEADER (Dedicated Drag Strip) */
+        /* MINI HEADER */
         #mini-header { display: none; flex-direction: column; }
         body.mini-mode #mini-header { display: flex; }
 
@@ -57,7 +55,7 @@
         }
         #max-btn:hover { background: var(--accent); border-color: var(--accent); }
 
-        /* MINI TABS (Grinders Only) */
+        /* MINI TABS */
         #mini-grinder-tabs { display: none; width: 100%; height: 32px; border-bottom: 1px solid #333; flex-shrink: 0; }
         body.mini-mode.role-grinder #mini-grinder-tabs { display: flex; }
         
@@ -89,7 +87,7 @@
             padding: 2px 10px; font-weight: bold; border-bottom: 1px solid #222; 
         }
 
-        /* --- REGULAR HEADER --- */
+        /* REGULAR HEADER */
         #main-header {
             background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between;
             align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
@@ -115,7 +113,7 @@
         @keyframes connectFlash { 0% { color: #fff; } 50% { color: #2ecc71; } 100% { color: #fff; } }
         .connected .user-name { animation: connectFlash 1s ease; color: #2ecc71; }
 
-        /* --- LAYOUTS --- */
+        /* LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
         #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
@@ -142,11 +140,11 @@
         .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
         .input-group { margin-bottom: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
+        
         input[type="text"], input[type="number"], select { width: 100%; background: #252525; border: 1px solid #383838; color: white; padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em; }
         input:focus, select:focus { outline: none; border-color: var(--accent); }
         input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
         
-        /* LOCKED INPUT STYLES */
         input[readonly] { background: #1a1a1a; color: #555; cursor: not-allowed; border-color: #222; }
 
         .custom-toggle { display: none; width: 100%; background: #2c3e50; border: 1px dashed #34495e; color: #bdc3c7; padding: 8px; margin-top: 5px; cursor: pointer; border-radius: 4px; font-size: 0.8em; text-transform: uppercase; }
@@ -156,14 +154,13 @@
         .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         .btn-order.active { opacity: 1; pointer-events: all; }
         
-        /* --- LIST CARD STYLING (VERTICAL STACK) --- */
+        /* CARD STYLING */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
         
         .h-top { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
         
-        /* Left Side: Vertical Stack */
         .h-info { display: flex; flex-direction: column; gap: 4px; }
         .h-row.user { color: var(--accent); font-weight: bold; font-size: 0.95em; }
         .h-row.user span { color: #555; font-size: 0.8em; margin-left: 5px; font-family: monospace; }
@@ -172,7 +169,6 @@
         .h-row.price { color: #2ecc71; font-weight: bold; font-family: 'Rajdhani', sans-serif; font-size: 1em; }
         .h-row.worker { color: #e67e22; font-size: 0.8em; font-weight: bold; }
 
-        /* Right Side: Controls */
         .status-container { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
         .status-badge { padding: 4px 8px; border-radius: 3px; font-size: 0.7em; font-weight: bold; text-transform: uppercase; color: #000; display: inline-block; }
         .st-Pending { background: var(--st-pending); }
@@ -180,7 +176,6 @@
         .st-Denied { background: var(--st-denied); color: white; }
         .st-Completed { background: var(--st-completed); }
 
-        /* Grinder Action Box */
         .grinder-action-box { display: flex; flex-direction: column; gap: 5px; width: 140px; }
         .btn-row { display: flex; gap: 5px; }
         .g-btn { border: none; padding: 6px 0; font-size: 0.75em; border-radius: 3px; cursor: pointer; font-weight: bold; text-transform: uppercase; color: white; }
@@ -199,7 +194,6 @@
 
         .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; justify-content: center; align-items: center; border: 1px solid #111; }
 
-        /* Chat */
         .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
         .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; }
         .chat-input-row { display: flex; gap: 5px; }
@@ -426,7 +420,6 @@
         
         document.body.classList.add('show-orders');
         
-        // Listen for OPEN message from Game
         window.addEventListener('message', function(event) {
             var item = event.data;
             if (item.type === 'open') {
@@ -491,11 +484,11 @@
     function getStepSize(limit) {
         if (limit >= 250000) return 5000;
         if (limit >= 50000) return 1000;
-        if (limit >= 15000) return 500; // Covers 15k and 20k
+        if (limit >= 15000) return 500;
         if (limit >= 2500) return 50;
         if (limit >= 1500) return 25;
         if (limit >= 1000) return 10;
-        if (limit >= 500) return 5; // Covers 500 and 800
+        if (limit >= 500) return 5;
         return 1;
     }
 
@@ -535,7 +528,6 @@
         var qInput = document.getElementById('input-qty');
         var rInput = document.getElementById('range-qty');
         
-        // APPLY DYNAMIC STEP
         var step = getStepSize(item.limit);
         rInput.step = step;
         
@@ -546,11 +538,16 @@
             qInput.max = item.limit;
             rInput.max = item.limit;
             rInput.disabled = false;
+            rInput.min = step; // Fix: Slider starts at Step
             qInput.readOnly = true;
+            
+            // Snap value to nearest step if needed, or default to step
+            if (currentVal < step) currentVal = step;
         } else {
             qInput.max = 1000000;
             rInput.disabled = true;
             qInput.readOnly = false;
+            rInput.min = 1;
         }
         
         qInput.value = currentVal;
