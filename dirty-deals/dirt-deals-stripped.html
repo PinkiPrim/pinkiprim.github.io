@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Ultimate</title>
+    <title>Dirty Deals - Production v2.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -22,7 +22,38 @@
             position: absolute; top: 50px; left: 50px; width: 900px; height: 650px; 
             background: var(--bg-glass); border: var(--border); border-radius: 8px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); display: flex; flex-direction: column; overflow: hidden; z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
+
+        /* --- MINI MODE STYLES (THE WIDGET) --- */
+        body.mini-mode #app-container {
+            width: 360px !important;
+            height: 300px !important;
+            background: rgba(18, 18, 18, 0.85); /* More transparent */
+            border: 1px solid rgba(94, 107, 246, 0.3);
+        }
+        /* Hide complex elements in mini mode */
+        body.mini-mode header .header-left, 
+        body.mini-mode #view-order,
+        body.mini-mode .selection-area,
+        body.mini-mode .details-area,
+        body.mini-mode .status-box {
+            display: none !important;
+        }
+        /* Show only specific elements in mini mode */
+        body.mini-mode header {
+            height: 40px; padding: 0 10px;
+            justify-content: center; background: rgba(0,0,0,0.5);
+        }
+        body.mini-mode #mini-header-title { display: block; }
+        body.mini-mode .history-list { background: transparent; border: none; }
+        body.mini-mode .history-item { 
+            padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1); 
+            font-size: 0.85em;
+        }
+        body.mini-mode .g-controls { margin-top: 2px; }
+        body.mini-mode .g-btn { padding: 2px 6px; font-size: 0.7em; }
+        body.mini-mode .prog-input { width: 40px; padding: 1px; font-size: 0.9em; }
 
         /* HEADER */
         header {
@@ -30,6 +61,9 @@
             align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
         }
+        #mini-header-title { display: none; color: var(--accent); font-size: 1.1em; }
+        #max-btn { display: none; background: #333; border: 1px solid #555; color: white; padding: 2px 8px; cursor: pointer; border-radius: 3px; font-size: 0.7em; position: absolute; right: 10px; top: 10px; }
+        body.mini-mode #max-btn { display: block; }
 
         .header-left { display: flex; align-items: center; gap: 10px; }
         .header-btn {
@@ -60,6 +94,8 @@
         #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
+        /* Remove padding in mini mode */
+        body.mini-mode #view-history, body.mini-mode #view-grinder { padding: 10px; background: transparent; }
 
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
@@ -67,6 +103,8 @@
         .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3); }
 
         .section-title { color: var(--text-main); font-size: 1.1em; margin-bottom: 10px; font-family: 'Rajdhani', sans-serif; }
+        body.mini-mode .section-title { display: none; } /* Hide title in mini */
+
         .grid-wrapper { overflow-y: auto; flex: 1; padding-right: 5px; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 20px; }
         .grid-item { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 10px 5px; text-align: center; cursor: pointer; height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -92,16 +130,11 @@
         .btn-order.active { opacity: 1; pointer-events: all; }
         .btn-order:disabled { background: #333; color: #555; cursor: not-allowed; }
 
-        /* LIST & COMPACT */
+        /* LIST & CONTROLS */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
         
-        .history-list.compact .history-item { padding: 5px 10px; flex-direction: row; align-items: center; justify-content: space-between; }
-        .history-list.compact .h-top { margin-bottom: 0; flex: 1; }
-        .history-list.compact .chat-area { display: none !important; }
-        .history-list.compact .g-controls { margin-top: 0; }
-
         .h-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .h-info { display: flex; flex-direction: column; }
         .h-item { font-weight: bold; color: white; font-size: 1.1em; }
@@ -135,6 +168,10 @@
         .prog-input { background: #000; border: 1px solid #333; color: #2ecc71; width: 60px; font-size: 0.8em; padding: 4px; text-align: center; border-radius: 3px; }
         .prog-label { color: #2ecc71; font-size: 0.8em; margin-right: 5px; }
 
+        /* View Control Bar */
+        .view-controls { display: flex; gap: 10px; }
+        body.mini-mode .view-controls { display: none; } /* Hide normal controls in mini */
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
@@ -144,6 +181,9 @@
 
 <div id="app-container">
     <header id="drag-handle">
+        <div id="mini-header-title">DIRTY DEALS</div>
+        <button id="max-btn" onclick="toggleMiniMode()">[ MAXIMIZE ]</button>
+
         <div class="header-left">
             <img src="https://files.catbox.moe/u9bulk.png" alt="Logo" style="height: 35px; width: auto;">
             <span>Dirty Deals</span>
@@ -210,8 +250,8 @@
         <div id="view-history">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0;">Recent Orders</span>
-                <div>
-                    <button class="header-btn" onclick="toggleCompactMode('history-container')">📑 Compact</button>
+                <div class="view-controls">
+                    <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchMyOrders()">↻ Refresh</button>
                 </div>
             </div>
@@ -223,8 +263,8 @@
         <div id="view-grinder">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span class="section-title" style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
-                <div>
-                    <button class="header-btn" onclick="toggleCompactMode('grinder-container')">📑 Compact</button>
+                <div class="view-controls">
+                    <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
                 </div>
             </div>
@@ -243,15 +283,11 @@
     var GRINDER_ROSTER = {
         "757858": "Top Grinder",
         "744622": "Top Grinder",
-        "637174": "Top Grinder"
-        // Add others: "123456": "Trainee Grinder"
+        "637174": "Top Grinder",
+        "123456": "Trainee Grinder"
     };
 
-    var GRINDER_LIMITS = {
-        "Top Grinder": 9999,
-        "Usual Grinder": 5,
-        "Trainee Grinder": 3
-    };
+    var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
 
     // --- DATA ---
     var CATEGORIES = {
@@ -327,13 +363,10 @@
         initDrag();
         renderGrid();
         
-        // Start "Nagging"
         requestData();
         setTimeout(requestData, 250);
         setTimeout(requestData, 500);
         pollingInterval = setInterval(requestData, 1000); 
-        
-        // Auto-fetch polling for Mail (5s)
         setInterval(checkForMail, 5000);
     };
 
@@ -368,15 +401,12 @@
 
         if(pollingInterval) clearInterval(pollingInterval);
 
-        // Check Grinder Roster
         if(GRINDER_ROSTER[state.userId]) {
             state.isGrinder = true;
             state.grinderRank = GRINDER_ROSTER[state.userId];
             document.getElementById('nav-grinder').style.display = 'inline-block';
             document.getElementById('rank-display').innerText = state.grinderRank;
         }
-
-        // Fetch History to Determine Tier
         fetchMyOrders();
     }
 
@@ -388,30 +418,7 @@
     }
 
     function requestData() {
-        if(window.parent) {
-            window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
-        }
-    }
-
-    // --- ORDER LIMIT LOGIC ---
-    function calculateOrderLimit() {
-        if(state.completedOrders >= 5) return 8;
-        if(state.completedOrders >= 1) return 3;
-        return 1; // Default
-    }
-
-    function checkOrderCapability() {
-        var limit = calculateOrderLimit();
-        var pending = state.activeOrders;
-        var warn = document.getElementById('limit-warning');
-        
-        if(pending >= limit) {
-            document.getElementById('btn-submit').disabled = true;
-            warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")";
-        } else {
-            document.getElementById('btn-submit').disabled = false;
-            warn.innerText = "Active Orders: " + pending + "/" + limit;
-        }
+        if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
     }
 
     // --- UI LOGIC ---
@@ -445,7 +452,7 @@
     function selectItem(item) {
         state.item = item;
         document.getElementById('disp-item-name').value = item.name;
-        document.getElementById('limit-display').innerText = "(Max: " + item.limit + ")";
+        document.getElementById('limit-display').innerText = "(Max: " + item.limit.toLocaleString() + ")";
         document.getElementById('input-qty').max = item.limit;
         document.getElementById('range-qty').max = item.limit;
         document.getElementById('btn-submit').classList.add('active');
@@ -467,9 +474,8 @@
         document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
     }
 
-    function toggleCompactMode(containerId) {
-        var el = document.getElementById(containerId);
-        el.classList.toggle('compact');
+    function toggleMiniMode() {
+        document.body.classList.toggle('mini-mode');
     }
 
     function switchView(view) {
@@ -486,10 +492,28 @@
         if(view === 'grinder') fetchGlobalOrders();
     }
 
-    // --- NETWORKING ---
+    // --- LOGIC ---
+    function calculateOrderLimit() {
+        if(state.completedOrders >= 5) return 8;
+        if(state.completedOrders >= 1) return 3;
+        return 1;
+    }
+
+    function checkOrderCapability() {
+        var limit = calculateOrderLimit();
+        var pending = state.activeOrders;
+        var warn = document.getElementById('limit-warning');
+        if(pending >= limit) {
+            document.getElementById('btn-submit').disabled = true;
+            warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")";
+        } else {
+            document.getElementById('btn-submit').disabled = false;
+            warn.innerText = "Active Orders: " + pending + "/" + limit;
+        }
+    }
+
     function submitRealOrder() {
         if(state.userId === "0") return;
-        
         var btn = document.getElementById('btn-submit');
         btn.disabled = true; btn.innerText = "SENDING...";
 
@@ -542,10 +566,9 @@
             c.innerHTML = '';
             state.activeOrders = 0;
             state.completedOrders = 0;
-
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
-            
             for(var i=0; i<data.length; i++) {
+                if(!data[i].item) continue; // FILTER GHOSTS
                 if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
                 if(data[i].status === 'Completed') state.completedOrders++;
                 c.appendChild(createOrderItem(data[i], false));
@@ -562,12 +585,12 @@
             c.innerHTML = '';
             var myActiveJobs = 0;
             for(var k=0; k<data.length; k++) {
+                if(!data[k].item) continue; // FILTER GHOSTS
                 if(data[k].status === 'Accepted' && data[k].grinder === state.username) myActiveJobs++;
             }
-
             if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No jobs.</div>'; return; }
-            
             for(var i=0; i<data.length; i++) {
+                if(!data[i].item) continue; // FILTER GHOSTS
                 c.appendChild(createOrderItem(data[i], true, myActiveJobs));
             }
         });
@@ -578,13 +601,11 @@
         var status = (o.status || 'Pending');
         var chatLog = o.chat ? o.chat.split(" | ").join("\n") : "";
         var progress = o.progress || "0";
-        
-        // CONTROLS
         var controls = '';
+
         if(isGrinderView) {
             var s = status.toLowerCase();
             var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3;
-            
             if(s === 'pending') {
                 if(myJobCount >= maxJobs) controls = '<span style="color:red; font-size:0.7em;">LIMIT REACHED</span>';
                 else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
@@ -623,7 +644,6 @@
                 '</div>' +
             '</div>';
 
-        // Event Listeners
         var chatBtn = div.querySelector('.gb-chat');
         if(chatBtn) chatBtn.onclick = function() { var a = div.querySelector('.chat-area'); a.style.display = (a.style.display==='block'?'none':'block'); };
 
@@ -638,41 +658,25 @@
     }
 
     function updateOrderStatus(ts, uid, status) {
-        var payload = {
-            action: "updateOrder", orderTimestamp: ts, orderUserId: uid,
-            newStatus: status, grinderName: state.username, grinderRank: state.grinderRank
-        };
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).then(function() { setTimeout(fetchGlobalOrders, 1000); });
+        var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank };
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+        .then(function() { setTimeout(fetchGlobalOrders, 1000); });
     }
 
     function updateProgress(ts, uid, amount) {
-        var payload = {
-            action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount
-        };
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
+        var payload = { action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount };
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     }
 
     function sendChatMessage(ts, uid, msg) {
-        var payload = {
-            action: "sendMessage", orderTimestamp: ts, orderUserId: uid,
-            sender: state.username, message: msg
-        };
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).then(function() { 
+        var payload = { action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg };
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+        .then(function() { 
             if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders();
             else fetchGlobalOrders();
         });
     }
 
-    // --- DRAG & ESC ---
     var elmnt = document.getElementById("app-container");
     var handle = document.getElementById("drag-handle");
     var pos1=0, pos2=0, pos3=0, pos4=0;
