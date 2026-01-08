@@ -296,6 +296,7 @@
         XP: "exp_trucking_mechanic",
         BXP: "exp_token_a|trucking|mechanic"
     };
+    const STORAGE_KEY_CALC = "target_xp_mechanic";
 
     const ITEMS = {
         wrench: { keywords: ["wrench"], stock: 0, session: 0 },
@@ -322,6 +323,12 @@
     }
     function formatNum(n) {
         return Math.floor(n).toLocaleString("en-US");
+    }
+
+    // --- INIT ---
+    const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+    if (savedTarget) {
+        document.getElementById('target-input').value = savedTarget;
     }
 
     // --- COMMS ---
@@ -462,7 +469,7 @@
         document.getElementById('level-bar').style.width = percent + "%";
         document.getElementById('level-text').innerText = percent.toFixed(1) + "%";
         document.getElementById('disp-callouts').innerText = STATE.callouts;
-        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP); // Update Avg XP UI
+        document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
 
         runCalculator();
     }
@@ -480,6 +487,8 @@
         const val = document.getElementById('target-input').value;
         const el = document.getElementById('calc-result');
         
+        localStorage.setItem(STORAGE_KEY_CALC, val);
+
         if (STATE.avgXP === 0) {
             el.innerHTML = "<i>Complete a job to enable calc...</i>";
             return;
