@@ -30,7 +30,6 @@
         .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top:5px; }
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
         
-        /* WARNING BOX */
         .warning-box { margin-top: 20px; padding: 10px; border: 1px solid var(--warning-red); background: rgba(255, 68, 68, 0.1); color: var(--warning-red); font-size: 0.75em; text-align: center; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); text-transform: uppercase; letter-spacing: 1px; width: 100%; }
 
         /* 3D WRAPPER */
@@ -38,21 +37,55 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE */
+        /* --- MINI MODE WIDGET (Fixed Sizing) --- */
         body.mini-mode .pivot-wrapper { 
-            width: 300px !important; height: auto !important; min-height: 150px;
-            transform: none !important; margin: 0; position: absolute;
-            top: 25%; right: 50px; left: auto; cursor: move;
+            width: 250px !important;  /* SMALL WIDTH */
+            height: auto !important; 
+            min-height: 120px;
+            transform: none !important; 
+            margin: 0; 
+            position: absolute;
+            top: 50px !important; /* TOP RIGHT */
+            right: 50px !important; 
+            left: auto !important;
+            bottom: auto !important;
+            cursor: move;
         }
+        
+        /* Force Layout Reset in Mini Mode */
         body.mini-mode .menu-container { display: none; }
         body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
         body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        body.mini-mode .detail-right { background: transparent; border: none; padding: 0; }
-        body.mini-mode #detail-title { font-size: 1.2em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; }
-        body.mini-mode #detail-price { font-size: 1.8em; margin: 10px 0; text-align: center; pointer-events: none; }
-        body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; cursor: pointer; }
-        body.mini-mode #min-btn:hover { color: white; }
-        body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; pointer-events: none; }
+        
+        body.mini-mode #view-detail { height: auto !important; display: block !important; }
+        body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
+        body.mini-mode .detail-right { overflow: visible !important; padding: 5px !important; border: none !important; background: transparent !important; }
+
+        body.mini-mode #detail-title { font-size: 1em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        body.mini-mode #detail-price { font-size: 1.6em; margin: 5px 0; text-align: center; pointer-events: none; }
+        body.mini-mode #detail-live-timer { font-size: 1em; text-align: center; display: block; margin-bottom: 0; pointer-events: none; }
+        
+        /* Hide Controls in Mini Mode */
+        body.mini-mode #controls-bid, body.mini-mode #controls-actions, body.mini-mode #controls-admin { display: none !important; }
+
+        /* MINIMIZE BUTTON (Small Square in Top Right) */
+        #min-btn { 
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
+            width: 30px; 
+            height: 30px; 
+            background: rgba(0,0,0,0.5); 
+            border: 1px solid #444; 
+            color: #ccc; 
+            font-size: 1em; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            z-index: 100;
+        }
+        #min-btn:hover { border-color: var(--primary); color: var(--primary); }
 
         /* MENUS */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
@@ -66,6 +99,7 @@
         .submenu-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0, 10, 20, 0.95), rgba(0, 5, 10, 0.9)); border: 1px solid var(--primary); opacity: 0; pointer-events: none; transform: translateY(20px) translateZ(-50px); transition: 0.5s; display: flex; flex-direction: column; padding: 20px; }
         .submenu-container.active { opacity: 1; pointer-events: all; transform: translateY(0) translateZ(0); }
         
+        /* Flexbox for Back Button */
         .content-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0; }
         .grid-scroll { flex: 1; overflow-y: auto; padding-right: 10px; }
         .auction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
@@ -212,7 +246,8 @@
                             <div id="debug-id-match"></div>
                         </div>
                         <div class="detail-right">
-                            <button id="min-btn" class="action-btn" onclick="toggleMiniMode()">[-]</button>
+                            <button id="min-btn" onclick="toggleMiniMode()">[-]</button>
+                            
                             <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
                             <div id="detail-price" style="font-size:2em; color:var(--primary); font-weight:bold; margin-bottom:5px;">$0</div>
                             <div style="color:#ff4444; font-weight:bold; margin-bottom:15px;"><i class="far fa-clock"></i> <span id="detail-live-timer">00:00</span></div>
@@ -356,6 +391,8 @@
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "login", userId: userData.id, name: userData.name, pin: userData.pin })
         }).then(() => {
+            // Note: In no-cors mode we cannot read response so we assume success for UI flow
+            // If failed, next actions will fail silently or user will notice nothing loads
             document.getElementById('login-screen').style.display = 'none';
             enterMarket();
         });
@@ -722,18 +759,29 @@
         });
     }
 
-    // UPDATED returnToLastView
+    // UPDATED returnToLastView (Safety check for default view)
     function returnToLastView() {
         if(pollingInterval) clearInterval(pollingInterval);
-        document.body.classList.remove('mini-mode');
-        // Reset mini-mode visual overrides if needed (via toggle function or just removing class)
         const wrapper = document.getElementById('pivot-wrapper');
-        wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = '';
+        document.body.classList.remove('mini-mode');
+        
+        // Reset positioning
+        wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = ''; wrapper.style.width = ''; wrapper.style.height = '';
 
         document.getElementById('view-detail').style.display = 'none';
         if (!lastView || !document.getElementById('view-' + lastView)) lastView = 'browse';
         document.getElementById('view-' + lastView).style.display = 'flex';
         fetchData(lastView);
+    }
+
+    function toggleMiniMode() {
+        const wrapper = document.getElementById('pivot-wrapper');
+        document.body.classList.toggle('mini-mode');
+        
+        // If un-minimizing, reset styles to center
+        if(!document.body.classList.contains('mini-mode')) {
+            wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = '';
+        }
     }
 
     document.onkeydown = function(e) { if(e.keyCode == 27) closeApp(); };
