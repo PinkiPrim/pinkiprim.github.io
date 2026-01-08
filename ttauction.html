@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SAO Auction House</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
+
+        :root {
+            --primary: #00ffff;
+            --primary-dim: rgba(0, 255, 255, 0.1);
+            --bg-dark: rgba(0, 15, 30, 0.85);
+            --border: 1px solid rgba(0, 255, 255, 0.3);
+            --glass: blur(5px);
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+        
+        body {
+            margin: 0; overflow: hidden; background: transparent;
+            font-family: 'Rajdhani', sans-serif; color: white;
+            height: 100vh; width: 100vw;
+        }
+
+        /* --- 3D PERSPECTIVE WRAPPERS --- */
+        .perspective-container {
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            perspective: 1500px; /* Depth of field */
+        }
+
+        .pivot-wrapper {
+            position: relative; width: 450px; height: 600px;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out, width 0.5s ease;
+            display: none; /* Hidden by default */
+        }
+
+        /* --- MAIN MENU (VERTICAL LIST) --- */
+        .menu-container {
+            position: absolute; width: 100%; top: 0; left: 0;
+            display: flex; flex-direction: column; gap: 15px;
+            z-index: 20; transition: opacity 0.5s;
+        }
+
+        .header-text {
+            font-size: 2.5rem; font-weight: 700; letter-spacing: 4px;
+            text-align: center; color: white;
+            text-shadow: 0 0 15px var(--primary);
+            border-bottom: 1px solid var(--primary);
+            margin-bottom: 20px; padding-bottom: 10px;
+        }
+
+        .holo-btn {
+            background: var(--bg-dark); border: var(--border);
+            padding: 15px 20px; display: flex; align-items: center; gap: 20px;
+            cursor: pointer; transition: 0.3s; transform: translateX(50px); opacity: 0;
+            backdrop-filter: var(--glass);
+        }
+
+        .holo-btn.show { opacity: 1; transform: translateX(0); }
+        .holo-btn:hover {
+            background: var(--primary-dim); border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-dim); transform: translateX(10px);
+        }
+
+        .icon-box { color: var(--primary); font-size: 1.4rem; width: 30px; text-align: center; }
+        .btn-text { font-size: 1.4rem; font-weight: 700; letter-spacing: 2px; }
+
+        /* --- SUBMENU (CONTENT LAYER) --- */
+        .submenu-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(0, 10, 20, 0.95), rgba(0, 5, 10, 0.9));
+            border: 1px solid var(--primary);
+            opacity: 0; pointer-events: none; transform: translateY(20px) translateZ(-50px);
+            transition: 0.5s; display: flex; flex-direction: column;
+            padding: 20px;
+        }
+
+        .submenu-container.active {
+            opacity: 1; pointer-events: all;
+            transform: translateY(0) translateZ(0);
+        }
+
+        /* Widen the interface when inside a submenu */
+        .pivot-wrapper.expanded { width: 900px; height: 650px; }
+
+        .content-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;
+        }
+        
+        .grid-scroll { flex: 1; overflow-y: auto; padding-right: 10px; }
+        
+        /* --- AUCTION CARDS --- */
+        .auction-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;
+        }
+
+        .auction-card {
+            background: rgba(0,0,0,0.6); border: 1px solid #333;
+            display: flex; flex-direction: column; transition: 0.2s;
+            position: relative; overflow: hidden;
+        }
+        .auction-card:hover { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-dim); }
+
+        .card-img { width: 100%; height: 120px; object-fit: cover; background: #000; }
+        .card-body { padding: 10px; }
+        .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-price { color: var(--primary); font-size: 1.2em; font-weight: bold; margin: 5px 0; }
+        .card-timer { font-size: 0.8em; color: #ff4444; text-align: right; }
+        .card-bidder { font-size: 0.7em; color: #888; }
+
+        /* --- FORMS --- */
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 5px; }
+        input, select {
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444;
+            color: white; padding: 10px; font-family: inherit; font-size: 1em;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .action-btn {
+            background: var(--primary-dim); border: 1px solid var(--primary);
+            color: white; padding: 10px 20px; cursor: pointer; font-family: inherit;
+            font-weight: bold; text-transform: uppercase; width: 100%; transition: 0.2s;
+        }
+        .action-btn:hover { background: var(--primary); color: black; }
+
+        .back-btn {
+            margin-top: auto; padding: 15px; text-align: center;
+            border-top: 1px solid #333; cursor: pointer; color: #ff4444;
+            transition: 0.2s; background: rgba(0,0,0,0.4);
+        }
+        .back-btn:hover { background: rgba(255, 68, 68, 0.2); }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div class="perspective-container">
+        <div class="pivot-wrapper" id="pivot-wrapper">
+            
+            <div class="menu-container" id="main-menu">
+                <div class="header-text">MARKET LINK</div>
+                
+                <div class="holo-btn" onclick="openSubmenu('browse')">
+                    <div class="icon-box"><i class="fas fa-search"></i></div>
+                    <span class="btn-text">BROWSE LISTINGS</span>
+                </div>
+
+                <div class="holo-btn" onclick="openSubmenu('sell')">
+                    <div class="icon-box"><i class="fas fa-upload"></i></div>
+                    <span class="btn-text">CREATE LISTING</span>
+                </div>
+
+                <div class="holo-btn" onclick="refreshIdentity()">
+                    <div class="icon-box"><i class="fas fa-id-card"></i></div>
+                    <span class="btn-text" id="id-display">ID: LINKING...</span>
+                </div>
+
+                <div class="holo-btn" onclick="closeApp()">
+                    <div class="icon-box"><i class="fas fa-power-off"></i></div>
+                    <span class="btn-text">DISCONNECT</span>
+                </div>
+            </div>
+
+            <div class="submenu-container" id="submenu-layer">
+                
+                <div id="view-browse" class="view-content" style="display:none; height:100%; display:flex; flex-direction:column;">
+                    <div class="content-header">
+                        <h3>ACTIVE AUCTIONS</h3>
+                        <button class="action-btn" style="width:auto;" onclick="fetchAuctions()">REFRESH</button>
+                    </div>
+                    <div class="grid-scroll">
+                        <div class="auction-grid" id="auction-grid">
+                            </div>
+                    </div>
+                </div>
+
+                <div id="view-sell" class="view-content" style="display:none;">
+                    <div class="content-header"><h3>UPLOAD TO MARKET</h3></div>
+                    <div class="input-group">
+                        <label>ITEM NAME</label>
+                        <input type="text" id="sell-name" placeholder="e.g. Rare Import">
+                    </div>
+                    <div class="input-group">
+                        <label>IMAGE URL (Catbox.moe)</label>
+                        <input type="text" id="sell-img" placeholder="https://files.catbox.moe/..." oninput="previewImg(this.value)">
+                    </div>
+                    <div class="input-group">
+                        <label>STARTING BID</label>
+                        <input type="number" id="sell-price" placeholder="5000">
+                    </div>
+                    <div class="input-group">
+                        <label>DURATION</label>
+                        <select id="sell-duration">
+                            <option value="15">15 Minutes</option>
+                            <option value="60">1 Hour</option>
+                            <option value="360">6 Hours</option>
+                            <option value="1440">24 Hours</option>
+                        </select>
+                    </div>
+                    <div id="img-preview" style="height:100px; background:#111; margin-bottom:15px; display:flex; align-items:center; justify-content:center; color:#555;">PREVIEW</div>
+                    <button class="action-btn" onclick="postAuction()">INITIATE UPLOAD</button>
+                    <div id="sell-status" style="text-align:center; margin-top:10px; font-size:0.8em;"></div>
+                </div>
+
+                <div class="back-btn" onclick="closeSubmenu()">
+                    <i class="fas fa-chevron-left"></i> RETURN TO ROOT
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // ==========================================
+    // CONFIGURATION - PASTE YOUR GOOGLE URL HERE
+    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwNfqTNIxvqNpae4DSl45adFXTKrhqh1E3Y9oW8U2P25zzE5BVT9E-k9EMpQiQ597ht/exec";
+    // ==========================================
+
+    let userData = { name: "Guest", id: "0" };
+    let auctions = [];
+    let isMenuOpen = false;
+
+    // --- MOUSE MOVEMENT FOR 3D PARALLAX ---
+    document.addEventListener('mousemove', (e) => {
+        if (!isMenuOpen) return;
+        const wrapper = document.getElementById('pivot-wrapper');
+        const x = e.clientX; const y = e.clientY;
+        const midX = window.innerWidth / 2; const midY = window.innerHeight / 2;
+        // Calculate rotation based on mouse position relative to center
+        const rotX = ((y - midY) / midY) * -5; // Tilt up/down
+        const rotY = ((x - midX) / midX) * 5;  // Tilt left/right
+        wrapper.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    });
+
+    // --- FIVEM MESSAGING ---
+    window.addEventListener('message', (event) => {
+        if (event.data.action === "open" || event.data.type === "open") {
+            openApp();
+        }
+        // Handle incoming identity data
+        if (event.data.type === "data" || event.data.user_id) {
+            let d = event.data.data || event.data;
+            if(d.user_id || d.player_id) {
+                userData.id = d.user_id || d.player_id || d.id;
+                userData.name = d.name || d.player || "Unknown";
+                document.getElementById('id-display').innerText = `ID: ${userData.id} [LINKED]`;
+            }
+        }
+    });
+
+    function openApp() {
+        isMenuOpen = true;
+        document.getElementById('pivot-wrapper').style.display = "block";
+        document.getElementById('app-container')?.remove(); // Remove old code if exists
+        
+        // Animate buttons in
+        const btns = document.querySelectorAll('.holo-btn');
+        btns.forEach((btn, index) => {
+            btn.classList.remove('show');
+            setTimeout(() => btn.classList.add('show'), index * 100);
+        });
+        
+        // Request ID from Parent Resource
+        refreshIdentity();
+    }
+
+    function refreshIdentity() {
+        if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
+    }
+
+    function closeApp() {
+        isMenuOpen = false;
+        document.getElementById('pivot-wrapper').style.display = "none";
+        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
+    }
+
+    // --- NAVIGATION ---
+    function openSubmenu(view) {
+        // Expand the wrapper for grid view
+        document.getElementById('pivot-wrapper').classList.add('expanded');
+        document.getElementById('main-menu').style.opacity = '0';
+        document.getElementById('main-menu').style.pointerEvents = 'none';
+        
+        // Switch content
+        document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
+        document.getElementById('view-' + view).style.display = 'block';
+        if(view === 'browse') {
+             document.getElementById('view-browse').style.display = 'flex'; // Fix flex for layout
+             fetchAuctions();
+        }
+
+        setTimeout(() => {
+            document.getElementById('submenu-layer').classList.add('active');
+        }, 300);
+    }
+
+    function closeSubmenu() {
+        document.getElementById('submenu-layer').classList.remove('active');
+        
+        setTimeout(() => {
+            document.getElementById('pivot-wrapper').classList.remove('expanded');
+            document.getElementById('main-menu').style.opacity = '1';
+            document.getElementById('main-menu').style.pointerEvents = 'all';
+        }, 300);
+    }
+
+    // --- API LOGIC ---
+
+    function fetchAuctions() {
+        const grid = document.getElementById('auction-grid');
+        grid.innerHTML = '<div style="color:cyan; grid-column:span 3; text-align:center;">ACCESSING NEURAL NETWORK...</div>';
+
+        fetch(GOOGLE_URL + "?action=get")
+        .then(res => res.json())
+        .then(data => {
+            auctions = data;
+            renderGrid();
+        })
+        .catch(err => {
+            grid.innerHTML = '<div style="color:red; grid-column:span 3; text-align:center;">CONNECTION FAILED</div>';
+        });
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('auction-grid');
+        grid.innerHTML = '';
+        const now = new Date().getTime();
+
+        auctions.forEach(item => {
+            // Calculate time left
+            const timeLeft = item.endTime - now;
+            if(timeLeft < 0) return; // Don't show expired
+
+            let hours = Math.floor(timeLeft / (1000 * 60 * 60));
+            let mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            
+            // Safe Image
+            let img = item.img.startsWith('http') ? item.img : 'https://placehold.co/200x120?text=No+Image';
+
+            let card = document.createElement('div');
+            card.className = 'auction-card';
+            card.innerHTML = `
+                <img src="${img}" class="card-img" onerror="this.src='https://placehold.co/200x120?text=Error'">
+                <div class="card-body">
+                    <div class="card-title">${item.item}</div>
+                    <div class="card-bidder">Seller: ${item.seller}</div>
+                    <div class="card-price">$${parseInt(item.price).toLocaleString()}</div>
+                    <div class="card-timer"><i class="far fa-clock"></i> ${hours}h ${mins}m</div>
+                    <div class="card-bidder" style="margin-top:5px; color:${item.bidderId == userData.id ? 'cyan' : '#888'}">
+                        High Bid: ${item.highBidder}
+                    </div>
+                    <div style="display:flex; gap:5px; margin-top:5px;">
+                        <input type="number" class="bid-input" placeholder="Min ${parseInt(item.price)+1}">
+                        <button class="action-btn" style="width:auto; padding:5px 10px;" onclick="placeBid('${item.id}', this)">BID</button>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function placeBid(id, btnElement) {
+        if(userData.id === "0") { alert("Identity not linked!"); return; }
+        
+        const input = btnElement.previousElementSibling;
+        const amount = parseInt(input.value);
+        if(!amount) return;
+
+        btnElement.innerText = "...";
+        btnElement.disabled = true;
+
+        fetch(GOOGLE_URL, {
+            method: "POST", mode: "no-cors",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                action: "bid",
+                id: id,
+                amount: amount,
+                bidderName: userData.name,
+                bidderId: userData.id
+            })
+        }).then(() => {
+            // Because of no-cors, we assume success or handle visually
+            // Google Script will enforce logic (time/price) silently if we can't read response
+            setTimeout(() => {
+                fetchAuctions();
+                btnElement.innerText = "BID";
+                btnElement.disabled = false;
+            }, 1000);
+        });
+    }
+
+    function previewImg(url) {
+        const div = document.getElementById('img-preview');
+        if(url.startsWith('http')) {
+            div.innerHTML = `<img src="${url}" style="height:100%; max-width:100%; object-fit:contain;">`;
+        } else {
+            div.innerHTML = 'INVALID URL';
+        }
+    }
+
+    function postAuction() {
+        if(userData.id === "0") return;
+
+        const name = document.getElementById('sell-name').value;
+        const img = document.getElementById('sell-img').value;
+        const price = document.getElementById('sell-price').value;
+        const duration = document.getElementById('sell-duration').value;
+        const status = document.getElementById('sell-status');
+
+        if(!name || !price) { status.innerText = "MISSING DATA"; return; }
+
+        status.innerText = "UPLOADING DATA PACKET...";
+        status.style.color = "cyan";
+
+        fetch(GOOGLE_URL, {
+            method: "POST", mode: "no-cors",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                action: "create",
+                seller: userData.name,
+                sellerId: userData.id,
+                item: name, img: img, price: price, duration: duration
+            })
+        }).then(() => {
+            status.innerText = "UPLOAD COMPLETE";
+            setTimeout(() => {
+                closeSubmenu();
+                document.getElementById('sell-name').value = '';
+                status.innerText = '';
+            }, 1000);
+        });
+    }
+
+    // Close on Escape Key
+    document.onkeydown = function(e) { if(e.keyCode == 27) closeApp(); };
+</script>
+</body>
+</html>
