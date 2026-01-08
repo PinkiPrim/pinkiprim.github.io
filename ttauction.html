@@ -38,19 +38,26 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE */
+        /* --- MINI MODE & DRAG FIXES --- */
         body.mini-mode .pivot-wrapper { 
             width: 300px !important; height: auto !important; min-height: 150px;
             transform: none !important; margin: 0; position: absolute;
             top: 25%; right: 50px; left: auto; cursor: move;
         }
+        /* Override Flexbox layout in mini mode */
+        body.mini-mode #view-detail { height: auto !important; display: block !important; }
+        body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
+        body.mini-mode .detail-right { overflow: visible !important; padding: 5px !important; border: none !important; background: transparent !important; }
+        
+        /* Hide elements in mini mode */
         body.mini-mode .menu-container { display: none; }
         body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
         body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        body.mini-mode .detail-right { background: transparent; border: none; padding: 0; }
+        
+        /* Mini Elements */
         body.mini-mode #detail-title { font-size: 1.2em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; }
         body.mini-mode #detail-price { font-size: 1.8em; margin: 10px 0; text-align: center; pointer-events: none; }
-        body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; cursor: pointer; }
+        body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; cursor: pointer; z-index: 9999; }
         body.mini-mode #min-btn:hover { color: white; }
         body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; pointer-events: none; }
 
@@ -88,9 +95,8 @@
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
         .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
         
-        /* DETAIL VIEW */
+        /* DETAIL VIEW - FLEXBOX FIX FOR BACK BUTTON */
         #view-detail { display: none; height: 100%; flex-direction: column; }
-        /* CSS FIX FOR BACK BUTTON: Use flex: 1 and min-height: 0 to allow proper scrolling/sizing */
         .detail-layout { display: flex; gap: 20px; flex: 1; min-height: 0; margin-bottom: 10px; }
         .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
         .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; position: relative; overflow-y: auto; }
@@ -109,7 +115,7 @@
 
         .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
         .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
-        /* BACK BTN FIX: Ensure it doesn't shrink */
+        .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
         .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; flex-shrink: 0; }
 
         /* PIN MODAL */
@@ -213,7 +219,7 @@
                             <div id="debug-id-match"></div>
                         </div>
                         <div class="detail-right">
-                            <button id="min-btn" class="action-btn" style="position:absolute; top:0; right:0; width:auto; margin:0; padding:5px 10px; font-size:0.8em;" onclick="toggleMiniMode()">[-]</button>
+                            <button id="min-btn" class="action-btn" onclick="toggleMiniMode()">[-]</button>
                             <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
                             <div id="detail-price" style="font-size:2em; color:var(--primary); font-weight:bold; margin-bottom:5px;">$0</div>
                             <div style="color:#ff4444; font-weight:bold; margin-bottom:15px;"><i class="far fa-clock"></i> <span id="detail-live-timer">00:00</span></div>
@@ -651,24 +657,26 @@
 
     // --- STANDARD ACTIONS ---
     function removeListing() {
-        // Pass session PIN automatically
-        const payload = { action: "delete", id: currentDetailId, requesterId: userData.id, pin: userData.pin };
-        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
-        .then(() => { returnToLastView(); });
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "delete", id: currentDetailId, requesterId: userData.id, pin: userData.pin })
+        }).then(() => { returnToLastView(); });
     }
 
     function updateStatus(newStatus) {
-        const payload = { action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id, pin: userData.pin };
-        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
-        .then(() => { returnToLastView(); });
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id, pin: userData.pin })
+        }).then(() => { returnToLastView(); });
     }
 
     function placeBid() {
         let amt = document.getElementById('detail-bid-input').value;
         if(!amt) return;
-        const payload = { action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin };
-        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
-        .then(() => { document.getElementById('detail-bid-input').value = ""; });
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin })
+        }).then(() => { document.getElementById('detail-bid-input').value = ""; });
     }
 
     function toggleImgInput() {
@@ -711,17 +719,16 @@
         });
     }
 
-    // UPDATED returnToLastView (Safety check for default view)
+    // UPDATED returnToLastView
     function returnToLastView() {
         if(pollingInterval) clearInterval(pollingInterval);
         document.body.classList.remove('mini-mode');
+        // Reset mini-mode visual overrides if needed (via toggle function or just removing class)
+        const wrapper = document.getElementById('pivot-wrapper');
+        wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = '';
+
         document.getElementById('view-detail').style.display = 'none';
-
-        // Fallback to browse if lastView is somehow invalid or null
-        if (!lastView || !document.getElementById('view-' + lastView)) {
-            lastView = 'browse';
-        }
-
+        if (!lastView || !document.getElementById('view-' + lastView)) lastView = 'browse';
         document.getElementById('view-' + lastView).style.display = 'flex';
         fetchData(lastView);
     }
