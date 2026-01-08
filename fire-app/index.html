@@ -256,6 +256,7 @@
         XP: "exp_ems_fire",
         BXP: "exp_token_a|ems|fire"
     };
+    const STORAGE_KEY_CALC = "target_xp_fire";
 
     const STATE = {
         currentXP: 0,
@@ -274,6 +275,12 @@
     }
     function formatNum(num) {
         return Math.floor(num).toLocaleString("en-US");
+    }
+
+    // --- INIT ---
+    const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+    if (savedTarget) {
+        document.getElementById('target-input').value = savedTarget;
     }
 
     // --- COMMS ---
@@ -407,6 +414,8 @@
         const val = document.getElementById('target-input').value;
         const el = document.getElementById('calc-result');
         
+        localStorage.setItem(STORAGE_KEY_CALC, val);
+
         if (STATE.avgXP === 0) {
             el.innerHTML = "<i>Complete at least one fire to enable calculator.</i>";
             return;
