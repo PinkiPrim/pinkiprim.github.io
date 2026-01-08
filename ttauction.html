@@ -34,18 +34,22 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE - TOP RIGHT */
+        /* MINI MODE */
         body.mini-mode .pivot-wrapper { 
             width: 300px !important; height: auto !important; min-height: 150px;
             transform: none !important; margin: 0; position: absolute;
-            top: 15%; right: 50px; left: auto; /* 3/4 way up is approx 25% from top */
+            top: 25%; right: 50px; left: auto;
         }
-        body.mini-mode .menu-container, body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
-        body.mini-mode .submenu-container { background: rgba(0,0,0,0.9); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; }
+        body.mini-mode .menu-container { display: none; }
+        body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
+        body.mini-mode .submenu-container { background: rgba(0,0,0,0.9); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
         body.mini-mode .detail-right { background: transparent; border: none; padding: 0; }
         body.mini-mode #detail-title { font-size: 1.2em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        body.mini-mode #detail-price { font-size: 1.8em; margin: 10px 0; text-align: center; }
         body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; }
-        
+        body.mini-mode #min-btn:hover { color: white; }
+        body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; }
+
         /* MENUS */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
         .header-text { font-size: 2.5rem; font-weight: 700; letter-spacing: 4px; text-align: center; color: white; text-shadow: 0 0 15px var(--primary); border-bottom: 1px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; }
@@ -68,7 +72,7 @@
         .card-body { padding: 15px; display: flex; flex-direction: column; justify-content: center; height: 100%; }
         .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
         .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
-        .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; }
+        .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
         
         .st-Active { color: #00ff00; }
         .st-Ended { color: #ffaa00; }
@@ -89,7 +93,8 @@
         #view-sell { display: none; height: 100%; flex-direction: column; }
         .sell-layout { display: flex; gap: 20px; height: 100%; }
         .sell-form { flex: 1; display: flex; flex-direction: column; gap: 15px; }
-        .sell-preview-box { flex: 1; background: rgba(0,0,0,0.5); border: 1px dashed var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .sell-preview-box { flex: 1; background: rgba(0,0,0,0.5); border: 1px dashed var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        .preview-image-actual { max-width: 100%; max-height: 300px; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         
         .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 3px; }
         input[type="text"], input[type="number"], select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
@@ -98,13 +103,12 @@
 
         .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
         .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
+        .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
         .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; }
 
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); }
-        
-        /* DEBUG INFO */
-        #debug-id-match { font-size:0.7em; color:#666; position:absolute; bottom:5px; left:5px; font-family:monospace; }
+        #debug-id-match { font-size:0.7em; color:#444; position:absolute; bottom:5px; left:5px; }
     </style>
 </head>
 <body>
@@ -141,10 +145,7 @@
                 </div>
 
                 <div id="view-mydata" class="view-content" style="display:none; height:100%; flex-direction:column;">
-                    <div class="content-header">
-                        <h3>MY HISTORY</h3>
-                        <button class="action-btn" id="btn-arch" style="width:auto; margin:0; font-size:0.8em;" onclick="toggleArchive()">SHOW PREVIOUS</button>
-                    </div>
+                    <div class="content-header"><h3>MY HISTORY</h3><button class="action-btn" id="btn-arch" style="width:auto; margin:0; font-size:0.8em;" onclick="toggleArchive()">SHOW PREVIOUS</button></div>
                     <div class="grid-scroll"><div class="auction-grid" id="my-grid"></div></div>
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
@@ -168,7 +169,8 @@
                             <div id="detail-img-container" style="width:100%; height:250px; background:#000; border:1px solid #444; display:flex; align-items:center; justify-content:center;"></div>
                             <div style="font-size:0.9em; color:#888; margin-top:10px;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
                             <div style="font-size:0.9em; color:#888;">STATUS: <span id="detail-status" style="font-weight:bold;"></span></div>
-                            <div id="debug-id-match"></div> </div>
+                            <div id="debug-id-match"></div>
+                        </div>
                         <div class="detail-right">
                             <button id="min-btn" class="action-btn" style="position:absolute; top:0; right:0; width:auto; margin:0; padding:5px 10px; font-size:0.8em;" onclick="toggleMiniMode()">[-]</button>
                             <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
@@ -244,8 +246,7 @@
             let d = event.data.data || event.data;
             if(d.user_id || d.player_id || d.id) {
                 userData.name = d.name || d.player || "Unknown";
-                userData.id = cleanID(d.user_id || d.player_id || d.id); // CLEAN ID
-                
+                userData.id = cleanID(d.user_id || d.player_id || d.id);
                 document.getElementById('login-name').value = userData.name;
                 document.getElementById('login-name').classList.add('verified');
                 document.getElementById('login-id').value = userData.id;
@@ -257,7 +258,7 @@
     });
 
     function cleanID(id) {
-        return String(id).replace(/[^0-9]/g, ''); // Removes spaces and weird chars
+        return String(id).replace(/[^0-9]/g, '');
     }
 
     function resetLogin() {
@@ -349,7 +350,6 @@
             if(isHistory && !showArchive && item.status !== "Active") return;
             count++;
             
-            // Client-side expiry check
             let status = item.status;
             if (status === "Active" && now > item.endTime) status = "Ended";
 
@@ -403,8 +403,10 @@
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
+        
         if(pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(refreshDetail, 1000);
+
         renderDetail(item);
     }
 
@@ -434,13 +436,13 @@
         if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
         else imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
 
-        // RESET UI SECTIONS
+        // RESET UI
         document.getElementById('controls-bid').style.display = 'none';
         document.getElementById('controls-actions').style.display = 'none';
         document.getElementById('controls-admin').style.display = 'none';
-        document.getElementById('action-buttons').innerHTML = ''; // Clear buttons
+        document.getElementById('action-buttons').innerHTML = '';
 
-        // --- ID MATCHING LOGIC (AGGRESSIVE CLEANING) ---
+        // ID MATCHING
         const sellerID = cleanID(item.sellerId);
         const buyerID = cleanID(item.bidderId);
         const myID = cleanID(userData.id);
@@ -451,13 +453,9 @@
         const isAdmin = (myID === adminID);
         const noBids = (buyerID == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
 
-        // DEBUGGER
-        document.getElementById('debug-id-match').innerText = `Me:${myID} | Seller:${sellerID} | Buyer:${buyerID} | Admin:${isAdmin}`;
+        document.getElementById('debug-id-match').innerText = `Me:${myID} | Seller:${sellerID}`;
 
-        // --- LOGIC TREE ---
-        if(isAdmin) {
-            document.getElementById('controls-admin').style.display = 'block';
-        }
+        if(isAdmin) document.getElementById('controls-admin').style.display = 'block';
 
         if (displayStatus === 'Active') {
             if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
@@ -555,10 +553,8 @@
         const checkbox = document.getElementById('no-img-check');
         const input = document.getElementById('sell-img');
         const preview = document.getElementById('img-preview');
-        
         if(checkbox.checked) {
-            input.disabled = true;
-            input.value = "";
+            input.disabled = true; input.value = "";
             preview.innerHTML = `<span style="color:#555;">IMAGE DISABLED</span>`;
         } else {
             input.disabled = false;
