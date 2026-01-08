@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Admin Fix v8.2</title>
+    <title>Dirty Deals - Final v8.4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,18 +16,11 @@
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-        /* --- RIGHT SIDE DOCK TAB --- */
-        #side-dock {
-            position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-            width: 40px; height: 220px; background: rgba(18, 18, 18, 0.95);
-            border: 2px solid var(--accent); border-right: none; border-radius: 12px 0 0 12px;
-            cursor: pointer; z-index: 20000; display: flex; align-items: center; justify-content: center;
-            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.8); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
+        /* DOCK & LOGIN */
+        #side-dock { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 40px; height: 220px; background: rgba(18, 18, 18, 0.95); border: 2px solid var(--accent); border-right: none; border-radius: 12px 0 0 12px; cursor: pointer; z-index: 20000; display: flex; align-items: center; justify-content: center; box-shadow: -5px 0 25px rgba(0, 0, 0, 0.8); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
         #side-dock:hover { width: 55px; background: var(--accent); box-shadow: -5px 0 35px rgba(94, 107, 246, 0.6); }
         #side-dock span { writing-mode: vertical-rl; text-orientation: mixed; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 4px; font-size: 1.2em; color: white; text-transform: uppercase; }
 
-        /* --- LOGIN SCREEN --- */
         #login-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 10000; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { width: 350px; padding: 30px; background: #1a1a1a; border: 2px solid var(--accent); border-radius: 8px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
         .login-title { font-family: 'Rajdhani', sans-serif; font-size: 2em; margin-bottom: 20px; color: white; letter-spacing: 2px; }
@@ -36,13 +29,12 @@
         .login-btn:hover { background: var(--accent-hover); }
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
 
-        /* --- MAIN APP CONTAINER --- */
+        /* MAIN APP */
         #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; height: 650px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
         
         body.mini-mode #app-container { width: 350px !important; height: 500px !important; background: rgba(18, 18, 18, 0.98); border: 1px solid var(--accent); }
         body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping { display: none !important; }
 
-        /* MINI HEADER */
         #mini-header { display: none; flex-direction: column; }
         body.mini-mode #mini-header { display: flex; }
         #mini-drag-strip { height: 28px; background: #000; cursor: move; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #333; flex-shrink: 0; }
@@ -59,7 +51,6 @@
         body.mini-mode.role-grinder.show-jobs #view-grinder { display: flex !important; height: calc(100% - 60px); }
         body.mini-mode.role-grinder.show-orders #view-history { display: flex !important; height: calc(100% - 60px); }
 
-        /* REGULAR HEADER */
         #main-header { background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 10px; }
         .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
@@ -78,7 +69,6 @@
         .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
         .rank-tag { font-size: 0.65em; color: var(--accent); display: block; letter-spacing: 0.5px; }
 
-        /* LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
         #view-order, #view-history, #view-grinder, #view-housekeeping { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
@@ -515,7 +505,6 @@
         let role = document.getElementById('ue-role').value;
         let status = document.getElementById('ue-status').value;
         
-        // Convert "Customer" dropdown back to empty string for sheet logic if preferred, or keep as string
         if (role === "Customer") role = ""; 
 
         fetch(GOOGLE_SCRIPT_URL, {
