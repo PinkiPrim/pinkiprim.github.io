@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Logic Fixed v8.5</title>
+    <title>Dirty Deals - v8.6</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -62,7 +62,7 @@
         /* REGULAR HEADER */
         #main-header { background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 10px; }
-        .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 8px; font-size: 0.75em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
+        .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
         .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
@@ -638,7 +638,7 @@
     function submitRealOrder() {
         var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING...";
         var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText };
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
     }
 
     function checkForMail() {
