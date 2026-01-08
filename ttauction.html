@@ -24,26 +24,26 @@
         /* LOGIN */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { width: 450px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
-        .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 15px; cursor: not-allowed; }
+        .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 10px; cursor: not-allowed; }
         .login-input.verified { color: var(--primary); border-color: var(--primary); background: rgba(0, 255, 255, 0.05); }
+        
+        /* PIN INPUT */
+        .pin-entry { 
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--primary); 
+            color: white; padding: 15px; margin-bottom: 15px; font-size: 1.5em; 
+            text-align: center; letter-spacing: 5px; display: none; cursor: text;
+        }
+        .pin-entry:focus { outline: none; box-shadow: 0 0 15px var(--primary-dim); }
+
         .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; }
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
-        .btn-enter { display: none; width: 100%; padding: 15px; background: #2ecc71; border: 1px solid #27ae60; color: white; font-weight: bold; cursor: pointer; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
-
-        /* WARNING BOX STYLE */
+        
+        /* WARNING BOX */
         .warning-box {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid var(--warning-red);
-            background: rgba(255, 68, 68, 0.1);
-            color: var(--warning-red);
-            font-size: 0.75em;
-            text-align: center;
-            box-shadow: 0 0 10px rgba(255, 68, 68, 0.2);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            width: 100%;
+            margin-top: 20px; padding: 10px; border: 1px solid var(--warning-red);
+            background: rgba(255, 68, 68, 0.1); color: var(--warning-red);
+            font-size: 0.75em; text-align: center; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2);
+            text-transform: uppercase; letter-spacing: 1px; width: 100%;
         }
 
         /* 3D WRAPPER */
@@ -55,17 +55,17 @@
         body.mini-mode .pivot-wrapper { 
             width: 300px !important; height: auto !important; min-height: 150px;
             transform: none !important; margin: 0; position: absolute;
-            top: 25%; right: 50px; left: auto;
+            top: 25%; right: 50px; left: auto; cursor: move;
         }
         body.mini-mode .menu-container { display: none; }
         body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
-        body.mini-mode .submenu-container { background: rgba(0,0,0,0.9); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
         body.mini-mode .detail-right { background: transparent; border: none; padding: 0; }
-        body.mini-mode #detail-title { font-size: 1.2em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; }
-        body.mini-mode #detail-price { font-size: 1.8em; margin: 10px 0; text-align: center; }
-        body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; }
+        body.mini-mode #detail-title { font-size: 1.2em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; }
+        body.mini-mode #detail-price { font-size: 1.8em; margin: 10px 0; text-align: center; pointer-events: none; }
+        body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; cursor: pointer; }
         body.mini-mode #min-btn:hover { color: white; }
-        body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; }
+        body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; pointer-events: none; }
 
         /* MENUS */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
@@ -136,13 +136,14 @@
             <div class="header-text" style="border:none; font-size: 2em;">SYSTEM AUTH</div>
             <input type="text" id="login-name" class="login-input" placeholder="Scanning Identity..." readonly disabled>
             <input type="text" id="login-id" class="login-input" placeholder="Waiting for Server..." readonly disabled>
-            <button id="btn-signin" class="btn-auth" onclick="startAuthentication()">SIGN IN</button>
-            <button id="btn-enter" class="btn-enter" onclick="enterMarket()">ENTER MARKET</button>
-            <div id="login-status" style="margin-top:10px; font-size:0.8em; color:#888;">Secure Connection Required</div>
             
-            <div class="warning-box">
-                WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App
-            </div>
+            <button id="btn-signin" class="btn-auth" onclick="startAuthentication()">CONNECT</button>
+            
+            <input type="password" id="login-pin" class="pin-entry" placeholder="ENTER 4-DIGIT PIN" maxlength="4">
+            <button id="btn-enter" class="btn-auth" style="display:none; background:#2ecc71; border-color:#27ae60;" onclick="submitPin()">LOGIN / REGISTER</button>
+            
+            <div id="login-status" style="margin-top:10px; font-size:0.8em; color:#888;">Secure Connection Required</div>
+            <div class="warning-box">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
         </div>
     </div>
 
@@ -156,10 +157,7 @@
                 <div class="holo-btn" onclick="openSubmenu('sell')"><div class="icon-box"><i class="fas fa-upload"></i></div><span class="btn-text">CREATE LISTING</span></div>
                 <div class="holo-btn" id="btn-hk" style="display:none; border-color: var(--admin-color);" onclick="openSubmenu('hk')"><div class="icon-box" style="color:var(--admin-color);"><i class="fas fa-shield-alt"></i></div><span class="btn-text" style="color:var(--admin-color);">HK DASHBOARD</span></div>
                 <div class="holo-btn" onclick="closeApp()"><div class="icon-box"><i class="fas fa-power-off"></i></div><span class="btn-text">DISCONNECT</span></div>
-                
-                <div class="warning-box" style="margin-top: auto; opacity: 0.8;">
-                    WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App
-                </div>
+                <div class="warning-box" style="margin-top: auto; opacity: 0.8;">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
             </div>
 
             <div class="submenu-container" id="submenu-layer">
@@ -246,10 +244,10 @@
     </div>
 
 <script>
-    const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwNfqTNIxvqNpae4DSl45adFXTKrhqh1E3Y9oW8U2P25zzE5BVT9E-k9EMpQiQ597ht/exec";
+    const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzSmLMS0PRgxq2ss2bkrTjf__Y9OOF6L99Gem4IWHMicAZ6CZQDooRm5M4iUNbjMc1C/exec";
     const ADMIN_ID = "757858";
 
-    let userData = { name: "", id: "" };
+    let userData = { name: "", id: "", pin: "" };
     let currentData = [];
     let isMenuOpen = false;
     let currentDetailId = null;
@@ -258,12 +256,32 @@
     let pollingInterval = null;
     let countdownInterval = null;
 
+    // --- MOUSE 3D TILT ---
     document.addEventListener('mousemove', (e) => {
         if (!isMenuOpen || document.body.classList.contains('mini-mode')) return;
         const wrapper = document.getElementById('pivot-wrapper');
         const rotX = ((e.clientY - window.innerHeight/2) / window.innerHeight/2) * -5;
         const rotY = ((e.clientX - window.innerWidth/2) / window.innerWidth/2) * 5;
         wrapper.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    });
+
+    // --- DRAG LOGIC ---
+    const wrapper = document.getElementById('pivot-wrapper');
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+    wrapper.addEventListener('mousedown', function(e) {
+        if (!document.body.classList.contains('mini-mode')) return;
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+        isDragging = true;
+        offset.x = e.clientX - wrapper.offsetLeft;
+        offset.y = e.clientY - wrapper.offsetTop;
+        wrapper.style.right = 'auto'; wrapper.style.bottom = 'auto';
+    });
+    document.addEventListener('mouseup', function() { isDragging = false; });
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        wrapper.style.left = (e.clientX - offset.x) + 'px';
+        wrapper.style.top = (e.clientY - offset.y) + 'px';
     });
 
     window.addEventListener('message', (event) => {
@@ -277,34 +295,62 @@
                 document.getElementById('login-name').classList.add('verified');
                 document.getElementById('login-id').value = userData.id;
                 document.getElementById('login-id').classList.add('verified');
+                
+                // Show PIN Input
                 document.getElementById('btn-signin').style.display = "none";
+                document.getElementById('login-pin').style.display = "block";
                 document.getElementById('btn-enter').style.display = "block";
+                document.getElementById('login-pin').focus();
             }
         }
     });
 
-    function cleanID(id) {
-        return String(id).replace(/[^0-9]/g, '');
-    }
+    function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
 
     function resetLogin() {
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('pivot-wrapper').style.display = 'none';
         document.getElementById('login-name').value = ""; document.getElementById('login-name').classList.remove('verified');
         document.getElementById('login-id').value = ""; document.getElementById('login-id').classList.remove('verified');
+        document.getElementById('login-pin').value = ""; document.getElementById('login-pin').style.display = "none";
         document.getElementById('btn-signin').style.display = "block";
-        document.getElementById('btn-signin').disabled = false; document.getElementById('btn-signin').innerText = "SIGN IN";
+        document.getElementById('btn-signin').disabled = false; document.getElementById('btn-signin').innerText = "CONNECT";
         document.getElementById('btn-enter').style.display = "none";
+        document.getElementById('login-status').innerText = "Secure Connection Required";
+        document.getElementById('login-status').style.color = "#888";
     }
 
     function startAuthentication() {
         document.getElementById('btn-signin').disabled = true;
-        document.getElementById('btn-signin').innerText = "POLLING...";
+        document.getElementById('btn-signin').innerText = "CONNECTING...";
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
     }
 
+    function submitPin() {
+        const pin = document.getElementById('login-pin').value;
+        if(pin.length < 4) {
+            document.getElementById('login-status').innerText = "PIN must be at least 4 digits";
+            document.getElementById('login-status').style.color = "#ff4444";
+            return;
+        }
+        
+        userData.pin = pin;
+        document.getElementById('btn-enter').disabled = true;
+        document.getElementById('btn-enter').innerText = "VERIFYING...";
+
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "login", userId: userData.id, name: userData.name, pin: userData.pin })
+        }).then(() => {
+            // Note: Since no-cors doesn't give response body, we assume success for UI flow
+            // Real validation happens on every subsequent action
+            document.getElementById('login-screen').style.display = 'none';
+            enterMarket();
+        });
+    }
+
     function enterMarket() {
-        document.getElementById('login-screen').style.display = 'none';
         isMenuOpen = true;
         document.getElementById('pivot-wrapper').style.display = "block";
         if(userData.id === ADMIN_ID) document.getElementById('btn-hk').style.display = 'flex';
@@ -324,6 +370,7 @@
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
     }
 
+    // [Rest of navigation functions remain the same...]
     function openSubmenu(view) {
         lastView = view;
         document.getElementById('pivot-wrapper').classList.add('expanded');
@@ -364,9 +411,6 @@
             currentData = data;
             if(view === 'hk') renderHK(data);
             else renderGrid(data, container, view === 'mydata');
-        })
-        .catch(err => {
-            container.innerHTML = `<div style="color:red; text-align:center; padding:20px;">ERROR: ${err.message}</div>`;
         });
     }
 
@@ -432,8 +476,10 @@
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
+        
         if(pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(refreshDetail, 1000);
+
         renderDetail(item);
     }
 
@@ -463,13 +509,13 @@
         if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
         else imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
 
-        // RESET UI
+        // Reset
         document.getElementById('controls-bid').style.display = 'none';
         document.getElementById('controls-actions').style.display = 'none';
         document.getElementById('controls-admin').style.display = 'none';
-        document.getElementById('action-buttons').innerHTML = ''; // IMPORTANT: Clear previous buttons
+        document.getElementById('action-buttons').innerHTML = ''; 
 
-        // ID MATCHING
+        // ID Matching
         const sellerID = cleanID(item.sellerId);
         const buyerID = cleanID(item.bidderId);
         const myID = cleanID(userData.id);
@@ -495,7 +541,6 @@
             document.getElementById('controls-actions').style.display = 'block';
             if (isSeller) {
                 document.getElementById('action-msg').innerText = "AUCTION ENDED - ACTION REQUIRED";
-                // --- SAFE BUTTON CREATION ---
                 const btnContainer = document.getElementById('action-buttons');
                 const btn = document.createElement('button');
                 btn.className = 'action-btn';
@@ -536,46 +581,19 @@
         }
     }
 
-    // --- RENDER HK (Safe DOM Method) ---
     function renderHK(data) {
         const list = document.getElementById('hk-list');
-        list.innerHTML = ''; // Clear "Loading..."
-        
+        list.innerHTML = '';
         let active = 0, comp = 0, ful = 0;
-        
         data.forEach(item => {
             if(item.status === 'Active') active++;
             if(item.status === 'Completed') comp++;
             if(item.status === 'Fulfilled') ful++;
-
             let row = document.createElement('div');
             row.className = 'hk-list-item';
-            
-            let name = document.createElement('span'); 
-            name.style.width = '30%'; name.style.overflow = 'hidden'; name.innerText = item.item;
-            
-            let seller = document.createElement('span');
-            seller.style.width = '20%'; seller.innerText = item.seller;
-            
-            let price = document.createElement('span');
-            price.style.width = '20%'; price.innerText = '$' + item.price;
-            
-            let status = document.createElement('span');
-            status.style.width = '20%'; status.className = 'st-' + item.status; status.innerText = item.status;
-            
-            let eye = document.createElement('span');
-            eye.style.width = '10%'; eye.style.cursor = 'pointer'; eye.innerText = '👁️';
-            eye.onclick = () => openDetail(item);
-            
-            row.appendChild(name);
-            row.appendChild(seller);
-            row.appendChild(price);
-            row.appendChild(status);
-            row.appendChild(eye);
-            
+            row.innerHTML = `<span style="width:30%; overflow:hidden;">${item.item}</span><span style="width:20%;">${item.seller}</span><span style="width:20%;">$${item.price}</span><span style="width:20%;" class="st-${item.status}">${item.status}</span><span style="width:10%; cursor:pointer;" onclick='openDetail(${JSON.stringify(item)})'>👁️</span>`;
             list.appendChild(row);
         });
-
         document.getElementById('st-total').innerText = data.length;
         document.getElementById('st-active').innerText = active;
         document.getElementById('st-comp').innerText = comp;
@@ -590,44 +608,41 @@
         fetchData(lastView);
     }
 
-    function toggleMiniMode() { document.body.classList.toggle('mini-mode'); }
+    function toggleMiniMode() { 
+        const wrapper = document.getElementById('pivot-wrapper');
+        document.body.classList.toggle('mini-mode');
+        if (!document.body.classList.contains('mini-mode')) {
+            wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = '';
+        }
+    }
 
+    // ACTIONS WITH PIN
     function removeListing() {
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "delete", id: currentDetailId, requesterId: userData.id })
-        }).then(() => { returnToLastView(); });
+        const payload = { action: "delete", id: currentDetailId, requesterId: userData.id, pin: userData.pin };
+        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
+        .then(() => { returnToLastView(); });
     }
 
     function updateStatus(newStatus) {
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id })
-        }).then(() => { returnToLastView(); });
+        const payload = { action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id, pin: userData.pin };
+        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
+        .then(() => { returnToLastView(); });
     }
 
     function placeBid() {
         let amt = document.getElementById('detail-bid-input').value;
         if(!amt) return;
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id })
-        }).then(() => { 
-            document.getElementById('detail-bid-input').value = "";
-        });
+        const payload = { action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin };
+        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
+        .then(() => { document.getElementById('detail-bid-input').value = ""; });
     }
 
     function toggleImgInput() {
         const checkbox = document.getElementById('no-img-check');
         const input = document.getElementById('sell-img');
         const preview = document.getElementById('img-preview');
-        
         if(checkbox.checked) {
-            input.disabled = true;
-            input.value = "";
+            input.disabled = true; input.value = "";
             preview.innerHTML = `<span style="color:#555;">IMAGE DISABLED</span>`;
         } else {
             input.disabled = false;
@@ -660,9 +675,8 @@
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
-                action: "create", seller: userData.name, sellerId: userData.id,
-                item: name, img: imgVal,
-                price: price, duration: document.getElementById('sell-duration').value
+                action: "create", seller: userData.name, sellerId: userData.id, pin: userData.pin,
+                item: name, img: imgVal, price: price, duration: document.getElementById('sell-duration').value
             })
         }).then(() => {
             status.innerText = "SUCCESSFULLY LISTED";
