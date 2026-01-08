@@ -183,10 +183,6 @@
 <div id="settings-icon" style="display:none;"></div>
 <div id="settings-panel" style="display:none;">
     <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
-    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
-    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
-    <input type="number" id="xp-font-size">
     <button id="reset-exp-log"></button>
     <div id="xp-font-size-value"></div>
 </div>
@@ -200,12 +196,19 @@ const KEYS = {
     BXP: "exp_token_a|piloting|heli",
     STATUS: "status"
 };
+const STORAGE_KEY_CALC = "target_xp_heli";
 
 const STATE = {
     currentXP: 0, startXP: null,
     jobs: 0, avgXP: 0, 
     lastKnownXP: -1, sessionXP: 0
 };
+
+// --- INIT ---
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) {
+    document.getElementById('target-input').value = savedTarget;
+}
 
 // --- CLOCK ---
 setInterval(() => {
@@ -277,7 +280,7 @@ function processPayload(data) {
     let bxp = data[KEYS.BXP];
     if(!bxp && data.inventory) {
         try {
-            const inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
+            const inv = typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
             if(inv[KEYS.BXP]) bxp = inv[KEYS.BXP];
         } catch(e){}
     }
@@ -367,6 +370,8 @@ function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
+    localStorage.setItem(STORAGE_KEY_CALC, val);
+
     if (STATE.avgXP === 0) { el.innerHTML = "<i>Complete a stop to calc...</i>"; return; }
     if (!val) { el.innerText = "Enter target above."; return; }
 
