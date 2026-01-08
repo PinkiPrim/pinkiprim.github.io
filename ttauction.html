@@ -29,6 +29,7 @@
         .pin-entry { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--primary); color: white; padding: 15px; margin-bottom: 15px; font-size: 1.5em; text-align: center; letter-spacing: 5px; display: none; cursor: text; }
         .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top:5px; }
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
+        
         .warning-box { margin-top: 20px; padding: 10px; border: 1px solid var(--warning-red); background: rgba(255, 68, 68, 0.1); color: var(--warning-red); font-size: 0.75em; text-align: center; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); text-transform: uppercase; letter-spacing: 1px; width: 100%; }
 
         /* 3D WRAPPER */
@@ -36,13 +37,23 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE */
+        /* --- MINI MODE WIDGET (Fixed Sizing & Drag) --- */
         body.mini-mode .pivot-wrapper { 
-            width: 250px !important; height: auto !important; min-height: 120px;
-            transform: none !important; margin: 0; position: absolute;
-            top: 50px !important; right: 50px !important; left: auto !important; bottom: auto !important;
+            width: 250px !important;  
+            height: auto !important; 
+            min-height: 120px;
+            transform: none !important; 
+            margin: 0; 
+            position: fixed !important; /* Fixed ensures it stays put while dragging */
+            top: 50px; 
+            right: 50px; 
+            left: auto;
+            bottom: auto;
             cursor: move;
+            z-index: 9999;
         }
+        
+        /* Force Layout Reset in Mini Mode */
         body.mini-mode .menu-container { display: none; }
         body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
         body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
@@ -50,16 +61,31 @@
         body.mini-mode #view-detail { height: auto !important; display: block !important; }
         body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
         body.mini-mode .detail-right { overflow: visible !important; padding: 5px !important; border: none !important; background: transparent !important; }
-        
+
         body.mini-mode #detail-title { font-size: 1em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         body.mini-mode #detail-price { font-size: 1.6em; margin: 5px 0; text-align: center; pointer-events: none; }
         body.mini-mode #detail-live-timer { font-size: 1em; text-align: center; display: block; margin-bottom: 0; pointer-events: none; }
         
-        /* HIDE CONTROLS IN MINI */
+        /* Hide Controls in Mini Mode */
         body.mini-mode #controls-bid, body.mini-mode #controls-actions, body.mini-mode #controls-admin { display: none !important; }
 
-        /* MINIMIZE BUTTON */
-        #min-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; background: rgba(0,0,0,0.5); border: 1px solid #444; color: #ccc; font-size: 1em; cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 100; }
+        /* MINIMIZE BUTTON (Small Square in Top Right) */
+        #min-btn { 
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
+            width: 30px; 
+            height: 30px; 
+            background: rgba(0,0,0,0.5); 
+            border: 1px solid #444; 
+            color: #ccc; 
+            font-size: 1em; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            z-index: 10000;
+        }
         #min-btn:hover { border-color: var(--primary); color: var(--primary); }
 
         /* MENUS */
@@ -85,13 +111,18 @@
         .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
         .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
         .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-        .st-Active { color: #00ff00; } .st-Ended { color: #ffaa00; } .st-Completed { color: #0088ff; } .st-Fulfilled { color: #888; text-decoration: line-through; }
+        
+        .st-Active { color: #00ff00; }
+        .st-Ended { color: #ffaa00; }
+        .st-Completed { color: #0088ff; }
+        .st-Fulfilled { color: #888; text-decoration: line-through; }
 
         .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; flex-shrink: 0; }
         .stat-box { background: rgba(255, 0, 85, 0.1); border: 1px solid var(--admin-color); padding: 15px; text-align: center; }
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
         .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
         
+        /* DETAIL VIEW - FLEXBOX FIX FOR BACK BUTTON */
         #view-detail { display: none; height: 100%; flex-direction: column; }
         .detail-layout { display: flex; gap: 20px; flex: 1; min-height: 0; margin-bottom: 10px; }
         .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
@@ -276,6 +307,7 @@
     let countdownInterval = null;
     let pendingAdminAction = null;
 
+    // --- DRAG LOGIC ---
     document.addEventListener('mousemove', (e) => {
         if (!isMenuOpen || document.body.classList.contains('mini-mode')) return;
         const wrapper = document.getElementById('pivot-wrapper');
@@ -284,7 +316,6 @@
         wrapper.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
     });
 
-    // DRAG
     const wrapper = document.getElementById('pivot-wrapper');
     let isDragging = false;
     let offset = { x: 0, y: 0 };
@@ -354,7 +385,6 @@
         document.getElementById('btn-enter').disabled = true;
         document.getElementById('btn-enter').innerText = "VERIFYING...";
 
-        // CHANGED TO GET REQUEST FOR IMMEDIATE FEEDBACK
         fetch(`${CONST_GOOGLE_URL}?action=login&userId=${userData.id}&name=${userData.name}&pin=${userData.pin}`)
         .then(res => res.json())
         .then(data => {
