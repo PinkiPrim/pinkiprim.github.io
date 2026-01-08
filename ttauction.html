@@ -10,7 +10,7 @@
         :root {
             --primary: #00ffff;
             --primary-dim: rgba(0, 255, 255, 0.1);
-            --bg-dark: rgba(0, 15, 30, 0.90);
+            --bg-dark: rgba(0, 15, 30, 0.95);
             --border: 1px solid rgba(0, 255, 255, 0.5);
             --glass: blur(4px);
             --admin-color: #ff0055;
@@ -19,7 +19,40 @@
 
         * { box-sizing: border-box; user-select: none; }
         
+        /* Default to Docked Mode (Hidden UI) */
         body { margin: 0; overflow: hidden; background: transparent; font-family: 'Rajdhani', sans-serif; color: white; height: 100vh; width: 100vw; }
+
+        /* --- DOCKED BAR (Bottom Middle Tab) --- */
+        #docked-bar {
+            display: none; /* Hidden unless docked-mode is active */
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-dark);
+            border: 2px solid var(--primary);
+            border-bottom: none;
+            padding: 10px 40px;
+            border-radius: 15px 15px 0 0;
+            cursor: pointer;
+            z-index: 10001;
+            box-shadow: 0 0 20px var(--primary-dim);
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: 0.2s;
+            align-items: center;
+            gap: 10px;
+        }
+        #docked-bar:hover {
+            background: var(--primary-dim);
+            padding-bottom: 15px;
+        }
+        
+        /* When DOCKED mode is active (Default) */
+        body.docked-mode #docked-bar { display: flex; }
+        body.docked-mode .perspective-container { display: none !important; }
+        body.docked-mode #login-screen { display: none !important; }
+        body.docked-mode #pivot-wrapper { display: none !important; }
 
         /* LOGIN */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
@@ -37,58 +70,29 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* --- MINI MODE WIDGET (Fixed Sizing & Drag) --- */
+        /* MINI MODE WIDGET */
         body.mini-mode .pivot-wrapper { 
-            width: 250px !important;  
-            height: auto !important; 
-            min-height: 120px;
-            transform: none !important; 
-            margin: 0; 
-            position: fixed !important; /* Fixed ensures it stays put while dragging */
-            top: 50px; 
-            right: 50px; 
-            left: auto;
-            bottom: auto;
-            cursor: move;
-            z-index: 9999;
+            width: 250px !important; height: auto !important; min-height: 120px;
+            transform: none !important; margin: 0; position: fixed !important;
+            top: 50px; right: 50px; left: auto; bottom: auto;
+            cursor: move; z-index: 9999;
         }
-        
-        /* Force Layout Reset in Mini Mode */
-        body.mini-mode .menu-container { display: none; }
-        body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
-        body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        
+        body.mini-mode .menu-container, body.mini-mode .detail-left, body.mini-mode .back-btn, 
+        body.mini-mode .content-header, body.mini-mode #controls-bid, body.mini-mode #controls-actions, 
+        body.mini-mode #controls-admin { display: none !important; }
+
+        body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 10px; border-radius: 5px; }
         body.mini-mode #view-detail { height: auto !important; display: block !important; }
         body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
         body.mini-mode .detail-right { overflow: visible !important; padding: 5px !important; border: none !important; background: transparent !important; }
-
+        
         body.mini-mode #detail-title { font-size: 1em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         body.mini-mode #detail-price { font-size: 1.6em; margin: 5px 0; text-align: center; pointer-events: none; }
         body.mini-mode #detail-live-timer { font-size: 1em; text-align: center; display: block; margin-bottom: 0; pointer-events: none; }
-        
-        /* Hide Controls in Mini Mode */
-        body.mini-mode #controls-bid, body.mini-mode #controls-actions, body.mini-mode #controls-admin { display: none !important; }
+        body.mini-mode #min-btn { position: absolute; top: -8px; right: -5px; font-size: 0.9em; padding: 5px 10px; border: none; background: transparent; color: #888; cursor: pointer; z-index: 10000; }
+        body.mini-mode #min-btn:hover { color: white; }
 
-        /* MINIMIZE BUTTON (Small Square in Top Right) */
-        #min-btn { 
-            position: absolute; 
-            top: 10px; 
-            right: 10px; 
-            width: 30px; 
-            height: 30px; 
-            background: rgba(0,0,0,0.5); 
-            border: 1px solid #444; 
-            color: #ccc; 
-            font-size: 1em; 
-            cursor: pointer; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            z-index: 10000;
-        }
-        #min-btn:hover { border-color: var(--primary); color: var(--primary); }
-
-        /* MENUS */
+        /* REGULAR STYLES */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
         .header-text { font-size: 2.5rem; font-weight: 700; letter-spacing: 4px; text-align: center; color: white; text-shadow: 0 0 15px var(--primary); border-bottom: 1px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; }
         .holo-btn { background: var(--bg-dark); border: var(--border); padding: 15px 20px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.3s; transform: translateX(50px); opacity: 0; backdrop-filter: var(--glass); }
@@ -96,7 +100,6 @@
         .holo-btn:hover { background: var(--primary-dim); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-dim); transform: translateX(10px); }
         .icon-box { color: var(--primary); font-size: 1.4rem; width: 30px; text-align: center; }
 
-        /* SUBMENU */
         .submenu-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0, 10, 20, 0.95), rgba(0, 5, 10, 0.9)); border: 1px solid var(--primary); opacity: 0; pointer-events: none; transform: translateY(20px) translateZ(-50px); transition: 0.5s; display: flex; flex-direction: column; padding: 20px; }
         .submenu-container.active { opacity: 1; pointer-events: all; transform: translateY(0) translateZ(0); }
         
@@ -111,18 +114,13 @@
         .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
         .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
         .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-        
-        .st-Active { color: #00ff00; }
-        .st-Ended { color: #ffaa00; }
-        .st-Completed { color: #0088ff; }
-        .st-Fulfilled { color: #888; text-decoration: line-through; }
+        .st-Active { color: #00ff00; } .st-Ended { color: #ffaa00; } .st-Completed { color: #0088ff; } .st-Fulfilled { color: #888; text-decoration: line-through; }
 
         .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; flex-shrink: 0; }
         .stat-box { background: rgba(255, 0, 85, 0.1); border: 1px solid var(--admin-color); padding: 15px; text-align: center; }
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
         .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
         
-        /* DETAIL VIEW - FLEXBOX FIX FOR BACK BUTTON */
         #view-detail { display: none; height: 100%; flex-direction: column; }
         .detail-layout { display: flex; gap: 20px; flex: 1; min-height: 0; margin-bottom: 10px; }
         .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
@@ -145,12 +143,9 @@
         .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
         .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; flex-shrink: 0; }
 
-        /* PIN MODAL */
         #pin-modal { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; align-items:center; justify-content:center; flex-direction:column; }
         .pin-box { background:#111; border:2px solid var(--admin-color); padding:20px; width:300px; text-align:center; }
         .pin-input { width:100%; padding:10px; background:#222; border:1px solid #444; color:white; font-size:1.5em; text-align:center; letter-spacing:5px; margin-bottom:10px; }
-
-        /* USER MANAGER TABLE */
         .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #333; margin-bottom: 2px; }
         .user-list-item select { width: 120px; background: #222; border: 1px solid #444; color: white; padding: 5px; }
 
@@ -159,23 +154,21 @@
         #debug-id-match { font-size:0.7em; color:#444; position:absolute; bottom:5px; left:5px; }
     </style>
 </head>
-<body>
+<body class="docked-mode"> <div id="docked-bar" onclick="toggleDockMode()">
+        <i class="fas fa-gavel" style="color:var(--primary);"></i> <span>OPEN AUCTION</span>
+    </div>
 
     <div id="login-screen">
         <div class="login-box">
             <div class="header-text" style="border:none; font-size: 2em;">SYSTEM AUTH</div>
             <input type="text" id="login-name" class="login-input" placeholder="Scanning Identity..." readonly disabled>
             <input type="text" id="login-id" class="login-input" placeholder="Waiting for Server..." readonly disabled>
-            
             <button id="btn-signin" class="btn-auth" onclick="startAuthentication()">CONNECT</button>
-            
             <div id="pin-section" style="display:none;">
                 <input type="password" id="login-pin" class="pin-entry" placeholder="PIN" maxlength="4" style="display:block;">
                 <button id="btn-enter" class="btn-auth" style="background:#2ecc71; border-color:#27ae60;" onclick="submitPin()">LOGIN</button>
             </div>
-            
             <button id="btn-request" class="btn-auth" style="display:none; background:#e67e22; border-color:#d35400;" onclick="requestAccess()">REQUEST ACCESS</button>
-
             <div id="login-status" style="margin-top:10px; font-size:0.8em; color:#888;">Secure Connection Required</div>
             <div class="warning-box">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
         </div>
@@ -200,6 +193,7 @@
                 <div class="holo-btn" onclick="openSubmenu('sell')"><div class="icon-box"><i class="fas fa-upload"></i></div><span class="btn-text">CREATE LISTING</span></div>
                 <div class="holo-btn" id="btn-hk" style="display:none; border-color: var(--admin-color);" onclick="openSubmenu('hk')"><div class="icon-box" style="color:var(--admin-color);"><i class="fas fa-shield-alt"></i></div><span class="btn-text" style="color:var(--admin-color);">HK DASHBOARD</span></div>
                 <div class="holo-btn" id="btn-users" style="display:none; border-color: cyan;" onclick="openSubmenu('users')"><div class="icon-box" style="color:cyan;"><i class="fas fa-users"></i></div><span class="btn-text" style="color:cyan;">USER MANAGER</span></div>
+                <div class="holo-btn" onclick="toggleDockMode()"><div class="icon-box"><i class="fas fa-window-minimize"></i></div><span class="btn-text">MINIMIZE APP</span></div>
                 <div class="holo-btn" onclick="closeApp()"><div class="icon-box"><i class="fas fa-power-off"></i></div><span class="btn-text">DISCONNECT</span></div>
                 <div class="warning-box" style="margin-top: auto; opacity: 0.8;">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
             </div>
@@ -267,7 +261,6 @@
                                 <button class="action-btn" onclick="promptAdminAction('Completed')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE COMPLETE (PIN)</button>
                                 <button class="action-btn" onclick="promptAdminAction('Delete')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE DELETE (PIN)</button>
                             </div>
-
                         </div>
                     </div>
                     <div class="back-btn" onclick="returnToLastView()"><i class="fas fa-chevron-left"></i> BACK</div>
@@ -307,9 +300,14 @@
     let countdownInterval = null;
     let pendingAdminAction = null;
 
+    // --- DOCK MODE LOGIC ---
+    function toggleDockMode() {
+        document.body.classList.toggle('docked-mode');
+    }
+
     // --- DRAG LOGIC ---
     document.addEventListener('mousemove', (e) => {
-        if (!isMenuOpen || document.body.classList.contains('mini-mode')) return;
+        if (!isMenuOpen || document.body.classList.contains('mini-mode') || document.body.classList.contains('docked-mode')) return;
         const wrapper = document.getElementById('pivot-wrapper');
         const rotX = ((e.clientY - window.innerHeight/2) / window.innerHeight/2) * -5;
         const rotY = ((e.clientX - window.innerWidth/2) / window.innerWidth/2) * 5;
@@ -332,7 +330,11 @@
     });
 
     window.addEventListener('message', (event) => {
-        if (event.data.action === "open") { document.body.style.display = 'block'; resetLogin(); }
+        if (event.data.action === "open") { 
+            document.body.style.display = 'block'; 
+            // DO NOT reset login here, just ensure we are in docked mode if needed
+            // But if it's a fresh open, we rely on default body class
+        }
         if (event.data.type === "data" || event.data.user_id) {
             let d = event.data.data || event.data;
             if(d.user_id || d.player_id || d.id) {
@@ -352,20 +354,6 @@
     });
 
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
-
-    function resetLogin() {
-        document.getElementById('login-screen').style.display = 'flex';
-        document.getElementById('pivot-wrapper').style.display = 'none';
-        document.getElementById('login-name').value = ""; document.getElementById('login-name').classList.remove('verified');
-        document.getElementById('login-id').value = ""; document.getElementById('login-id').classList.remove('verified');
-        document.getElementById('login-pin').value = ""; 
-        document.getElementById('pin-section').style.display = "none";
-        document.getElementById('btn-request').style.display = "none";
-        document.getElementById('btn-signin').style.display = "block";
-        document.getElementById('btn-signin').disabled = false; document.getElementById('btn-signin').innerText = "CONNECT";
-        document.getElementById('login-status').innerText = "Secure Connection Required";
-        document.getElementById('login-status').style.color = "#888";
-    }
 
     function startAuthentication() {
         document.getElementById('btn-signin').disabled = true;
@@ -390,6 +378,8 @@
         .then(data => {
             if (data.status === "success") {
                 document.getElementById('login-screen').style.display = 'none';
+                // Remove docked mode upon successful login to show main menu
+                document.body.classList.remove('docked-mode');
                 enterMarket();
             } else {
                 document.getElementById('login-status').innerText = data.msg;
@@ -442,12 +432,12 @@
     }
 
     function closeApp() {
+        // Just hide the UI but keep running in background if needed, or close NUI
         isMenuOpen = false;
-        document.getElementById('pivot-wrapper').style.display = "none";
-        document.getElementById('login-screen').style.display = 'none';
-        if(pollingInterval) clearInterval(pollingInterval);
-        if(countdownInterval) clearInterval(countdownInterval);
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
+        // We do NOT reset to docked mode here because "Disconnect" means close NUI completely usually.
+        // If you want it to dock instead, change this line:
+        // document.body.classList.add('docked-mode');
     }
 
     // [Navigation & Common Functions remain similar]
