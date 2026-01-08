@@ -230,10 +230,6 @@
 <div id="settings-icon" style="display:none;"></div>
 <div id="settings-panel" style="display:none;">
     <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
-    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
-    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
-    <input type="number" id="xp-font-size">
     <button id="reset-exp-log"></button>
     <div id="xp-font-size-value"></div>
 </div>
@@ -250,8 +246,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// --- YOUR PROVIDED SCRIPT (Engine) ---
-
+// --- ENGINE VARS ---
 let lastInventoryObj = {};
 let selectedJobs = [];
 let expLogs = {};
@@ -265,77 +260,23 @@ let lastRenderTime = 0;
 let hasReceivedAnyData = false;
 let hasRequestedOnce = false;
 
-const TRACKER_SIZE_KEY = "tracker-app-size";
-const TRACKER_POSITION_KEY = "tracker-app-position";
+const STORAGE_KEY_CALC = "target_xp_ems";
 const XP_FONT_SIZE_KEY = "xp-font-size";
 const RECENT_WINDOW_MS = 10 * 60 * 1000;
 const RENDER_THROTTLE_MS = 500;
 
+// --- INIT ---
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) {
+    document.getElementById('target-input').value = savedTarget;
+}
+
 const JOBS = [
-  { key: "trucker", label: "Trucker" },
-  { key: "mechanic", label: "Mechanic" },
-  { key: "garbage", label: "Garbage" },
-  { key: "postop", label: "PostOP" },
-  { key: "pilot", label: "Airline Pilot" },
-  { key: "helicopterpilot", label: "Helicopter Pilot" },
-  { key: "cargopilot", label: "Cargo Pilot" },
-  { key: "busdriver", label: "Bus Driver" },
-  { key: "conductor", label: "Train Conductor" },
-  { key: "emergency", label: "EMS" },
-  { key: "player", label: "Player" },
-  { key: "firefighter", label: "Firefighter" },
-  { key: "racer", label: "Racer" },
-  { key: "farmer", label: "Farmer" },
-  { key: "fisher", label: "Fisher" },
-  { key: "strength", label: "Strength" },
-  { key: "miner", label: "Miner" },
-  { key: "business", label: "Business" },
-  { key: "hunter", label: "Hunter" }
+  { key: "emergency", label: "EMS" }
 ];
 
-const JOB_EXP_KEYS = {
-  trucker: "exp_trucking_trucking",
-  mechanic: "exp_trucking_mechanic",
-  garbage: "exp_trucking_garbage",
-  postop: "exp_trucking_postop",
-  pilot: "exp_piloting_piloting",
-  helicopterpilot: "exp_piloting_heli",
-  cargopilot: "exp_piloting_cargos",
-  busdriver: "exp_train_bus",
-  conductor: "exp_train_train",
-  emergency: "exp_ems_ems",
-  firefighter: "exp_ems_fire",
-  racer: "exp_player_racing",
-  farmer: "exp_farming_farming",
-  fisher: "exp_farming_fishing",
-  miner: "exp_farming_mining",
-  business: "exp_business_business",
-  hunter: "exp_hunting_skill",
-  player: "exp_player_player",
-  strength: "exp_physical_strength"
-};
-
-const JOB_BXP_KEYS = {
-  trucker:       "exp_token_a|trucking|trucking",
-  mechanic:      "exp_token_a|trucking|mechanic",
-  garbage:       "exp_token_a|trucking|garbage",
-  postop:        "exp_token_a|trucking|postop",
-  pilot:         "exp_token_a|piloting|piloting",
-  helicopterpilot:"exp_token_a|piloting|heli",
-  cargopilot:    "exp_token_a|piloting|cargos",
-  busdriver:     "exp_token_a|train|bus",
-  conductor:     "exp_token_a|train|train",
-  emergency:     "exp_token_a|ems|ems",
-  firefighter:   "exp_token_a|ems|fire",
-  racer:         "exp_token_a|player|racing",
-  farmer:        "exp_token_a|farming|farming",
-  fisher:        "exp_token_a|farming|fishing",
-  miner:         "exp_token_a|farming|mining",
-  business:      "exp_token_a|business|business",
-  hunter:        "exp_token_a|hunting|skill",
-  player:        "exp_token_a|player|player",
-  strength:      "exp_token_a|physical|strength"
-};
+const JOB_EXP_KEYS = { emergency: "exp_ems_ems" };
+const JOB_BXP_KEYS = { emergency: "exp_token_a|ems|ems" };
 
 function formatNumber(num) {
   if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
@@ -361,10 +302,6 @@ function getLevelInfo(exp) {
   return { level, expInLevel: exp, expForNext: xpCap };
 }
 
-function getSortedJobs() {
-  return [...JOBS].sort((a, b) => a.label.localeCompare(b.label));
-}
-
 function getPercentValue(exp, cap) {
   if (typeof exp !== "number") return null;
   const pct = Math.max(0, Math.min(100, (exp / cap) * 100));
@@ -372,90 +309,12 @@ function getPercentValue(exp, cap) {
 }
 
 function saveData() {
-  localStorage.setItem("selected-jobs", JSON.stringify(selectedJobs));
-  localStorage.setItem("exp-logs", JSON.stringify(expLogs));
+  localStorage.setItem("exp-logs-ems", JSON.stringify(expLogs));
 }
 
 function loadData() {
-  selectedJobs = JSON.parse(localStorage.getItem("selected-jobs") || "[]");
-  if (selectedJobs.length === 0) {
-    selectedJobs = ["emergency"]; // FORCE EMS DEFAULT
-    localStorage.setItem("selected-jobs", JSON.stringify(selectedJobs));
-  }
-  expLogs = JSON.parse(localStorage.getItem("exp-logs") || "{}");
-  loadSettings();
-  loadFontSize();
-  renderSummary();
-}
-
-function saveSettings() {
-  try {
-    const settings = {
-      bxp: document.getElementById("toggle-bxp").checked,
-      currentLevel: document.getElementById("toggle-current-level").checked,
-      expHr: document.getElementById("toggle-exp-hr").checked,
-      expMin: document.getElementById("toggle-exp-min").checked,
-      perkChance: document.getElementById("toggle-perk-chance").checked,
-      oneMPercent: document.getElementById("toggle-1m-percent").checked,
-      tenMPercent: document.getElementById("toggle-10m-percent").checked,
-      level: document.getElementById("toggle-level").checked
-    };
-    localStorage.setItem("tracker-settings", JSON.stringify(settings));
-  } catch (error) {}
-}
-
-function loadSettings() {
-  try {
-    const savedSettings = localStorage.getItem("tracker-settings");
-    const settings = savedSettings ? JSON.parse(savedSettings) : {};
-    document.getElementById("toggle-bxp").checked = settings.bxp !== false;
-    document.getElementById("toggle-current-level").checked = settings.currentLevel !== false;
-    document.getElementById("toggle-exp-hr").checked = settings.expHr !== false;
-    document.getElementById("toggle-exp-min").checked = settings.expMin !== false;
-    document.getElementById("toggle-perk-chance").checked = settings.perkChance !== false;
-    document.getElementById("toggle-1m-percent").checked = settings.oneMPercent === true;
-    document.getElementById("toggle-10m-percent").checked = settings.tenMPercent === true;
-    document.getElementById("toggle-level").checked = settings.level !== false;
-  } catch (error) {}
-}
-
-function loadFontSize() {
-  const size = localStorage.getItem(XP_FONT_SIZE_KEY) || "12";
-  document.getElementById("xp-font-size").value = size;
-  applyFontSize(size);
-}
-
-function applyFontSize(size) {
-  document.documentElement.style.setProperty('--stat-font-size', size + 'px');
-}
-
-function savePosition() {
-  const app = document.getElementById("tracker-app");
-  if (app) {
-    const position = {
-      left: app.style.left,
-      top: app.style.top,
-      width: app.style.width,
-      height: app.style.height
-    };
-    localStorage.setItem(TRACKER_POSITION_KEY, JSON.stringify(position));
-  }
-}
-
-function loadPosition() {
-  const savedPosition = localStorage.getItem(TRACKER_POSITION_KEY);
-  if (savedPosition) {
-    try {
-      const position = JSON.parse(savedPosition);
-      const app = document.getElementById("tracker-app");
-      if (app && position) {
-        if (position.left) app.style.left = position.left;
-        if (position.top) app.style.top = position.top;
-        if (position.width) app.style.width = position.width;
-        if (position.height) app.style.height = position.height;
-      }
-    } catch (e) {}
-  }
+  selectedJobs = ["emergency"]; 
+  expLogs = JSON.parse(localStorage.getItem("exp-logs-ems") || "{}");
 }
 
 function renderStats() {
@@ -464,37 +323,15 @@ function renderStats() {
     return;
   }
   lastRenderTime = now;
-  renderSummary();
-  // INTEGRATION: UPDATE HUD
   updateEMSHUD(); 
 }
-
-function renderSummary() {} // Stubbed out - we use HUD instead
 
 function calculateJobStats(jobKey) {
   const currentExp = lastExps[jobKey] || 0;
   const bxp = lastBXPs[jobKey] || 0;
-  const log = expLogs[jobKey] || [];
-  let expPerHour = 0;
-  let expPerMin = 0;
-  if (log.length >= 2) {
-    const recent = log.filter(entry => Date.now() - entry.time <= RECENT_WINDOW_MS);
-    if (recent.length >= 2) {
-      const firstEntry = recent[0];
-      const lastEntry = recent[recent.length - 1];
-      const timeDiff = lastEntry.time - firstEntry.time;
-      const expDiff = lastEntry.exp - firstEntry.exp;
-      if (timeDiff > 0) {
-        expPerHour = Math.round((expDiff / timeDiff) * (1000 * 60 * 60));
-        expPerMin = Math.round(expPerHour / 60);
-      }
-    }
-  }
   return {
     currentExp,
     bxp,
-    expPerHour,
-    expPerMin,
     levelInfo: getLevelInfo(currentExp)
   };
 }
@@ -508,7 +345,7 @@ function processGameData(data) {
       inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
       if (inventory) {
           lastInventoryObj = inventory;
-          processInventory(inventory); // EMS Inventory Logic
+          processInventory(inventory); 
       }
     } catch {
       inventory = lastInventoryObj;
@@ -531,9 +368,6 @@ function processGameData(data) {
   });
   
   selectedJobs.forEach(jobKey => {
-    const job = JOBS.find(j => j.key === jobKey);
-    if (!job) return;
-    
     const expKey = JOB_EXP_KEYS[jobKey];
     const exp = data[expKey];
     
@@ -617,13 +451,10 @@ function requestDataOnce(force = false) {
 
 function init() {
   loadData();
-  loadPosition();
   renderStats();
   
   // Set fast polling
   setInterval(requestDataOnce, 1000); 
-  
-  saveSettings();
   
   window.addEventListener("message", (event) => {
     const msg = event.data;
@@ -698,7 +529,6 @@ if (document.readyState === 'loading') {
         app.style.left = `${ax + dx}px`;
         app.style.top = `${ay + dy}px`;
       }
-      savePosition();
     }
     dragging = false; resizing = false;
     handle.classList.remove('dragging');
@@ -801,11 +631,6 @@ function setCalc(amount) {
 // Helper to get total XP for a target Level < 200
 function getXPFromLevel(targetLvl) {
     let xp = 0;
-    // Standard progression: Level 1=5, Level 2=10, Level 3=15...
-    // Sum of arithmetic series: sum = n/2 * (2*a + (n-1)*d)
-    // where n = targetLvl, a = 5, d = 5
-    // Actually, formula for total XP to reach level L is slightly complex because of the "reset".
-    // Simple iterative approach is safest:
     let level = 0;
     let cap = 5;
     while(level < targetLvl) {
@@ -820,6 +645,9 @@ function runCalculator(avg) {
     if(avg) currentAvg = avg;
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
+    
+    // Save to local storage
+    localStorage.setItem(STORAGE_KEY_CALC, val);
     
     if (currentAvg === 0) {
         el.innerHTML = "<i>Work to enable calc...</i>";
