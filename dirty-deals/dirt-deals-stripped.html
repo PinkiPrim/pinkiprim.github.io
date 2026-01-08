@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Precision v6.3</title>
+    <title>Dirty Deals - v7.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,12 +16,53 @@
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
+        /* --- DOCK BAR (Top of Screen) --- */
+        #dock-bar {
+            display: none; /* Flex when active */
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            background: rgba(18, 18, 18, 0.95);
+            border: 2px solid var(--accent); border-top: none;
+            padding: 8px 30px; border-radius: 0 0 10px 10px;
+            cursor: pointer; z-index: 10001;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; letter-spacing: 2px;
+            box-shadow: 0 0 15px rgba(94, 107, 246, 0.3);
+            transition: 0.2s;
+        }
+        #dock-bar:hover { padding-top: 15px; background: var(--accent); color: white; }
+
+        /* --- LOGIN SCREEN --- */
+        #login-overlay {
+            display: none; /* Flex when active */
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 10000;
+            justify-content: center; align-items: center; flex-direction: column;
+        }
+        .login-box {
+            width: 350px; padding: 30px; background: #1a1a1a;
+            border: 2px solid var(--accent); border-radius: 8px;
+            text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+        .login-title { font-family: 'Rajdhani', sans-serif; font-size: 2em; margin-bottom: 20px; color: white; letter-spacing: 2px; }
+        .login-input { 
+            width: 100%; padding: 15px; background: #000; border: 1px solid #333; 
+            color: var(--accent); font-size: 1.5em; text-align: center; letter-spacing: 5px; 
+            margin-bottom: 15px; font-family: monospace;
+        }
+        .login-btn {
+            width: 100%; padding: 12px; background: var(--accent); border: none;
+            color: white; font-weight: bold; cursor: pointer; font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2em; transition: 0.2s;
+        }
+        .login-btn:hover { background: var(--accent-hover); }
+        .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
+
+        /* --- MAIN APP CONTAINER --- */
         #app-container {
-            display: flex; /* Visible for setup/testing */
-            position: absolute; top: 50px; left: 50px; width: 900px; height: 650px; 
+            display: none; /* Hidden until login */
+            position: absolute; top: 100px; left: 50px; width: 900px; height: 650px; 
             background: var(--bg-glass); border: var(--border); border-radius: 8px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000;
-            transition: width 0.3s ease, height 0.3s ease, background 0.3s ease; 
+            transition: width 0.3s ease, height 0.3s ease; 
         }
 
         /* --- MINI WIDGET MODE --- */
@@ -32,12 +73,9 @@
             border: 1px solid var(--accent);
         }
         
-        body.mini-mode #main-header, 
-        body.mini-mode #view-order,
-        body.mini-mode .selection-area,
-        body.mini-mode .details-area {
-            display: none !important;
-        }
+        /* Elements to HIDE in Mini Mode */
+        body.mini-mode #main-header, body.mini-mode #view-order,
+        body.mini-mode .selection-area, body.mini-mode .details-area { display: none !important; }
 
         /* MINI HEADER */
         #mini-header { display: none; flex-direction: column; }
@@ -76,10 +114,7 @@
         body.mini-mode.role-grinder.show-orders #view-history { display: flex !important; height: calc(100% - 60px); }
 
         body.mini-mode .history-list { background: transparent; border: none; overflow-y: auto; flex: 1; }
-        body.mini-mode .history-item { 
-            padding: 0; border-bottom: 1px solid #333; margin-bottom: 0; 
-            background: rgba(0,0,0,0.2); 
-        }
+        body.mini-mode .history-item { padding: 0; border-bottom: 1px solid #333; margin-bottom: 0; background: rgba(0,0,0,0.2); }
         body.mini-mode .h-top { padding: 10px; }
         body.mini-mode .section-title, body.mini-mode .view-controls { display: none; }
         body.mini-mode .mini-label { 
@@ -113,7 +148,7 @@
         @keyframes connectFlash { 0% { color: #fff; } 50% { color: #2ecc71; } 100% { color: #fff; } }
         .connected .user-name { animation: connectFlash 1s ease; color: #2ecc71; }
 
-        /* LAYOUTS */
+        /* --- LAYOUTS --- */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
         #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
@@ -210,6 +245,20 @@
 </head>
 <body>
 
+<div id="dock-bar" onclick="showLogin()">
+    <span>DIRTY DEALS</span>
+</div>
+
+<div id="login-overlay">
+    <div class="login-box">
+        <div class="login-title">AUTHENTICATION</div>
+        <div id="loading-txt" style="color:cyan; margin-bottom:10px;">SCANNING IDENTITY...</div>
+        <input type="password" id="pin-input" class="login-input" placeholder="PIN" maxlength="4" style="display:none;">
+        <button id="btn-login" class="login-btn" onclick="attemptLogin()" style="display:none;">LOGIN</button>
+        <div id="login-status" class="login-status"></div>
+    </div>
+</div>
+
 <div id="app-container">
     <div id="mini-header">
         <div id="mini-drag-strip">
@@ -235,9 +284,9 @@
             <div class="mail-icon" id="mail-alert" title="New Message!">
                 📩<div class="mail-badge"></div>
             </div>
-            <div class="status-box" id="status-box" onclick="manualRefreshID()" title="Click to refresh identity">
+            <div class="status-box" id="status-box">
                 <div class="user-name" id="username-display">Guest</div>
-                <div class="user-id" id="userid-display">Tap to Refresh</div>
+                <div class="user-id" id="userid-display">000000</div>
                 <div class="rank-tag" id="rank-display"></div>
             </div>
         </div>
@@ -321,7 +370,7 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
     
     // --- 2. GRINDER ROSTER ---
     var GRINDER_ROSTER = {
@@ -399,7 +448,8 @@
 
     var state = { 
         category: "Bonus EXP", item: null, qty: 1, priority: 'normal', 
-        username: "Guest", userId: "0", isGrinder: false, grinderRank: "", 
+        username: "Guest", userId: "0", userPin: "", 
+        isGrinder: false, grinderRank: "", 
         activeOrders: 0, completedOrders: 0,
         showMyHistoryDone: false, showGrinderDone: false,
         customOrderMode: false, miniView: 'orders'
@@ -409,75 +459,85 @@
     // --- INIT ---
     window.onload = function() {
         setCategory("Bonus EXP");
-        initDrag();
-        renderGrid();
         
-        requestData();
-        setTimeout(requestData, 250);
-        setTimeout(requestData, 500);
-        pollingInterval = setInterval(requestData, 1000); 
-        setInterval(checkForMail, 5000);
-        
-        document.body.classList.add('show-orders');
-        
+        // Listen for FiveM Message
         window.addEventListener('message', function(event) {
             var item = event.data;
             if (item.type === 'open') {
-                document.getElementById('app-container').style.display = 'flex';
+                document.getElementById('dock-bar').style.display = 'flex';
+            }
+            if (item.type === "data" || item.user_id) {
+                let d = item.data || item;
+                if(d.user_id || d.player_id || d.id) {
+                    state.username = d.name || d.player || "Unknown";
+                    state.userId = cleanID(d.user_id || d.player_id || d.id);
+                    
+                    document.getElementById('username-display').innerText = state.username;
+                    document.getElementById('userid-display').innerText = "ID: " + state.userId;
+                    document.getElementById('loading-txt').innerText = "IDENTITY CONFIRMED: " + state.username;
+                    document.getElementById('pin-input').style.display = 'block';
+                    document.getElementById('btn-login').style.display = 'block';
+                    
+                    // Check Grinder Status immediately based on ID
+                    if(GRINDER_ROSTER[state.userId]) {
+                        state.isGrinder = true;
+                        state.grinderRank = GRINDER_ROSTER[state.userId];
+                        document.body.classList.add('role-grinder');
+                        document.getElementById('nav-grinder').style.display = 'inline-block';
+                        document.getElementById('rank-display').innerText = state.grinderRank;
+                    }
+                }
             }
         });
+        
+        // Request Data immediately (for testing outside FiveM or instant load)
+        requestData();
     };
 
-    // --- CONNECTION ---
-    window.addEventListener('message', function(event) {
-        var payload = event.data;
-        if (payload && payload.type === 'data' && payload.data) payload = payload.data;
-        if (!payload) return;
-
-        var username = null;
-        if (payload.name) username = payload.name;
-        else if (payload.player && payload.player.name) username = payload.player.name;
-        else if (typeof payload.player === 'string') username = payload.player;
-
-        var userId = "0";
-        if (payload.user_id) userId = String(payload.user_id);
-        else if (payload.player_id) userId = String(payload.player_id);
-        else if (payload.id) userId = String(payload.id);
-
-        if (userId !== "0" && state.userId === "0") {
-            foundIdentity(username || "Unknown", userId);
-        }
-    });
-
-    function foundIdentity(name, id) {
-        state.username = name;
-        state.userId = id;
-        
-        document.getElementById('username-display').innerText = state.username;
-        document.getElementById('userid-display').innerText = "ID: " + state.userId;
-        document.getElementById('status-box').classList.add('connected');
-
-        if(pollingInterval) clearInterval(pollingInterval);
-
-        if(GRINDER_ROSTER[state.userId]) {
-            state.isGrinder = true;
-            state.grinderRank = GRINDER_ROSTER[state.userId];
-            document.body.classList.add('role-grinder');
-            document.getElementById('nav-grinder').style.display = 'inline-block';
-            document.getElementById('rank-display').innerText = state.grinderRank;
-        }
-        fetchMyOrders();
-    }
-
-    function manualRefreshID() {
-        document.getElementById('username-display').innerText = "Refreshing...";
-        state.userId = "0";
-        requestData();
-        if(!pollingInterval) pollingInterval = setInterval(requestData, 1000);
-    }
+    function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
 
     function requestData() {
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
+    }
+
+    // --- LOGIN SYSTEM ---
+    function showLogin() {
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('pin-input').focus();
+    }
+
+    function attemptLogin() {
+        var pin = document.getElementById('pin-input').value;
+        if(pin.length < 4) {
+            document.getElementById('login-status').innerText = "PIN must be 4 digits";
+            return;
+        }
+        
+        document.getElementById('btn-login').disabled = true;
+        document.getElementById('btn-login').innerText = "VERIFYING...";
+        
+        // Send to Google Script to verify/create user
+        fetch(`${GOOGLE_SCRIPT_URL}?action=login&userId=${state.userId}&name=${state.username}&pin=${pin}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.result === 'success') {
+                state.userPin = pin; // Store PIN for future requests
+                document.getElementById('dock-bar').style.display = 'none';
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-container').style.display = 'flex';
+                
+                // Start App
+                initDrag();
+                renderGrid();
+                fetchMyOrders();
+                setInterval(checkForMail, 5000);
+            } else {
+                document.getElementById('login-status').innerText = data.message;
+                document.getElementById('login-status').style.color = "#e74c3c";
+                document.getElementById('btn-login').disabled = false;
+                document.getElementById('btn-login').innerText = "LOGIN";
+            }
+        });
     }
 
     // --- SMART STEP LOGIC ---
@@ -662,16 +722,13 @@
     }
 
     function submitRealOrder() {
-        if(state.userId === "0") return;
         var btn = document.getElementById('btn-submit');
         btn.disabled = true; btn.innerText = "SENDING...";
 
         var payload = {
             action: "placeOrder",
-            username: state.username,
-            userId: state.userId,
-            category: state.category,
-            item: state.item.name,
+            username: state.username, userId: state.userId, pin: state.userPin,
+            category: state.category, item: state.item.name,
             quantity: document.getElementById('input-qty').value,
             priority: document.getElementById('input-priority').value,
             totalPrice: document.getElementById('disp-total').innerText
@@ -688,8 +745,8 @@
     }
 
     function checkForMail() {
-        if(state.userId === "0") return;
-        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId)
+        if(!state.userPin) return; // Don't check until logged in
+        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId + "&pin=" + state.userPin)
         .then(function(r){ return r.json(); })
         .then(function(data) {
             if(!data) return;
@@ -707,9 +764,7 @@
 
     function fetchMyOrders() {
         var c = document.getElementById('history-container');
-        if(state.userId === "0") { c.innerHTML = '<div style="padding:20px; text-align:center;">Waiting for ID...</div>'; return; }
-        
-        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId)
+        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId + "&pin=" + state.userPin)
         .then(function(r){ return r.json(); })
         .then(function(data) {
             c.innerHTML = '';
@@ -732,7 +787,7 @@
 
     function fetchGlobalOrders() {
         var c = document.getElementById('grinder-container');
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders")
+        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin)
         .then(function(r){ return r.json(); })
         .then(function(data) {
             c.innerHTML = '';
@@ -844,18 +899,28 @@
     }
 
     function updateOrderStatus(ts, uid, status) {
-        var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank };
+        var payload = { 
+            action: "updateOrder", orderTimestamp: ts, orderUserId: uid, 
+            newStatus: status, grinderName: state.username, grinderRank: state.grinderRank,
+            userId: state.userId, pin: state.userPin 
+        };
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
         .then(function() { setTimeout(fetchGlobalOrders, 1000); });
     }
 
     function updateProgress(ts, uid, amount) {
-        var payload = { action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount };
+        var payload = { 
+            action: "updateProgress", orderTimestamp: ts, orderUserId: uid, 
+            progress: amount, userId: state.userId, pin: state.userPin 
+        };
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     }
 
     function sendChatMessage(ts, uid, msg) {
-        var payload = { action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg };
+        var payload = { 
+            action: "sendMessage", orderTimestamp: ts, orderUserId: uid, 
+            sender: state.username, message: msg, userId: state.userId, pin: state.userPin 
+        };
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
         .then(function() { 
             if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders();
@@ -863,7 +928,7 @@
         });
     }
 
-    // --- DRAG LOGIC (Dual Handler) ---
+    // --- DRAG LOGIC ---
     var mainHeader = document.getElementById("main-header");
     var miniStrip = document.getElementById("mini-drag-strip");
     var elmnt = document.getElementById("app-container");
@@ -873,13 +938,16 @@
     function elementDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
     function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
 
-    if(mainHeader) mainHeader.onmousedown = dragMouseDown;
-    if(miniStrip) miniStrip.onmousedown = dragMouseDown;
+    function initDrag() {
+        if(mainHeader) mainHeader.onmousedown = dragMouseDown;
+        if(miniStrip) miniStrip.onmousedown = dragMouseDown;
+    }
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     document.onkeydown = function(e) { 
         if(e.keyCode==27) { 
             fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err=>{});
+            document.getElementById('dock-bar').style.display = "flex"; 
             document.getElementById('app-container').style.display = "none"; 
         }
     }
