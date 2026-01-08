@@ -20,7 +20,7 @@
         
         body { margin: 0; overflow: hidden; background: transparent; font-family: 'Rajdhani', sans-serif; color: white; height: 100vh; width: 100vw; }
 
-        /* LOGIN & BASICS */
+        /* LOGIN */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { width: 400px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
         .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 15px; cursor: not-allowed; }
@@ -34,6 +34,16 @@
         .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
+
+        /* MINI MODE (Widget Style) */
+        body.mini-mode .pivot-wrapper { width: 350px !important; height: 180px !important; transform: none !important; margin: 0; }
+        body.mini-mode .menu-container { display: none; }
+        body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
+        body.mini-mode .submenu-container { background: rgba(0,0,0,0.85); border: 2px solid var(--primary); top:0; transform: none; height: 100%; padding: 10px; }
+        body.mini-mode .detail-right { background: transparent; border: none; padding: 0; }
+        body.mini-mode #detail-title { font-size: 1.2em; margin: 0; }
+        body.mini-mode #detail-price { font-size: 1.5em; margin: 5px 0; }
+        body.mini-mode #min-btn { position: absolute; top: 5px; right: 5px; font-size: 0.8em; padding: 2px 5px; }
 
         /* MENUS */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
@@ -58,6 +68,7 @@
         .card-body { padding: 15px; display: flex; flex-direction: column; justify-content: center; height: 100%; }
         .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
         .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
+        .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; }
         
         /* STATUS BADGES */
         .st-Active { color: #00ff00; }
@@ -76,10 +87,10 @@
         #view-detail { display: none; height: 100%; flex-direction: column; }
         .detail-layout { display: flex; gap: 20px; height: 100%; }
         .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-        .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; }
+        .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; position: relative; }
         .detail-img { width: 100%; height: 250px; object-fit: contain; background: #000; border: 1px solid #444; }
         
-        /* --- SELL LAYOUT --- */
+        /* SELL LAYOUT */
         #view-sell { display: none; height: 100%; flex-direction: column; }
         .sell-layout { display: flex; gap: 20px; height: 100%; }
         .sell-form { flex: 1; display: flex; flex-direction: column; gap: 15px; }
@@ -92,8 +103,6 @@
         input[type="text"], input[type="number"], select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
         input:focus { border-color: var(--primary); outline: none; }
         input:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        /* CHECKBOX STYLE */
         .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; cursor: pointer; }
         .checkbox-row input { width: auto; cursor: pointer; }
         .checkbox-row label { margin: 0; cursor: pointer; color: #aaa; font-size: 0.9em; }
@@ -101,10 +110,8 @@
         .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
         .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
         .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
-        
         .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; }
 
-        /* SCROLL */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); }
     </style>
@@ -127,62 +134,32 @@
             
             <div class="menu-container" id="main-menu">
                 <div class="header-text">PINKI TT AUCTION</div>
-                
-                <div class="holo-btn" onclick="openSubmenu('browse')">
-                    <div class="icon-box"><i class="fas fa-globe"></i></div>
-                    <span class="btn-text">BROWSE LISTINGS</span>
-                </div>
-                
-                <div class="holo-btn" onclick="openSubmenu('mydata')">
-                    <div class="icon-box"><i class="fas fa-box-open"></i></div>
-                    <span class="btn-text">MY HISTORY</span>
-                </div>
-
-                <div class="holo-btn" onclick="openSubmenu('sell')">
-                    <div class="icon-box"><i class="fas fa-upload"></i></div>
-                    <span class="btn-text">CREATE LISTING</span>
-                </div>
-                
-                <div class="holo-btn" id="btn-hk" style="display:none; border-color: var(--admin-color);" onclick="openSubmenu('hk')">
-                    <div class="icon-box" style="color:var(--admin-color);"><i class="fas fa-shield-alt"></i></div>
-                    <span class="btn-text" style="color:var(--admin-color);">HK DASHBOARD</span>
-                </div>
-
-                <div class="holo-btn" onclick="closeApp()">
-                    <div class="icon-box"><i class="fas fa-power-off"></i></div>
-                    <span class="btn-text">DISCONNECT</span>
-                </div>
+                <div class="holo-btn" onclick="openSubmenu('browse')"><div class="icon-box"><i class="fas fa-globe"></i></div><span class="btn-text">BROWSE LISTINGS</span></div>
+                <div class="holo-btn" onclick="openSubmenu('mydata')"><div class="icon-box"><i class="fas fa-box-open"></i></div><span class="btn-text">MY HISTORY</span></div>
+                <div class="holo-btn" onclick="openSubmenu('sell')"><div class="icon-box"><i class="fas fa-upload"></i></div><span class="btn-text">CREATE LISTING</span></div>
+                <div class="holo-btn" id="btn-hk" style="display:none; border-color: var(--admin-color);" onclick="openSubmenu('hk')"><div class="icon-box" style="color:var(--admin-color);"><i class="fas fa-shield-alt"></i></div><span class="btn-text" style="color:var(--admin-color);">HK DASHBOARD</span></div>
+                <div class="holo-btn" onclick="closeApp()"><div class="icon-box"><i class="fas fa-power-off"></i></div><span class="btn-text">DISCONNECT</span></div>
             </div>
 
             <div class="submenu-container" id="submenu-layer">
                 
                 <div id="view-browse" class="view-content" style="display:none; height:100%; flex-direction:column;">
-                    <div class="content-header">
-                        <h3>ACTIVE MARKET</h3>
-                        <button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('browse')">REFRESH</button>
-                    </div>
-                    <div class="grid-scroll">
-                        <div class="auction-grid" id="browse-grid"></div>
-                    </div>
+                    <div class="content-header"><h3>ACTIVE MARKET</h3><button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('browse')">REFRESH</button></div>
+                    <div class="grid-scroll"><div class="auction-grid" id="browse-grid"></div></div>
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
 
                 <div id="view-mydata" class="view-content" style="display:none; height:100%; flex-direction:column;">
                     <div class="content-header">
                         <h3>MY HISTORY</h3>
-                        <button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('mydata')">REFRESH</button>
+                        <button class="action-btn" id="btn-arch" style="width:auto; margin:0; font-size:0.8em;" onclick="toggleArchive()">SHOW PREVIOUS</button>
                     </div>
-                    <div class="grid-scroll">
-                        <div class="auction-grid" id="my-grid"></div>
-                    </div>
+                    <div class="grid-scroll"><div class="auction-grid" id="my-grid"></div></div>
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
 
                 <div id="view-hk" class="view-content" style="display:none; height:100%; flex-direction:column;">
-                    <div class="content-header">
-                        <h3 style="color:var(--admin-color);">HOUSEKEEPING</h3>
-                        <button class="action-btn" style="width:auto; margin:0; border-color:var(--admin-color);" onclick="fetchData('hk')">REFRESH</button>
-                    </div>
+                    <div class="content-header"><h3 style="color:var(--admin-color);">HOUSEKEEPING</h3><button class="action-btn" style="width:auto; margin:0; border-color:var(--admin-color);" onclick="fetchData('hk')">REFRESH</button></div>
                     <div class="hk-dashboard">
                         <div class="stat-box"><div class="stat-val" id="st-total">0</div><div class="stat-label">Total</div></div>
                         <div class="stat-box"><div class="stat-val" id="st-active">0</div><div class="stat-label">Active</div></div>
@@ -197,14 +174,15 @@
                     <div class="content-header"><h3>ITEM DETAILS</h3></div>
                     <div class="detail-layout">
                         <div class="detail-left">
-                            <div id="detail-img-container" style="width:100%; height:250px; background:#000; border:1px solid #444; display:flex; align-items:center; justify-content:center;">
-                                </div>
+                            <div id="detail-img-container" style="width:100%; height:250px; background:#000; border:1px solid #444; display:flex; align-items:center; justify-content:center;"></div>
                             <div style="font-size:0.9em; color:#888; margin-top:10px;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
                             <div style="font-size:0.9em; color:#888;">STATUS: <span id="detail-status" style="font-weight:bold;"></span></div>
                         </div>
                         <div class="detail-right">
-                            <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px;">Item Name</div>
-                            <div id="detail-price" style="font-size:2em; color:var(--primary); font-weight:bold; margin-bottom:15px;">$0</div>
+                            <button id="min-btn" class="action-btn" style="position:absolute; top:0; right:0; width:auto; margin:0; padding:5px 10px; font-size:0.8em;" onclick="toggleMiniMode()">[-]</button>
+                            <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
+                            <div id="detail-price" style="font-size:2em; color:var(--primary); font-weight:bold; margin-bottom:5px;">$0</div>
+                            <div style="color:#ff4444; font-weight:bold; margin-bottom:15px;"><i class="far fa-clock"></i> <span id="detail-live-timer">00:00</span></div>
                             <div style="margin-bottom:20px;">High Bidder: <span id="detail-bidder">None</span></div>
                             
                             <div id="controls-bid" style="display:none;">
@@ -214,14 +192,13 @@
                             <div id="controls-seller" style="display:none; text-align:center;">
                                 <div style="color:#e67e22; margin-bottom:10px;">YOUR LISTING</div>
                                 <button id="btn-mark-comp" class="action-btn" onclick="updateStatus('Completed')" style="background:#e67e22; border-color:#d35400;">MARK AS COMPLETED</button>
+                                <button id="btn-remove" class="action-btn" onclick="removeListing()" style="display:none; background:#ff4444; border-color:#990000; margin-top:10px;">REMOVE (UNSOLD)</button>
                             </div>
                             <div id="controls-buyer" style="display:none; text-align:center;">
                                 <div style="color:#2ecc71; margin-bottom:10px;">YOU WON THIS AUCTION</div>
                                 <button id="btn-mark-full" class="action-btn" onclick="updateStatus('Fulfilled')" style="background:#27ae60; border-color:#2ecc71;">CONFIRM RECEIPT (FULFILLED)</button>
                             </div>
-                            <div id="controls-done" style="display:none; text-align:center; padding:20px; border:1px solid #333; color:#555;">
-                                TRANSACTION CLOSED
-                            </div>
+                            <div id="controls-done" style="display:none; text-align:center; padding:20px; border:1px solid #333; color:#555;">TRANSACTION CLOSED</div>
                         </div>
                     </div>
                     <div class="back-btn" onclick="returnToLastView()"><i class="fas fa-chevron-left"></i> BACK</div>
@@ -229,43 +206,17 @@
 
                 <div id="view-sell" class="view-content">
                     <div class="content-header"><h3>UPLOAD TO MARKET</h3></div>
-                    
                     <div class="sell-layout">
                         <div class="sell-form">
-                            <div class="input-group">
-                                <label>ITEM NAME</label>
-                                <input type="text" id="sell-name" placeholder="e.g. Import Car">
-                            </div>
-                            <div class="input-group">
-                                <label>IMAGE URL (Catbox.moe)</label>
-                                <input type="text" id="sell-img" placeholder="https://..." oninput="previewImg(this.value)">
-                                <div class="checkbox-row">
-                                    <input type="checkbox" id="no-img-check" onchange="toggleImgInput()">
-                                    <label for="no-img-check">NO IMAGE</label>
-                                </div>
-                            </div>
-                            <div class="input-group">
-                                <label>STARTING BID</label>
-                                <input type="number" id="sell-price" placeholder="5000">
-                            </div>
-                            <div class="input-group">
-                                <label>DURATION</label>
-                                <select id="sell-duration">
-                                    <option value="15">15 Minutes</option>
-                                    <option value="60">1 Hour</option>
-                                    <option value="1440">24 Hours</option>
-                                </select>
-                            </div>
+                            <div class="input-group"><label>ITEM NAME</label><input type="text" id="sell-name" placeholder="e.g. Import Car"></div>
+                            <div class="input-group"><label>IMAGE URL (Catbox.moe)</label><input type="text" id="sell-img" placeholder="https://..." oninput="previewImg(this.value)"><div class="checkbox-row"><input type="checkbox" id="no-img-check" onchange="toggleImgInput()"><label for="no-img-check">NO IMAGE</label></div></div>
+                            <div class="input-group"><label>STARTING BID</label><input type="number" id="sell-price" placeholder="5000"></div>
+                            <div class="input-group"><label>DURATION</label><select id="sell-duration"><option value="15">15 Minutes</option><option value="60">1 Hour</option><option value="1440">24 Hours</option></select></div>
                         </div>
-
-                        <div class="sell-preview-box">
-                            <div id="img-preview" style="color:#555;">NO IMAGE PREVIEW</div>
-                        </div>
+                        <div class="sell-preview-box"><div id="img-preview" style="color:#555;">NO IMAGE PREVIEW</div></div>
                     </div>
-
                     <button class="action-btn" onclick="postAuction()">CREATE LISTING</button>
                     <div id="sell-status" style="text-align:center; margin-top:5px; height:20px; color:cyan;"></div>
-                    
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
 
@@ -282,9 +233,12 @@
     let isMenuOpen = false;
     let currentDetailId = null;
     let lastView = 'browse';
+    let showArchive = false;
+    let pollingInterval = null;
+    let countdownInterval = null;
 
     document.addEventListener('mousemove', (e) => {
-        if (!isMenuOpen) return;
+        if (!isMenuOpen || document.body.classList.contains('mini-mode')) return;
         const wrapper = document.getElementById('pivot-wrapper');
         const rotX = ((e.clientY - window.innerHeight/2) / window.innerHeight/2) * -5;
         const rotY = ((e.clientX - window.innerWidth/2) / window.innerWidth/2) * 5;
@@ -329,15 +283,20 @@
         isMenuOpen = true;
         document.getElementById('pivot-wrapper').style.display = "block";
         if(userData.id === ADMIN_ID) document.getElementById('btn-hk').style.display = 'flex';
-        else document.getElementById('btn-hk').style.display = 'none';
         const btns = document.querySelectorAll('.holo-btn');
         btns.forEach((btn, i) => { btn.classList.remove('show'); setTimeout(() => btn.classList.add('show'), i * 100); });
+        
+        // Start Global Timer Logic
+        if(countdownInterval) clearInterval(countdownInterval);
+        countdownInterval = setInterval(updateAllTimers, 1000);
     }
 
     function closeApp() {
         isMenuOpen = false;
         document.getElementById('pivot-wrapper').style.display = "none";
         document.getElementById('login-screen').style.display = 'none';
+        if(pollingInterval) clearInterval(pollingInterval);
+        if(countdownInterval) clearInterval(countdownInterval);
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
     }
 
@@ -361,6 +320,12 @@
         }, 300);
     }
 
+    function toggleArchive() {
+        showArchive = !showArchive;
+        document.getElementById('btn-arch').innerText = showArchive ? "HIDE PREVIOUS" : "SHOW PREVIOUS";
+        fetchData('mydata');
+    }
+
     function fetchData(view) {
         let action = "browse"; 
         if(view === 'hk') action = "getAll";
@@ -374,36 +339,181 @@
         .then(data => {
             currentData = data;
             if(view === 'hk') renderHK(data);
-            else renderGrid(data, container);
+            else renderGrid(data, container, view === 'mydata');
         });
     }
 
-    function renderGrid(data, container) {
+    function renderGrid(data, container, isHistory) {
         container.innerHTML = '';
-        if(data.length === 0) container.innerHTML = '<div style="padding:20px; color:#555;">No records found.</div>';
-        
+        const now = new Date().getTime();
+        let count = 0;
+
         data.forEach(item => {
+            // FILTER HISTORY
+            if(isHistory && !showArchive && item.status !== "Active") return;
+            
+            count++;
             let status = item.status;
             let imgHTML = '';
-            
-            // Logic: Only show image tag if a URL exists. Otherwise show nothing (clean text card)
-            if (item.img && item.img.startsWith('http')) {
-                imgHTML = `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">`;
-            }
+            if (item.img && item.img.startsWith('http')) imgHTML = `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">`;
 
             let card = document.createElement('div');
             card.className = 'auction-card';
             card.onclick = () => openDetail(item);
+            
+            // Embed EndTime in dataset for timer loop
+            let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}">...</div>` : '';
+
             card.innerHTML = `
                 ${imgHTML}
                 <div class="card-body">
                     <div class="card-title">${item.item}</div>
                     <div class="card-price">$${parseInt(item.price).toLocaleString()}</div>
+                    ${timerHTML}
                     <div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div>
                     <div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div>
                 </div>
             `;
             container.appendChild(card);
+        });
+        
+        if(count === 0) container.innerHTML = '<div style="padding:20px; color:#555;">No records found.</div>';
+        updateAllTimers();
+    }
+
+    function updateAllTimers() {
+        const now = new Date().getTime();
+        document.querySelectorAll('.card-timer').forEach(el => {
+            const end = parseInt(el.getAttribute('data-end'));
+            el.innerText = formatTime(end - now);
+        });
+        
+        // Also update Detail View if open
+        if(currentDetailId && document.getElementById('view-detail').style.display !== 'none') {
+            const item = currentData.find(i => i.id === currentDetailId);
+            if(item) document.getElementById('detail-live-timer').innerText = formatTime(item.endTime - now);
+        }
+    }
+
+    function formatTime(ms) {
+        if(ms <= 0) return "ENDED";
+        let h = Math.floor(ms / 3600000);
+        let m = Math.floor((ms % 3600000) / 60000);
+        let s = Math.floor((ms % 60000) / 1000);
+        return `${h}h ${m}m ${s}s`;
+    }
+
+    function openDetail(item) {
+        currentDetailId = item.id;
+        document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
+        document.getElementById('view-detail').style.display = 'flex';
+        
+        // START POLLING (Every 1s)
+        if(pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(refreshDetail, 1000);
+
+        renderDetail(item);
+    }
+
+    function refreshDetail() {
+        // Silent fetch to update price/timer
+        fetch(`${CONST_GOOGLE_URL}?action=getAll&userId=${userData.id}`)
+        .then(res => res.json())
+        .then(data => {
+            // Find current item in fresh data
+            const item = data.find(i => String(i.id) === String(currentDetailId));
+            if(item) renderDetail(item);
+        });
+    }
+
+    function renderDetail(item) {
+        document.getElementById('detail-title').innerText = item.item;
+        document.getElementById('detail-seller').innerText = item.seller;
+        document.getElementById('detail-price').innerText = "$" + parseInt(item.price).toLocaleString();
+        document.getElementById('detail-bidder').innerText = (item.highBidder === "No Bids" || item.highBidder === "None") ? "No Bids" : item.highBidder;
+        document.getElementById('detail-status').innerText = item.status;
+        document.getElementById('detail-status').className = `st-${item.status}`;
+        
+        const imgContainer = document.getElementById('detail-img-container');
+        if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
+        else imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
+
+        // Controls Logic
+        document.getElementById('controls-bid').style.display = 'none';
+        document.getElementById('controls-seller').style.display = 'none';
+        document.getElementById('controls-buyer').style.display = 'none';
+        document.getElementById('controls-done').style.display = 'none';
+        document.getElementById('btn-remove').style.display = 'none';
+        document.getElementById('btn-mark-comp').style.display = 'none';
+
+        const isSeller = String(item.sellerId) === userData.id;
+        const isBuyer = String(item.bidderId) === userData.id;
+        const noBids = (item.bidderId == "0" || item.highBidder == "None");
+
+        if (item.status === 'Active') {
+            if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
+            else document.getElementById('controls-seller').innerHTML = '<div style="color:#e67e22;">AUCTION IN PROGRESS</div>';
+        } else if (item.status === 'Ended') {
+            if(isSeller) {
+                document.getElementById('controls-seller').style.display = 'block';
+                if(noBids) document.getElementById('btn-remove').style.display = 'block';
+                else document.getElementById('btn-mark-comp').style.display = 'block';
+            } else {
+                document.getElementById('controls-done').style.display = 'block';
+                document.getElementById('controls-done').innerText = noBids ? "ENDED - UNSOLD" : "ENDED - WAITING FOR SELLER";
+            }
+        } else if (item.status === 'Completed') {
+            if(isBuyer) document.getElementById('controls-buyer').style.display = 'block';
+            else {
+                 document.getElementById('controls-done').style.display = 'block';
+                 document.getElementById('controls-done').innerText = "SELLER COMPLETED - WAITING FOR BUYER";
+            }
+        } else if (item.status === 'Fulfilled') {
+            document.getElementById('controls-done').style.display = 'block';
+            document.getElementById('controls-done').innerText = "ORDER FULFILLED";
+        }
+    }
+
+    function returnToLastView() {
+        // Stop detail polling
+        if(pollingInterval) clearInterval(pollingInterval);
+        // Reset mini mode
+        document.body.classList.remove('mini-mode');
+        document.getElementById('view-detail').style.display = 'none';
+        document.getElementById('view-' + lastView).style.display = 'flex';
+        fetchData(lastView);
+    }
+
+    function toggleMiniMode() {
+        document.body.classList.toggle('mini-mode');
+    }
+
+    function removeListing() {
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "delete", id: currentDetailId, requesterId: userData.id })
+        }).then(() => { returnToLastView(); });
+    }
+
+    function updateStatus(newStatus) {
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id })
+        }).then(() => { returnToLastView(); });
+    }
+
+    function placeBid() {
+        let amt = document.getElementById('detail-bid-input').value;
+        if(!amt) return;
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id })
+        }).then(() => { 
+            // Note: We don't returnToLastView here, let the polling update the UI so they can see their bid land
+            document.getElementById('detail-bid-input').value = "";
         });
     }
 
@@ -424,86 +534,6 @@
         document.getElementById('st-active').innerText = active;
         document.getElementById('st-comp').innerText = comp;
         document.getElementById('st-ful').innerText = ful;
-    }
-
-    function openDetail(item) {
-        currentDetailId = item.id;
-        document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
-        document.getElementById('view-detail').style.display = 'flex';
-        
-        document.getElementById('detail-title').innerText = item.item;
-        document.getElementById('detail-seller').innerText = item.seller;
-        document.getElementById('detail-price').innerText = "$" + parseInt(item.price).toLocaleString();
-        document.getElementById('detail-bidder').innerText = item.highBidder;
-        document.getElementById('detail-status').innerText = item.status;
-        document.getElementById('detail-status').className = `st-${item.status}`;
-        
-        // Handle Detail Image
-        const imgContainer = document.getElementById('detail-img-container');
-        if (item.img && item.img.startsWith('http')) {
-            imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
-        } else {
-            imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
-        }
-
-        // Controls Logic
-        document.getElementById('controls-bid').style.display = 'none';
-        document.getElementById('controls-seller').style.display = 'none';
-        document.getElementById('controls-buyer').style.display = 'none';
-        document.getElementById('controls-done').style.display = 'none';
-
-        const isSeller = String(item.sellerId) === userData.id;
-        const isBuyer = String(item.bidderId) === userData.id;
-
-        if (item.status === 'Active') {
-            if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
-            else document.getElementById('controls-seller').innerHTML = '<div style="color:#e67e22;">AUCTION IN PROGRESS</div>';
-        } else if (item.status === 'Ended') {
-            if(isSeller) {
-                document.getElementById('controls-seller').style.display = 'block';
-                document.getElementById('btn-mark-comp').style.display = 'block';
-            } else {
-                document.getElementById('controls-done').style.display = 'block';
-                document.getElementById('controls-done').innerText = "AUCTION ENDED - WAITING FOR SELLER";
-            }
-        } else if (item.status === 'Completed') {
-            if(isBuyer) {
-                document.getElementById('controls-buyer').style.display = 'block';
-            } else {
-                 document.getElementById('controls-done').style.display = 'block';
-                 document.getElementById('controls-done').innerText = "SELLER COMPLETED - WAITING FOR BUYER";
-            }
-        } else if (item.status === 'Fulfilled') {
-            document.getElementById('controls-done').style.display = 'block';
-            document.getElementById('controls-done').innerText = "ORDER FULFILLED";
-        }
-    }
-
-    function returnToLastView() {
-        document.getElementById('view-detail').style.display = 'none';
-        document.getElementById('view-' + lastView).style.display = 'flex';
-        fetchData(lastView);
-    }
-
-    function updateStatus(newStatus) {
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id })
-        }).then(() => { 
-            // Replace alert with return
-            returnToLastView(); 
-        });
-    }
-
-    function placeBid() {
-        let amt = document.getElementById('detail-bid-input').value;
-        if(!amt) return;
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id })
-        }).then(() => { returnToLastView(); });
     }
 
     // --- NEW IMAGE LOGIC ---
@@ -535,22 +565,12 @@
     function postAuction() {
         const btn = document.querySelector('#view-sell .action-btn');
         const status = document.getElementById('sell-status');
-        
-        // Validation
         const name = document.getElementById('sell-name').value;
         const price = document.getElementById('sell-price').value;
-        
-        if(!name || !price) {
-            status.innerText = "ERROR: MISSING FIELDS";
-            status.style.color = "#ff4444";
-            return;
-        }
+        if(!name || !price) { status.innerText = "ERROR: MISSING FIELDS"; status.style.color = "#ff4444"; return; }
 
-        btn.disabled = true; 
-        btn.innerText = "UPLOADING...";
-        status.innerText = "CONNECTING TO SATELLITE...";
-        status.style.color = "cyan";
-
+        btn.disabled = true; btn.innerText = "UPLOADING...";
+        status.innerText = "CONNECTING TO SATELLITE..."; status.style.color = "cyan";
         const imgVal = document.getElementById('no-img-check').checked ? "" : document.getElementById('sell-img').value;
 
         fetch(CONST_GOOGLE_URL, {
@@ -565,7 +585,6 @@
             status.innerText = "SUCCESSFULLY LISTED";
             setTimeout(() => {
                 closeSubmenu();
-                // Reset form
                 document.getElementById('sell-name').value = '';
                 document.getElementById('sell-price').value = '';
                 btn.disabled = false; btn.innerText = "CREATE LISTING";
