@@ -39,7 +39,11 @@
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
         /* MINI MODE */
-        body.mini-mode .pivot-wrapper { width: 300px !important; height: auto !important; min-height: 150px; transform: none !important; margin: 0; position: absolute; top: 25%; right: 50px; left: auto; cursor: move; }
+        body.mini-mode .pivot-wrapper { 
+            width: 300px !important; height: auto !important; min-height: 150px;
+            transform: none !important; margin: 0; position: absolute;
+            top: 25%; right: 50px; left: auto; cursor: move;
+        }
         body.mini-mode .menu-container { display: none; }
         body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
         body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
@@ -47,6 +51,7 @@
         body.mini-mode #detail-title { font-size: 1.2em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; }
         body.mini-mode #detail-price { font-size: 1.8em; margin: 10px 0; text-align: center; pointer-events: none; }
         body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; cursor: pointer; }
+        body.mini-mode #min-btn:hover { color: white; }
         body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; pointer-events: none; }
 
         /* MENUS */
@@ -61,7 +66,7 @@
         .submenu-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0, 10, 20, 0.95), rgba(0, 5, 10, 0.9)); border: 1px solid var(--primary); opacity: 0; pointer-events: none; transform: translateY(20px) translateZ(-50px); transition: 0.5s; display: flex; flex-direction: column; padding: 20px; }
         .submenu-container.active { opacity: 1; pointer-events: all; transform: translateY(0) translateZ(0); }
         
-        .content-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; }
+        .content-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0; }
         .grid-scroll { flex: 1; overflow-y: auto; padding-right: 10px; }
         .auction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
 
@@ -78,20 +83,22 @@
         .st-Completed { color: #0088ff; }
         .st-Fulfilled { color: #888; text-decoration: line-through; }
 
-        .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; flex-shrink: 0; }
         .stat-box { background: rgba(255, 0, 85, 0.1); border: 1px solid var(--admin-color); padding: 15px; text-align: center; }
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
         .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
         
+        /* DETAIL VIEW */
         #view-detail { display: none; height: 100%; flex-direction: column; }
-        .detail-layout { display: flex; gap: 20px; height: 100%; }
+        /* CSS FIX FOR BACK BUTTON: Use flex: 1 and min-height: 0 to allow proper scrolling/sizing */
+        .detail-layout { display: flex; gap: 20px; flex: 1; min-height: 0; margin-bottom: 10px; }
         .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-        .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; position: relative; }
+        .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; position: relative; overflow-y: auto; }
         .detail-img { width: 100%; height: 250px; object-fit: contain; background: #000; border: 1px solid #444; }
         
         #view-sell { display: none; height: 100%; flex-direction: column; }
-        .sell-layout { display: flex; gap: 20px; height: 100%; }
-        .sell-form { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        .sell-layout { display: flex; gap: 20px; flex: 1; min-height: 0; }
+        .sell-form { flex: 1; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
         .sell-preview-box { flex: 1; background: rgba(0,0,0,0.5); border: 1px dashed var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
         .preview-image-actual { max-width: 100%; max-height: 300px; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         
@@ -102,8 +109,8 @@
 
         .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
         .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
-        .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
-        .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; }
+        /* BACK BTN FIX: Ensure it doesn't shrink */
+        .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; flex-shrink: 0; }
 
         /* PIN MODAL */
         #pin-modal { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; align-items:center; justify-content:center; flex-direction:column; }
@@ -254,7 +261,7 @@
     </div>
 
 <script>
-    const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
+    const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwNfqTNIxvqNpae4DSl45adFXTKrhqh1E3Y9oW8U2P25zzE5BVT9E-k9EMpQiQ597ht/exec";
     const ADMIN_ID = "757858";
 
     let userData = { name: "", id: "", pin: "" };
@@ -644,26 +651,24 @@
 
     // --- STANDARD ACTIONS ---
     function removeListing() {
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "delete", id: currentDetailId, requesterId: userData.id, pin: userData.pin })
-        }).then(() => { returnToLastView(); });
+        // Pass session PIN automatically
+        const payload = { action: "delete", id: currentDetailId, requesterId: userData.id, pin: userData.pin };
+        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
+        .then(() => { returnToLastView(); });
     }
 
     function updateStatus(newStatus) {
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id, pin: userData.pin })
-        }).then(() => { returnToLastView(); });
+        const payload = { action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id, pin: userData.pin };
+        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
+        .then(() => { returnToLastView(); });
     }
 
     function placeBid() {
         let amt = document.getElementById('detail-bid-input').value;
         if(!amt) return;
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin })
-        }).then(() => { document.getElementById('detail-bid-input').value = ""; });
+        const payload = { action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin };
+        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
+        .then(() => { document.getElementById('detail-bid-input').value = ""; });
     }
 
     function toggleImgInput() {
@@ -704,6 +709,21 @@
                 btn.disabled = false; btn.innerText = "CREATE LISTING";
             }, 1000);
         });
+    }
+
+    // UPDATED returnToLastView (Safety check for default view)
+    function returnToLastView() {
+        if(pollingInterval) clearInterval(pollingInterval);
+        document.body.classList.remove('mini-mode');
+        document.getElementById('view-detail').style.display = 'none';
+
+        // Fallback to browse if lastView is somehow invalid or null
+        if (!lastView || !document.getElementById('view-' + lastView)) {
+            lastView = 'browse';
+        }
+
+        document.getElementById('view-' + lastView).style.display = 'flex';
+        fetchData(lastView);
     }
 
     document.onkeydown = function(e) { if(e.keyCode == 27) closeApp(); };
