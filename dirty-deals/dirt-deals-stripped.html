@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Housekeeping v8.0</title>
+    <title>Dirty Deals - Final v8.1</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -66,7 +66,7 @@
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
         .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
-        .admin-btn { background: #4a0000; border: 1px solid #e74c3c; color: #ffaaaa; display: none; } /* Hidden by default */
+        .admin-btn { background: #4a0000; border: 1px solid #e74c3c; color: #ffaaaa; display: none; }
         .admin-btn:hover, .admin-btn.active { background: #e74c3c; color: white; }
 
         .status-wrapper { display: flex; align-items: center; gap: 15px; }
@@ -326,7 +326,7 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
     
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
     var ADMIN_IDS = ["757858", "744622", "637174"];
@@ -350,6 +350,9 @@
         
         window.addEventListener('message', function(event) {
             var item = event.data;
+            if (item.type === 'open') {
+                // Do nothing until they click "Open System"
+            }
             if (item.type === "data" || item.user_id) {
                 let d = item.data || item;
                 if(d.user_id || d.player_id || d.id) {
@@ -420,7 +423,9 @@
                 fetchMyOrders();
                 setInterval(checkForMail, 5000);
             } else {
-                document.getElementById('login-status').innerText = data.message;
+                // FALLBACK: Use generic message if 'message' key is missing but result is error
+                var errorMsg = data.message || "LOGIN FAILED";
+                document.getElementById('login-status').innerText = errorMsg;
                 document.getElementById('login-status').style.color = "#e74c3c";
                 document.getElementById('btn-login').disabled = false;
                 document.getElementById('btn-login').innerText = "LOGIN";
