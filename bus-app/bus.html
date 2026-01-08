@@ -89,7 +89,7 @@
             font-size: 0.75em; color: var(--text-dim); font-weight: bold;
         }
 
-        /* --- STATUS & TIMER --- */
+        /* --- STATUS & TIMER (Extra Compact) --- */
         .status-container {
             background: rgba(255,255,255,0.05); 
             border-radius: 6px; 
@@ -104,16 +104,22 @@
             font-weight: 700; 
             font-size: 0.8em; 
             color: #ccc;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            text-transform: uppercase; letter-spacing: 1px;
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .timer-line {
             font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; font-size: 1.1em; 
-            color: var(--text-dim); line-height: 1;
+            font-weight: 900; 
+            font-size: 1.1em; 
+            color: var(--text-dim); 
+            line-height: 1;
             transition: color 0.2s ease;
         }
+        
         .timer-line.active { color: var(--green); text-shadow: 0 0 8px rgba(0, 230, 118, 0.4); }
         .timer-line.urgent { color: var(--red); text-shadow: 0 0 8px rgba(255, 82, 82, 0.6); }
 
@@ -126,7 +132,7 @@
         .value.bxp { color: var(--green); }
 
         .progress-container {
-            position: relative; height: 14px;
+            position: relative; height: 14px; 
             background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0;
             overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
         }
@@ -167,7 +173,7 @@
         .quick-btn {
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
             color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
-            font-family: 'Rajdhani', sans-serif; font-weight: bold;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
         }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
@@ -264,6 +270,7 @@
 let SESSION_START_TIME = Date.now();
 const JOB_EXP_KEY = "exp_train_bus";
 const JOB_BXP_KEY = "exp_token_a|train|bus";
+const STORAGE_KEY_CALC = "target_xp_bus";
 
 // Anti-Flicker Buffer
 let routeResetTimeout = null;
@@ -274,6 +281,12 @@ const STATE = {
     sessionGain: 0,
     dropCount: 0
 };
+
+// --- INIT ---
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) {
+    document.getElementById('target-input').value = savedTarget;
+}
 
 // --- CLOCK ---
 setInterval(() => {
@@ -328,7 +341,6 @@ function processPayload(data) {
                 }
 
                 // Line 1: Action (Boarding / Driving)
-                let statusText = "DRIVING";
                 let timerActive = false;
                 
                 if (lines[1]) {
@@ -352,12 +364,12 @@ function processPayload(data) {
                     if (timeMatch && timerActive) {
                         let sec = timeMatch[1];
                         timerEl.innerText = sec + "s";
-                        timerEl.className = "timer-line active"; 
+                        timerEl.className = "timer-line active"; // Bright/Green
                         
-                        if (sec <= 5) timerEl.className = "timer-line urgent"; 
+                        if (sec <= 5) timerEl.className = "timer-line urgent"; // Red
                     } else {
                         timerEl.innerText = "--";
-                        timerEl.className = "timer-line"; 
+                        timerEl.className = "timer-line"; // Dim
                     }
                 } else {
                     timerEl.innerText = "--";
@@ -466,6 +478,8 @@ function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
+    localStorage.setItem(STORAGE_KEY_CALC, val);
+
     if (STATE.dropCount === 0) { 
         el.innerHTML = "<i>Complete 1 stop to calibrate...</i>"; 
         return; 
