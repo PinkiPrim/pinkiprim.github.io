@@ -36,7 +36,7 @@
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
         /* MINI MODE (Widget Style) */
-        /* Positioned 3/4 way up screen (Top 25%) and Right aligned */
+        /* Top 25% means 3/4 up from the bottom */
         body.mini-mode .pivot-wrapper { 
             width: 300px !important; 
             height: auto !important; 
@@ -299,7 +299,6 @@
         const btns = document.querySelectorAll('.holo-btn');
         btns.forEach((btn, i) => { btn.classList.remove('show'); setTimeout(() => btn.classList.add('show'), i * 100); });
         
-        // Start Global Timer Logic
         if(countdownInterval) clearInterval(countdownInterval);
         countdownInterval = setInterval(updateAllTimers, 1000);
     }
@@ -362,7 +361,6 @@
         let count = 0;
 
         data.forEach(item => {
-            // FILTER HISTORY
             if(isHistory && !showArchive && item.status !== "Active") return;
             
             count++;
@@ -374,7 +372,6 @@
             card.className = 'auction-card';
             card.onclick = () => openDetail(item);
             
-            // Embed EndTime in dataset for timer loop
             let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
 
             card.innerHTML = `
@@ -400,8 +397,6 @@
             const end = parseInt(el.getAttribute('data-end'));
             el.innerHTML = `<i class="far fa-clock"></i> ${formatTime(end - now)}`;
         });
-        
-        // Also update Detail View if open
         if(currentDetailId && document.getElementById('view-detail').style.display !== 'none') {
             const item = currentData.find(i => String(i.id) === String(currentDetailId));
             if(item) document.getElementById('detail-live-timer').innerText = formatTime(item.endTime - now);
@@ -421,7 +416,6 @@
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
         
-        // START POLLING (Every 1s)
         if(pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(refreshDetail, 1000);
 
@@ -429,11 +423,10 @@
     }
 
     function refreshDetail() {
-        // Silent fetch to update price/timer
         fetch(`${CONST_GOOGLE_URL}?action=getAll&userId=${userData.id}`)
         .then(res => res.json())
         .then(data => {
-            currentData = data; // Update global cache
+            currentData = data; 
             const item = data.find(i => String(i.id) === String(currentDetailId));
             if(item) renderDetail(item);
         });
@@ -451,7 +444,7 @@
         if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
         else imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
 
-        // Controls Logic
+        // Controls
         document.getElementById('controls-bid').style.display = 'none';
         document.getElementById('controls-seller').style.display = 'none';
         document.getElementById('controls-buyer').style.display = 'none';
@@ -459,8 +452,8 @@
         document.getElementById('btn-remove').style.display = 'none';
         document.getElementById('btn-mark-comp').style.display = 'none';
 
-        const isSeller = String(item.sellerId) === userData.id;
-        const isBuyer = String(item.bidderId) === userData.id;
+        const isSeller = String(item.sellerId) === String(userData.id);
+        const isBuyer = String(item.bidderId) === String(userData.id);
         const noBids = (item.bidderId == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
 
         if (item.status === 'Active') {
