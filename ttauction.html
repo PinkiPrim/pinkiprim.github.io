@@ -26,25 +26,12 @@
         .login-box { width: 450px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
         .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 10px; cursor: not-allowed; }
         .login-input.verified { color: var(--primary); border-color: var(--primary); background: rgba(0, 255, 255, 0.05); }
-        
-        /* PIN INPUT */
-        .pin-entry { 
-            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--primary); 
-            color: white; padding: 15px; margin-bottom: 15px; font-size: 1.5em; 
-            text-align: center; letter-spacing: 5px; display: none; cursor: text;
-        }
-        .pin-entry:focus { outline: none; box-shadow: 0 0 15px var(--primary-dim); }
-
-        .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; }
+        .pin-entry { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--primary); color: white; padding: 15px; margin-bottom: 15px; font-size: 1.5em; text-align: center; letter-spacing: 5px; display: none; cursor: text; }
+        .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top:5px; }
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
         
         /* WARNING BOX */
-        .warning-box {
-            margin-top: 20px; padding: 10px; border: 1px solid var(--warning-red);
-            background: rgba(255, 68, 68, 0.1); color: var(--warning-red);
-            font-size: 0.75em; text-align: center; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2);
-            text-transform: uppercase; letter-spacing: 1px; width: 100%;
-        }
+        .warning-box { margin-top: 20px; padding: 10px; border: 1px solid var(--warning-red); background: rgba(255, 68, 68, 0.1); color: var(--warning-red); font-size: 0.75em; text-align: center; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); text-transform: uppercase; letter-spacing: 1px; width: 100%; }
 
         /* 3D WRAPPER */
         .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
@@ -52,11 +39,7 @@
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
         /* MINI MODE */
-        body.mini-mode .pivot-wrapper { 
-            width: 300px !important; height: auto !important; min-height: 150px;
-            transform: none !important; margin: 0; position: absolute;
-            top: 25%; right: 50px; left: auto; cursor: move;
-        }
+        body.mini-mode .pivot-wrapper { width: 300px !important; height: auto !important; min-height: 150px; transform: none !important; margin: 0; position: absolute; top: 25%; right: 50px; left: auto; cursor: move; }
         body.mini-mode .menu-container { display: none; }
         body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
         body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
@@ -64,7 +47,6 @@
         body.mini-mode #detail-title { font-size: 1.2em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; }
         body.mini-mode #detail-price { font-size: 1.8em; margin: 10px 0; text-align: center; pointer-events: none; }
         body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; cursor: pointer; }
-        body.mini-mode #min-btn:hover { color: white; }
         body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; pointer-events: none; }
 
         /* MENUS */
@@ -99,7 +81,6 @@
         .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .stat-box { background: rgba(255, 0, 85, 0.1); border: 1px solid var(--admin-color); padding: 15px; text-align: center; }
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
-        .stat-label { font-size: 0.8em; text-transform: uppercase; color: #ccc; }
         .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
         
         #view-detail { display: none; height: 100%; flex-direction: column; }
@@ -124,6 +105,15 @@
         .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
         .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; }
 
+        /* PIN MODAL */
+        #pin-modal { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; align-items:center; justify-content:center; flex-direction:column; }
+        .pin-box { background:#111; border:2px solid var(--admin-color); padding:20px; width:300px; text-align:center; }
+        .pin-input { width:100%; padding:10px; background:#222; border:1px solid #444; color:white; font-size:1.5em; text-align:center; letter-spacing:5px; margin-bottom:10px; }
+
+        /* USER MANAGER TABLE */
+        .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #333; margin-bottom: 2px; }
+        .user-list-item select { width: 120px; background: #222; border: 1px solid #444; color: white; padding: 5px; }
+
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); }
         #debug-id-match { font-size:0.7em; color:#444; position:absolute; bottom:5px; left:5px; }
@@ -139,11 +129,24 @@
             
             <button id="btn-signin" class="btn-auth" onclick="startAuthentication()">CONNECT</button>
             
-            <input type="password" id="login-pin" class="pin-entry" placeholder="ENTER 4-DIGIT PIN" maxlength="4">
-            <button id="btn-enter" class="btn-auth" style="display:none; background:#2ecc71; border-color:#27ae60;" onclick="submitPin()">LOGIN / REGISTER</button>
+            <div id="pin-section" style="display:none;">
+                <input type="password" id="login-pin" class="pin-entry" placeholder="PIN" maxlength="4" style="display:block;">
+                <button id="btn-enter" class="btn-auth" style="background:#2ecc71; border-color:#27ae60;" onclick="submitPin()">LOGIN</button>
+            </div>
             
+            <button id="btn-request" class="btn-auth" style="display:none; background:#e67e22; border-color:#d35400;" onclick="requestAccess()">REQUEST ACCESS</button>
+
             <div id="login-status" style="margin-top:10px; font-size:0.8em; color:#888;">Secure Connection Required</div>
             <div class="warning-box">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
+        </div>
+    </div>
+
+    <div id="pin-modal">
+        <div class="pin-box">
+            <h3 style="color:var(--admin-color);">ADMIN AUTH</h3>
+            <input type="password" id="admin-pin-input" class="pin-input" placeholder="PIN">
+            <button class="action-btn" onclick="submitAdminAction()">CONFIRM</button>
+            <button class="action-btn" onclick="closePinModal()" style="background:#333; margin-top:5px;">CANCEL</button>
         </div>
     </div>
 
@@ -156,6 +159,7 @@
                 <div class="holo-btn" onclick="openSubmenu('mydata')"><div class="icon-box"><i class="fas fa-box-open"></i></div><span class="btn-text">MY HISTORY</span></div>
                 <div class="holo-btn" onclick="openSubmenu('sell')"><div class="icon-box"><i class="fas fa-upload"></i></div><span class="btn-text">CREATE LISTING</span></div>
                 <div class="holo-btn" id="btn-hk" style="display:none; border-color: var(--admin-color);" onclick="openSubmenu('hk')"><div class="icon-box" style="color:var(--admin-color);"><i class="fas fa-shield-alt"></i></div><span class="btn-text" style="color:var(--admin-color);">HK DASHBOARD</span></div>
+                <div class="holo-btn" id="btn-users" style="display:none; border-color: cyan;" onclick="openSubmenu('users')"><div class="icon-box" style="color:cyan;"><i class="fas fa-users"></i></div><span class="btn-text" style="color:cyan;">USER MANAGER</span></div>
                 <div class="holo-btn" onclick="closeApp()"><div class="icon-box"><i class="fas fa-power-off"></i></div><span class="btn-text">DISCONNECT</span></div>
                 <div class="warning-box" style="margin-top: auto; opacity: 0.8;">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
             </div>
@@ -183,6 +187,12 @@
                         <div class="stat-box"><div class="stat-val" id="st-ful">0</div><div class="stat-label">Fulfilled</div></div>
                     </div>
                     <div class="grid-scroll" id="hk-list"></div>
+                    <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
+                </div>
+
+                <div id="view-users" class="view-content" style="display:none; height:100%; flex-direction:column;">
+                    <div class="content-header"><h3 style="color:cyan;">USER PERMISSIONS</h3><button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('users')">REFRESH</button></div>
+                    <div class="grid-scroll" id="user-list"></div>
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
 
@@ -214,8 +224,8 @@
                             
                             <div id="controls-admin" style="display:none; margin-top:15px; border-top:1px dashed #555; padding-top:10px;">
                                 <div style="color:var(--admin-color); font-size:0.8em; text-align:center;">ADMIN OVERRIDE</div>
-                                <button class="action-btn" onclick="updateStatus('Completed')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE COMPLETE</button>
-                                <button class="action-btn" onclick="removeListing()" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE DELETE</button>
+                                <button class="action-btn" onclick="promptAdminAction('Completed')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE COMPLETE (PIN)</button>
+                                <button class="action-btn" onclick="promptAdminAction('Delete')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE DELETE (PIN)</button>
                             </div>
 
                         </div>
@@ -244,7 +254,7 @@
     </div>
 
 <script>
-    const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzSmLMS0PRgxq2ss2bkrTjf__Y9OOF6L99Gem4IWHMicAZ6CZQDooRm5M4iUNbjMc1C/exec";
+    const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
     const ADMIN_ID = "757858";
 
     let userData = { name: "", id: "", pin: "" };
@@ -255,8 +265,8 @@
     let showArchive = false;
     let pollingInterval = null;
     let countdownInterval = null;
+    let pendingAdminAction = null;
 
-    // --- MOUSE 3D TILT ---
     document.addEventListener('mousemove', (e) => {
         if (!isMenuOpen || document.body.classList.contains('mini-mode')) return;
         const wrapper = document.getElementById('pivot-wrapper');
@@ -265,23 +275,20 @@
         wrapper.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
     });
 
-    // --- DRAG LOGIC ---
+    // DRAG
     const wrapper = document.getElementById('pivot-wrapper');
     let isDragging = false;
     let offset = { x: 0, y: 0 };
     wrapper.addEventListener('mousedown', function(e) {
         if (!document.body.classList.contains('mini-mode')) return;
-        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-        isDragging = true;
-        offset.x = e.clientX - wrapper.offsetLeft;
-        offset.y = e.clientY - wrapper.offsetTop;
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        isDragging = true; offset.x = e.clientX - wrapper.offsetLeft; offset.y = e.clientY - wrapper.offsetTop;
         wrapper.style.right = 'auto'; wrapper.style.bottom = 'auto';
     });
     document.addEventListener('mouseup', function() { isDragging = false; });
     document.addEventListener('mousemove', function(e) {
         if (!isDragging) return;
-        wrapper.style.left = (e.clientX - offset.x) + 'px';
-        wrapper.style.top = (e.clientY - offset.y) + 'px';
+        wrapper.style.left = (e.clientX - offset.x) + 'px'; wrapper.style.top = (e.clientY - offset.y) + 'px';
     });
 
     window.addEventListener('message', (event) => {
@@ -296,10 +303,9 @@
                 document.getElementById('login-id').value = userData.id;
                 document.getElementById('login-id').classList.add('verified');
                 
-                // Show PIN Input
                 document.getElementById('btn-signin').style.display = "none";
-                document.getElementById('login-pin').style.display = "block";
-                document.getElementById('btn-enter').style.display = "block";
+                document.getElementById('pin-section').style.display = "block";
+                document.getElementById('btn-request').style.display = "block"; 
                 document.getElementById('login-pin').focus();
             }
         }
@@ -312,17 +318,18 @@
         document.getElementById('pivot-wrapper').style.display = 'none';
         document.getElementById('login-name').value = ""; document.getElementById('login-name').classList.remove('verified');
         document.getElementById('login-id').value = ""; document.getElementById('login-id').classList.remove('verified');
-        document.getElementById('login-pin').value = ""; document.getElementById('login-pin').style.display = "none";
+        document.getElementById('login-pin').value = ""; 
+        document.getElementById('pin-section').style.display = "none";
+        document.getElementById('btn-request').style.display = "none";
         document.getElementById('btn-signin').style.display = "block";
         document.getElementById('btn-signin').disabled = false; document.getElementById('btn-signin').innerText = "CONNECT";
-        document.getElementById('btn-enter').style.display = "none";
         document.getElementById('login-status').innerText = "Secure Connection Required";
         document.getElementById('login-status').style.color = "#888";
     }
 
     function startAuthentication() {
         document.getElementById('btn-signin').disabled = true;
-        document.getElementById('btn-signin').innerText = "CONNECTING...";
+        document.getElementById('btn-signin').innerText = "POLLING...";
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
     }
 
@@ -343,17 +350,35 @@
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "login", userId: userData.id, name: userData.name, pin: userData.pin })
         }).then(() => {
-            // Note: Since no-cors doesn't give response body, we assume success for UI flow
-            // Real validation happens on every subsequent action
+            // Note: In no-cors mode we cannot read response so we assume success for UI flow
+            // If failed, next actions will fail silently or user will notice nothing loads
             document.getElementById('login-screen').style.display = 'none';
             enterMarket();
+        });
+    }
+
+    function requestAccess() {
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "requestAccess", userId: userData.id, name: userData.name })
+        }).then(() => {
+            alert("Request Sent! Contact an Admin to approve your access.");
         });
     }
 
     function enterMarket() {
         isMenuOpen = true;
         document.getElementById('pivot-wrapper').style.display = "block";
-        if(userData.id === ADMIN_ID) document.getElementById('btn-hk').style.display = 'flex';
+        
+        if(userData.id === ADMIN_ID) {
+            document.getElementById('btn-hk').style.display = 'flex';
+            document.getElementById('btn-users').style.display = 'flex';
+        } else {
+            document.getElementById('btn-hk').style.display = 'none';
+            document.getElementById('btn-users').style.display = 'none';
+        }
+
         const btns = document.querySelectorAll('.holo-btn');
         btns.forEach((btn, i) => { btn.classList.remove('show'); setTimeout(() => btn.classList.add('show'), i * 100); });
         
@@ -370,7 +395,7 @@
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
     }
 
-    // [Rest of navigation functions remain the same...]
+    // [Navigation & Common Functions remain similar]
     function openSubmenu(view) {
         lastView = view;
         document.getElementById('pivot-wrapper').classList.add('expanded');
@@ -378,7 +403,7 @@
         document.getElementById('main-menu').style.pointerEvents = 'none';
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-' + view).style.display = 'flex';
-        if(view === 'browse' || view === 'mydata' || view === 'hk') fetchData(view);
+        if(view === 'browse' || view === 'mydata' || view === 'hk' || view === 'users') fetchData(view);
         setTimeout(() => document.getElementById('submenu-layer').classList.add('active'), 300);
     }
 
@@ -401,8 +426,10 @@
         let action = "browse"; 
         if(view === 'hk') action = "getAll";
         else if(view === 'mydata') action = "getMyData";
+        else if(view === 'users') action = "getUsers";
         
-        let container = (view === 'hk') ? document.getElementById('hk-list') : document.getElementById(view === 'mydata' ? 'my-grid' : 'browse-grid');
+        let containerId = (view === 'hk') ? 'hk-list' : (view === 'users') ? 'user-list' : (view === 'mydata' ? 'my-grid' : 'browse-grid');
+        let container = document.getElementById(containerId);
         container.innerHTML = '<div style="color:cyan; padding:20px; text-align:center; width:100%;">LOADING DATA...</div>';
 
         fetch(`${CONST_GOOGLE_URL}?action=${action}&userId=${userData.id}`)
@@ -410,85 +437,85 @@
         .then(data => {
             currentData = data;
             if(view === 'hk') renderHK(data);
+            else if(view === 'users') renderUsers(data);
             else renderGrid(data, container, view === 'mydata');
         });
     }
 
+    // --- RENDERERS ---
     function renderGrid(data, container, isHistory) {
         container.innerHTML = '';
         const now = new Date().getTime();
         let count = 0;
-
         data.forEach(item => {
             if(isHistory && !showArchive && item.status !== "Active") return;
             count++;
-            
             let status = item.status;
             if (status === "Active" && now > item.endTime) status = "Ended";
-
-            let imgHTML = '';
-            if (item.img && item.img.startsWith('http')) imgHTML = `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">`;
+            let imgHTML = (item.img && item.img.startsWith('http')) ? `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">` : '';
+            let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
 
             let card = document.createElement('div');
             card.className = 'auction-card';
             card.onclick = () => openDetail(item);
-            
-            let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
-
-            card.innerHTML = `
-                ${imgHTML}
-                <div class="card-body">
-                    <div class="card-title">${item.item}</div>
-                    <div class="card-price">$${parseInt(item.price).toLocaleString()}</div>
-                    ${timerHTML}
-                    <div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div>
-                    <div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div>
-                </div>
-            `;
+            card.innerHTML = `${imgHTML}<div class="card-body"><div class="card-title">${item.item}</div><div class="card-price">$${parseInt(item.price).toLocaleString()}</div>${timerHTML}<div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div><div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div></div>`;
             container.appendChild(card);
         });
-        
         if(count === 0) container.innerHTML = '<div style="padding:20px; color:#555;">No records found.</div>';
         updateAllTimers();
     }
 
-    function updateAllTimers() {
-        const now = new Date().getTime();
-        document.querySelectorAll('.card-timer').forEach(el => {
-            const end = parseInt(el.getAttribute('data-end'));
-            el.innerHTML = `<i class="far fa-clock"></i> ${formatTime(end - now)}`;
+    function renderHK(data) {
+        const list = document.getElementById('hk-list'); list.innerHTML = '';
+        let active = 0, comp = 0, ful = 0;
+        data.forEach(item => {
+            if(item.status === 'Active') active++; if(item.status === 'Completed') comp++; if(item.status === 'Fulfilled') ful++;
+            let row = document.createElement('div'); row.className = 'hk-list-item';
+            row.innerHTML = `<span style="width:30%; overflow:hidden;">${item.item}</span><span style="width:20%;">${item.seller}</span><span style="width:20%;">$${item.price}</span><span style="width:20%;" class="st-${item.status}">${item.status}</span><span style="width:10%; cursor:pointer;" onclick='openDetail(${JSON.stringify(item)})'>👁️</span>`;
+            list.appendChild(row);
         });
-        if(currentDetailId && document.getElementById('view-detail').style.display !== 'none') {
-            const item = currentData.find(i => String(i.id) === String(currentDetailId));
-            if(item) document.getElementById('detail-live-timer').innerText = formatTime(item.endTime - now);
-        }
+        document.getElementById('st-total').innerText = data.length; document.getElementById('st-active').innerText = active; document.getElementById('st-comp').innerText = comp; document.getElementById('st-ful').innerText = ful;
     }
 
-    function formatTime(ms) {
-        if(ms <= 0) return "ENDED";
-        let h = Math.floor(ms / 3600000);
-        let m = Math.floor((ms % 3600000) / 60000);
-        let s = Math.floor((ms % 60000) / 1000);
-        return `${h}h ${m}m ${s}s`;
+    function renderUsers(data) {
+        const list = document.getElementById('user-list'); list.innerHTML = '';
+        data.forEach(user => {
+            let row = document.createElement('div');
+            row.className = 'user-list-item';
+            
+            // Dropdown logic
+            let select = document.createElement('select');
+            ['Requested', 'Whitelisted', 'Blacklisted'].forEach(opt => {
+                let option = document.createElement('option');
+                option.value = opt; option.text = opt; if(user.status === opt) option.selected = true;
+                select.appendChild(option);
+            });
+            select.onchange = function() { updateUserPermission(user.id, this.value); };
+
+            row.innerHTML = `<span>${user.name} (${user.id})</span>`;
+            row.appendChild(select);
+            list.appendChild(row);
+        });
     }
 
+    // --- ACTIONS ---
+    function updateUserPermission(targetId, newStatus) {
+        promptAdminAction('UserStatus', {targetId: targetId, newStatus: newStatus});
+    }
+
+    // --- DETAIL VIEW ---
     function openDetail(item) {
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
-        
         if(pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(refreshDetail, 1000);
-
         renderDetail(item);
     }
 
     function refreshDetail() {
-        fetch(`${CONST_GOOGLE_URL}?action=getAll&userId=${userData.id}`)
-        .then(res => res.json())
-        .then(data => {
-            currentData = data; 
-            const item = data.find(i => String(i.id) === String(currentDetailId));
+        fetch(`${CONST_GOOGLE_URL}?action=getAll&userId=${userData.id}`).then(r=>r.json()).then(data=>{
+            currentData = data; const item = data.find(i => String(i.id) === String(currentDetailId));
             if(item) renderDetail(item);
         });
     }
@@ -509,20 +536,14 @@
         if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
         else imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
 
-        // Reset
         document.getElementById('controls-bid').style.display = 'none';
         document.getElementById('controls-actions').style.display = 'none';
         document.getElementById('controls-admin').style.display = 'none';
         document.getElementById('action-buttons').innerHTML = ''; 
 
-        // ID Matching
-        const sellerID = cleanID(item.sellerId);
-        const buyerID = cleanID(item.bidderId);
-        const myID = cleanID(userData.id);
-        const adminID = cleanID(ADMIN_ID);
-
-        const isSeller = (sellerID === myID);
-        const isBuyer = (buyerID === myID);
+        const sellerID = cleanID(item.sellerId); const buyerID = cleanID(item.bidderId);
+        const myID = cleanID(userData.id); const adminID = cleanID(ADMIN_ID);
+        const isSeller = (sellerID === myID); const isBuyer = (buyerID === myID);
         const isAdmin = (myID === adminID);
         const noBids = (buyerID == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
 
@@ -532,30 +553,17 @@
 
         if (displayStatus === 'Active') {
             if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
-            else {
-                document.getElementById('controls-actions').style.display = 'block';
-                document.getElementById('action-msg').innerText = "AUCTION IN PROGRESS";
-            }
+            else { document.getElementById('controls-actions').style.display = 'block'; document.getElementById('action-msg').innerText = "AUCTION IN PROGRESS"; }
         } 
         else if (displayStatus === 'Ended') {
             document.getElementById('controls-actions').style.display = 'block';
             if (isSeller) {
                 document.getElementById('action-msg').innerText = "AUCTION ENDED - ACTION REQUIRED";
                 const btnContainer = document.getElementById('action-buttons');
-                const btn = document.createElement('button');
-                btn.className = 'action-btn';
-                
-                if(noBids) {
-                    btn.innerText = "REMOVE (UNSOLD)";
-                    btn.style.backgroundColor = "#ff4444";
-                    btn.onclick = removeListing;
-                } else {
-                    btn.innerText = "MARK AS COMPLETED";
-                    btn.style.backgroundColor = "#e67e22";
-                    btn.onclick = () => updateStatus('Completed');
-                }
+                const btn = document.createElement('button'); btn.className = 'action-btn';
+                if(noBids) { btn.innerText = "REMOVE (UNSOLD)"; btn.style.backgroundColor = "#ff4444"; btn.onclick = removeListing; }
+                else { btn.innerText = "MARK AS COMPLETED"; btn.style.backgroundColor = "#e67e22"; btn.onclick = () => updateStatus('Completed'); }
                 btnContainer.appendChild(btn);
-                
             } else {
                 document.getElementById('action-msg').innerText = noBids ? "ENDED - UNSOLD" : "ENDED - WAITING FOR SELLER";
             }
@@ -565,15 +573,11 @@
             if (isBuyer) {
                 document.getElementById('action-msg').innerText = "SELLER COMPLETED - CONFIRM RECEIPT";
                 const btnContainer = document.getElementById('action-buttons');
-                const btn = document.createElement('button');
-                btn.className = 'action-btn';
-                btn.innerText = "CONFIRM RECEIPT";
-                btn.style.backgroundColor = "#2ecc71";
+                const btn = document.createElement('button'); btn.className = 'action-btn';
+                btn.innerText = "CONFIRM RECEIPT"; btn.style.backgroundColor = "#2ecc71";
                 btn.onclick = () => updateStatus('Fulfilled');
                 btnContainer.appendChild(btn);
-            } else {
-                document.getElementById('action-msg').innerText = "SELLER COMPLETED - WAITING FOR BUYER";
-            }
+            } else { document.getElementById('action-msg').innerText = "SELLER COMPLETED - WAITING FOR BUYER"; }
         } 
         else if (displayStatus === 'Fulfilled') {
             document.getElementById('controls-actions').style.display = 'block';
@@ -581,111 +585,123 @@
         }
     }
 
-    function renderHK(data) {
-        const list = document.getElementById('hk-list');
-        list.innerHTML = '';
-        let active = 0, comp = 0, ful = 0;
-        data.forEach(item => {
-            if(item.status === 'Active') active++;
-            if(item.status === 'Completed') comp++;
-            if(item.status === 'Fulfilled') ful++;
-            let row = document.createElement('div');
-            row.className = 'hk-list-item';
-            row.innerHTML = `<span style="width:30%; overflow:hidden;">${item.item}</span><span style="width:20%;">${item.seller}</span><span style="width:20%;">$${item.price}</span><span style="width:20%;" class="st-${item.status}">${item.status}</span><span style="width:10%; cursor:pointer;" onclick='openDetail(${JSON.stringify(item)})'>👁️</span>`;
-            list.appendChild(row);
+    // --- TIMERS ---
+    function updateAllTimers() {
+        const now = new Date().getTime();
+        document.querySelectorAll('.card-timer').forEach(el => {
+            const end = parseInt(el.getAttribute('data-end'));
+            el.innerHTML = `<i class="far fa-clock"></i> ${formatTime(end - now)}`;
         });
-        document.getElementById('st-total').innerText = data.length;
-        document.getElementById('st-active').innerText = active;
-        document.getElementById('st-comp').innerText = comp;
-        document.getElementById('st-ful').innerText = ful;
-    }
-
-    function returnToLastView() {
-        if(pollingInterval) clearInterval(pollingInterval);
-        document.body.classList.remove('mini-mode');
-        document.getElementById('view-detail').style.display = 'none';
-        document.getElementById('view-' + lastView).style.display = 'flex';
-        fetchData(lastView);
-    }
-
-    function toggleMiniMode() { 
-        const wrapper = document.getElementById('pivot-wrapper');
-        document.body.classList.toggle('mini-mode');
-        if (!document.body.classList.contains('mini-mode')) {
-            wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = '';
+        if(currentDetailId && document.getElementById('view-detail').style.display !== 'none') {
+            const item = currentData.find(i => String(i.id) === String(currentDetailId));
+            if(item) document.getElementById('detail-live-timer').innerText = formatTime(item.endTime - now);
         }
     }
+    function formatTime(ms) {
+        if(ms <= 0) return "ENDED";
+        let h = Math.floor(ms / 3600000); let m = Math.floor((ms % 3600000) / 60000); let s = Math.floor((ms % 60000) / 1000);
+        return `${h}h ${m}m ${s}s`;
+    }
 
-    // ACTIONS WITH PIN
+    // --- PIN MODAL ---
+    function promptAdminAction(actionType, extraData) {
+        pendingAdminAction = { type: actionType, data: extraData };
+        document.getElementById('pin-modal').style.display = 'flex';
+        document.getElementById('admin-pin-input').value = '';
+        document.getElementById('admin-pin-input').focus();
+    }
+
+    function closePinModal() {
+        document.getElementById('pin-modal').style.display = 'none';
+        pendingAdminAction = null;
+    }
+
+    function submitAdminAction() {
+        const pin = document.getElementById('admin-pin-input').value;
+        if (!pin) return;
+        
+        let payload = { requesterId: userData.id, pin: pin };
+
+        if (pendingAdminAction.type === 'Delete') {
+            payload.action = 'delete'; payload.id = currentDetailId;
+        } else if (pendingAdminAction.type === 'Completed') {
+            payload.action = 'updateStatus'; payload.id = currentDetailId; payload.newStatus = 'Completed';
+        } else if (pendingAdminAction.type === 'UserStatus') {
+            payload.action = 'updateUserStatus'; payload.adminId = userData.id;
+            payload.targetId = pendingAdminAction.data.targetId; payload.newStatus = pendingAdminAction.data.newStatus;
+        }
+
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        }).then(() => { 
+            closePinModal();
+            if(pendingAdminAction.type === 'UserStatus') fetchData('users');
+            else returnToLastView(); 
+        });
+    }
+
+    // --- STANDARD ACTIONS ---
     function removeListing() {
-        const payload = { action: "delete", id: currentDetailId, requesterId: userData.id, pin: userData.pin };
-        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
-        .then(() => { returnToLastView(); });
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "delete", id: currentDetailId, requesterId: userData.id, pin: userData.pin })
+        }).then(() => { returnToLastView(); });
     }
 
     function updateStatus(newStatus) {
-        const payload = { action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id, pin: userData.pin };
-        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
-        .then(() => { returnToLastView(); });
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id, pin: userData.pin })
+        }).then(() => { returnToLastView(); });
     }
 
     function placeBid() {
         let amt = document.getElementById('detail-bid-input').value;
         if(!amt) return;
-        const payload = { action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin };
-        fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
-        .then(() => { document.getElementById('detail-bid-input').value = ""; });
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin })
+        }).then(() => { document.getElementById('detail-bid-input').value = ""; });
     }
 
     function toggleImgInput() {
         const checkbox = document.getElementById('no-img-check');
         const input = document.getElementById('sell-img');
         const preview = document.getElementById('img-preview');
-        if(checkbox.checked) {
-            input.disabled = true; input.value = "";
-            preview.innerHTML = `<span style="color:#555;">IMAGE DISABLED</span>`;
-        } else {
-            input.disabled = false;
-            preview.innerHTML = `<span style="color:#555;">NO IMAGE PREVIEW</span>`;
-        }
+        if(checkbox.checked) { input.disabled = true; input.value = ""; preview.innerHTML = `<span style="color:#555;">IMAGE DISABLED</span>`; }
+        else { input.disabled = false; preview.innerHTML = `<span style="color:#555;">NO IMAGE PREVIEW</span>`; }
     }
 
     function previewImg(url) {
         const div = document.getElementById('img-preview');
         div.innerHTML = '';
-        if(url.startsWith('http')) {
-            div.innerHTML = `<img src="${url}" class="preview-image-actual">`;
-        } else {
-            div.innerHTML = `<span style="color:#555;">INVALID URL</span>`;
-        }
+        if(url.startsWith('http')) div.innerHTML = `<img src="${url}" class="preview-image-actual">`;
+        else div.innerHTML = `<span style="color:#555;">INVALID URL</span>`;
     }
 
     function postAuction() {
         const btn = document.querySelector('#view-sell .action-btn');
-        const status = document.getElementById('sell-status');
         const name = document.getElementById('sell-name').value;
         const price = document.getElementById('sell-price').value;
-        if(!name || !price) { status.innerText = "ERROR: MISSING FIELDS"; status.style.color = "#ff4444"; return; }
+        if(!name || !price) { document.getElementById('sell-status').innerText = "ERROR: MISSING FIELDS"; return; }
 
         btn.disabled = true; btn.innerText = "UPLOADING...";
-        status.innerText = "CONNECTING TO SATELLITE..."; status.style.color = "cyan";
         const imgVal = document.getElementById('no-img-check').checked ? "" : document.getElementById('sell-img').value;
 
         fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 action: "create", seller: userData.name, sellerId: userData.id, pin: userData.pin,
                 item: name, img: imgVal, price: price, duration: document.getElementById('sell-duration').value
             })
         }).then(() => {
-            status.innerText = "SUCCESSFULLY LISTED";
             setTimeout(() => {
                 closeSubmenu();
                 document.getElementById('sell-name').value = '';
                 document.getElementById('sell-price').value = '';
                 btn.disabled = false; btn.innerText = "CREATE LISTING";
-                status.innerText = "";
             }, 1000);
         });
     }
