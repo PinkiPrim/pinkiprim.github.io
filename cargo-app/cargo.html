@@ -237,10 +237,6 @@
 <div id="settings-icon" style="display:none;"></div>
 <div id="settings-panel" style="display:none;">
     <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
-    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
-    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
-    <input type="number" id="xp-font-size">
     <button id="reset-exp-log"></button>
     <div id="xp-font-size-value"></div>
 </div>
@@ -261,6 +257,7 @@ const AIRPORTS = {
 // --- STATE ---
 let TRUNK_KEY = null;
 let LAST_VEHICLE = null; 
+const STORAGE_KEY_CALC = "target_xp_cargo";
 
 let MEMORY = {
     inventory: {},
@@ -284,6 +281,12 @@ const STATE = {
     totalRunXP: 0,      // Sum of XP from all completed runs
     avgRunXP: 0         // Calculated Average
 };
+
+// --- INIT ---
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) {
+    document.getElementById('target-input').value = savedTarget;
+}
 
 // --- CLOCK ---
 setInterval(() => {
@@ -564,6 +567,8 @@ function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
+    localStorage.setItem(STORAGE_KEY_CALC, val);
+
     if (STATE.avgRunXP === 0) { el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; return; }
     if (!val) { el.innerText = "Enter target above."; return; }
 
