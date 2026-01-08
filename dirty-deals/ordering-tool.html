@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - v6.3</title>
+    <title>Dirty Deals - Final v8.4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,91 +16,49 @@
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-        #app-container {
-            display: flex; /* Visible for setup/testing */
-            position: absolute; top: 50px; left: 50px; width: 900px; height: 650px; 
-            background: var(--bg-glass); border: var(--border); border-radius: 8px;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000;
-            transition: width 0.3s ease, height 0.3s ease, background 0.3s ease; 
-        }
+        /* DOCK & LOGIN */
+        #side-dock { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 40px; height: 220px; background: rgba(18, 18, 18, 0.95); border: 2px solid var(--accent); border-right: none; border-radius: 12px 0 0 12px; cursor: pointer; z-index: 20000; display: flex; align-items: center; justify-content: center; box-shadow: -5px 0 25px rgba(0, 0, 0, 0.8); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        #side-dock:hover { width: 55px; background: var(--accent); box-shadow: -5px 0 35px rgba(94, 107, 246, 0.6); }
+        #side-dock span { writing-mode: vertical-rl; text-orientation: mixed; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 4px; font-size: 1.2em; color: white; text-transform: uppercase; }
 
-        /* --- MINI WIDGET MODE --- */
-        body.mini-mode #app-container {
-            width: 350px !important;
-            height: 500px !important;
-            background: rgba(18, 18, 18, 0.98);
-            border: 1px solid var(--accent);
-        }
+        #login-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 10000; justify-content: center; align-items: center; flex-direction: column; }
+        .login-box { width: 350px; padding: 30px; background: #1a1a1a; border: 2px solid var(--accent); border-radius: 8px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
+        .login-title { font-family: 'Rajdhani', sans-serif; font-size: 2em; margin-bottom: 20px; color: white; letter-spacing: 2px; }
+        .login-input { width: 100%; padding: 15px; background: #000; border: 1px solid #333; color: var(--accent); font-size: 1.5em; text-align: center; letter-spacing: 5px; margin-bottom: 15px; font-family: monospace; }
+        .login-btn { width: 100%; padding: 12px; background: var(--accent); border: none; color: white; font-weight: bold; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.2em; transition: 0.2s; }
+        .login-btn:hover { background: var(--accent-hover); }
+        .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
+
+        /* MAIN APP */
+        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; height: 650px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
         
-        body.mini-mode #main-header, 
-        body.mini-mode #view-order,
-        body.mini-mode .selection-area,
-        body.mini-mode .details-area {
-            display: none !important;
-        }
+        body.mini-mode #app-container { width: 350px !important; height: 500px !important; background: rgba(18, 18, 18, 0.98); border: 1px solid var(--accent); }
+        body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping { display: none !important; }
 
-        /* MINI HEADER */
         #mini-header { display: none; flex-direction: column; }
         body.mini-mode #mini-header { display: flex; }
-
-        #mini-drag-strip { 
-            height: 28px; background: #000; cursor: move; display: flex; 
-            align-items: center; justify-content: space-between; padding: 0 10px; 
-            border-bottom: 1px solid #333; flex-shrink: 0;
-        }
+        #mini-drag-strip { height: 28px; background: #000; cursor: move; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #333; flex-shrink: 0; }
         #mini-title { font-family: 'Rajdhani', sans-serif; font-weight: bold; color: var(--accent); letter-spacing: 1px; font-size: 0.9em; }
-        #max-btn { 
-            background: #222; border: 1px solid #444; color: white; font-size: 0.7em; 
-            cursor: pointer; padding: 2px 8px; border-radius: 2px; text-transform: uppercase; 
-        }
-        #max-btn:hover { background: var(--accent); border-color: var(--accent); }
-
-        /* MINI TABS */
+        #expand-btn { background: #222; border: 1px solid #444; color: #ccc; font-size: 0.7em; cursor: pointer; padding: 4px 10px; border-radius: 2px; text-transform: uppercase; font-weight: bold; }
+        #expand-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
         #mini-grinder-tabs { display: none; width: 100%; height: 32px; border-bottom: 1px solid #333; flex-shrink: 0; }
         body.mini-mode.role-grinder #mini-grinder-tabs { display: flex; }
-        
-        .mini-tab-btn {
-            flex: 1; background: #151515; border: none; color: #666; font-weight: bold; 
-            font-family: 'Rajdhani', sans-serif; cursor: pointer; transition: 0.2s; 
-            border-right: 1px solid #222; font-size: 0.85em;
-        }
-        .mini-tab-btn:hover { background: #222; color: #ccc; }
+        .mini-tab-btn { flex: 1; background: #151515; border: none; color: #666; font-weight: bold; font-family: 'Rajdhani', sans-serif; cursor: pointer; transition: 0.2s; border-right: 1px solid #222; font-size: 0.85em; }
         .mini-tab-btn.active { background: #222; color: white; border-bottom: 2px solid var(--accent); }
 
-        /* MINI LIST LAYOUT */
-        body.mini-mode #view-history, body.mini-mode #view-grinder { 
-            padding: 0; display: none !important; flex-direction: column; height: 100%; overflow: hidden; border: none; 
-        }
+        body.mini-mode #view-history, body.mini-mode #view-grinder { padding: 0; display: none !important; flex-direction: column; height: 100%; overflow: hidden; border: none; }
         body.mini-mode:not(.role-grinder) #view-history { display: flex !important; height: calc(100% - 28px); }
         body.mini-mode.role-grinder.show-jobs #view-grinder { display: flex !important; height: calc(100% - 60px); }
         body.mini-mode.role-grinder.show-orders #view-history { display: flex !important; height: calc(100% - 60px); }
 
-        body.mini-mode .history-list { background: transparent; border: none; overflow-y: auto; flex: 1; }
-        body.mini-mode .history-item { 
-            padding: 0; border-bottom: 1px solid #333; margin-bottom: 0; 
-            background: rgba(0,0,0,0.2); 
-        }
-        body.mini-mode .h-top { padding: 10px; }
-        body.mini-mode .section-title, body.mini-mode .view-controls { display: none; }
-        body.mini-mode .mini-label { 
-            display: block; background: #111; color: #555; font-size: 0.7em; 
-            padding: 2px 10px; font-weight: bold; border-bottom: 1px solid #222; 
-        }
-
-        /* REGULAR HEADER */
-        #main-header {
-            background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between;
-            align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; 
-            text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0;
-        }
+        #main-header { background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 10px; }
-        .header-btn {
-            background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em;
-            cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s;
-        }
+        .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
         .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
+        .admin-btn { background: #4a0000; border: 1px solid #e74c3c; color: #ffaaaa; display: none; }
+        .admin-btn:hover, .admin-btn.active { background: #e74c3c; color: white; }
 
         .status-wrapper { display: flex; align-items: center; gap: 15px; }
         .mail-icon { font-size: 1.4em; position: relative; cursor: pointer; display: none; margin-right: 10px; }
@@ -110,14 +68,12 @@
         .user-name { font-size: 0.9em; color: #fff; font-weight: bold; }
         .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
         .rank-tag { font-size: 0.65em; color: var(--accent); display: block; letter-spacing: 0.5px; }
-        @keyframes connectFlash { 0% { color: #fff; } 50% { color: #2ecc71; } 100% { color: #fff; } }
-        .connected .user-name { animation: connectFlash 1s ease; color: #2ecc71; }
 
-        /* LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
+        #view-order, #view-history, #view-grinder, #view-housekeeping { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
+        #view-housekeeping { padding: 20px; flex-direction: column; background: #0f0f0f; }
 
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
@@ -140,13 +96,10 @@
         .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
         .input-group { margin-bottom: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
-        
         input[type="text"], input[type="number"], select { width: 100%; background: #252525; border: 1px solid #383838; color: white; padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em; }
         input:focus, select:focus { outline: none; border-color: var(--accent); }
         input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--accent); cursor: pointer; }
-        
         input[readonly] { background: #1a1a1a; color: #555; cursor: not-allowed; border-color: #222; }
-
         .custom-toggle { display: none; width: 100%; background: #2c3e50; border: 1px dashed #34495e; color: #bdc3c7; padding: 8px; margin-top: 5px; cursor: pointer; border-radius: 4px; font-size: 0.8em; text-transform: uppercase; }
         .custom-toggle.active { background: #8e44ad; border-color: #9b59b6; color: white; }
         .total-box { margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px; margin-bottom: 5px; flex-shrink: 0; }
@@ -154,13 +107,10 @@
         .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         .btn-order.active { opacity: 1; pointer-events: all; }
         
-        /* CARD STYLING */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
-        
         .h-top { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
-        
         .h-info { display: flex; flex-direction: column; gap: 4px; }
         .h-row.user { color: var(--accent); font-weight: bold; font-size: 0.95em; }
         .h-row.user span { color: #555; font-size: 0.8em; margin-left: 5px; font-family: monospace; }
@@ -168,14 +118,13 @@
         .h-row.item span { color: #888; font-size: 0.8em; }
         .h-row.price { color: #2ecc71; font-weight: bold; font-family: 'Rajdhani', sans-serif; font-size: 1em; }
         .h-row.worker { color: #e67e22; font-size: 0.8em; font-weight: bold; }
-
         .status-container { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
         .status-badge { padding: 4px 8px; border-radius: 3px; font-size: 0.7em; font-weight: bold; text-transform: uppercase; color: #000; display: inline-block; }
         .st-Pending { background: var(--st-pending); }
         .st-Accepted { background: var(--st-accepted); color: white; }
         .st-Denied { background: var(--st-denied); color: white; }
         .st-Completed { background: var(--st-completed); }
-
+        
         .grinder-action-box { display: flex; flex-direction: column; gap: 5px; width: 140px; }
         .btn-row { display: flex; gap: 5px; }
         .g-btn { border: none; padding: 6px 0; font-size: 0.75em; border-radius: 3px; cursor: pointer; font-weight: bold; text-transform: uppercase; color: white; }
@@ -184,24 +133,26 @@
         .gb-chat { background: #555; flex: 1; position: relative; }
         .gb-accept:hover { background: #4b56c4; }
         .gb-complete:hover { background: #2ecc71; }
-
-        .progress-strip {
-            width: 100%; background: #000; border: 1px solid #333;
-            color: #2ecc71; text-align: center; font-size: 0.85em; font-weight: bold;
-            padding: 4px; cursor: text; border-radius: 3px;
-        }
-        .progress-strip:focus { outline: none; border-color: #2ecc71; }
-
+        .progress-strip { width: 100%; background: #000; border: 1px solid #333; color: #2ecc71; text-align: center; font-size: 0.85em; font-weight: bold; padding: 4px; cursor: text; border-radius: 3px; }
         .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; justify-content: center; align-items: center; border: 1px solid #111; }
-
         .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
         .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; }
         .chat-input-row { display: flex; gap: 5px; }
         .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
         .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
-
         .view-controls { display: flex; gap: 10px; }
-        .mini-label { display: none; }
+
+        /* HOUSEKEEPING STYLES */
+        .admin-tab-container { display: flex; gap: 10px; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
+        .user-table, .order-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        .user-table th, .order-table th { background: #222; padding: 10px; text-align: left; color: #888; }
+        .user-table td, .order-table td { padding: 8px 10px; border-bottom: 1px solid #222; }
+        .hk-action-btn { border: 1px solid #444; background: #111; color: white; cursor: pointer; padding: 3px 8px; font-size: 0.8em; border-radius: 3px; }
+        .hk-action-btn:hover { background: #333; }
+        
+        #admin-edit-modal, #user-edit-modal { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index: 5000; align-items:center; justify-content:center; }
+        .admin-edit-box { width: 300px; background:#1a1a1a; border:1px solid #555; padding:20px; }
+        .admin-edit-box h3 { margin-top:0; color: #e74c3c; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -210,11 +161,28 @@
 </head>
 <body>
 
+<div id="side-dock" onclick="expandApp()"><span>OPEN SYSTEM</span></div>
+
+<div id="login-overlay">
+    <div class="login-box">
+        <div class="login-title">AUTHENTICATION</div>
+        <div id="loading-txt" style="color:#888; margin-bottom:10px;">SYSTEM STANDBY</div>
+        <button id="btn-init" class="login-btn" onclick="initializeConnection()">ESTABLISH CONNECTION</button>
+        <div id="auth-fields" style="display:none;">
+            <input type="text" id="login-name" class="login-input" placeholder="NAME" readonly>
+            <input type="text" id="login-id" class="login-input" placeholder="ID" readonly>
+            <input type="password" id="pin-input" class="login-input" placeholder="ENTER PIN" maxlength="4" style="color:white; border-color:var(--accent);">
+            <button id="btn-login" class="login-btn" onclick="attemptLogin()">LOGIN</button>
+        </div>
+        <div id="login-status" class="login-status"></div>
+    </div>
+</div>
+
 <div id="app-container">
     <div id="mini-header">
         <div id="mini-drag-strip">
             <span id="mini-title">DIRTY DEALS</span>
-            <button id="max-btn" onclick="toggleMiniMode()">[ MAXIMIZE ]</button>
+            <button id="max-btn" id="expand-btn" onclick="toggleMiniMode()">[ EXPAND ]</button>
         </div>
         <div id="mini-grinder-tabs">
             <button class="mini-tab-btn active" id="mt-orders" onclick="setMiniTab('orders')">MY ORDERS</button>
@@ -229,13 +197,12 @@
             <button class="header-btn active" id="nav-order" onclick="switchView('order')">New Order</button>
             <button class="header-btn" id="nav-history" onclick="switchView('history')">My Orders</button>
             <button class="header-btn grinder-btn" id="nav-grinder" onclick="switchView('grinder')">🔴 Grinder Panel</button>
+            <button class="header-btn admin-btn" id="nav-admin" onclick="switchView('housekeeping')">⚠️ Housekeeping</button>
         </div>
-        
         <div class="status-wrapper">
-            <div class="mail-icon" id="mail-alert" title="New Message!">
-                📩<div class="mail-badge"></div>
-            </div>
-            <div class="status-box" id="status-box" onclick="manualRefreshID()" title="Click to refresh identity">
+            <button class="header-btn" onclick="minimizeApp()">[ DOCK ]</button>
+            <div class="mail-icon" id="mail-alert" title="New Message!">📩<div class="mail-badge"></div></div>
+            <div class="status-box" id="status-box">
                 <div class="user-name" id="username-display">Guest</div>
                 <div class="user-id" id="userid-display">Tap to Refresh</div>
                 <div class="rank-tag" id="rank-display"></div>
@@ -252,16 +219,10 @@
                     <div class="tab-btn" onclick="setCategory('Product')">Product</div>
                 </div>
                 <div class="section-title">Select Item</div>
-                <div class="grid-wrapper">
-                    <div class="grid-container" id="item-grid"></div>
-                </div>
+                <div class="grid-wrapper"><div class="grid-container" id="item-grid"></div></div>
             </div>
-
             <div class="details-area">
-                <div class="input-group">
-                    <div class="label">Selected Item</div>
-                    <input type="text" id="disp-item-name" placeholder="Select from grid..." readonly>
-                </div>
+                <div class="input-group"><div class="label">Selected Item</div><input type="text" id="disp-item-name" placeholder="Select from grid..." readonly></div>
                 <div class="input-group">
                     <div class="label">Quantity <span id="limit-display" style="float:right;color:var(--accent);"></span></div>
                     <input type="number" id="input-qty" value="1" min="1" readonly oninput="updateCalc()">
@@ -275,15 +236,8 @@
                         <option value="high">High Priority (+5% Fee)</option>
                     </select>
                 </div>
-                <div class="total-box">
-                    <div class="label">Total Price</div>
-                    <div class="total-price" id="disp-total">$0</div>
-                </div>
-                <div>
-                    <button class="btn-order" id="btn-submit" onclick="submitRealOrder()">CONFIRM ORDER</button>
-                    <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;">Waiting for item selection...</div>
-                    <div id="limit-warning" style="text-align:center; font-size:0.7em; color:#e74c3c; margin-top:5px;"></div>
-                </div>
+                <div class="total-box"><div class="label">Total Price</div><div class="total-price" id="disp-total">$0</div></div>
+                <div><button class="btn-order" id="btn-submit" onclick="submitRealOrder()">CONFIRM ORDER</button><div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;">Waiting for item selection...</div><div id="limit-warning" style="text-align:center; font-size:0.7em; color:#e74c3c; margin-top:5px;"></div></div>
             </div>
         </div>
 
@@ -297,9 +251,7 @@
                     <button class="header-btn" onclick="fetchMyOrders()">↻ Refresh</button>
                 </div>
             </div>
-            <div class="history-list" id="history-container">
-                <div style="padding:20px; text-align:center; color:#555;">History will appear here...</div>
-            </div>
+            <div class="history-list" id="history-container"><div style="padding:20px; text-align:center; color:#555;">History will appear here...</div></div>
         </div>
 
         <div id="view-grinder">
@@ -312,8 +264,78 @@
                     <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
                 </div>
             </div>
-            <div class="history-list" id="grinder-container">
-                <div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div>
+            <div class="history-list" id="grinder-container"><div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div></div>
+        </div>
+
+        <div id="view-housekeeping">
+            <div class="admin-tab-container">
+                <button class="tab-btn active" onclick="switchAdminTab('users')">User Management</button>
+                <button class="tab-btn" onclick="switchAdminTab('orders')">Order Management</button>
+            </div>
+            
+            <div id="admin-view-users" style="flex:1; overflow-y:auto;">
+                <table class="user-table">
+                    <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody id="hk-user-list"></tbody>
+                </table>
+            </div>
+
+            <div id="admin-view-orders" style="display:none; flex:1; overflow-y:auto;">
+                <table class="order-table">
+                    <thead><tr><th>Item</th><th>Customer</th><th>Status</th><th>Grinder</th><th>Edit</th></tr></thead>
+                    <tbody id="hk-order-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-edit-modal">
+        <div class="admin-edit-box">
+            <h3>EDIT ORDER</h3>
+            <input type="hidden" id="ae-ts"><input type="hidden" id="ae-uid">
+            <div class="input-group">
+                <label>Status</label>
+                <select id="ae-status">
+                    <option value="Pending">Pending</option>
+                    <option value="Accepted">Accepted</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Void">Void</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Assigned Grinder</label>
+                <input type="text" id="ae-grinder" placeholder="Grinder Name...">
+            </div>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="login-btn" onclick="saveAdminOrder()">SAVE</button>
+                <button class="login-btn" style="background:#333;" onclick="closeAdminModal()">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-edit-modal">
+        <div class="admin-edit-box">
+            <h3>USER MANAGER</h3>
+            <input type="hidden" id="ue-id">
+            <div class="input-group">
+                <label>Role</label>
+                <select id="ue-role">
+                    <option value="Customer">Customer (None)</option>
+                    <option value="Trainee Grinder">Trainee Grinder</option>
+                    <option value="Usual Grinder">Usual Grinder</option>
+                    <option value="Top Grinder">Top Grinder</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Status</label>
+                <select id="ue-status">
+                    <option value="Accepted">Accepted</option>
+                    <option value="Blocked">Blocked</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="login-btn" onclick="saveUserModification()">SAVE</button>
+                <button class="login-btn" style="background:#333;" onclick="closeUserModal()">CANCEL</button>
             </div>
         </div>
     </div>
@@ -321,197 +343,212 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-2OmivebAyK7hla6RSqTtK3eBoMeXqfVbEp9dwsk-Q3J6UosZNAg4mH76A6w3yFdu/exec";
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
     
-    // --- 2. GRINDER ROSTER ---
-    var GRINDER_ROSTER = {
-        "757858": "Top Grinder",
-        "744622": "Top Grinder",
-        "637174": "Top Grinder"
-    };
-
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
+    var ADMIN_IDS = ["757858", "744622", "637174"];
 
     // --- DATA ---
     var CATEGORIES = {
-        "Bonus EXP": [
-            { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" },
-            { name: "Business XP", price: 3900, limit: 20000, icon: "💼" },
-            { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" },
-            { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" },
-            { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" },
-            { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" },
-            { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" },
-            { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" },
-            { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" },
-            { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" },
-            { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" },
-            { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" },
-            { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" },
-            { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" },
-            { name: "Player XP", price: 500, limit: 50000, icon: "🧍" },
-            { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" },
-            { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" },
-            { name: "Strength XP", price: 500, limit: 50000, icon: "💪" },
-            { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" }
-        ],
-        "Raw Materials": [
-            { name: "Acid", price: 12000, limit: 1500, icon: "🧪" },
-            { name: "Batteries", price: 160000, limit: 500, icon: "🔋" },
-            { name: "Bronze Alloy", price: 45000, limit: 500, icon: "🥉" },
-            { name: "Cement Mix", price: 95000, limit: 2000, icon: "🏗️" },
-            { name: "Ceramic Tiles", price: 85000, limit: 500, icon: "⬜" },
-            { name: "Copper Vouchers", price: 22000, limit: 1000, icon: "🎫" },
-            { name: "Explosives", price: 1000000, limit: 50, icon: "💣" },
-            { name: "Flint", price: 12000, limit: 2500, icon: "🪨" },
-            { name: "Iron Vouchers", price: 18000, limit: 1000, icon: "🎫" },
-            { name: "Kerosene", price: 100000, limit: 500, icon: "🛢️" },
-            { name: "Planks", price: 55000, limit: 1000, icon: "🪵" },
-            { name: "Raw Ore Mix", price: 2500, limit: 1000, icon: "⛰️" },
-            { name: "Refined Amalgam", price: 174000, limit: 1000, icon: "💎" },
-            { name: "Refined Copper", price: 20000, limit: 800, icon: "🟧" },
-            { name: "Refined Solder", price: 60000, limit: 500, icon: "🔌" },
-            { name: "Refined Tin", price: 65000, limit: 500, icon: "🥫" },
-            { name: "Refined Zinc", price: 14000, limit: 800, icon: "🔋" },
-            { name: "Rubber", price: 168000, limit: 250, icon: "⚫" },
-            { name: "Sand", price: 13000, limit: 10000, icon: "⏳" },
-            { name: "Sawdust", price: 3000, limit: 10000, icon: "🪚" },
-            { name: "Scrap Aluminum", price: 8000, limit: 500, icon: "🗑️" },
-            { name: "Scrap Copper", price: 11200, limit: 1000, icon: "🗑️" },
-            { name: "Scrap Gold", price: 55000, limit: 500, icon: "🗑️" },
-            { name: "Scrap Lead", price: 13000, limit: 800, icon: "🗑️" },
-            { name: "Scrap Mercury", price: 65000, limit: 500, icon: "🗑️" },
-            { name: "Scrap Plastic", price: 5000, limit: 2000, icon: "🥤" },
-            { name: "Scrap Tin", price: 32000, limit: 1000, icon: "🗑️" },
-            { name: "Sulfur", price: 30000, limit: 1000, icon: "🔥" },
-            { name: "Treated Water", price: 130000, limit: 500, icon: "💧" },
-            { name: "Waste Water", price: 70000, limit: 500, icon: "🚽" }
-        ],
-        "Product": [
-            { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" },
-            { name: "Concrete", price: 850000, limit: 500, icon: "🧱" },
-            { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" },
-            { name: "Pills", price: 250000, limit: 250, icon: "💊" },
-            { name: "Fish", price: 650, limit: 250000, icon: "🐟" },
-            { name: "Meat", price: 1000, limit: 1000, icon: "🍖" }
-        ]
+        "Bonus EXP": [ { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" }, { name: "Business XP", price: 3900, limit: 20000, icon: "💼" }, { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" }, { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" }, { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" }, { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" }, { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" }, { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" }, { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" }, { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" }, { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" }, { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" }, { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" }, { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" }, { name: "Player XP", price: 500, limit: 50000, icon: "🧍" }, { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" }, { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" }, { name: "Strength XP", price: 500, limit: 50000, icon: "💪" }, { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" } ],
+        "Raw Materials": [ { name: "Acid", price: 12000, limit: 1500, icon: "🧪" }, { name: "Batteries", price: 160000, limit: 500, icon: "🔋" }, { name: "Bronze Alloy", price: 45000, limit: 500, icon: "🥉" }, { name: "Cement Mix", price: 95000, limit: 2000, icon: "🏗️" }, { name: "Ceramic Tiles", price: 85000, limit: 500, icon: "⬜" }, { name: "Copper Vouchers", price: 22000, limit: 1000, icon: "🎫" }, { name: "Explosives", price: 1000000, limit: 50, icon: "💣" }, { name: "Flint", price: 12000, limit: 2500, icon: "🪨" }, { name: "Iron Vouchers", price: 18000, limit: 1000, icon: "🎫" }, { name: "Kerosene", price: 100000, limit: 500, icon: "🛢️" }, { name: "Planks", price: 55000, limit: 1000, icon: "🪵" }, { name: "Raw Ore Mix", price: 2500, limit: 1000, icon: "⛰️" }, { name: "Refined Amalgam", price: 174000, limit: 1000, icon: "💎" }, { name: "Refined Copper", price: 20000, limit: 800, icon: "🟧" }, { name: "Refined Solder", price: 60000, limit: 500, icon: "🔌" }, { name: "Refined Tin", price: 65000, limit: 500, icon: "🥫" }, { name: "Refined Zinc", price: 14000, limit: 800, icon: "🔋" }, { name: "Rubber", price: 168000, limit: 250, icon: "⚫" }, { name: "Sand", price: 13000, limit: 10000, icon: "⏳" }, { name: "Sawdust", price: 3000, limit: 10000, icon: "🪚" }, { name: "Scrap Aluminum", price: 8000, limit: 500, icon: "🗑️" }, { name: "Scrap Copper", price: 11200, limit: 1000, icon: "🗑️" }, { name: "Scrap Gold", price: 55000, limit: 500, icon: "🗑️" }, { name: "Scrap Lead", price: 13000, limit: 800, icon: "🗑️" }, { name: "Scrap Mercury", price: 65000, limit: 500, icon: "🗑️" }, { name: "Scrap Plastic", price: 5000, limit: 2000, icon: "🥤" }, { name: "Scrap Tin", price: 32000, limit: 1000, icon: "🗑️" }, { name: "Sulfur", price: 30000, limit: 1000, icon: "🔥" }, { name: "Treated Water", price: 130000, limit: 500, icon: "💧" }, { name: "Waste Water", price: 70000, limit: 500, icon: "🚽" } ],
+        "Product": [ { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" }, { name: "Concrete", price: 850000, limit: 500, icon: "🧱" }, { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" }, { name: "Pills", price: 250000, limit: 250, icon: "💊" }, { name: "Fish", price: 650, limit: 250000, icon: "🐟" }, { name: "Meat", price: 1000, limit: 1000, icon: "🍖" } ]
     };
 
-    var state = { 
-        category: "Bonus EXP", item: null, qty: 1, priority: 'normal', 
-        username: "Guest", userId: "0", isGrinder: false, grinderRank: "", 
-        activeOrders: 0, completedOrders: 0,
-        showMyHistoryDone: false, showGrinderDone: false,
-        customOrderMode: false, miniView: 'orders'
-    };
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false };
     var pollingInterval = null;
 
-    // --- INIT ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
-        renderGrid();
-        
-        requestData();
-        setTimeout(requestData, 250);
-        setTimeout(requestData, 500);
-        pollingInterval = setInterval(requestData, 1000); 
-        setInterval(checkForMail, 5000);
-        
-        document.body.classList.add('show-orders');
+        document.getElementById('app-container').style.display = 'none';
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('side-dock').style.display = 'flex';
         
         window.addEventListener('message', function(event) {
             var item = event.data;
-            if (item.type === 'open') {
-                document.getElementById('app-container').style.display = 'flex';
+            if (item.type === "data" || item.user_id) {
+                let d = item.data || item;
+                if(d.user_id || d.player_id || d.id) {
+                    state.username = d.name || d.player || "Unknown";
+                    state.userId = cleanID(d.user_id || d.player_id || d.id);
+                    document.getElementById('username-display').innerText = state.username;
+                    document.getElementById('userid-display').innerText = "ID: " + state.userId;
+                    document.getElementById('loading-txt').innerText = "IDENTITY CONFIRMED: " + state.username;
+                    document.getElementById('btn-init').style.display = 'none';
+                    document.getElementById('auth-fields').style.display = 'block';
+                    document.getElementById('login-name').value = state.username;
+                    document.getElementById('login-id').value = state.userId;
+                    document.getElementById('pin-input').focus();
+                }
             }
         });
     };
 
-    // --- CONNECTION ---
-    window.addEventListener('message', function(event) {
-        var payload = event.data;
-        if (payload && payload.type === 'data' && payload.data) payload = payload.data;
-        if (!payload) return;
+    function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
 
-        var username = null;
-        if (payload.name) username = payload.name;
-        else if (payload.player && payload.player.name) username = payload.player.name;
-        else if (typeof payload.player === 'string') username = payload.player;
-
-        var userId = "0";
-        if (payload.user_id) userId = String(payload.user_id);
-        else if (payload.player_id) userId = String(payload.player_id);
-        else if (payload.id) userId = String(payload.id);
-
-        if (userId !== "0" && state.userId === "0") {
-            foundIdentity(username || "Unknown", userId);
-        }
-    });
-
-    function foundIdentity(name, id) {
-        state.username = name;
-        state.userId = id;
-        
-        document.getElementById('username-display').innerText = state.username;
-        document.getElementById('userid-display').innerText = "ID: " + state.userId;
-        document.getElementById('status-box').classList.add('connected');
-
-        if(pollingInterval) clearInterval(pollingInterval);
-
-        if(GRINDER_ROSTER[state.userId]) {
-            state.isGrinder = true;
-            state.grinderRank = GRINDER_ROSTER[state.userId];
-            document.body.classList.add('role-grinder');
-            document.getElementById('nav-grinder').style.display = 'inline-block';
-            document.getElementById('rank-display').innerText = state.grinderRank;
-        }
-        fetchMyOrders();
+    // --- ACTIONS ---
+    function expandApp() {
+        document.getElementById('side-dock').style.display = 'none';
+        if (!state.userPin) document.getElementById('login-overlay').style.display = 'flex';
+        else document.getElementById('app-container').style.display = 'flex';
     }
 
-    function manualRefreshID() {
-        document.getElementById('username-display').innerText = "Refreshing...";
-        state.userId = "0";
-        requestData();
-        if(!pollingInterval) pollingInterval = setInterval(requestData, 1000);
+    function minimizeApp() {
+        document.getElementById('app-container').style.display = 'none';
+        document.getElementById('side-dock').style.display = 'flex';
     }
 
-    function requestData() {
+    function initializeConnection() {
+        document.getElementById('btn-init').innerText = "SCANNING...";
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
     }
 
-    // --- SMART STEP LOGIC ---
+    function attemptLogin() {
+        var pin = document.getElementById('pin-input').value;
+        if(pin.length < 4) return;
+        document.getElementById('btn-login').disabled = true;
+        document.getElementById('btn-login').innerText = "VERIFYING...";
+        
+        fetch(`${GOOGLE_SCRIPT_URL}?action=login&userId=${state.userId}&name=${state.username}&pin=${pin}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.result === 'success') {
+                state.userPin = pin;
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-container').style.display = 'flex';
+                
+                // CHECK ADMIN
+                if (ADMIN_IDS.includes(String(state.userId))) {
+                    state.isAdmin = true;
+                    document.getElementById('nav-admin').style.display = 'inline-block';
+                    // FORCE GRINDER FOR ADMINS
+                    state.isGrinder = true;
+                    state.grinderRank = "Top Grinder"; // Admins get max privileges
+                    document.body.classList.add('role-grinder');
+                    document.getElementById('nav-grinder').style.display = 'inline-block';
+                    document.getElementById('rank-display').innerText = state.grinderRank;
+                } else {
+                    // NORMAL USER ROLE CHECK
+                    if (data.role && data.role !== "Customer" && data.role !== "") {
+                        state.isGrinder = true;
+                        state.grinderRank = data.role;
+                        document.body.classList.add('role-grinder');
+                        document.getElementById('nav-grinder').style.display = 'inline-block';
+                        document.getElementById('rank-display').innerText = state.grinderRank;
+                    }
+                }
+
+                renderGrid();
+                fetchMyOrders();
+                setInterval(checkForMail, 5000);
+            } else {
+                var errorMsg = data.message || "LOGIN FAILED";
+                document.getElementById('login-status').innerText = errorMsg;
+                document.getElementById('login-status').style.color = "#e74c3c";
+                document.getElementById('btn-login').disabled = false;
+                document.getElementById('btn-login').innerText = "LOGIN";
+            }
+        });
+    }
+
+    // --- HOUSEKEEPING ---
+    function switchAdminTab(tab) {
+        document.getElementById('admin-view-users').style.display = (tab === 'users') ? 'block' : 'none';
+        document.getElementById('admin-view-orders').style.display = (tab === 'orders') ? 'block' : 'none';
+        if(tab === 'users') fetchAdminUsers();
+        if(tab === 'orders') fetchAdminOrders();
+    }
+
+    function fetchAdminUsers() {
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}`).then(r=>r.json()).then(users=>{
+            let c = document.getElementById('hk-user-list'); c.innerHTML = '';
+            users.forEach(u => {
+                c.innerHTML += `<tr>
+                    <td>${u.id}</td><td>${u.name}</td>
+                    <td>${u.role || '-'}</td>
+                    <td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td>
+                    <td>
+                        <button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}')">EDIT</button>
+                    </td>
+                </tr>`;
+            });
+        });
+    }
+
+    function fetchAdminOrders() {
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}`).then(r=>r.json()).then(orders=>{
+            let c = document.getElementById('hk-order-list'); c.innerHTML = '';
+            orders.forEach(o => {
+                c.innerHTML += `<tr>
+                    <td>${o.item}</td><td>${o.username}</td>
+                    <td class="st-${o.status}">${o.status}</td>
+                    <td>${o.grinder || '-'}</td>
+                    <td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}')">EDIT</button></td>
+                </tr>`;
+            });
+        });
+    }
+
+    // NEW USER MODAL FUNCTIONS
+    function openUserEdit(id, role, status) {
+        document.getElementById('user-edit-modal').style.display = 'flex';
+        document.getElementById('ue-id').value = id;
+        document.getElementById('ue-role').value = role || "Customer";
+        document.getElementById('ue-status').value = status;
+    }
+
+    function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
+
+    function saveUserModification() {
+        let id = document.getElementById('ue-id').value;
+        let role = document.getElementById('ue-role').value;
+        let status = document.getElementById('ue-status').value;
+        
+        if (role === "Customer") role = ""; 
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role })
+        }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); });
+    }
+
+    function openAdminEdit(ts, uid, status, grinder) {
+        document.getElementById('admin-edit-modal').style.display = 'flex';
+        document.getElementById('ae-ts').value = ts;
+        document.getElementById('ae-uid').value = uid;
+        document.getElementById('ae-status').value = status;
+        document.getElementById('ae-grinder').value = grinder;
+    }
+
+    function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
+
+    function saveAdminOrder() {
+        let ts = document.getElementById('ae-ts').value;
+        let uid = document.getElementById('ae-uid').value;
+        let stat = document.getElementById('ae-status').value;
+        let grind = document.getElementById('ae-grinder').value;
+        
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind })
+        }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); });
+    }
+
+    // --- STANDARD LOGIC ---
     function getStepSize(limit) {
-        if (limit >= 250000) return 5000;
-        if (limit >= 50000) return 1000;
-        if (limit >= 15000) return 500;
-        if (limit >= 2500) return 50;
-        if (limit >= 1500) return 25;
-        if (limit >= 1000) return 10;
-        if (limit >= 500) return 5;
-        return 1;
+        if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500;
+        if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1;
     }
 
-    // --- UI LOGIC ---
-    function setCategory(cat) {
-        state.category = cat;
-        var tabs = document.querySelectorAll('.tab-btn');
-        for(var i=0; i<tabs.length; i++) {
-            if(tabs[i].innerText === cat) tabs[i].classList.add('active');
-            else tabs[i].classList.remove('active');
-        }
-        renderGrid();
-    }
-
+    function setCategory(cat) { state.category = cat; renderGrid(); }
+    
     function renderGrid() {
-        var container = document.getElementById('item-grid'); 
-        if(!container) return; 
-        container.innerHTML = '';
+        var container = document.getElementById('item-grid'); container.innerHTML = '';
         var items = CATEGORIES[state.category];
         for(var i=0; i<items.length; i++) {
             (function(item){
-                var div = document.createElement('div');
-                div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : '');
+                var div = document.createElement('div'); div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : '');
                 div.onclick = function() { selectItem(item); };
                 div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+item.price.toLocaleString()+'</span>';
                 if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>';
@@ -524,81 +561,37 @@
         state.item = item;
         document.getElementById('disp-item-name').value = item.name;
         document.getElementById('limit-display').innerText = state.customOrderMode ? "(Unlimited)" : "(Max: " + item.limit.toLocaleString() + ")";
-        
-        var qInput = document.getElementById('input-qty');
-        var rInput = document.getElementById('range-qty');
-        
-        var step = getStepSize(item.limit);
-        rInput.step = step;
-        
+        var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty');
+        var step = getStepSize(item.limit); rInput.step = step;
         var currentVal = parseInt(qInput.value) || 1;
-        
-        if (!state.customOrderMode) {
-            if(currentVal > item.limit) currentVal = item.limit;
-            qInput.max = item.limit;
-            rInput.max = item.limit;
-            rInput.disabled = false;
-            rInput.min = step; // Fix: Slider starts at Step
-            qInput.readOnly = true;
-            
-            // Snap value to nearest step if needed, or default to step
-            if (currentVal < step) currentVal = step;
-        } else {
-            qInput.max = 1000000;
-            rInput.disabled = true;
-            qInput.readOnly = false;
-            rInput.min = 1;
-        }
-        
-        qInput.value = currentVal;
-        rInput.value = currentVal;
-
-        document.getElementById('btn-submit').classList.add('active');
-        renderGrid();
-        updateCalc();
-        checkOrderCapability();
+        if (!state.customOrderMode) { if(currentVal > item.limit) currentVal = item.limit; qInput.max = item.limit; rInput.max = item.limit; rInput.disabled = false; rInput.min = step; qInput.readOnly = true; if (currentVal < step) currentVal = step; } 
+        else { qInput.max = 1000000; rInput.disabled = true; qInput.readOnly = false; rInput.min = 1; }
+        qInput.value = currentVal; rInput.value = currentVal;
+        document.getElementById('btn-submit').classList.add('active'); renderGrid(); updateCalc(); checkOrderCapability();
     }
 
     function updateCalc() {
         if(!state.item) return;
-        var qInput = document.getElementById('input-qty');
-        var rInput = document.getElementById('range-qty');
-        var val = parseInt(qInput.value);
-        
-        if(!state.customOrderMode && document.activeElement === rInput) {
-            val = parseInt(rInput.value);
-            qInput.value = val;
-        } else if (!state.customOrderMode) {
-            rInput.value = val;
-        }
-        
+        var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty'); var val = parseInt(qInput.value);
+        if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } 
+        else if (!state.customOrderMode) { rInput.value = val; }
         var total = state.item.price * val;
-        if(document.getElementById('input-priority').value === 'high') total *= 1.05; // 5%
-        if(state.customOrderMode) total *= 1.10; // 10% Custom Fee
-
+        if(document.getElementById('input-priority').value === 'high') total *= 1.05;
+        if(state.customOrderMode) total *= 1.10;
         document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
     }
 
     function toggleCustomOrder() {
         state.customOrderMode = !state.customOrderMode;
         var btn = document.getElementById('btn-custom-toggle');
-        
-        if (state.customOrderMode) {
-            btn.classList.add('active');
-            btn.innerText = "🔓 Custom Order Active (+10% Fee)";
-        } else {
-            btn.classList.remove('active');
-            btn.innerText = "🔓 Custom Order (Unlimited Qty)";
-        }
+        if (state.customOrderMode) { btn.classList.add('active'); btn.innerText = "🔓 Custom Order Active (+10% Fee)"; } 
+        else { btn.classList.remove('active'); btn.innerText = "🔓 Custom Order (Unlimited Qty)"; }
         if(state.item) selectItem(state.item);
     }
 
     function toggleMiniMode() {
         document.body.classList.toggle('mini-mode');
-        if(document.body.classList.contains('mini-mode')) {
-            if(!state.isGrinder) switchView('history'); 
-            else switchView(state.miniView); 
-        }
+        if(document.body.classList.contains('mini-mode')) { if(!state.isGrinder) switchView('history'); else switchView(state.miniView); }
     }
 
     function setMiniTab(view) {
@@ -609,121 +602,54 @@
         document.getElementById('mt-jobs').classList.toggle('active', view === 'jobs');
     }
 
-    function toggleMyHistoryDone() {
-        state.showMyHistoryDone = !state.showMyHistoryDone;
-        document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done";
-        fetchMyOrders();
-    }
-
-    function toggleGrinderDone() {
-        state.showGrinderDone = !state.showGrinderDone;
-        document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done";
-        fetchGlobalOrders();
-    }
+    function toggleMyHistoryDone() { state.showMyHistoryDone = !state.showMyHistoryDone; document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done"; fetchMyOrders(); }
+    function toggleGrinderDone() { state.showGrinderDone = !state.showGrinderDone; document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done"; fetchGlobalOrders(); }
 
     function switchView(view) {
         if(!document.body.classList.contains('mini-mode')) {
-            document.getElementById('view-order').style.display = 'none';
-            document.getElementById('view-history').style.display = 'none';
-            document.getElementById('view-grinder').style.display = 'none';
+            document.querySelectorAll('#main-content > div').forEach(el => el.style.display = 'none');
             document.getElementById('view-' + view).style.display = 'flex';
         }
-        
-        var btns = document.querySelectorAll('.header-btn');
-        for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
-        document.getElementById('nav-' + view).classList.add('active');
-
-        if(view === 'history') fetchMyOrders();
-        if(view === 'grinder') fetchGlobalOrders();
+        var btns = document.querySelectorAll('.header-btn'); for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
+        document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view)).classList.add('active');
+        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); if(view === 'housekeeping') switchAdminTab('users');
     }
 
-    // --- LOGIC ---
-    function calculateOrderLimit() {
-        if(state.completedOrders >= 5) return 8;
-        if(state.completedOrders >= 1) return 3;
-        return 1;
-    }
+    function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
 
     function checkOrderCapability() {
-        var limit = calculateOrderLimit();
-        var pending = state.activeOrders;
-        var warn = document.getElementById('limit-warning');
-        var custBtn = document.getElementById('btn-custom-toggle');
-
+        var limit = calculateOrderLimit(); var pending = state.activeOrders;
+        var warn = document.getElementById('limit-warning'); var custBtn = document.getElementById('btn-custom-toggle');
         if(limit >= 8) custBtn.style.display = 'block';
-
-        if(pending >= limit) {
-            document.getElementById('btn-submit').disabled = true;
-            warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")";
-        } else {
-            document.getElementById('btn-submit').disabled = false;
-            warn.innerText = "Active Orders: " + pending + "/" + limit;
-        }
+        if(pending >= limit) { document.getElementById('btn-submit').disabled = true; warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")"; } 
+        else { document.getElementById('btn-submit').disabled = false; warn.innerText = "Active Orders: " + pending + "/" + limit; }
     }
 
     function submitRealOrder() {
-        if(state.userId === "0") return;
-        var btn = document.getElementById('btn-submit');
-        btn.disabled = true; btn.innerText = "SENDING...";
-
-        var payload = {
-            action: "placeOrder",
-            username: state.username,
-            userId: state.userId,
-            category: state.category,
-            item: state.item.name,
-            quantity: document.getElementById('input-qty').value,
-            priority: document.getElementById('input-priority').value,
-            totalPrice: document.getElementById('disp-total').innerText
-        };
-
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).then(function() {
-            btn.innerText = "SENT!";
-            setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000);
-        });
+        var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING...";
+        var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText };
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
     }
 
     function checkForMail() {
-        if(state.userId === "0") return;
-        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId)
-        .then(function(r){ return r.json(); })
-        .then(function(data) {
-            if(!data) return;
-            var hasUnread = false;
-            for(var i=0; i<data.length; i++) {
-                if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) {
-                    hasUnread = true; break;
-                }
-            }
-            var icon = document.getElementById('mail-alert');
-            if(hasUnread) icon.classList.add('has-mail');
-            else icon.classList.remove('has-mail');
+        if(!state.userPin) return;
+        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId + "&pin=" + state.userPin).then(function(r){ return r.json(); }).then(function(data) {
+            if(!data) return; var hasUnread = false;
+            for(var i=0; i<data.length; i++) { if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) { hasUnread = true; break; } }
+            var icon = document.getElementById('mail-alert'); if(hasUnread) icon.classList.add('has-mail'); else icon.classList.remove('has-mail');
         });
     }
 
     function fetchMyOrders() {
         var c = document.getElementById('history-container');
-        if(state.userId === "0") { c.innerHTML = '<div style="padding:20px; text-align:center;">Waiting for ID...</div>'; return; }
-        
-        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId)
-        .then(function(r){ return r.json(); })
-        .then(function(data) {
-            c.innerHTML = '';
-            state.activeOrders = 0;
-            state.completedOrders = 0;
+        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId + "&pin=" + state.userPin).then(function(r){ return r.json(); }).then(function(data) {
+            c.innerHTML = ''; state.activeOrders = 0; state.completedOrders = 0;
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                if(!data[i].item || data[i].item === "") continue; 
-                
+                if(!data[i].item) continue;
                 if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
                 if(data[i].status === 'Completed') state.completedOrders++;
-                
                 if(!state.showMyHistoryDone && data[i].status === 'Completed') continue;
-
                 c.appendChild(createOrderItem(data[i], false));
             }
             checkOrderCapability();
@@ -732,157 +658,55 @@
 
     function fetchGlobalOrders() {
         var c = document.getElementById('grinder-container');
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders")
-        .then(function(r){ return r.json(); })
-        .then(function(data) {
+        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin).then(function(r){ return r.json(); }).then(function(data) {
             c.innerHTML = '';
-            var myActiveJobs = 0;
-            for(var k=0; k<data.length; k++) {
-                if(!data[k].item || data[k].item === "") continue;
-                if(data[k].status === 'Accepted' && data[k].grinder.toLowerCase().includes(state.username.toLowerCase())) myActiveJobs++;
-            }
-            if(!data || data.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center;">No jobs.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                if(!data[i].item || data[i].item === "") continue; 
+                if(!data[i].item) continue;
                 if(!state.showGrinderDone && data[i].status === "Completed") continue;
-                c.appendChild(createOrderItem(data[i], true, myActiveJobs));
+                c.appendChild(createOrderItem(data[i], true));
             }
         });
     }
 
-    function createOrderItem(o, isGrinderView, myJobCount) {
-        var d = new Date(o.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        var status = (o.status || 'Pending');
-        var chatLog = o.chat ? o.chat.split(" | ").join("\n") : "";
-        var progress = o.progress || "0";
-        var controls = '';
-
-        // Unread Badge Check
-        var hasUnread = false;
-        if(o.chat && !o.chat.trim().endsWith(state.username)) hasUnread = true;
+    function createOrderItem(o, isGrinderView) {
+        var status = (o.status || 'Pending'); var progress = o.progress || "0"; var controls = '';
+        var hasUnread = (o.chat && !o.chat.trim().endsWith(state.username));
+        var chatBadge = hasUnread ? '<div class="unread-badge">1</div>' : '';
 
         if(isGrinderView) {
-            var s = status.toLowerCase();
-            var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3;
+            var s = status.toLowerCase(); var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3;
             var isMyJob = (o.grinder && o.grinder.toLowerCase().includes(state.username.toLowerCase()));
 
             if(s === 'pending') {
-                // BLOCK SELF-ACCEPT
-                if (String(o.userId) === String(state.userId)) {
-                    controls = '<span style="color:#555; font-size:0.7em;">YOUR ORDER</span>';
-                } else if(myJobCount >= maxJobs) {
-                    controls = '<span style="color:red; font-size:0.7em;">LIMIT REACHED</span>';
-                } else {
-                    controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
-                }
+                if (String(o.userId) === String(state.userId)) controls = '<span style="color:#555; font-size:0.7em;">YOUR ORDER</span>';
+                else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
             } else if(s === 'accepted' && isMyJob) {
-                // FIXED LAYOUT
-                var chatBadge = hasUnread ? '<div class="unread-badge">1</div>' : '';
-                controls = `
-                    <div class="grinder-action-box">
-                        <div class="btn-row">
-                            <button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button>
-                            <button class="g-btn gb-chat" onclick="toggleChat(this)">${chatBadge}💬</button>
-                        </div>
-                        <input type="text" class="progress-strip" value="${progress}" placeholder="Enter Progress..." onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)">
-                    </div>
-                `;
+                controls = `<div class="grinder-action-box"><div class="btn-row"><button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button><button class="g-btn gb-chat" onclick="toggleChat(this)">${chatBadge}💬</button></div><input type="text" class="progress-strip" value="${progress}" placeholder="Enter Progress..." onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)"></div>`;
             }
         } else {
-            // Customer View
-            if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span>`;
-            if(status === 'Accepted') {
-                var chatBadge = hasUnread ? '<div class="unread-badge">1</div>' : '';
-                controls += `<button class="g-btn gb-chat" style="margin-left:10px; padding:4px 8px;" onclick="toggleChat(this)">${chatBadge}💬</button>`;
-            }
+            if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span><button class="g-btn gb-chat" style="margin-left:10px; padding:4px 8px;" onclick="toggleChat(this)">${chatBadge}💬</button>`;
         }
 
-        var div = document.createElement('div'); 
-        div.className = "history-item";
-        div.innerHTML = 
-            '<div class="h-top">' +
-                '<div class="h-info">' +
-                    '<div class="h-row user">' + o.username + ' <span style="font-family:monospace; color:#666;">(' + o.userId + ')</span></div>' +
-                    '<div class="h-row item">' + o.item + ' <span style="color:#888;">x' + o.qty + '</span></div>' +
-                    '<div class="h-row price">$' + parseInt(o.price).toLocaleString() + '</div>' +
-                    (o.grinder ? '<div class="h-row worker">Worker: ' + o.grinder + '</div>' : '') +
-                '</div>' +
-                '<div class="status-container">' +
-                    '<div class="status-badge st-' + status + '">' + status + '</div>' +
-                    controls +
-                '</div>' +
-            '</div>' +
-            '<div class="chat-area">' +
-                '<div class="chat-logs">' + (chatLog || "No messages.") + '</div>' +
-                '<div class="chat-input-row">' +
-                    '<input type="text" class="chat-input" placeholder="Type message...">' +
-                    '<button class="chat-send" onclick="sendChatFromBtn(this, \''+o.timestamp+'\', \''+(o.orderUserId||o.userId)+'\')">SEND</button>' +
-                '</div>' +
-            '</div>';
-
+        var div = document.createElement('div'); div.className = "history-item";
+        div.innerHTML = `<div class="h-top"><div class="h-info"><div class="h-row user">${o.username} <span style="font-family:monospace; color:#666;">(${o.userId})</span></div><div class="h-row item">${o.item} <span style="color:#888;">x${o.qty}</span></div><div class="h-row price">$${parseInt(o.price).toLocaleString()}</div>${o.grinder ? '<div class="h-row worker">Worker: '+o.grinder+'</div>' : ''}</div><div class="status-container"><div class="status-badge st-${status}">${status}</div>${controls}</div></div><div class="chat-area"><div class="chat-logs">${(o.chat ? o.chat.split(" | ").join("\n") : "No messages.")}</div><div class="chat-input-row"><input type="text" class="chat-input" placeholder="Type message..."><button class="chat-send" onclick="sendChatFromBtn(this, '${o.timestamp}', '${(o.orderUserId||o.userId)}')">SEND</button></div></div>`;
         return div;
     }
 
-    function toggleChat(btn) {
-        var item = btn.closest('.history-item');
-        var area = item.querySelector('.chat-area');
-        area.style.display = (area.style.display==='block'?'none':'block');
-        
-        var badge = btn.querySelector('.unread-badge');
-        if(badge) badge.remove();
-    }
+    function toggleChat(btn) { var area = btn.closest('.history-item').querySelector('.chat-area'); area.style.display = (area.style.display==='block'?'none':'block'); var badge = btn.querySelector('.unread-badge'); if(badge) badge.remove(); }
+    function sendChatFromBtn(btn, ts, uid) { var input = btn.previousElementSibling; if(!input.value) return; sendChatMessage(ts, uid, input.value); input.value = "Sending..."; var badge = btn.closest('.history-item').querySelector('.unread-badge'); if(badge) badge.remove(); }
 
-    function sendChatFromBtn(btn, ts, uid) {
-        var input = btn.previousElementSibling;
-        if(!input.value) return;
-        sendChatMessage(ts, uid, input.value);
-        input.value = "Sending...";
-        
-        var parentItem = btn.closest('.history-item');
-        var badge = parentItem.querySelector('.unread-badge');
-        if(badge) badge.remove();
-    }
+    function updateOrderStatus(ts, uid, status) { var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank, userId: state.userId, pin: state.userPin }; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(() => setTimeout(fetchGlobalOrders, 1000)); }
+    function updateProgress(ts, uid, amount) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount, userId: state.userId, pin: state.userPin }) }); }
+    function sendChatMessage(ts, uid, msg) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) }).then(() => { if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); else fetchGlobalOrders(); }); }
 
-    function updateOrderStatus(ts, uid, status) {
-        var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank };
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
-        .then(function() { setTimeout(fetchGlobalOrders, 1000); });
-    }
-
-    function updateProgress(ts, uid, amount) {
-        var payload = { action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount };
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    }
-
-    function sendChatMessage(ts, uid, msg) {
-        var payload = { action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg };
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
-        .then(function() { 
-            if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders();
-            else fetchGlobalOrders();
-        });
-    }
-
-    // --- DRAG LOGIC (Dual Handler) ---
-    var mainHeader = document.getElementById("main-header");
-    var miniStrip = document.getElementById("mini-drag-strip");
-    var elmnt = document.getElementById("app-container");
-    var pos1=0, pos2=0, pos3=0, pos4=0;
-
+    var mainHeader = document.getElementById("main-header"); var miniStrip = document.getElementById("mini-drag-strip"); var elmnt = document.getElementById("app-container"); var pos1=0, pos2=0, pos3=0, pos4=0;
     function dragMouseDown(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elementDrag; }
     function elementDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
     function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
-
-    if(mainHeader) mainHeader.onmousedown = dragMouseDown;
-    if(miniStrip) miniStrip.onmousedown = dragMouseDown;
+    function initDrag() { if(mainHeader) mainHeader.onmousedown = dragMouseDown; if(miniStrip) miniStrip.onmousedown = dragMouseDown; }
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-    document.onkeydown = function(e) { 
-        if(e.keyCode==27) { 
-            fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err=>{});
-            document.getElementById('app-container').style.display = "none"; 
-        }
-    }
+    document.onkeydown = function(e) { if(e.keyCode==27) { fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err=>{}); document.getElementById('app-container').style.display = "none"; document.getElementById('login-overlay').style.display = "none"; document.getElementById('side-dock').style.display = "flex"; } }
 </script>
 </body>
 </html>
