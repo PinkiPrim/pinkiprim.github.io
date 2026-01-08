@@ -14,6 +14,7 @@
             --border: 1px solid rgba(0, 255, 255, 0.5);
             --glass: blur(4px);
             --admin-color: #ff0055;
+            --warning-red: #ff4444;
         }
 
         * { box-sizing: border-box; user-select: none; }
@@ -22,13 +23,28 @@
 
         /* LOGIN */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .login-box { width: 400px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
+        .login-box { width: 450px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
         .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 15px; cursor: not-allowed; }
         .login-input.verified { color: var(--primary); border-color: var(--primary); background: rgba(0, 255, 255, 0.05); }
         .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; }
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
         .btn-enter { display: none; width: 100%; padding: 15px; background: #2ecc71; border: 1px solid #27ae60; color: white; font-weight: bold; cursor: pointer; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+
+        /* WARNING BOX STYLE */
+        .warning-box {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid var(--warning-red);
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--warning-red);
+            font-size: 0.75em;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
 
         /* 3D WRAPPER */
         .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
@@ -101,10 +117,7 @@
         .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 3px; }
         input[type="text"], input[type="number"], select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
         input:focus { border-color: var(--primary); outline: none; }
-        input:disabled { opacity: 0.5; cursor: not-allowed; }
         .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; cursor: pointer; }
-        .checkbox-row input { width: auto; cursor: pointer; }
-        .checkbox-row label { margin: 0; cursor: pointer; color: #aaa; font-size: 0.9em; }
 
         .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
         .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
@@ -126,6 +139,10 @@
             <button id="btn-signin" class="btn-auth" onclick="startAuthentication()">SIGN IN</button>
             <button id="btn-enter" class="btn-enter" onclick="enterMarket()">ENTER MARKET</button>
             <div id="login-status" style="margin-top:10px; font-size:0.8em; color:#888;">Secure Connection Required</div>
+            
+            <div class="warning-box">
+                WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App
+            </div>
         </div>
     </div>
 
@@ -139,6 +156,10 @@
                 <div class="holo-btn" onclick="openSubmenu('sell')"><div class="icon-box"><i class="fas fa-upload"></i></div><span class="btn-text">CREATE LISTING</span></div>
                 <div class="holo-btn" id="btn-hk" style="display:none; border-color: var(--admin-color);" onclick="openSubmenu('hk')"><div class="icon-box" style="color:var(--admin-color);"><i class="fas fa-shield-alt"></i></div><span class="btn-text" style="color:var(--admin-color);">HK DASHBOARD</span></div>
                 <div class="holo-btn" onclick="closeApp()"><div class="icon-box"><i class="fas fa-power-off"></i></div><span class="btn-text">DISCONNECT</span></div>
+                
+                <div class="warning-box" style="margin-top: auto; opacity: 0.8;">
+                    WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App
+                </div>
             </div>
 
             <div class="submenu-container" id="submenu-layer">
@@ -411,10 +432,8 @@
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
-        
         if(pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(refreshDetail, 1000);
-
         renderDetail(item);
     }
 
