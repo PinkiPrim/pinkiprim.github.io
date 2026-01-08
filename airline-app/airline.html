@@ -288,6 +288,7 @@ const JOB_EXP_KEY = "exp_piloting_piloting";
 const JOB_BXP_KEY_A = "exp_token_a|piloting|piloting";
 const JOB_BXP_KEY_B = "exp_token|piloting|piloting";
 const ITEM_MEAL = "fridge_airline_meal";
+const STORAGE_KEY_CALC = "target_xp_airline"; // Storage Key
 
 // Anti-Flicker & Flight Counting Logic
 let routeResetTimeout = null;
@@ -307,6 +308,13 @@ const STATE = {
     completedRuns: 0,
     avgXP: 0
 };
+
+// --- INIT ---
+// Load saved Calculator Target
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) {
+    document.getElementById('target-input').value = savedTarget;
+}
 
 // --- CLOCK ---
 setInterval(() => {
@@ -431,7 +439,6 @@ function processPayload(data) {
     }
     
     // Update Memory: Pockets
-    // Only update if we receive a valid object with keys to prevent empty flashing
     if(data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
@@ -543,6 +550,9 @@ function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
+    // Save to local storage
+    localStorage.setItem(STORAGE_KEY_CALC, val);
+
     if (STATE.completedRuns === 0) { 
         el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; 
         return; 
