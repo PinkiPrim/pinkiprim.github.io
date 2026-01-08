@@ -79,12 +79,21 @@
         .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; }
         .detail-img { width: 100%; height: 250px; object-fit: contain; background: #000; border: 1px solid #444; }
         
+        /* --- NEW SELL LAYOUT (CRASH FIX) --- */
+        #view-sell { display: none; height: 100%; flex-direction: column; }
+        .sell-layout { display: flex; gap: 20px; height: 100%; }
+        .sell-form { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        .sell-preview-box { flex: 1; background: rgba(0,0,0,0.5); border: 1px dashed var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        .preview-image-actual { max-width: 100%; max-height: 300px; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        
         /* FORMS */
-        .input-group { margin-bottom: 10px; }
-        .input-group label { display: block; font-size: 0.8em; color: var(--primary); }
-        input, select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 10px; }
-        .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 10px; cursor: pointer; width: 100%; margin-top: 5px; }
-        .action-btn:hover { background: var(--primary); color: black; }
+        .input-group { margin-bottom: 5px; }
+        .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 3px; }
+        input, select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
+        input:focus { border-color: var(--primary); outline: none; }
+        
+        .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
+        .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
         .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; }
 
         /* SCROLL */
@@ -109,7 +118,7 @@
         <div class="pivot-wrapper" id="pivot-wrapper">
             
             <div class="menu-container" id="main-menu">
-                <div class="header-text">MARKET LINK</div>
+                <div class="header-text">PINKI TT AUCTION</div>
                 
                 <div class="holo-btn" onclick="openSubmenu('browse')">
                     <div class="icon-box"><i class="fas fa-globe"></i></div>
@@ -142,7 +151,7 @@
                 <div id="view-browse" class="view-content" style="display:none; height:100%; flex-direction:column;">
                     <div class="content-header">
                         <h3>ACTIVE MARKET</h3>
-                        <button class="action-btn" style="width:auto;" onclick="fetchData('browse')">REFRESH</button>
+                        <button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('browse')">REFRESH</button>
                     </div>
                     <div class="grid-scroll">
                         <div class="auction-grid" id="browse-grid"></div>
@@ -153,7 +162,7 @@
                 <div id="view-mydata" class="view-content" style="display:none; height:100%; flex-direction:column;">
                     <div class="content-header">
                         <h3>MY HISTORY</h3>
-                        <button class="action-btn" style="width:auto;" onclick="fetchData('mydata')">REFRESH</button>
+                        <button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('mydata')">REFRESH</button>
                     </div>
                     <div class="grid-scroll">
                         <div class="auction-grid" id="my-grid"></div>
@@ -164,7 +173,7 @@
                 <div id="view-hk" class="view-content" style="display:none; height:100%; flex-direction:column;">
                     <div class="content-header">
                         <h3 style="color:var(--admin-color);">HOUSEKEEPING</h3>
-                        <button class="action-btn" style="width:auto; border-color:var(--admin-color);" onclick="fetchData('hk')">REFRESH</button>
+                        <button class="action-btn" style="width:auto; margin:0; border-color:var(--admin-color);" onclick="fetchData('hk')">REFRESH</button>
                     </div>
                     <div class="hk-dashboard">
                         <div class="stat-box"><div class="stat-val" id="st-total">0</div><div class="stat-label">Total</div></div>
@@ -193,17 +202,14 @@
                                 <input type="number" id="detail-bid-input" placeholder="Amount...">
                                 <button class="action-btn" onclick="placeBid()">CONFIRM BID</button>
                             </div>
-                            
                             <div id="controls-seller" style="display:none; text-align:center;">
                                 <div style="color:#e67e22; margin-bottom:10px;">YOUR LISTING</div>
                                 <button id="btn-mark-comp" class="action-btn" onclick="updateStatus('Completed')" style="background:#e67e22; border-color:#d35400;">MARK AS COMPLETED</button>
                             </div>
-                            
                             <div id="controls-buyer" style="display:none; text-align:center;">
                                 <div style="color:#2ecc71; margin-bottom:10px;">YOU WON THIS AUCTION</div>
                                 <button id="btn-mark-full" class="action-btn" onclick="updateStatus('Fulfilled')" style="background:#27ae60; border-color:#2ecc71;">CONFIRM RECEIPT (FULFILLED)</button>
                             </div>
-                            
                             <div id="controls-done" style="display:none; text-align:center; padding:20px; border:1px solid #333; color:#555;">
                                 TRANSACTION CLOSED
                             </div>
@@ -212,21 +218,41 @@
                     <div class="back-btn" onclick="returnToLastView()"><i class="fas fa-chevron-left"></i> BACK</div>
                 </div>
 
-                <div id="view-sell" class="view-content" style="display:none;">
+                <div id="view-sell" class="view-content">
                     <div class="content-header"><h3>UPLOAD TO MARKET</h3></div>
-                    <div class="input-group"><label>ITEM NAME</label><input type="text" id="sell-name"></div>
-                    <div class="input-group"><label>IMAGE URL</label><input type="text" id="sell-img" oninput="previewImg(this.value)"></div>
-                    <div class="input-group"><label>PRICE</label><input type="number" id="sell-price"></div>
-                    <div class="input-group"><label>DURATION</label>
-                        <select id="sell-duration">
-                            <option value="15">15 Minutes</option>
-                            <option value="60">1 Hour</option>
-                            <option value="1440">24 Hours</option>
-                        </select>
+                    
+                    <div class="sell-layout">
+                        <div class="sell-form">
+                            <div class="input-group">
+                                <label>ITEM NAME</label>
+                                <input type="text" id="sell-name" placeholder="e.g. Import Car">
+                            </div>
+                            <div class="input-group">
+                                <label>IMAGE URL (Catbox.moe)</label>
+                                <input type="text" id="sell-img" placeholder="https://..." oninput="previewImg(this.value)">
+                            </div>
+                            <div class="input-group">
+                                <label>STARTING BID</label>
+                                <input type="number" id="sell-price" placeholder="5000">
+                            </div>
+                            <div class="input-group">
+                                <label>DURATION</label>
+                                <select id="sell-duration">
+                                    <option value="15">15 Minutes</option>
+                                    <option value="60">1 Hour</option>
+                                    <option value="1440">24 Hours</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="sell-preview-box">
+                            <div id="img-preview" style="color:#555;">NO IMAGE PREVIEW</div>
+                        </div>
                     </div>
-                    <div id="img-preview" style="height:100px; background:#111; margin:10px 0; display:flex; align-items:center; justify-content:center; color:#555;">PREVIEW</div>
-                    <button class="action-btn" onclick="postAuction()">INITIATE UPLOAD</button>
-                    <div id="sell-status" style="text-align:center; margin-top:10px;"></div>
+
+                    <button class="action-btn" onclick="postAuction()">CREATE LISTING</button>
+                    <div id="sell-status" style="text-align:center; margin-top:5px; height:20px;"></div>
+                    
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
 
@@ -235,11 +261,8 @@
     </div>
 
 <script>
-    // ==========================================
-    // CONFIGURATION - PASTE YOUR GOOGLE URL HERE
     const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwNfqTNIxvqNpae4DSl45adFXTKrhqh1E3Y9oW8U2P25zzE5BVT9E-k9EMpQiQ597ht/exec";
     const ADMIN_ID = "757858";
-    // ==========================================
 
     let userData = { name: "", id: "" };
     let currentData = [];
@@ -297,7 +320,6 @@
         isMenuOpen = true;
         document.getElementById('pivot-wrapper').style.display = "block";
         
-        // ADMIN CHECK
         if(userData.id === ADMIN_ID) document.getElementById('btn-hk').style.display = 'flex';
         else document.getElementById('btn-hk').style.display = 'none';
 
@@ -332,7 +354,6 @@
         }, 300);
     }
 
-    // --- DATA HANDLING ---
     function fetchData(view) {
         let action = "browse"; 
         if(view === 'hk') action = "getAll";
@@ -376,38 +397,26 @@
     function renderHK(data) {
         const list = document.getElementById('hk-list');
         list.innerHTML = '';
-        
         let active = 0, comp = 0, ful = 0;
         data.forEach(item => {
             if(item.status === 'Active') active++;
             if(item.status === 'Completed') comp++;
             if(item.status === 'Fulfilled') ful++;
-
             let row = document.createElement('div');
             row.className = 'hk-list-item';
-            row.innerHTML = `
-                <span style="width:30%; overflow:hidden;">${item.item}</span>
-                <span style="width:20%;">${item.seller}</span>
-                <span style="width:20%;">$${item.price}</span>
-                <span style="width:20%;" class="st-${item.status}">${item.status}</span>
-                <span style="width:10%; cursor:pointer;" onclick='openDetail(${JSON.stringify(item)})'>👁️</span>
-            `;
+            row.innerHTML = `<span style="width:30%; overflow:hidden;">${item.item}</span><span style="width:20%;">${item.seller}</span><span style="width:20%;">$${item.price}</span><span style="width:20%;" class="st-${item.status}">${item.status}</span><span style="width:10%; cursor:pointer;" onclick='openDetail(${JSON.stringify(item)})'>👁️</span>`;
             list.appendChild(row);
         });
-
         document.getElementById('st-total').innerText = data.length;
         document.getElementById('st-active').innerText = active;
         document.getElementById('st-comp').innerText = comp;
         document.getElementById('st-ful').innerText = ful;
     }
 
-    // --- DETAILS & LOGIC ---
     function openDetail(item) {
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
-
-        // Fill Basic Info
         document.getElementById('detail-title').innerText = item.item;
         document.getElementById('detail-seller').innerText = item.seller;
         document.getElementById('detail-price').innerText = "$" + parseInt(item.price).toLocaleString();
@@ -415,8 +424,7 @@
         document.getElementById('detail-img').src = item.img.startsWith('http') ? item.img : 'https://placehold.co/400x300?text=No+Image';
         document.getElementById('detail-status').innerText = item.status;
         document.getElementById('detail-status').className = `st-${item.status}`;
-
-        // Reset Controls
+        
         document.getElementById('controls-bid').style.display = 'none';
         document.getElementById('controls-seller').style.display = 'none';
         document.getElementById('controls-buyer').style.display = 'none';
@@ -428,8 +436,7 @@
         if (item.status === 'Active') {
             if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
             else document.getElementById('controls-seller').innerHTML = '<div style="color:#e67e22;">AUCTION IN PROGRESS</div>';
-        } 
-        else if (item.status === 'Ended') {
+        } else if (item.status === 'Ended') {
             if(isSeller) {
                 document.getElementById('controls-seller').style.display = 'block';
                 document.getElementById('btn-mark-comp').style.display = 'block';
@@ -437,16 +444,14 @@
                 document.getElementById('controls-done').style.display = 'block';
                 document.getElementById('controls-done').innerText = "AUCTION ENDED - WAITING FOR SELLER";
             }
-        }
-        else if (item.status === 'Completed') {
+        } else if (item.status === 'Completed') {
             if(isBuyer) {
                 document.getElementById('controls-buyer').style.display = 'block';
             } else {
                  document.getElementById('controls-done').style.display = 'block';
                  document.getElementById('controls-done').innerText = "SELLER COMPLETED - WAITING FOR BUYER";
             }
-        }
-        else if (item.status === 'Fulfilled') {
+        } else if (item.status === 'Fulfilled') {
             document.getElementById('controls-done').style.display = 'block';
             document.getElementById('controls-done').innerText = "ORDER FULFILLED";
         }
@@ -455,21 +460,15 @@
     function returnToLastView() {
         document.getElementById('view-detail').style.display = 'none';
         document.getElementById('view-' + lastView).style.display = 'flex';
-        fetchData(lastView); // Refresh state
+        fetchData(lastView);
     }
 
     function updateStatus(newStatus) {
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                action: "updateStatus", id: currentDetailId,
-                newStatus: newStatus, requesterId: userData.id
-            })
-        }).then(() => {
-            alert("Status Updated!");
-            returnToLastView();
-        });
+            body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id })
+        }).then(() => { alert("Status Updated!"); returnToLastView(); });
     }
 
     function placeBid() {
@@ -478,21 +477,23 @@
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                action: "bid", id: currentDetailId, amount: amt,
-                bidderName: userData.name, bidderId: userData.id
-            })
-        }).then(() => {
-            alert("Bid Sent");
-            returnToLastView();
-        });
+            body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id })
+        }).then(() => { alert("Bid Sent"); returnToLastView(); });
     }
 
     function previewImg(url) {
-        document.getElementById('img-preview').innerHTML = `<img src="${url}" style="height:100%;">`;
+        const div = document.getElementById('img-preview');
+        div.innerHTML = ''; // Clear prev
+        if(url.startsWith('http')) {
+            div.innerHTML = `<img src="${url}" class="preview-image-actual">`;
+        } else {
+            div.innerHTML = 'INVALID URL';
+        }
     }
 
     function postAuction() {
+        const btn = document.querySelector('#view-sell .action-btn');
+        btn.disabled = true; btn.innerText = "POSTING...";
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
@@ -502,8 +503,8 @@
                 price: document.getElementById('sell-price').value, duration: document.getElementById('sell-duration').value
             })
         }).then(() => {
-            alert("Listed!");
-            closeSubmenu();
+            alert("Listed!"); closeSubmenu();
+            btn.disabled = false; btn.innerText = "CREATE LISTING";
         });
     }
 
