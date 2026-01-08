@@ -36,14 +36,27 @@
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
         /* MINI MODE (Widget Style) */
-        body.mini-mode .pivot-wrapper { width: 350px !important; height: 180px !important; transform: none !important; margin: 0; }
+        /* Positioned 3/4 way up screen (Top 25%) and Right aligned */
+        body.mini-mode .pivot-wrapper { 
+            width: 300px !important; 
+            height: auto !important; 
+            min-height: 150px;
+            transform: none !important; 
+            margin: 0;
+            position: absolute;
+            top: 25%; 
+            right: 50px;
+            left: auto;
+        }
         body.mini-mode .menu-container { display: none; }
         body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
-        body.mini-mode .submenu-container { background: rgba(0,0,0,0.85); border: 2px solid var(--primary); top:0; transform: none; height: 100%; padding: 10px; }
+        body.mini-mode .submenu-container { background: rgba(0,0,0,0.9); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
         body.mini-mode .detail-right { background: transparent; border: none; padding: 0; }
-        body.mini-mode #detail-title { font-size: 1.2em; margin: 0; }
-        body.mini-mode #detail-price { font-size: 1.5em; margin: 5px 0; }
-        body.mini-mode #min-btn { position: absolute; top: 5px; right: 5px; font-size: 0.8em; padding: 2px 5px; }
+        body.mini-mode #detail-title { font-size: 1.2em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        body.mini-mode #detail-price { font-size: 1.8em; margin: 10px 0; text-align: center; }
+        body.mini-mode #min-btn { position: absolute; top: -5px; right: 0; font-size: 0.8em; padding: 2px 8px; border: none; background: transparent; color: #888; }
+        body.mini-mode #min-btn:hover { color: white; }
+        body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; }
 
         /* MENUS */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
@@ -68,7 +81,7 @@
         .card-body { padding: 15px; display: flex; flex-direction: column; justify-content: center; height: 100%; }
         .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
         .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
-        .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; }
+        .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
         
         /* STATUS BADGES */
         .st-Active { color: #00ff00; }
@@ -362,7 +375,7 @@
             card.onclick = () => openDetail(item);
             
             // Embed EndTime in dataset for timer loop
-            let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}">...</div>` : '';
+            let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
 
             card.innerHTML = `
                 ${imgHTML}
@@ -385,12 +398,12 @@
         const now = new Date().getTime();
         document.querySelectorAll('.card-timer').forEach(el => {
             const end = parseInt(el.getAttribute('data-end'));
-            el.innerText = formatTime(end - now);
+            el.innerHTML = `<i class="far fa-clock"></i> ${formatTime(end - now)}`;
         });
         
         // Also update Detail View if open
         if(currentDetailId && document.getElementById('view-detail').style.display !== 'none') {
-            const item = currentData.find(i => i.id === currentDetailId);
+            const item = currentData.find(i => String(i.id) === String(currentDetailId));
             if(item) document.getElementById('detail-live-timer').innerText = formatTime(item.endTime - now);
         }
     }
@@ -420,7 +433,7 @@
         fetch(`${CONST_GOOGLE_URL}?action=getAll&userId=${userData.id}`)
         .then(res => res.json())
         .then(data => {
-            // Find current item in fresh data
+            currentData = data; // Update global cache
             const item = data.find(i => String(i.id) === String(currentDetailId));
             if(item) renderDetail(item);
         });
@@ -448,7 +461,7 @@
 
         const isSeller = String(item.sellerId) === userData.id;
         const isBuyer = String(item.bidderId) === userData.id;
-        const noBids = (item.bidderId == "0" || item.highBidder == "None");
+        const noBids = (item.bidderId == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
 
         if (item.status === 'Active') {
             if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
@@ -475,9 +488,7 @@
     }
 
     function returnToLastView() {
-        // Stop detail polling
         if(pollingInterval) clearInterval(pollingInterval);
-        // Reset mini mode
         document.body.classList.remove('mini-mode');
         document.getElementById('view-detail').style.display = 'none';
         document.getElementById('view-' + lastView).style.display = 'flex';
@@ -512,7 +523,6 @@
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id })
         }).then(() => { 
-            // Note: We don't returnToLastView here, let the polling update the UI so they can see their bid land
             document.getElementById('detail-bid-input').value = "";
         });
     }
@@ -536,7 +546,6 @@
         document.getElementById('st-ful').innerText = ful;
     }
 
-    // --- NEW IMAGE LOGIC ---
     function toggleImgInput() {
         const checkbox = document.getElementById('no-img-check');
         const input = document.getElementById('sell-img');
