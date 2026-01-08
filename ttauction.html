@@ -52,12 +52,12 @@
         .auction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
 
         /* CARDS */
-        .auction-card { background: rgba(0,0,0,0.6); border: 1px solid #333; display: flex; flex-direction: column; transition: 0.2s; position: relative; overflow: hidden; cursor: pointer; }
+        .auction-card { background: rgba(0,0,0,0.6); border: 1px solid #333; display: flex; flex-direction: column; transition: 0.2s; position: relative; overflow: hidden; cursor: pointer; min-height: 100px; }
         .auction-card:hover { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-dim); transform: translateY(-3px); }
-        .card-img { width: 100%; height: 120px; object-fit: cover; background: #000; }
-        .card-body { padding: 10px; }
-        .card-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .card-price { color: var(--primary); font-size: 1.2em; font-weight: bold; }
+        .card-img { width: 100%; height: 120px; object-fit: cover; background: #000; border-bottom: 1px solid #333; }
+        .card-body { padding: 15px; display: flex; flex-direction: column; justify-content: center; height: 100%; }
+        .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
+        .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
         
         /* STATUS BADGES */
         .st-Active { color: #00ff00; }
@@ -79,7 +79,7 @@
         .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; }
         .detail-img { width: 100%; height: 250px; object-fit: contain; background: #000; border: 1px solid #444; }
         
-        /* --- NEW SELL LAYOUT (CRASH FIX) --- */
+        /* --- SELL LAYOUT --- */
         #view-sell { display: none; height: 100%; flex-direction: column; }
         .sell-layout { display: flex; gap: 20px; height: 100%; }
         .sell-form { flex: 1; display: flex; flex-direction: column; gap: 15px; }
@@ -89,11 +89,19 @@
         /* FORMS */
         .input-group { margin-bottom: 5px; }
         .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 3px; }
-        input, select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
+        input[type="text"], input[type="number"], select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
         input:focus { border-color: var(--primary); outline: none; }
+        input:disabled { opacity: 0.5; cursor: not-allowed; }
         
+        /* CHECKBOX STYLE */
+        .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; cursor: pointer; }
+        .checkbox-row input { width: auto; cursor: pointer; }
+        .checkbox-row label { margin: 0; cursor: pointer; color: #aaa; font-size: 0.9em; }
+
         .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
         .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
+        .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
+        
         .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; }
 
         /* SCROLL */
@@ -189,8 +197,9 @@
                     <div class="content-header"><h3>ITEM DETAILS</h3></div>
                     <div class="detail-layout">
                         <div class="detail-left">
-                            <img id="detail-img" class="detail-img" src="">
-                            <div style="font-size:0.9em; color:#888;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
+                            <div id="detail-img-container" style="width:100%; height:250px; background:#000; border:1px solid #444; display:flex; align-items:center; justify-content:center;">
+                                </div>
+                            <div style="font-size:0.9em; color:#888; margin-top:10px;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
                             <div style="font-size:0.9em; color:#888;">STATUS: <span id="detail-status" style="font-weight:bold;"></span></div>
                         </div>
                         <div class="detail-right">
@@ -230,6 +239,10 @@
                             <div class="input-group">
                                 <label>IMAGE URL (Catbox.moe)</label>
                                 <input type="text" id="sell-img" placeholder="https://..." oninput="previewImg(this.value)">
+                                <div class="checkbox-row">
+                                    <input type="checkbox" id="no-img-check" onchange="toggleImgInput()">
+                                    <label for="no-img-check">NO IMAGE</label>
+                                </div>
                             </div>
                             <div class="input-group">
                                 <label>STARTING BID</label>
@@ -251,7 +264,7 @@
                     </div>
 
                     <button class="action-btn" onclick="postAuction()">CREATE LISTING</button>
-                    <div id="sell-status" style="text-align:center; margin-top:5px; height:20px;"></div>
+                    <div id="sell-status" style="text-align:center; margin-top:5px; height:20px; color:cyan;"></div>
                     
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
@@ -270,7 +283,6 @@
     let currentDetailId = null;
     let lastView = 'browse';
 
-    // 3D EFFECT
     document.addEventListener('mousemove', (e) => {
         if (!isMenuOpen) return;
         const wrapper = document.getElementById('pivot-wrapper');
@@ -279,7 +291,6 @@
         wrapper.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
     });
 
-    // STARTUP
     window.addEventListener('message', (event) => {
         if (event.data.action === "open") { document.body.style.display = 'block'; resetLogin(); }
         if (event.data.type === "data" || event.data.user_id) {
@@ -287,12 +298,10 @@
             if(d.user_id || d.player_id || d.id) {
                 userData.name = d.name || d.player || "Unknown";
                 userData.id = String(d.user_id || d.player_id || d.id);
-                
                 document.getElementById('login-name').value = userData.name;
                 document.getElementById('login-name').classList.add('verified');
                 document.getElementById('login-id').value = userData.id;
                 document.getElementById('login-id').classList.add('verified');
-                
                 document.getElementById('btn-signin').style.display = "none";
                 document.getElementById('btn-enter').style.display = "block";
             }
@@ -319,10 +328,8 @@
         document.getElementById('login-screen').style.display = 'none';
         isMenuOpen = true;
         document.getElementById('pivot-wrapper').style.display = "block";
-        
         if(userData.id === ADMIN_ID) document.getElementById('btn-hk').style.display = 'flex';
         else document.getElementById('btn-hk').style.display = 'none';
-
         const btns = document.querySelectorAll('.holo-btn');
         btns.forEach((btn, i) => { btn.classList.remove('show'); setTimeout(() => btn.classList.add('show'), i * 100); });
     }
@@ -377,12 +384,18 @@
         
         data.forEach(item => {
             let status = item.status;
-            let img = item.img.startsWith('http') ? item.img : 'https://placehold.co/200x120?text=No+Image';
+            let imgHTML = '';
+            
+            // Logic: Only show image tag if a URL exists. Otherwise show nothing (clean text card)
+            if (item.img && item.img.startsWith('http')) {
+                imgHTML = `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">`;
+            }
+
             let card = document.createElement('div');
             card.className = 'auction-card';
             card.onclick = () => openDetail(item);
             card.innerHTML = `
-                <img src="${img}" class="card-img" onerror="this.src='https://placehold.co/200x120?text=Error'">
+                ${imgHTML}
                 <div class="card-body">
                     <div class="card-title">${item.item}</div>
                     <div class="card-price">$${parseInt(item.price).toLocaleString()}</div>
@@ -417,14 +430,23 @@
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
+        
         document.getElementById('detail-title').innerText = item.item;
         document.getElementById('detail-seller').innerText = item.seller;
         document.getElementById('detail-price').innerText = "$" + parseInt(item.price).toLocaleString();
         document.getElementById('detail-bidder').innerText = item.highBidder;
-        document.getElementById('detail-img').src = item.img.startsWith('http') ? item.img : 'https://placehold.co/400x300?text=No+Image';
         document.getElementById('detail-status').innerText = item.status;
         document.getElementById('detail-status').className = `st-${item.status}`;
         
+        // Handle Detail Image
+        const imgContainer = document.getElementById('detail-img-container');
+        if (item.img && item.img.startsWith('http')) {
+            imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
+        } else {
+            imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
+        }
+
+        // Controls Logic
         document.getElementById('controls-bid').style.display = 'none';
         document.getElementById('controls-seller').style.display = 'none';
         document.getElementById('controls-buyer').style.display = 'none';
@@ -468,7 +490,10 @@
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id })
-        }).then(() => { alert("Status Updated!"); returnToLastView(); });
+        }).then(() => { 
+            // Replace alert with return
+            returnToLastView(); 
+        });
     }
 
     function placeBid() {
@@ -478,33 +503,74 @@
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id })
-        }).then(() => { alert("Bid Sent"); returnToLastView(); });
+        }).then(() => { returnToLastView(); });
+    }
+
+    // --- NEW IMAGE LOGIC ---
+    function toggleImgInput() {
+        const checkbox = document.getElementById('no-img-check');
+        const input = document.getElementById('sell-img');
+        const preview = document.getElementById('img-preview');
+        
+        if(checkbox.checked) {
+            input.disabled = true;
+            input.value = "";
+            preview.innerHTML = `<span style="color:#555;">IMAGE DISABLED</span>`;
+        } else {
+            input.disabled = false;
+            preview.innerHTML = `<span style="color:#555;">NO IMAGE PREVIEW</span>`;
+        }
     }
 
     function previewImg(url) {
         const div = document.getElementById('img-preview');
-        div.innerHTML = ''; // Clear prev
+        div.innerHTML = '';
         if(url.startsWith('http')) {
             div.innerHTML = `<img src="${url}" class="preview-image-actual">`;
         } else {
-            div.innerHTML = 'INVALID URL';
+            div.innerHTML = `<span style="color:#555;">INVALID URL</span>`;
         }
     }
 
     function postAuction() {
         const btn = document.querySelector('#view-sell .action-btn');
-        btn.disabled = true; btn.innerText = "POSTING...";
+        const status = document.getElementById('sell-status');
+        
+        // Validation
+        const name = document.getElementById('sell-name').value;
+        const price = document.getElementById('sell-price').value;
+        
+        if(!name || !price) {
+            status.innerText = "ERROR: MISSING FIELDS";
+            status.style.color = "#ff4444";
+            return;
+        }
+
+        btn.disabled = true; 
+        btn.innerText = "UPLOADING...";
+        status.innerText = "CONNECTING TO SATELLITE...";
+        status.style.color = "cyan";
+
+        const imgVal = document.getElementById('no-img-check').checked ? "" : document.getElementById('sell-img').value;
+
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 action: "create", seller: userData.name, sellerId: userData.id,
-                item: document.getElementById('sell-name').value, img: document.getElementById('sell-img').value,
-                price: document.getElementById('sell-price').value, duration: document.getElementById('sell-duration').value
+                item: name, img: imgVal,
+                price: price, duration: document.getElementById('sell-duration').value
             })
         }).then(() => {
-            alert("Listed!"); closeSubmenu();
-            btn.disabled = false; btn.innerText = "CREATE LISTING";
+            status.innerText = "SUCCESSFULLY LISTED";
+            setTimeout(() => {
+                closeSubmenu();
+                // Reset form
+                document.getElementById('sell-name').value = '';
+                document.getElementById('sell-price').value = '';
+                btn.disabled = false; btn.innerText = "CREATE LISTING";
+                status.innerText = "";
+            }, 1000);
         });
     }
 
