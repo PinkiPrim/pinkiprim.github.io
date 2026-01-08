@@ -174,6 +174,7 @@
 
         <div class="section" style="border:none;">
             <div class="label">Drop Calculator</div>
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b>:</div>
             <input type="number" id="target-input" placeholder="e.g. 500000">
             
             <div class="quick-btn-row">
@@ -202,6 +203,7 @@
 // --- STATE ---
 const JOB_EXP_KEY = "exp_train_train"; 
 const JOB_BXP_KEY = "exp_token_a|train|train";
+const STORAGE_KEY_CALC = "target_xp_train";
 
 const STATE = {
     currentXP: 0, 
@@ -209,6 +211,12 @@ const STATE = {
     sessionGain: 0,
     dropCount: 0 // New Drop Counter
 };
+
+// --- INIT ---
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) {
+    document.getElementById('target-input').value = savedTarget;
+}
 
 // --- CLOCK ---
 setInterval(() => {
@@ -329,6 +337,8 @@ function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
     
+    localStorage.setItem(STORAGE_KEY_CALC, val);
+
     // Need at least 1 drop to calculate average
     if (STATE.dropCount === 0) { 
         el.innerHTML = "<i>Waiting for first XP drop...</i>"; 
