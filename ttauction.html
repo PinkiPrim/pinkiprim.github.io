@@ -78,8 +78,7 @@
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; cursor: wait; }
 
         .btn-enter {
-            display: none; /* Hidden until verified */
-            width: 100%; padding: 15px; margin-top: 10px;
+            display: none; width: 100%; padding: 15px; margin-top: 10px;
             background: #2ecc71; border: 1px solid #27ae60;
             color: white; font-size: 1.2em; font-weight: bold; letter-spacing: 2px;
             cursor: pointer; animation: pulse 2s infinite;
@@ -92,7 +91,7 @@
         .status-msg.error { color: #ff4444; }
         .status-msg.success { color: var(--primary); }
 
-        /* --- 3D WRAPPER (Hidden initially) --- */
+        /* --- 3D PERSPECTIVE WRAPPERS --- */
         .perspective-container {
             width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
@@ -156,21 +155,37 @@
         }
         
         .grid-scroll { flex: 1; overflow-y: auto; padding-right: 10px; }
+        
+        /* GRID VIEW (Compact) */
         .auction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
 
         .auction-card {
             background: rgba(0,0,0,0.6); border: 1px solid #333;
             display: flex; flex-direction: column; transition: 0.2s;
-            position: relative; overflow: hidden;
+            position: relative; overflow: hidden; cursor: pointer;
         }
-        .auction-card:hover { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-dim); }
+        .auction-card:hover { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-dim); transform: translateY(-3px); }
 
         .card-img { width: 100%; height: 120px; object-fit: cover; background: #000; }
         .card-body { padding: 10px; }
         .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .card-price { color: var(--primary); font-size: 1.2em; font-weight: bold; margin: 5px 0; }
         .card-timer { font-size: 0.8em; color: #ff4444; text-align: right; }
-        .card-bidder { font-size: 0.7em; color: #888; }
+        
+        /* DETAIL VIEW (Full) */
+        #view-detail { display: none; height: 100%; flex-direction: column; }
+        .detail-layout { display: flex; gap: 20px; height: 100%; }
+        .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; }
+        
+        .detail-img { width: 100%; height: 250px; object-fit: contain; background: #000; border: 1px solid #444; }
+        .detail-title { font-size: 1.8em; color: white; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #333; }
+        .detail-price { font-size: 2.5em; color: var(--primary); font-weight: bold; margin-bottom: 10px; }
+        
+        .owner-badge {
+            background: #e67e22; color: white; padding: 10px; text-align: center;
+            font-weight: bold; letter-spacing: 2px; border: 1px solid #d35400; margin-top: auto;
+        }
 
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 5px; }
@@ -205,19 +220,17 @@
             <div class="login-title">SYSTEM AUTHENTICATION</div>
             
             <div class="login-input-group">
-                <label>PLAYER NAME</label>
-                <input type="text" id="login-name" class="login-input" placeholder="Pending Authentication..." readonly disabled>
+                <label>PLAYER NAME (LOCKED)</label>
+                <input type="text" id="login-name" class="login-input" placeholder="Scanning Identity..." readonly disabled>
             </div>
 
             <div class="login-input-group">
-                <label>CITIZEN ID</label>
-                <input type="text" id="login-id" class="login-input" placeholder="Pending Authentication..." readonly disabled>
+                <label>CITIZEN ID (LOCKED)</label>
+                <input type="text" id="login-id" class="login-input" placeholder="Waiting for Server..." readonly disabled>
             </div>
 
             <button id="btn-signin" class="btn-auth" onclick="startAuthentication()">SIGN IN</button>
-            
             <button id="btn-enter" class="btn-enter" onclick="enterMarket()">ENTER MARKET</button>
-            
             <div id="login-status" class="status-msg">Secure Connection Required</div>
         </div>
     </div>
@@ -250,13 +263,51 @@
             </div>
 
             <div class="submenu-container" id="submenu-layer">
-                <div id="view-browse" class="view-content" style="display:none; height:100%; display:flex; flex-direction:column;">
+                
+                <div id="view-browse" class="view-content" style="display:none; height:100%; flex-direction:column;">
                     <div class="content-header">
                         <h3>ACTIVE AUCTIONS</h3>
                         <button class="action-btn" style="width:auto;" onclick="fetchAuctions()">REFRESH</button>
                     </div>
                     <div class="grid-scroll">
                         <div class="auction-grid" id="auction-grid"></div>
+                    </div>
+                    <div class="back-btn" onclick="closeSubmenu()">
+                        <i class="fas fa-chevron-left"></i> RETURN TO ROOT
+                    </div>
+                </div>
+
+                <div id="view-detail" class="view-content">
+                    <div class="content-header">
+                        <h3>ITEM DETAILS</h3>
+                    </div>
+                    <div class="detail-layout">
+                        <div class="detail-left">
+                            <img id="detail-img" class="detail-img" src="">
+                            <div style="font-size:0.9em; color:#888;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
+                            <div style="font-size:0.9em; color:#888;">TIME LEFT: <span id="detail-timer" style="color:#ff4444;"></span></div>
+                        </div>
+                        <div class="detail-right">
+                            <div id="detail-title" class="detail-title">Item Name</div>
+                            <div style="font-size:0.8em; color:var(--primary);">CURRENT BID</div>
+                            <div id="detail-price" class="detail-price">$0</div>
+                            <div style="margin-bottom:20px; font-size:0.9em;">High Bidder: <span id="detail-bidder" style="color:#ccc;">None</span></div>
+                            
+                            <div id="bid-controls-wrapper" style="margin-top:auto;">
+                                <div class="input-group">
+                                    <label>PLACE YOUR BID</label>
+                                    <input type="number" id="detail-bid-input" placeholder="Enter amount...">
+                                </div>
+                                <button class="action-btn" onclick="placeBid()">CONFIRM BID</button>
+                            </div>
+
+                            <div id="owner-badge" class="owner-badge" style="display:none;">
+                                YOU OWN THIS LISTING
+                            </div>
+                        </div>
+                    </div>
+                    <div class="back-btn" onclick="returnToBrowse()">
+                        <i class="fas fa-chevron-left"></i> BACK TO LIST
                     </div>
                 </div>
 
@@ -286,11 +337,11 @@
                     <div id="img-preview" style="height:100px; background:#111; margin-bottom:15px; display:flex; align-items:center; justify-content:center; color:#555;">PREVIEW</div>
                     <button class="action-btn" onclick="postAuction()">INITIATE UPLOAD</button>
                     <div id="sell-status" style="text-align:center; margin-top:10px; font-size:0.8em;"></div>
+                    <div class="back-btn" onclick="closeSubmenu()">
+                        <i class="fas fa-chevron-left"></i> RETURN TO ROOT
+                    </div>
                 </div>
 
-                <div class="back-btn" onclick="closeSubmenu()">
-                    <i class="fas fa-chevron-left"></i> RETURN TO ROOT
-                </div>
             </div>
 
         </div>
@@ -302,8 +353,8 @@
     let userData = { name: "", id: "" };
     let auctions = [];
     let isMenuOpen = false;
+    let currentDetailId = null; // Tracks which item is open
 
-    // --- MOUSE PARALLAX ---
     document.addEventListener('mousemove', (e) => {
         if (!isMenuOpen) return;
         const wrapper = document.getElementById('pivot-wrapper');
@@ -314,43 +365,28 @@
         wrapper.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
     });
 
-    // --- FIVEM & LOGIN LOGIC ---
+    // --- FIVEM & LOGIN ---
     window.addEventListener('message', (event) => {
         if (event.data.action === "open" || event.data.type === "open") {
             document.body.style.display = 'block'; 
             resetLogin();
         }
-
-        // HANDLE DATA ARRIVAL
         if (event.data.type === "data" || event.data.user_id) {
             let d = event.data.data || event.data;
             if(d.user_id || d.player_id || d.id) {
-                
-                // Store Data
-                const fetchedId = d.user_id || d.player_id || d.id;
-                const fetchedName = d.name || d.player || "Unknown";
-                userData.name = fetchedName;
-                userData.id = fetchedId;
+                userData.name = d.name || d.player || "Unknown";
+                userData.id = d.user_id || d.player_id || d.id;
 
-                // UI FEEDBACK: VERIFIED
-                const nameInput = document.getElementById('login-name');
-                const idInput = document.getElementById('login-id');
-                const signBtn = document.getElementById('btn-signin');
-                const enterBtn = document.getElementById('btn-enter');
-                const status = document.getElementById('login-status');
+                document.getElementById('login-name').value = userData.name;
+                document.getElementById('login-name').classList.add('verified');
+                document.getElementById('login-id').value = userData.id;
+                document.getElementById('login-id').classList.add('verified');
 
-                nameInput.value = fetchedName;
-                nameInput.classList.add('verified');
+                document.getElementById('btn-signin').style.display = "none";
+                document.getElementById('btn-enter').style.display = "block";
                 
-                idInput.value = fetchedId;
-                idInput.classList.add('verified');
-
-                // Switch Buttons
-                signBtn.style.display = "none";
-                enterBtn.style.display = "block";
-                
-                status.innerText = "Identity Verified. Access Granted.";
-                status.classList.add('success');
+                document.getElementById('login-status').innerText = "Identity Verified. Access Granted.";
+                document.getElementById('login-status').classList.add('success');
             }
         }
     });
@@ -359,52 +395,36 @@
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('pivot-wrapper').style.display = 'none';
         
-        // Reset inputs
-        const nameInput = document.getElementById('login-name');
-        const idInput = document.getElementById('login-id');
-        const signBtn = document.getElementById('btn-signin');
-        const enterBtn = document.getElementById('btn-enter');
-        const status = document.getElementById('login-status');
+        document.getElementById('login-name').value = "";
+        document.getElementById('login-name').classList.remove('verified');
+        document.getElementById('login-id').value = "";
+        document.getElementById('login-id').classList.remove('verified');
 
-        nameInput.value = "";
-        nameInput.classList.remove('verified');
-        idInput.value = "";
-        idInput.classList.remove('verified');
+        document.getElementById('btn-signin').style.display = "block";
+        document.getElementById('btn-signin').disabled = false;
+        document.getElementById('btn-signin').innerText = "SIGN IN";
+        document.getElementById('btn-enter').style.display = "none";
 
-        // Show Sign In, Hide Enter
-        signBtn.style.display = "block";
-        signBtn.disabled = false;
-        signBtn.innerText = "SIGN IN";
-        enterBtn.style.display = "none";
-
-        status.innerText = "Secure Connection Required";
-        status.classList.remove('success', 'error');
+        document.getElementById('login-status').innerText = "Secure Connection Required";
+        document.getElementById('login-status').classList.remove('success', 'error');
     }
 
-    // TRIGGERED BY "SIGN IN" BUTTON
     function startAuthentication() {
         const btn = document.getElementById('btn-signin');
         const status = document.getElementById('login-status');
-        
         btn.disabled = true;
         btn.innerText = "POLLING IDENTITY...";
         status.innerText = "Requesting biometric data from server...";
-        
-        // Send signal to Lua to get data
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
-        
-        // Timeout check if Lua doesn't reply
         setTimeout(() => {
             if(!userData.id) {
-                btn.disabled = false;
-                btn.innerText = "RETRY SIGN IN";
+                btn.disabled = false; btn.innerText = "RETRY SIGN IN";
                 status.innerText = "Connection Timed Out. Please Retry.";
                 status.classList.add('error');
             }
         }, 5000);
     }
 
-    // TRIGGERED BY "ENTER MARKET" BUTTON
     function enterMarket() {
         if(!userData.id) return;
         document.getElementById('login-screen').style.display = 'none';
@@ -415,7 +435,6 @@
         isMenuOpen = true;
         document.getElementById('pivot-wrapper').style.display = "block";
         document.getElementById('menu-user-display').innerText = `${userData.name} [ID: ${userData.id}]`;
-
         const btns = document.querySelectorAll('.holo-btn');
         btns.forEach((btn, index) => {
             btn.classList.remove('show');
@@ -437,12 +456,10 @@
         document.getElementById('main-menu').style.pointerEvents = 'none';
         
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
-        document.getElementById('view-' + view).style.display = 'block';
-        if(view === 'browse') {
-             document.getElementById('view-browse').style.display = 'flex';
-             fetchAuctions();
-        }
-
+        document.getElementById('view-' + view).style.display = 'flex'; // Use Flex for layouts
+        
+        if(view === 'browse') fetchAuctions();
+        
         setTimeout(() => document.getElementById('submenu-layer').classList.add('active'), 300);
     }
 
@@ -455,7 +472,7 @@
         }, 300);
     }
 
-    // --- API LOGIC ---
+    // --- AUCTION LOGIC ---
     function fetchAuctions() {
         const grid = document.getElementById('auction-grid');
         grid.innerHTML = '<div style="color:cyan; grid-column:span 3; text-align:center;">ACCESSING NEURAL NETWORK...</div>';
@@ -486,6 +503,9 @@
 
             let card = document.createElement('div');
             card.className = 'auction-card';
+            // Click to Open Detail
+            card.onclick = function() { openDetail(item); };
+            
             card.innerHTML = `
                 <img src="${img}" class="card-img" onerror="this.src='https://placehold.co/200x120?text=Error'">
                 <div class="card-body">
@@ -496,9 +516,8 @@
                     <div class="card-bidder" style="margin-top:5px; color:${item.bidderId == userData.id ? 'cyan' : '#888'}">
                         High Bid: ${item.highBidder}
                     </div>
-                    <div style="display:flex; gap:5px; margin-top:5px;">
-                        <input type="number" class="bid-input" placeholder="Min ${parseInt(item.price)+1}">
-                        <button class="action-btn" style="width:auto; padding:5px 10px;" onclick="placeBid('${item.id}', this)">BID</button>
+                    <div style="text-align:center; margin-top:5px; font-size:0.8em; color:var(--primary); border:1px solid var(--primary); border-radius:3px; padding:2px;">
+                        CLICK TO VIEW
                     </div>
                 </div>
             `;
@@ -506,32 +525,85 @@
         });
     }
 
-    function placeBid(id, btnElement) {
-        if(!userData.id) { alert("Identity Error"); return; }
-        
-        const input = btnElement.previousElementSibling;
-        const amount = parseInt(input.value);
-        if(!amount) return;
+    // --- DETAIL VIEW LOGIC ---
+    function openDetail(item) {
+        currentDetailId = item.id;
+        document.getElementById('view-browse').style.display = 'none';
+        document.getElementById('view-detail').style.display = 'flex';
 
-        btnElement.innerText = "...";
-        btnElement.disabled = true;
+        // Populate Data
+        document.getElementById('detail-title').innerText = item.item;
+        document.getElementById('detail-seller').innerText = item.seller;
+        document.getElementById('detail-price').innerText = "$" + parseInt(item.price).toLocaleString();
+        document.getElementById('detail-bidder').innerText = item.highBidder;
+        document.getElementById('detail-img').src = item.img.startsWith('http') ? item.img : 'https://placehold.co/400x300?text=No+Image';
+        
+        // Timer
+        const now = new Date().getTime();
+        const timeLeft = item.endTime - now;
+        let hours = Math.floor(timeLeft / (1000 * 60 * 60));
+        let mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        document.getElementById('detail-timer').innerText = `${hours}h ${mins}m`;
+
+        // CHECK OWNERSHIP
+        const isOwner = (String(item.sellerId) === String(userData.id));
+        const controls = document.getElementById('bid-controls-wrapper');
+        const badge = document.getElementById('owner-badge');
+        const bidInput = document.getElementById('detail-bid-input');
+
+        // Reset Input
+        bidInput.value = "";
+        bidInput.placeholder = `Min Bid: $${parseInt(item.price) + 1}`;
+
+        if (isOwner) {
+            controls.style.display = 'none';
+            badge.style.display = 'block';
+        } else {
+            controls.style.display = 'block';
+            badge.style.display = 'none';
+        }
+    }
+
+    function returnToBrowse() {
+        document.getElementById('view-detail').style.display = 'none';
+        document.getElementById('view-browse').style.display = 'flex';
+        currentDetailId = null;
+        fetchAuctions(); // Refresh to see new bids
+    }
+
+    function placeBid() {
+        if(!currentDetailId) return;
+        
+        const input = document.getElementById('detail-bid-input');
+        const amount = parseInt(input.value);
+        if(!amount) { alert("Enter an amount."); return; }
+
+        // Find current price in local data for quick check
+        const item = auctions.find(a => a.id === currentDetailId);
+        if(amount <= parseInt(item.price)) { alert("Bid too low!"); return; }
+
+        const btn = document.querySelector('#bid-controls-wrapper button');
+        btn.innerText = "SENDING...";
+        btn.disabled = true;
 
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
-                action: "bid", id: id, amount: amount,
+                action: "bid", id: currentDetailId, amount: amount,
                 bidderName: userData.name, bidderId: userData.id
             })
         }).then(() => {
             setTimeout(() => {
-                fetchAuctions();
-                btnElement.innerText = "BID";
-                btnElement.disabled = false;
+                btn.innerText = "CONFIRM BID";
+                btn.disabled = false;
+                alert("Bid Sent!");
+                returnToBrowse(); // Go back to refresh list
             }, 1000);
         });
     }
 
+    // --- UPLOAD LOGIC ---
     function previewImg(url) {
         const div = document.getElementById('img-preview');
         if(url.startsWith('http')) {
