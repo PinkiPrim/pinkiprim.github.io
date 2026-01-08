@@ -191,10 +191,6 @@
 <div id="settings-icon" style="display:none;"></div>
 <div id="settings-panel" style="display:none;">
     <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <input type="checkbox" id="toggle-exp-hr"><input type="checkbox" id="toggle-exp-min">
-    <input type="checkbox" id="toggle-perk-chance"><input type="checkbox" id="toggle-1m-percent">
-    <input type="checkbox" id="toggle-10m-percent"><input type="checkbox" id="toggle-level">
-    <input type="number" id="xp-font-size">
     <button id="reset-exp-log"></button>
     <div id="xp-font-size-value"></div>
 </div>
@@ -212,6 +208,7 @@
         XP: "exp_hunting_skill",
         BXP: "exp_token_a|hunting|skill"
     };
+    const STORAGE_KEY_CALC = "target_xp_hunter";
 
     // ITEM DEFINITIONS (IDs verified via Deep Probe)
     const ITEMS = {
@@ -232,6 +229,12 @@
         currentXP: 0, currentBXP: 0, startXP: null,
         callouts: 0, avgXP: 0
     };
+
+    // --- INIT ---
+    const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+    if (savedTarget) {
+        document.getElementById('target-input').value = savedTarget;
+    }
 
     // --- COMMS ---
     function requestData() {
@@ -386,6 +389,8 @@
         const val = document.getElementById('target-input').value;
         const el = document.getElementById('calc-result');
         
+        localStorage.setItem(STORAGE_KEY_CALC, val);
+
         if (STATE.avgXP === 0) {
             el.innerHTML = "<i>Hunt an animal to enable calc...</i>";
             return;
@@ -476,5 +481,4 @@
     })();
 </script>
 </body>
-
 </html>
