@@ -20,6 +20,7 @@
         
         body { margin: 0; overflow: hidden; background: transparent; font-family: 'Rajdhani', sans-serif; color: white; height: 100vh; width: 100vw; }
 
+        /* LOGIN */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { width: 400px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
         .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 15px; cursor: not-allowed; }
@@ -29,10 +30,12 @@
         .btn-enter { display: none; width: 100%; padding: 15px; background: #2ecc71; border: 1px solid #27ae60; color: white; font-weight: bold; cursor: pointer; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
 
+        /* 3D WRAPPER */
         .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
+        /* MINI MODE */
         body.mini-mode .pivot-wrapper { 
             width: 300px !important; height: auto !important; min-height: 150px;
             transform: none !important; margin: 0; position: absolute;
@@ -48,6 +51,7 @@
         body.mini-mode #min-btn:hover { color: white; }
         body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; }
 
+        /* MENUS */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
         .header-text { font-size: 2.5rem; font-weight: 700; letter-spacing: 4px; text-align: center; color: white; text-shadow: 0 0 15px var(--primary); border-bottom: 1px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; }
         .holo-btn { background: var(--bg-dark); border: var(--border); padding: 15px 20px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.3s; transform: translateX(50px); opacity: 0; backdrop-filter: var(--glass); }
@@ -55,6 +59,7 @@
         .holo-btn:hover { background: var(--primary-dim); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-dim); transform: translateX(10px); }
         .icon-box { color: var(--primary); font-size: 1.4rem; width: 30px; text-align: center; }
 
+        /* SUBMENU */
         .submenu-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0, 10, 20, 0.95), rgba(0, 5, 10, 0.9)); border: 1px solid var(--primary); opacity: 0; pointer-events: none; transform: translateY(20px) translateZ(-50px); transition: 0.5s; display: flex; flex-direction: column; padding: 20px; }
         .submenu-container.active { opacity: 1; pointer-events: all; transform: translateY(0) translateZ(0); }
         
@@ -109,7 +114,6 @@
 
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); }
-        
         #debug-id-match { font-size:0.7em; color:#444; position:absolute; bottom:5px; left:5px; }
     </style>
 </head>
@@ -147,10 +151,7 @@
                 </div>
 
                 <div id="view-mydata" class="view-content" style="display:none; height:100%; flex-direction:column;">
-                    <div class="content-header">
-                        <h3>MY HISTORY</h3>
-                        <button class="action-btn" id="btn-arch" style="width:auto; margin:0; font-size:0.8em;" onclick="toggleArchive()">SHOW PREVIOUS</button>
-                    </div>
+                    <div class="content-header"><h3>MY HISTORY</h3><button class="action-btn" id="btn-arch" style="width:auto; margin:0; font-size:0.8em;" onclick="toggleArchive()">SHOW PREVIOUS</button></div>
                     <div class="grid-scroll"><div class="auction-grid" id="my-grid"></div></div>
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
@@ -174,7 +175,8 @@
                             <div id="detail-img-container" style="width:100%; height:250px; background:#000; border:1px solid #444; display:flex; align-items:center; justify-content:center;"></div>
                             <div style="font-size:0.9em; color:#888; margin-top:10px;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
                             <div style="font-size:0.9em; color:#888;">STATUS: <span id="detail-status" style="font-weight:bold;"></span></div>
-                            <div id="debug-id-match"></div> </div>
+                            <div id="debug-id-match"></div>
+                        </div>
                         <div class="detail-right">
                             <button id="min-btn" class="action-btn" style="position:absolute; top:0; right:0; width:auto; margin:0; padding:5px 10px; font-size:0.8em;" onclick="toggleMiniMode()">[-]</button>
                             <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
@@ -248,7 +250,9 @@
             let d = event.data.data || event.data;
             if(d.user_id || d.player_id || d.id) {
                 userData.name = d.name || d.player || "Unknown";
-                userData.id = String(d.user_id || d.player_id || d.id);
+                // FORCE TRIM
+                userData.id = String(d.user_id || d.player_id || d.id).trim();
+                
                 document.getElementById('login-name').value = userData.name;
                 document.getElementById('login-name').classList.add('verified');
                 document.getElementById('login-id').value = userData.id;
@@ -349,6 +353,8 @@
             
             count++;
             let status = item.status;
+            if (status === "Active" && now > item.endTime) status = "Ended";
+
             let imgHTML = '';
             if (item.img && item.img.startsWith('http')) imgHTML = `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">`;
 
@@ -417,18 +423,22 @@
     }
 
     function renderDetail(item) {
+        const now = new Date().getTime();
+        let displayStatus = item.status;
+        if(displayStatus === 'Active' && now > item.endTime) displayStatus = 'Ended';
+
         document.getElementById('detail-title').innerText = item.item;
         document.getElementById('detail-seller').innerText = item.seller;
         document.getElementById('detail-price').innerText = "$" + parseInt(item.price).toLocaleString();
         document.getElementById('detail-bidder').innerText = (item.highBidder === "No Bids" || item.highBidder === "None") ? "No Bids" : item.highBidder;
-        document.getElementById('detail-status').innerText = item.status;
-        document.getElementById('detail-status').className = `st-${item.status}`;
+        document.getElementById('detail-status').innerText = displayStatus;
+        document.getElementById('detail-status').className = `st-${displayStatus}`;
         
         const imgContainer = document.getElementById('detail-img-container');
         if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
         else imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
 
-        // Controls
+        // Controls Reset
         document.getElementById('controls-bid').style.display = 'none';
         document.getElementById('controls-seller').style.display = 'none';
         document.getElementById('controls-buyer').style.display = 'none';
@@ -436,32 +446,50 @@
         document.getElementById('btn-remove').style.display = 'none';
         document.getElementById('btn-mark-comp').style.display = 'none';
 
-        const isSeller = String(item.sellerId) === String(userData.id);
-        const isBuyer = String(item.bidderId) === String(userData.id);
-        const noBids = (item.bidderId == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
+        // STRICT TRIM CHECK
+        const sellerIdClean = String(item.sellerId).trim();
+        const buyerIdClean = String(item.bidderId).trim();
+        const myIdClean = String(userData.id).trim();
+
+        const isSeller = (sellerIdClean === myIdClean);
+        const isBuyer = (buyerIdClean === myIdClean);
+        const isAdmin = (myIdClean === ADMIN_ID);
+        const noBids = (buyerIdClean == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
 
         // DEBUGGER
-        document.getElementById('debug-id-match').innerText = `You: ${userData.id} | Seller: ${item.sellerId}`;
+        document.getElementById('debug-id-match').innerText = `You: "${myIdClean}" | Seller: "${sellerIdClean}"`;
 
-        if (item.status === 'Active') {
+        if (displayStatus === 'Active') {
             if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
             else document.getElementById('controls-seller').innerHTML = '<div style="color:#e67e22;">AUCTION IN PROGRESS</div>';
-        } else if (item.status === 'Ended') {
-            if(isSeller) {
+        } 
+        else if (displayStatus === 'Ended') {
+            if(isSeller || isAdmin) { // Admin can always see controls to force remove
                 document.getElementById('controls-seller').style.display = 'block';
-                if(noBids) document.getElementById('btn-remove').style.display = 'block';
-                else document.getElementById('btn-mark-comp').style.display = 'block';
+                // Reset inner html just in case previous loop overwrote it
+                // We construct buttons dynamically to be safe
+                document.getElementById('controls-seller').innerHTML = '';
+                
+                if(noBids) {
+                    document.getElementById('controls-seller').innerHTML += `<button class="action-btn" onclick="removeListing()" style="background:#ff4444; border-color:#990000;">REMOVE (UNSOLD)</button>`;
+                } else {
+                    document.getElementById('controls-seller').innerHTML += `<button class="action-btn" onclick="updateStatus('Completed')" style="background:#e67e22; border-color:#d35400;">MARK AS COMPLETED</button>`;
+                    // Admin Fail Safe
+                    if(isAdmin) document.getElementById('controls-seller').innerHTML += `<button class="action-btn" onclick="removeListing()" style="background:#555; margin-top:5px; font-size:0.7em;">ADMIN FORCE REMOVE</button>`;
+                }
             } else {
                 document.getElementById('controls-done').style.display = 'block';
                 document.getElementById('controls-done').innerText = noBids ? "ENDED - UNSOLD" : "ENDED - WAITING FOR SELLER";
             }
-        } else if (item.status === 'Completed') {
+        } 
+        else if (displayStatus === 'Completed') {
             if(isBuyer) document.getElementById('controls-buyer').style.display = 'block';
             else {
                  document.getElementById('controls-done').style.display = 'block';
                  document.getElementById('controls-done').innerText = "SELLER COMPLETED - WAITING FOR BUYER";
             }
-        } else if (item.status === 'Fulfilled') {
+        } 
+        else if (displayStatus === 'Fulfilled') {
             document.getElementById('controls-done').style.display = 'block';
             document.getElementById('controls-done').innerText = "ORDER FULFILLED";
         }
