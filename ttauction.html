@@ -20,7 +20,6 @@
         
         body { margin: 0; overflow: hidden; background: transparent; font-family: 'Rajdhani', sans-serif; color: white; height: 100vh; width: 100vw; }
 
-        /* LOGIN */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { width: 400px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
         .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 15px; cursor: not-allowed; }
@@ -30,23 +29,14 @@
         .btn-enter { display: none; width: 100%; padding: 15px; background: #2ecc71; border: 1px solid #27ae60; color: white; font-weight: bold; cursor: pointer; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
 
-        /* 3D WRAPPER */
         .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE (Widget Style) */
-        /* Top 25% means 3/4 up from the bottom */
         body.mini-mode .pivot-wrapper { 
-            width: 300px !important; 
-            height: auto !important; 
-            min-height: 150px;
-            transform: none !important; 
-            margin: 0;
-            position: absolute;
-            top: 25%; 
-            right: 50px;
-            left: auto;
+            width: 300px !important; height: auto !important; min-height: 150px;
+            transform: none !important; margin: 0; position: absolute;
+            top: 25%; right: 50px; left: auto;
         }
         body.mini-mode .menu-container { display: none; }
         body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
@@ -58,7 +48,6 @@
         body.mini-mode #min-btn:hover { color: white; }
         body.mini-mode #detail-live-timer { font-size: 1.2em; text-align: center; display: block; margin-bottom: 10px; }
 
-        /* MENUS */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
         .header-text { font-size: 2.5rem; font-weight: 700; letter-spacing: 4px; text-align: center; color: white; text-shadow: 0 0 15px var(--primary); border-bottom: 1px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; }
         .holo-btn { background: var(--bg-dark); border: var(--border); padding: 15px 20px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.3s; transform: translateX(50px); opacity: 0; backdrop-filter: var(--glass); }
@@ -66,7 +55,6 @@
         .holo-btn:hover { background: var(--primary-dim); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-dim); transform: translateX(10px); }
         .icon-box { color: var(--primary); font-size: 1.4rem; width: 30px; text-align: center; }
 
-        /* SUBMENU */
         .submenu-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0, 10, 20, 0.95), rgba(0, 5, 10, 0.9)); border: 1px solid var(--primary); opacity: 0; pointer-events: none; transform: translateY(20px) translateZ(-50px); transition: 0.5s; display: flex; flex-direction: column; padding: 20px; }
         .submenu-container.active { opacity: 1; pointer-events: all; transform: translateY(0) translateZ(0); }
         
@@ -74,7 +62,6 @@
         .grid-scroll { flex: 1; overflow-y: auto; padding-right: 10px; }
         .auction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
 
-        /* CARDS */
         .auction-card { background: rgba(0,0,0,0.6); border: 1px solid #333; display: flex; flex-direction: column; transition: 0.2s; position: relative; overflow: hidden; cursor: pointer; min-height: 100px; }
         .auction-card:hover { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-dim); transform: translateY(-3px); }
         .card-img { width: 100%; height: 120px; object-fit: cover; background: #000; border-bottom: 1px solid #333; }
@@ -83,34 +70,29 @@
         .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
         .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
         
-        /* STATUS BADGES */
         .st-Active { color: #00ff00; }
         .st-Ended { color: #ffaa00; }
         .st-Completed { color: #0088ff; }
         .st-Fulfilled { color: #888; text-decoration: line-through; }
 
-        /* ADMIN DASHBOARD */
         .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .stat-box { background: rgba(255, 0, 85, 0.1); border: 1px solid var(--admin-color); padding: 15px; text-align: center; }
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
         .stat-label { font-size: 0.8em; text-transform: uppercase; color: #ccc; }
         .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
         
-        /* DETAIL VIEW */
         #view-detail { display: none; height: 100%; flex-direction: column; }
         .detail-layout { display: flex; gap: 20px; height: 100%; }
         .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
         .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; position: relative; }
         .detail-img { width: 100%; height: 250px; object-fit: contain; background: #000; border: 1px solid #444; }
         
-        /* SELL LAYOUT */
         #view-sell { display: none; height: 100%; flex-direction: column; }
         .sell-layout { display: flex; gap: 20px; height: 100%; }
         .sell-form { flex: 1; display: flex; flex-direction: column; gap: 15px; }
         .sell-preview-box { flex: 1; background: rgba(0,0,0,0.5); border: 1px dashed var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
         .preview-image-actual { max-width: 100%; max-height: 300px; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         
-        /* FORMS */
         .input-group { margin-bottom: 5px; }
         .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 3px; }
         input[type="text"], input[type="number"], select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
@@ -127,6 +109,8 @@
 
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); }
+        
+        #debug-id-match { font-size:0.7em; color:#444; position:absolute; bottom:5px; left:5px; }
     </style>
 </head>
 <body>
@@ -190,7 +174,7 @@
                             <div id="detail-img-container" style="width:100%; height:250px; background:#000; border:1px solid #444; display:flex; align-items:center; justify-content:center;"></div>
                             <div style="font-size:0.9em; color:#888; margin-top:10px;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
                             <div style="font-size:0.9em; color:#888;">STATUS: <span id="detail-status" style="font-weight:bold;"></span></div>
-                        </div>
+                            <div id="debug-id-match"></div> </div>
                         <div class="detail-right">
                             <button id="min-btn" class="action-btn" style="position:absolute; top:0; right:0; width:auto; margin:0; padding:5px 10px; font-size:0.8em;" onclick="toggleMiniMode()">[-]</button>
                             <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
@@ -455,6 +439,9 @@
         const isSeller = String(item.sellerId) === String(userData.id);
         const isBuyer = String(item.bidderId) === String(userData.id);
         const noBids = (item.bidderId == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
+
+        // DEBUGGER
+        document.getElementById('debug-id-match').innerText = `You: ${userData.id} | Seller: ${item.sellerId}`;
 
         if (item.status === 'Active') {
             if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
