@@ -28,7 +28,8 @@
         .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; }
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
         .btn-enter { display: none; width: 100%; padding: 15px; background: #2ecc71; border: 1px solid #27ae60; color: white; font-weight: bold; cursor: pointer; animation: pulse 2s infinite; }
-        
+        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+
         /* 3D WRAPPER */
         .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
@@ -82,6 +83,7 @@
         .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .stat-box { background: rgba(255, 0, 85, 0.1); border: 1px solid var(--admin-color); padding: 15px; text-align: center; }
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
+        .stat-label { font-size: 0.8em; text-transform: uppercase; color: #ccc; }
         .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
         
         #view-detail { display: none; height: 100%; flex-direction: column; }
@@ -99,7 +101,10 @@
         .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 3px; }
         input[type="text"], input[type="number"], select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
         input:focus { border-color: var(--primary); outline: none; }
+        input:disabled { opacity: 0.5; cursor: not-allowed; }
         .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; cursor: pointer; }
+        .checkbox-row input { width: auto; cursor: pointer; }
+        .checkbox-row label { margin: 0; cursor: pointer; color: #aaa; font-size: 0.9em; }
 
         .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
         .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
@@ -338,6 +343,9 @@
             currentData = data;
             if(view === 'hk') renderHK(data);
             else renderGrid(data, container, view === 'mydata');
+        })
+        .catch(err => {
+            container.innerHTML = `<div style="color:red; text-align:center; padding:20px;">ERROR: ${err.message}</div>`;
         });
     }
 
@@ -440,7 +448,7 @@
         document.getElementById('controls-bid').style.display = 'none';
         document.getElementById('controls-actions').style.display = 'none';
         document.getElementById('controls-admin').style.display = 'none';
-        document.getElementById('action-buttons').innerHTML = '';
+        document.getElementById('action-buttons').innerHTML = ''; // IMPORTANT: Clear previous buttons
 
         // ID MATCHING
         const sellerID = cleanID(item.sellerId);
@@ -468,11 +476,22 @@
             document.getElementById('controls-actions').style.display = 'block';
             if (isSeller) {
                 document.getElementById('action-msg').innerText = "AUCTION ENDED - ACTION REQUIRED";
+                // --- SAFE BUTTON CREATION ---
+                const btnContainer = document.getElementById('action-buttons');
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                
                 if(noBids) {
-                    document.getElementById('action-buttons').innerHTML = `<button class="action-btn" onclick="removeListing()" style="background:#ff4444;">REMOVE (UNSOLD)</button>`;
+                    btn.innerText = "REMOVE (UNSOLD)";
+                    btn.style.backgroundColor = "#ff4444";
+                    btn.onclick = removeListing;
                 } else {
-                    document.getElementById('action-buttons').innerHTML = `<button class="action-btn" onclick="updateStatus('Completed')" style="background:#e67e22;">MARK AS COMPLETED</button>`;
+                    btn.innerText = "MARK AS COMPLETED";
+                    btn.style.backgroundColor = "#e67e22";
+                    btn.onclick = () => updateStatus('Completed');
                 }
+                btnContainer.appendChild(btn);
+                
             } else {
                 document.getElementById('action-msg').innerText = noBids ? "ENDED - UNSOLD" : "ENDED - WAITING FOR SELLER";
             }
@@ -481,7 +500,13 @@
             document.getElementById('controls-actions').style.display = 'block';
             if (isBuyer) {
                 document.getElementById('action-msg').innerText = "SELLER COMPLETED - CONFIRM RECEIPT";
-                document.getElementById('action-buttons').innerHTML = `<button class="action-btn" onclick="updateStatus('Fulfilled')" style="background:#2ecc71;">CONFIRM RECEIPT</button>`;
+                const btnContainer = document.getElementById('action-buttons');
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                btn.innerText = "CONFIRM RECEIPT";
+                btn.style.backgroundColor = "#2ecc71";
+                btn.onclick = () => updateStatus('Fulfilled');
+                btnContainer.appendChild(btn);
             } else {
                 document.getElementById('action-msg').innerText = "SELLER COMPLETED - WAITING FOR BUYER";
             }
@@ -490,6 +515,52 @@
             document.getElementById('controls-actions').style.display = 'block';
             document.getElementById('action-msg').innerText = "TRANSACTION CLOSED";
         }
+    }
+
+    // --- RENDER HK (Safe DOM Method) ---
+    function renderHK(data) {
+        const list = document.getElementById('hk-list');
+        list.innerHTML = ''; // Clear "Loading..."
+        
+        let active = 0, comp = 0, ful = 0;
+        
+        data.forEach(item => {
+            if(item.status === 'Active') active++;
+            if(item.status === 'Completed') comp++;
+            if(item.status === 'Fulfilled') ful++;
+
+            let row = document.createElement('div');
+            row.className = 'hk-list-item';
+            
+            let name = document.createElement('span'); 
+            name.style.width = '30%'; name.style.overflow = 'hidden'; name.innerText = item.item;
+            
+            let seller = document.createElement('span');
+            seller.style.width = '20%'; seller.innerText = item.seller;
+            
+            let price = document.createElement('span');
+            price.style.width = '20%'; price.innerText = '$' + item.price;
+            
+            let status = document.createElement('span');
+            status.style.width = '20%'; status.className = 'st-' + item.status; status.innerText = item.status;
+            
+            let eye = document.createElement('span');
+            eye.style.width = '10%'; eye.style.cursor = 'pointer'; eye.innerText = '👁️';
+            eye.onclick = () => openDetail(item);
+            
+            row.appendChild(name);
+            row.appendChild(seller);
+            row.appendChild(price);
+            row.appendChild(status);
+            row.appendChild(eye);
+            
+            list.appendChild(row);
+        });
+
+        document.getElementById('st-total').innerText = data.length;
+        document.getElementById('st-active').innerText = active;
+        document.getElementById('st-comp').innerText = comp;
+        document.getElementById('st-ful').innerText = ful;
     }
 
     function returnToLastView() {
@@ -530,31 +601,14 @@
         });
     }
 
-    function renderHK(data) {
-        const list = document.getElementById('hk-list');
-        list.innerHTML = '';
-        let active = 0, comp = 0, ful = 0;
-        data.forEach(item => {
-            if(item.status === 'Active') active++;
-            if(item.status === 'Completed') comp++;
-            if(item.status === 'Fulfilled') ful++;
-            let row = document.createElement('div');
-            row.className = 'hk-list-item';
-            row.innerHTML = `<span style="width:30%; overflow:hidden;">${item.item}</span><span style="width:20%;">${item.seller}</span><span style="width:20%;">$${item.price}</span><span style="width:20%;" class="st-${item.status}">${item.status}</span><span style="width:10%; cursor:pointer;" onclick='openDetail(${JSON.stringify(item)})'>👁️</span>`;
-            list.appendChild(row);
-        });
-        document.getElementById('st-total').innerText = data.length;
-        document.getElementById('st-active').innerText = active;
-        document.getElementById('st-comp').innerText = comp;
-        document.getElementById('st-ful').innerText = ful;
-    }
-
     function toggleImgInput() {
         const checkbox = document.getElementById('no-img-check');
         const input = document.getElementById('sell-img');
         const preview = document.getElementById('img-preview');
+        
         if(checkbox.checked) {
-            input.disabled = true; input.value = "";
+            input.disabled = true;
+            input.value = "";
             preview.innerHTML = `<span style="color:#555;">IMAGE DISABLED</span>`;
         } else {
             input.disabled = false;
