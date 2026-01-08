@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - v7.0</title>
+    <title>Dirty Deals - Right Dock v7.1</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,19 +16,41 @@
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-        /* --- DOCK BAR (Top of Screen) --- */
-        #dock-bar {
-            display: none; /* Flex when active */
-            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+        /* --- RIGHT SIDE DOCK TAB --- */
+        #side-dock {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 220px;
             background: rgba(18, 18, 18, 0.95);
-            border: 2px solid var(--accent); border-top: none;
-            padding: 8px 30px; border-radius: 0 0 10px 10px;
-            cursor: pointer; z-index: 10001;
-            font-family: 'Rajdhani', sans-serif; font-weight: bold; letter-spacing: 2px;
-            box-shadow: 0 0 15px rgba(94, 107, 246, 0.3);
-            transition: 0.2s;
+            border: 2px solid var(--accent);
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            cursor: pointer;
+            z-index: 20000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.8);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        #dock-bar:hover { padding-top: 15px; background: var(--accent); color: white; }
+        #side-dock:hover {
+            width: 55px;
+            background: var(--accent);
+            box-shadow: -5px 0 35px rgba(94, 107, 246, 0.6);
+        }
+        #side-dock span {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            letter-spacing: 4px;
+            font-size: 1.2em;
+            color: white;
+            text-transform: uppercase;
+        }
 
         /* --- LOGIN SCREEN --- */
         #login-overlay {
@@ -56,13 +78,16 @@
         .login-btn:hover { background: var(--accent-hover); }
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
 
-        /* --- MAIN APP CONTAINER --- */
+        /* --- MAIN APP CONTAINER (CENTERED) --- */
         #app-container {
-            display: none; /* Hidden until login */
-            position: absolute; top: 100px; left: 50px; width: 900px; height: 650px; 
+            display: none; /* Hidden until expanded */
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); /* PERFECT CENTER */
+            width: 900px; height: 650px; 
             background: var(--bg-glass); border: var(--border); border-radius: 8px;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000;
-            transition: width 0.3s ease, height 0.3s ease; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000;
+            transition: opacity 0.2s ease; 
         }
 
         /* --- MINI WIDGET MODE --- */
@@ -82,19 +107,21 @@
         body.mini-mode #mini-header { display: flex; }
 
         #mini-drag-strip { 
-            height: 28px; background: #000; cursor: move; display: flex; 
+            height: 35px; background: #000; cursor: move; display: flex; 
             align-items: center; justify-content: space-between; padding: 0 10px; 
             border-bottom: 1px solid #333; flex-shrink: 0;
         }
         #mini-title { font-family: 'Rajdhani', sans-serif; font-weight: bold; color: var(--accent); letter-spacing: 1px; font-size: 0.9em; }
-        #max-btn { 
-            background: #222; border: 1px solid #444; color: white; font-size: 0.7em; 
-            cursor: pointer; padding: 2px 8px; border-radius: 2px; text-transform: uppercase; 
+        
+        /* THE MINIMIZE BUTTON */
+        #min-btn-top { 
+            background: #222; border: 1px solid #444; color: #888; font-size: 0.7em; 
+            cursor: pointer; padding: 4px 10px; border-radius: 2px; text-transform: uppercase; font-weight: bold;
         }
-        #max-btn:hover { background: var(--accent); border-color: var(--accent); }
+        #min-btn-top:hover { background: #e74c3c; color: white; border-color: #e74c3c; }
 
         /* MINI TABS */
-        #mini-grinder-tabs { display: none; width: 100%; height: 32px; border-bottom: 1px solid #333; flex-shrink: 0; }
+        #mini-grinder-tabs { display: none; width: 100%; height: 35px; border-bottom: 1px solid #333; flex-shrink: 0; }
         body.mini-mode.role-grinder #mini-grinder-tabs { display: flex; }
         
         .mini-tab-btn {
@@ -109,9 +136,9 @@
         body.mini-mode #view-history, body.mini-mode #view-grinder { 
             padding: 0; display: none !important; flex-direction: column; height: 100%; overflow: hidden; border: none; 
         }
-        body.mini-mode:not(.role-grinder) #view-history { display: flex !important; height: calc(100% - 28px); }
-        body.mini-mode.role-grinder.show-jobs #view-grinder { display: flex !important; height: calc(100% - 60px); }
-        body.mini-mode.role-grinder.show-orders #view-history { display: flex !important; height: calc(100% - 60px); }
+        body.mini-mode:not(.role-grinder) #view-history { display: flex !important; height: calc(100% - 35px); }
+        body.mini-mode.role-grinder.show-jobs #view-grinder { display: flex !important; height: calc(100% - 70px); }
+        body.mini-mode.role-grinder.show-orders #view-history { display: flex !important; height: calc(100% - 70px); }
 
         body.mini-mode .history-list { background: transparent; border: none; overflow-y: auto; flex: 1; }
         body.mini-mode .history-item { padding: 0; border-bottom: 1px solid #333; margin-bottom: 0; background: rgba(0,0,0,0.2); }
@@ -189,7 +216,7 @@
         .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         .btn-order.active { opacity: 1; pointer-events: all; }
         
-        /* CARD STYLING */
+        /* --- LIST CARD STYLING --- */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
@@ -245,8 +272,8 @@
 </head>
 <body>
 
-<div id="dock-bar" onclick="showLogin()">
-    <span>DIRTY DEALS</span>
+<div id="side-dock" onclick="expandApp()">
+    <span>OPEN SYSTEM</span>
 </div>
 
 <div id="login-overlay">
@@ -263,7 +290,7 @@
     <div id="mini-header">
         <div id="mini-drag-strip">
             <span id="mini-title">DIRTY DEALS</span>
-            <button id="max-btn" onclick="toggleMiniMode()">[ MAXIMIZE ]</button>
+            <button id="max-btn" id="min-btn-top" onclick="minimizeApp()">[ MINIMIZE ]</button>
         </div>
         <div id="mini-grinder-tabs">
             <button class="mini-tab-btn active" id="mt-orders" onclick="setMiniTab('orders')">MY ORDERS</button>
@@ -281,12 +308,13 @@
         </div>
         
         <div class="status-wrapper">
+            <button class="header-btn" onclick="minimizeApp()">[ MINIMIZE ]</button>
             <div class="mail-icon" id="mail-alert" title="New Message!">
                 📩<div class="mail-badge"></div>
             </div>
-            <div class="status-box" id="status-box">
+            <div class="status-box" id="status-box" onclick="manualRefreshID()" title="Click to refresh identity">
                 <div class="user-name" id="username-display">Guest</div>
-                <div class="user-id" id="userid-display">000000</div>
+                <div class="user-id" id="userid-display">Tap to Refresh</div>
                 <div class="rank-tag" id="rank-display"></div>
             </div>
         </div>
@@ -342,7 +370,6 @@
                 <span style="margin:0;">Recent Orders</span>
                 <div class="view-controls">
                     <button class="header-btn" id="btn-toggle-my-done" onclick="toggleMyHistoryDone()">Show Done</button>
-                    <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchMyOrders()">↻ Refresh</button>
                 </div>
             </div>
@@ -357,7 +384,6 @@
                 <span style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
                     <button class="header-btn" id="btn-toggle-grinder-done" onclick="toggleGrinderDone()">Show Done</button>
-                    <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
                 </div>
             </div>
@@ -459,12 +485,21 @@
     // --- INIT ---
     window.onload = function() {
         setCategory("Bonus EXP");
+        initDrag();
+        renderGrid();
         
-        // Listen for FiveM Message
+        requestData();
+        setTimeout(requestData, 250);
+        setTimeout(requestData, 500);
+        pollingInterval = setInterval(requestData, 1000); 
+        setInterval(checkForMail, 5000);
+        
+        document.body.classList.add('show-orders');
+        
         window.addEventListener('message', function(event) {
             var item = event.data;
             if (item.type === 'open') {
-                document.getElementById('dock-bar').style.display = 'flex';
+                // DO NOTHING INITIALLY - Wait for user to click dock
             }
             if (item.type === "data" || item.user_id) {
                 let d = item.data || item;
@@ -478,7 +513,6 @@
                     document.getElementById('pin-input').style.display = 'block';
                     document.getElementById('btn-login').style.display = 'block';
                     
-                    // Check Grinder Status immediately based on ID
                     if(GRINDER_ROSTER[state.userId]) {
                         state.isGrinder = true;
                         state.grinderRank = GRINDER_ROSTER[state.userId];
@@ -500,10 +534,23 @@
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
     }
 
-    // --- LOGIN SYSTEM ---
-    function showLogin() {
-        document.getElementById('login-overlay').style.display = 'flex';
-        document.getElementById('pin-input').focus();
+    // --- MAIN FLOW ACTIONS ---
+    function expandApp() {
+        document.getElementById('side-dock').style.display = 'none';
+        
+        if (!state.userPin) {
+            // SHOW LOGIN
+            document.getElementById('login-overlay').style.display = 'flex';
+            document.getElementById('pin-input').focus();
+        } else {
+            // ALREADY LOGGED IN
+            document.getElementById('app-container').style.display = 'flex';
+        }
+    }
+
+    function minimizeApp() {
+        document.getElementById('app-container').style.display = 'none';
+        document.getElementById('side-dock').style.display = 'flex';
     }
 
     function attemptLogin() {
@@ -516,21 +563,17 @@
         document.getElementById('btn-login').disabled = true;
         document.getElementById('btn-login').innerText = "VERIFYING...";
         
-        // Send to Google Script to verify/create user
         fetch(`${GOOGLE_SCRIPT_URL}?action=login&userId=${state.userId}&name=${state.username}&pin=${pin}`)
         .then(res => res.json())
         .then(data => {
             if(data.result === 'success') {
-                state.userPin = pin; // Store PIN for future requests
-                document.getElementById('dock-bar').style.display = 'none';
+                state.userPin = pin;
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('app-container').style.display = 'flex';
                 
-                // Start App
-                initDrag();
+                // Start App Logic
                 renderGrid();
                 fetchMyOrders();
-                setInterval(checkForMail, 5000);
             } else {
                 document.getElementById('login-status').innerText = data.message;
                 document.getElementById('login-status').style.color = "#e74c3c";
@@ -928,7 +971,7 @@
         });
     }
 
-    // --- DRAG LOGIC ---
+    // --- DRAG LOGIC (Dual Handler) ---
     var mainHeader = document.getElementById("main-header");
     var miniStrip = document.getElementById("mini-drag-strip");
     var elmnt = document.getElementById("app-container");
@@ -938,17 +981,16 @@
     function elementDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
     function closeDrag() { document.onmouseup=null; document.onmousemove=null; }
 
-    function initDrag() {
-        if(mainHeader) mainHeader.onmousedown = dragMouseDown;
-        if(miniStrip) miniStrip.onmousedown = dragMouseDown;
-    }
+    if(mainHeader) mainHeader.onmousedown = dragMouseDown;
+    if(miniStrip) miniStrip.onmousedown = dragMouseDown;
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     document.onkeydown = function(e) { 
         if(e.keyCode==27) { 
             fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err=>{});
-            document.getElementById('dock-bar').style.display = "flex"; 
-            document.getElementById('app-container').style.display = "none"; 
+            document.getElementById('app-container').style.display = "none";
+            document.getElementById('login-overlay').style.display = "none";
+            document.getElementById('side-dock').style.display = "flex"; 
         }
     }
 </script>
