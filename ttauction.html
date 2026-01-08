@@ -21,6 +21,7 @@
         
         body { margin: 0; overflow: hidden; background: transparent; font-family: 'Rajdhani', sans-serif; color: white; height: 100vh; width: 100vw; }
 
+        /* LOGIN */
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { width: 450px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
         .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 10px; cursor: not-allowed; }
@@ -30,25 +31,22 @@
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
         .warning-box { margin-top: 20px; padding: 10px; border: 1px solid var(--warning-red); background: rgba(255, 68, 68, 0.1); color: var(--warning-red); font-size: 0.75em; text-align: center; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); text-transform: uppercase; letter-spacing: 1px; width: 100%; }
 
+        /* 3D WRAPPER */
         .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE (Fixed Positioning + Cursor) */
+        /* MINI MODE */
         body.mini-mode .pivot-wrapper { 
             width: 250px !important; height: auto !important; min-height: 120px;
-            transform: none !important; margin: 0; 
-            position: fixed !important; /* KEY FIX FOR DRAG */
-            top: 50px; right: 50px; left: auto; bottom: auto;
+            transform: none !important; margin: 0; position: absolute;
+            top: 50px !important; right: 50px !important; left: auto !important; bottom: auto !important;
             cursor: move;
-            z-index: 9999;
         }
+        body.mini-mode .menu-container { display: none; }
+        body.mini-mode .detail-left, body.mini-mode .back-btn, body.mini-mode .content-header { display: none !important; }
+        body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 15px; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
         
-        body.mini-mode .menu-container, body.mini-mode .detail-left, body.mini-mode .back-btn, 
-        body.mini-mode .content-header, body.mini-mode #controls-bid, body.mini-mode #controls-actions, 
-        body.mini-mode #controls-admin { display: none !important; }
-
-        body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 10px; border-radius: 5px; }
         body.mini-mode #view-detail { height: auto !important; display: block !important; }
         body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
         body.mini-mode .detail-right { overflow: visible !important; padding: 5px !important; border: none !important; background: transparent !important; }
@@ -56,23 +54,30 @@
         body.mini-mode #detail-title { font-size: 1em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         body.mini-mode #detail-price { font-size: 1.6em; margin: 5px 0; text-align: center; pointer-events: none; }
         body.mini-mode #detail-live-timer { font-size: 1em; text-align: center; display: block; margin-bottom: 0; pointer-events: none; }
-        body.mini-mode #min-btn { position: absolute; top: -8px; right: -5px; font-size: 0.9em; padding: 5px 10px; border: none; background: transparent; color: #888; cursor: pointer; z-index: 10000; }
-        body.mini-mode #min-btn:hover { color: white; }
+        
+        /* HIDE CONTROLS IN MINI */
+        body.mini-mode #controls-bid, body.mini-mode #controls-actions, body.mini-mode #controls-admin { display: none !important; }
 
-        /* Regular CSS */
+        /* MINIMIZE BUTTON */
+        #min-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; background: rgba(0,0,0,0.5); border: 1px solid #444; color: #ccc; font-size: 1em; cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 100; }
+        #min-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* MENUS */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
         .header-text { font-size: 2.5rem; font-weight: 700; letter-spacing: 4px; text-align: center; color: white; text-shadow: 0 0 15px var(--primary); border-bottom: 1px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; }
         .holo-btn { background: var(--bg-dark); border: var(--border); padding: 15px 20px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.3s; transform: translateX(50px); opacity: 0; backdrop-filter: var(--glass); }
         .holo-btn.show { opacity: 1; transform: translateX(0); }
         .holo-btn:hover { background: var(--primary-dim); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-dim); transform: translateX(10px); }
         .icon-box { color: var(--primary); font-size: 1.4rem; width: 30px; text-align: center; }
-        
+
+        /* SUBMENU */
         .submenu-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0, 10, 20, 0.95), rgba(0, 5, 10, 0.9)); border: 1px solid var(--primary); opacity: 0; pointer-events: none; transform: translateY(20px) translateZ(-50px); transition: 0.5s; display: flex; flex-direction: column; padding: 20px; }
         .submenu-container.active { opacity: 1; pointer-events: all; transform: translateY(0) translateZ(0); }
         
         .content-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0; }
         .grid-scroll { flex: 1; overflow-y: auto; padding-right: 10px; }
         .auction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+
         .auction-card { background: rgba(0,0,0,0.6); border: 1px solid #333; display: flex; flex-direction: column; transition: 0.2s; position: relative; overflow: hidden; cursor: pointer; min-height: 100px; }
         .auction-card:hover { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-dim); transform: translateY(-3px); }
         .card-img { width: 100%; height: 120px; object-fit: cover; background: #000; border-bottom: 1px solid #333; }
@@ -81,7 +86,7 @@
         .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
         .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
         .st-Active { color: #00ff00; } .st-Ended { color: #ffaa00; } .st-Completed { color: #0088ff; } .st-Fulfilled { color: #888; text-decoration: line-through; }
-        
+
         .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; flex-shrink: 0; }
         .stat-box { background: rgba(255, 0, 85, 0.1); border: 1px solid var(--admin-color); padding: 15px; text-align: center; }
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
@@ -103,13 +108,18 @@
         input[type="text"], input[type="number"], select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
         input:focus { border-color: var(--primary); outline: none; }
         .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; cursor: pointer; }
+
         .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
         .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
+        .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
         .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; flex-shrink: 0; }
 
+        /* PIN MODAL */
         #pin-modal { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; align-items:center; justify-content:center; flex-direction:column; }
         .pin-box { background:#111; border:2px solid var(--admin-color); padding:20px; width:300px; text-align:center; }
         .pin-input { width:100%; padding:10px; background:#222; border:1px solid #444; color:white; font-size:1.5em; text-align:center; letter-spacing:5px; margin-bottom:10px; }
+
+        /* USER MANAGER TABLE */
         .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #333; margin-bottom: 2px; }
         .user-list-item select { width: 120px; background: #222; border: 1px solid #444; color: white; padding: 5px; }
 
@@ -125,12 +135,16 @@
             <div class="header-text" style="border:none; font-size: 2em;">SYSTEM AUTH</div>
             <input type="text" id="login-name" class="login-input" placeholder="Scanning Identity..." readonly disabled>
             <input type="text" id="login-id" class="login-input" placeholder="Waiting for Server..." readonly disabled>
+            
             <button id="btn-signin" class="btn-auth" onclick="startAuthentication()">CONNECT</button>
+            
             <div id="pin-section" style="display:none;">
                 <input type="password" id="login-pin" class="pin-entry" placeholder="PIN" maxlength="4" style="display:block;">
                 <button id="btn-enter" class="btn-auth" style="background:#2ecc71; border-color:#27ae60;" onclick="submitPin()">LOGIN</button>
             </div>
+            
             <button id="btn-request" class="btn-auth" style="display:none; background:#e67e22; border-color:#d35400;" onclick="requestAccess()">REQUEST ACCESS</button>
+
             <div id="login-status" style="margin-top:10px; font-size:0.8em; color:#888;">Secure Connection Required</div>
             <div class="warning-box">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
         </div>
@@ -222,6 +236,7 @@
                                 <button class="action-btn" onclick="promptAdminAction('Completed')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE COMPLETE (PIN)</button>
                                 <button class="action-btn" onclick="promptAdminAction('Delete')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE DELETE (PIN)</button>
                             </div>
+
                         </div>
                     </div>
                     <div class="back-btn" onclick="returnToLastView()"><i class="fas fa-chevron-left"></i> BACK</div>
@@ -269,28 +284,20 @@
         wrapper.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
     });
 
-    // DRAG LOGIC
+    // DRAG
     const wrapper = document.getElementById('pivot-wrapper');
     let isDragging = false;
     let offset = { x: 0, y: 0 };
-    
     wrapper.addEventListener('mousedown', function(e) {
         if (!document.body.classList.contains('mini-mode')) return;
-        // Don't drag if clicking buttons
         if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-        isDragging = true;
-        offset.x = e.clientX - wrapper.offsetLeft;
-        offset.y = e.clientY - wrapper.offsetTop;
+        isDragging = true; offset.x = e.clientX - wrapper.offsetLeft; offset.y = e.clientY - wrapper.offsetTop;
+        wrapper.style.right = 'auto'; wrapper.style.bottom = 'auto';
     });
-
     document.addEventListener('mouseup', function() { isDragging = false; });
-
     document.addEventListener('mousemove', function(e) {
         if (!isDragging) return;
-        wrapper.style.left = (e.clientX - offset.x) + 'px';
-        wrapper.style.top = (e.clientY - offset.y) + 'px';
-        wrapper.style.right = 'auto'; // Force release right positioning
-        wrapper.style.bottom = 'auto'; 
+        wrapper.style.left = (e.clientX - offset.x) + 'px'; wrapper.style.top = (e.clientY - offset.y) + 'px';
     });
 
     window.addEventListener('message', (event) => {
@@ -347,13 +354,19 @@
         document.getElementById('btn-enter').disabled = true;
         document.getElementById('btn-enter').innerText = "VERIFYING...";
 
-        fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ action: "login", userId: userData.id, name: userData.name, pin: userData.pin })
-        }).then(() => {
-            document.getElementById('login-screen').style.display = 'none';
-            enterMarket();
+        // CHANGED TO GET REQUEST FOR IMMEDIATE FEEDBACK
+        fetch(`${CONST_GOOGLE_URL}?action=login&userId=${userData.id}&name=${userData.name}&pin=${userData.pin}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                document.getElementById('login-screen').style.display = 'none';
+                enterMarket();
+            } else {
+                document.getElementById('login-status').innerText = data.msg;
+                document.getElementById('login-status').style.color = "#ff4444";
+                document.getElementById('btn-enter').disabled = false;
+                document.getElementById('btn-enter').innerText = "LOGIN";
+            }
         });
     }
 
@@ -407,6 +420,7 @@
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
     }
 
+    // [Navigation & Common Functions remain similar]
     function openSubmenu(view) {
         lastView = view;
         document.getElementById('pivot-wrapper').classList.add('expanded');
@@ -453,6 +467,7 @@
         });
     }
 
+    // --- RENDERERS ---
     function renderGrid(data, container, isHistory) {
         container.innerHTML = '';
         const now = new Date().getTime();
