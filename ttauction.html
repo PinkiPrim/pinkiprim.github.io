@@ -32,7 +32,6 @@
         }
         #docked-bar:hover { background: var(--primary-dim); padding-bottom: 15px; }
         
-        /* DOCKED MODE VISIBILITY */
         body.docked-mode #docked-bar { display: flex; }
         body.docked-mode .perspective-container { display: none !important; }
         body.docked-mode #login-screen { display: none !important; }
@@ -41,7 +40,7 @@
 
         /* SCREENS */
         #login-screen, #link-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        #login-screen { display: none; } /* Hidden until linked */
+        #login-screen { display: none; }
         #link-screen { display: none; } /* Hidden until undocked */
 
         .login-box { width: 450px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
@@ -348,7 +347,7 @@
                 }
                 
                 userData.id = cleanID(d.user_id || d.player_id || d.id);
-                // WALLET CAPTURE
+                // WALLET CAPTURE logic
                 if(d.wallet) userData.wallet = parseInt(d.wallet);
                 
                 // Update UI Fields only if valid
@@ -433,7 +432,6 @@
         status.innerText = "Processing Request...";
         status.style.color = "cyan";
 
-        // Use GET or POST (POST is fine here because we don't need immediate feedback logic change)
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors",
             headers: {"Content-Type": "application/json"},
@@ -524,6 +522,7 @@
         });
     }
 
+    // --- RENDERERS ---
     function renderGrid(data, container, isHistory) {
         container.innerHTML = '';
         const now = new Date().getTime();
@@ -563,6 +562,8 @@
         data.forEach(user => {
             let row = document.createElement('div');
             row.className = 'user-list-item';
+            
+            // Dropdown logic
             let select = document.createElement('select');
             ['Requested', 'Whitelisted', 'Blacklisted'].forEach(opt => {
                 let option = document.createElement('option');
@@ -570,16 +571,19 @@
                 select.appendChild(option);
             });
             select.onchange = function() { updateUserPermission(user.id, this.value); };
+
             row.innerHTML = `<span>${user.name} (${user.id})</span>`;
             row.appendChild(select);
             list.appendChild(row);
         });
     }
 
+    // --- ACTIONS ---
     function updateUserPermission(targetId, newStatus) {
         promptAdminAction('UserStatus', {targetId: targetId, newStatus: newStatus});
     }
 
+    // --- DETAIL VIEW ---
     function openDetail(item) {
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
@@ -661,6 +665,7 @@
         }
     }
 
+    // --- TIMERS ---
     function updateAllTimers() {
         const now = new Date().getTime();
         document.querySelectorAll('.card-timer').forEach(el => {
@@ -678,6 +683,7 @@
         return `${h}h ${m}m ${s}s`;
     }
 
+    // --- PIN MODAL ---
     function promptAdminAction(actionType, extraData) {
         pendingAdminAction = { type: actionType, data: extraData };
         document.getElementById('pin-modal').style.display = 'flex';
@@ -716,6 +722,7 @@
         });
     }
 
+    // --- STANDARD ACTIONS ---
     function removeListing() {
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
