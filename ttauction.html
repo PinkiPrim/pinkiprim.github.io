@@ -19,43 +19,14 @@
 
         * { box-sizing: border-box; user-select: none; }
         
-        /* Default to Docked Mode (Hidden UI) */
         body { margin: 0; overflow: hidden; background: transparent; font-family: 'Rajdhani', sans-serif; color: white; height: 100vh; width: 100vw; }
 
-        /* --- DOCKED BAR (Bottom Middle Tab) --- */
-        #docked-bar {
-            display: none; /* Hidden unless docked-mode is active */
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg-dark);
-            border: 2px solid var(--primary);
-            border-bottom: none;
-            padding: 10px 40px;
-            border-radius: 15px 15px 0 0;
-            cursor: pointer;
-            z-index: 10001;
-            box-shadow: 0 0 20px var(--primary-dim);
-            font-weight: bold;
-            letter-spacing: 2px;
-            transition: 0.2s;
-            align-items: center;
-            gap: 10px;
-        }
-        #docked-bar:hover {
-            background: var(--primary-dim);
-            padding-bottom: 15px;
-        }
-        
-        /* When DOCKED mode is active (Default) */
-        body.docked-mode #docked-bar { display: flex; }
-        body.docked-mode .perspective-container { display: none !important; }
-        body.docked-mode #login-screen { display: none !important; }
-        body.docked-mode #pivot-wrapper { display: none !important; }
+        /* LOGIN & LINK SCREENS */
+        #login-screen, #link-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        /* Link screen is hidden by default, Login screen hidden by default until linked */
+        #login-screen { display: none; } 
+        #link-screen { display: none; }
 
-        /* LOGIN */
-        #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { width: 450px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
         .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 10px; cursor: not-allowed; }
         .login-input.verified { color: var(--primary); border-color: var(--primary); background: rgba(0, 255, 255, 0.05); }
@@ -70,7 +41,7 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE WIDGET */
+        /* --- MINI MODE WIDGET --- */
         body.mini-mode .pivot-wrapper { 
             width: 250px !important; height: auto !important; min-height: 120px;
             transform: none !important; margin: 0; position: fixed !important;
@@ -121,6 +92,7 @@
         .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
         .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
         
+        /* DETAIL VIEW */
         #view-detail { display: none; height: 100%; flex-direction: column; }
         .detail-layout { display: flex; gap: 20px; flex: 1; min-height: 0; margin-bottom: 10px; }
         .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
@@ -149,25 +121,53 @@
         .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #333; margin-bottom: 2px; }
         .user-list-item select { width: 120px; background: #222; border: 1px solid #444; color: white; padding: 5px; }
 
+        /* --- DOCKED BAR --- */
+        #docked-bar {
+            display: none; 
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            background: var(--bg-dark); border: 2px solid var(--primary); border-bottom: none;
+            padding: 10px 40px; border-radius: 15px 15px 0 0; cursor: pointer; z-index: 10001;
+            box-shadow: 0 0 20px var(--primary-dim); font-weight: bold; letter-spacing: 2px;
+            align-items: center; gap: 10px; transition: 0.2s;
+        }
+        #docked-bar:hover { background: var(--primary-dim); padding-bottom: 15px; }
+        body.docked-mode #docked-bar { display: flex; }
+        body.docked-mode .perspective-container { display: none !important; }
+        body.docked-mode #login-screen { display: none !important; }
+        body.docked-mode #link-screen { display: none !important; }
+        body.docked-mode #pivot-wrapper { display: none !important; }
+
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); }
         #debug-id-match { font-size:0.7em; color:#444; position:absolute; bottom:5px; left:5px; }
     </style>
 </head>
-<body class="docked-mode"> <div id="docked-bar" onclick="toggleDockMode()">
+<body class="docked-mode">
+
+    <div id="docked-bar" onclick="startAppFlow()">
         <i class="fas fa-gavel" style="color:var(--primary);"></i> <span>OPEN AUCTION</span>
+    </div>
+
+    <div id="link-screen">
+        <div class="login-box">
+            <div class="header-text" style="border:none; font-size: 2em; color:#888;">ESTABLISH LINK</div>
+            <div style="font-size:0.9em; color:#666; margin-bottom:20px;">Synchronizing Satellite Feed...</div>
+            <button class="btn-auth" onclick="performHandshake()">ESTABLISH CONNECTION</button>
+            <div id="link-status" style="margin-top:10px; font-size:0.8em; color:#888;">Waiting for input...</div>
+        </div>
     </div>
 
     <div id="login-screen">
         <div class="login-box">
             <div class="header-text" style="border:none; font-size: 2em;">SYSTEM AUTH</div>
-            <input type="text" id="login-name" class="login-input" placeholder="Scanning Identity..." readonly disabled>
-            <input type="text" id="login-id" class="login-input" placeholder="Waiting for Server..." readonly disabled>
-            <button id="btn-signin" class="btn-auth" onclick="startAuthentication()">CONNECT</button>
-            <div id="pin-section" style="display:none;">
+            <input type="text" id="login-name" class="login-input" placeholder="Scanning..." readonly disabled>
+            <input type="text" id="login-id" class="login-input" placeholder="Waiting..." readonly disabled>
+            
+            <div id="pin-section">
                 <input type="password" id="login-pin" class="pin-entry" placeholder="PIN" maxlength="4" style="display:block;">
                 <button id="btn-enter" class="btn-auth" style="background:#2ecc71; border-color:#27ae60;" onclick="submitPin()">LOGIN</button>
             </div>
+            
             <button id="btn-request" class="btn-auth" style="display:none; background:#e67e22; border-color:#d35400;" onclick="requestAccess()">REQUEST ACCESS</button>
             <div id="login-status" style="margin-top:10px; font-size:0.8em; color:#888;">Secure Connection Required</div>
             <div class="warning-box">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
@@ -290,7 +290,7 @@
     const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
     const ADMIN_ID = "757858";
 
-    let userData = { name: "", id: "", pin: "" };
+    let userData = { name: "", id: "", pin: "", wallet: 0 };
     let currentData = [];
     let isMenuOpen = false;
     let currentDetailId = null;
@@ -300,12 +300,19 @@
     let countdownInterval = null;
     let pendingAdminAction = null;
 
-    // --- DOCK MODE LOGIC ---
+    // --- DOCK MODE & DRAG LOGIC ---
+    function startAppFlow() {
+        // First click of the dock button -> Show Link Screen
+        document.body.classList.remove('docked-mode');
+        document.getElementById('pivot-wrapper').style.display = 'none'; // Hide main wrapper initially
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('link-screen').style.display = 'flex'; // Show Link Screen
+    }
+
     function toggleDockMode() {
         document.body.classList.toggle('docked-mode');
     }
 
-    // --- DRAG LOGIC ---
     document.addEventListener('mousemove', (e) => {
         if (!isMenuOpen || document.body.classList.contains('mini-mode') || document.body.classList.contains('docked-mode')) return;
         const wrapper = document.getElementById('pivot-wrapper');
@@ -332,33 +339,50 @@
     window.addEventListener('message', (event) => {
         if (event.data.action === "open") { 
             document.body.style.display = 'block'; 
-            // DO NOT reset login here, just ensure we are in docked mode if needed
-            // But if it's a fresh open, we rely on default body class
+            // We do NOT start authentication here. We wait for user input.
         }
         if (event.data.type === "data" || event.data.user_id) {
             let d = event.data.data || event.data;
             if(d.user_id || d.player_id || d.id) {
                 userData.name = d.name || d.player || "Unknown";
                 userData.id = cleanID(d.user_id || d.player_id || d.id);
-                document.getElementById('login-name').value = userData.name;
-                document.getElementById('login-name').classList.add('verified');
-                document.getElementById('login-id').value = userData.id;
-                document.getElementById('login-id').classList.add('verified');
+                // CAPTURE WALLET
+                if(d.wallet) userData.wallet = parseInt(d.wallet);
                 
-                document.getElementById('btn-signin').style.display = "none";
-                document.getElementById('pin-section').style.display = "block";
-                document.getElementById('btn-request').style.display = "block"; 
-                document.getElementById('login-pin').focus();
+                // Update UI Fields
+                document.getElementById('login-name').value = userData.name;
+                document.getElementById('login-id').value = userData.id;
+                
+                // Visual Updates
+                document.getElementById('login-name').classList.add('verified');
+                document.getElementById('login-id').classList.add('verified');
             }
         }
     });
 
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
 
-    function startAuthentication() {
-        document.getElementById('btn-signin').disabled = true;
-        document.getElementById('btn-signin').innerText = "POLLING...";
-        if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
+    // --- NEW LINK & AUTH FLOW ---
+    function performHandshake() {
+        // Poll for data
+        if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id", "wallet"] }, "*");
+        
+        const status = document.getElementById('link-status');
+        status.innerText = "Analyzing Signal...";
+        status.style.color = "cyan";
+
+        setTimeout(() => {
+            // Check if name is Unknown
+            if(userData.name === "Unknown" || userData.name === "") {
+                status.innerText = "SIGNAL WEAK: IDENTITY UNKNOWN. PLEASE RELOAD USER APP.";
+                status.style.color = "#ff4444";
+            } else {
+                // Success - Move to Login
+                document.getElementById('link-screen').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('login-pin').focus();
+            }
+        }, 1500); // 1.5s delay to allow NUI to catch up
     }
 
     function submitPin() {
@@ -368,7 +392,6 @@
             document.getElementById('login-status').style.color = "#ff4444";
             return;
         }
-        
         userData.pin = pin;
         document.getElementById('btn-enter').disabled = true;
         document.getElementById('btn-enter').innerText = "VERIFYING...";
@@ -378,9 +401,13 @@
         .then(data => {
             if (data.status === "success") {
                 document.getElementById('login-screen').style.display = 'none';
-                // Remove docked mode upon successful login to show main menu
-                document.body.classList.remove('docked-mode');
+                if(data.msg === "PIN Set") alert("Your PIN has been set to: " + pin + ". Don't forget it!");
                 enterMarket();
+            } else if (data.status === "error" && data.msg.includes("ID Not Found")) {
+                document.getElementById('login-status').innerText = "ID NOT WHITELISTED.";
+                document.getElementById('login-status').style.color = "#ff4444";
+                document.getElementById('pin-section').style.display = 'none';
+                document.getElementById('btn-request').style.display = 'block';
             } else {
                 document.getElementById('login-status').innerText = data.msg;
                 document.getElementById('login-status').style.color = "#ff4444";
@@ -432,15 +459,16 @@
     }
 
     function closeApp() {
-        // Just hide the UI but keep running in background if needed, or close NUI
         isMenuOpen = false;
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
-        // We do NOT reset to docked mode here because "Disconnect" means close NUI completely usually.
-        // If you want it to dock instead, change this line:
-        // document.body.classList.add('docked-mode');
+        // Reset to docked mode
+        document.body.classList.add('docked-mode');
+        document.getElementById('pivot-wrapper').style.display = 'none';
+        document.getElementById('link-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'none';
     }
 
-    // [Navigation & Common Functions remain similar]
+    // [Rest of standard functions...]
     function openSubmenu(view) {
         lastView = view;
         document.getElementById('pivot-wrapper').classList.add('expanded');
@@ -487,7 +515,6 @@
         });
     }
 
-    // --- RENDERERS ---
     function renderGrid(data, container, isHistory) {
         container.innerHTML = '';
         const now = new Date().getTime();
@@ -527,8 +554,6 @@
         data.forEach(user => {
             let row = document.createElement('div');
             row.className = 'user-list-item';
-            
-            // Dropdown logic
             let select = document.createElement('select');
             ['Requested', 'Whitelisted', 'Blacklisted'].forEach(opt => {
                 let option = document.createElement('option');
@@ -536,19 +561,16 @@
                 select.appendChild(option);
             });
             select.onchange = function() { updateUserPermission(user.id, this.value); };
-
             row.innerHTML = `<span>${user.name} (${user.id})</span>`;
             row.appendChild(select);
             list.appendChild(row);
         });
     }
 
-    // --- ACTIONS ---
     function updateUserPermission(targetId, newStatus) {
         promptAdminAction('UserStatus', {targetId: targetId, newStatus: newStatus});
     }
 
-    // --- DETAIL VIEW ---
     function openDetail(item) {
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
@@ -630,7 +652,6 @@
         }
     }
 
-    // --- TIMERS ---
     function updateAllTimers() {
         const now = new Date().getTime();
         document.querySelectorAll('.card-timer').forEach(el => {
@@ -648,7 +669,6 @@
         return `${h}h ${m}m ${s}s`;
     }
 
-    // --- PIN MODAL ---
     function promptAdminAction(actionType, extraData) {
         pendingAdminAction = { type: actionType, data: extraData };
         document.getElementById('pin-modal').style.display = 'flex';
@@ -687,7 +707,6 @@
         });
     }
 
-    // --- STANDARD ACTIONS ---
     function removeListing() {
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
@@ -702,9 +721,16 @@
         }).then(() => { returnToLastView(); });
     }
 
+    // --- WALLET CHECK FOR BIDDING ---
     function placeBid() {
         let amt = document.getElementById('detail-bid-input').value;
         if(!amt) return;
+        
+        if(parseInt(amt) > userData.wallet) {
+            alert("INSUFFICIENT FUNDS. You only have $" + userData.wallet.toLocaleString());
+            return;
+        }
+
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin })
@@ -726,6 +752,7 @@
         else div.innerHTML = `<span style="color:#555;">INVALID URL</span>`;
     }
 
+    // --- OPTIONAL: WALLET CHECK FOR POSTING (Listing Fee logic if needed) ---
     function postAuction() {
         const btn = document.querySelector('#view-sell .action-btn');
         const name = document.getElementById('sell-name').value;
@@ -751,7 +778,6 @@
         });
     }
 
-    // UPDATED returnToLastView
     function returnToLastView() {
         if(pollingInterval) clearInterval(pollingInterval);
         const wrapper = document.getElementById('pivot-wrapper');
