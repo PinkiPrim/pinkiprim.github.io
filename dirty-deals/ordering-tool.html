@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - v8.6</title>
+    <title>Dirty Deals - v9.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -224,9 +224,9 @@
         <div id="view-order">
             <div class="selection-area">
                 <div class="category-tabs">
-                    <div class="tab-btn active" onclick="setCategory('Bonus EXP')">Bonus EXP</div>
-                    <div class="tab-btn" onclick="setCategory('Raw Materials')">Raw Mat.</div>
-                    <div class="tab-btn" onclick="setCategory('Product')">Product</div>
+                    <div class="tab-btn active" onclick="setCategory('Bonus EXP', this)">Bonus EXP</div>
+                    <div class="tab-btn" onclick="setCategory('Raw Materials', this)">Raw Mat.</div>
+                    <div class="tab-btn" onclick="setCategory('Product', this)">Product</div>
                 </div>
                 <div class="section-title">Select Item</div>
                 <div class="grid-wrapper"><div class="grid-container" id="item-grid"></div></div>
@@ -353,7 +353,7 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
     
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
     var ADMIN_IDS = ["757858", "744622", "637174"];
@@ -551,7 +551,15 @@
         if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1;
     }
 
-    function setCategory(cat) { state.category = cat; renderGrid(); }
+    // FIXED: Now accepts 'this' element to set active class
+    function setCategory(cat, btnElement) {
+        state.category = cat;
+        // Clean all buttons
+        document.querySelectorAll('.selection-area .tab-btn').forEach(b => b.classList.remove('active'));
+        // Set clicked button active
+        if(btnElement) btnElement.classList.add('active');
+        renderGrid();
+    }
     
     function renderGrid() {
         var container = document.getElementById('item-grid'); container.innerHTML = '';
@@ -638,7 +646,7 @@
     function submitRealOrder() {
         var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING...";
         var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText };
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
+        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
     }
 
     function checkForMail() {
@@ -656,8 +664,8 @@
             c.innerHTML = ''; state.activeOrders = 0; state.completedOrders = 0;
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
             for(var i=0; i<data.length; i++) {
-                // FIXED LOGIC: Only count MY orders for the limit
-                if(data[i].userId !== state.userId) continue; 
+                // FIXED LOGIC: Force string comparison to catch string vs number mismatch
+                if(String(data[i].userId).trim() !== String(state.userId).trim()) continue; 
                 
                 if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
                 if(data[i].status === 'Completed') state.completedOrders++;
