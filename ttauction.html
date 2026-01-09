@@ -41,7 +41,7 @@
         /* SCREENS */
         #login-screen, #link-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         #login-screen { display: none; }
-        #link-screen { display: none; } /* Hidden until undocked */
+        #link-screen { display: none; } 
 
         .login-box { width: 450px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
         .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 10px; cursor: not-allowed; }
@@ -244,7 +244,7 @@
                             <div id="controls-bid" style="display:none;">
                                 <input type="number" id="detail-bid-input" placeholder="Amount...">
                                 <button class="action-btn" onclick="placeBid()">CONFIRM BID</button>
-                            </div>
+                                <div id="bid-status" style="margin-top:5px; font-size:0.8em; text-align:center;"></div> </div>
                             
                             <div id="controls-actions" style="display:none; text-align:center;">
                                 <div id="action-msg" style="color:#e67e22; margin-bottom:10px;"></div>
@@ -288,6 +288,7 @@
     let userData = { name: "", id: "", pin: "", wallet: 0 };
     let currentData = [];
     let isMenuOpen = false;
+    let isAuthenticated = false;
     let currentDetailId = null;
     let lastView = 'browse';
     let showArchive = false;
@@ -297,11 +298,16 @@
 
     // --- DOCK MODE & DRAG LOGIC ---
     function startAppFlow() {
-        // Start from DOCKED MODE -> LINK SCREEN
         document.body.classList.remove('docked-mode');
-        document.getElementById('pivot-wrapper').style.display = 'none'; 
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('link-screen').style.display = 'flex';
+        if (isAuthenticated) {
+            document.getElementById('pivot-wrapper').style.display = 'block';
+            document.getElementById('link-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'none';
+        } else {
+            document.getElementById('pivot-wrapper').style.display = 'none'; 
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('link-screen').style.display = 'flex';
+        }
     }
 
     function toggleDockMode() {
@@ -338,7 +344,6 @@
         if (event.data.type === "data" || event.data.user_id) {
             let d = event.data.data || event.data;
             if(d.user_id || d.player_id || d.id) {
-                // Safety: Ensure we don't display "undefined" string
                 let tempName = d.name || d.player;
                 if(tempName && tempName !== "null" && tempName !== "undefined") {
                     userData.name = tempName;
@@ -347,10 +352,8 @@
                 }
                 
                 userData.id = cleanID(d.user_id || d.player_id || d.id);
-                // WALLET CAPTURE logic
                 if(d.wallet) userData.wallet = parseInt(d.wallet);
                 
-                // Update UI Fields only if valid
                 if(userData.name !== "Unknown") {
                     document.getElementById('login-name').value = userData.name;
                     document.getElementById('login-name').classList.add('verified');
@@ -369,7 +372,6 @@
 
     // --- NEW HANDSHAKE LOGIC ---
     function performHandshake() {
-        // Trigger data poll from game
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id", "wallet"] }, "*");
         
         const status = document.getElementById('link-status');
@@ -377,7 +379,6 @@
         status.style.color = "cyan";
 
         setTimeout(() => {
-            // STRICT CHECK: Do not allow if name is Unknown/undefined
             if(!userData.name || userData.name === "Unknown" || userData.name === "undefined") {
                 status.innerText = "SIGNAL WEAK: IDENTITY UNKNOWN. PLEASE RELOAD USER APP.";
                 status.style.color = "#ff4444";
@@ -400,14 +401,13 @@
         document.getElementById('btn-enter').disabled = true;
         document.getElementById('btn-enter').innerText = "VERIFYING...";
 
-        // USE GET REQUEST TO ENSURE JSON RESPONSE IS READABLE
         fetch(`${CONST_GOOGLE_URL}?action=login&userId=${userData.id}&name=${userData.name}&pin=${userData.pin}`)
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
+                isAuthenticated = true; 
                 document.getElementById('login-screen').style.display = 'none';
                 if(data.msg === "PIN Set") alert("Your PIN has been set to: " + pin + ". Don't forget it!");
-                // Remove docked mode class to show full menu
                 document.body.classList.remove('docked-mode');
                 enterMarket();
             } else if (data.status === "error" && data.msg.includes("ID Not Found")) {
@@ -468,7 +468,6 @@
     function closeApp() {
         isMenuOpen = false;
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
-        // Reset to docked mode
         document.body.classList.add('docked-mode');
         document.getElementById('pivot-wrapper').style.display = 'none';
         document.getElementById('link-screen').style.display = 'none';
@@ -522,7 +521,6 @@
         });
     }
 
-    // --- RENDERERS ---
     function renderGrid(data, container, isHistory) {
         container.innerHTML = '';
         const now = new Date().getTime();
@@ -562,8 +560,6 @@
         data.forEach(user => {
             let row = document.createElement('div');
             row.className = 'user-list-item';
-            
-            // Dropdown logic
             let select = document.createElement('select');
             ['Requested', 'Whitelisted', 'Blacklisted'].forEach(opt => {
                 let option = document.createElement('option');
@@ -571,19 +567,16 @@
                 select.appendChild(option);
             });
             select.onchange = function() { updateUserPermission(user.id, this.value); };
-
             row.innerHTML = `<span>${user.name} (${user.id})</span>`;
             row.appendChild(select);
             list.appendChild(row);
         });
     }
 
-    // --- ACTIONS ---
     function updateUserPermission(targetId, newStatus) {
         promptAdminAction('UserStatus', {targetId: targetId, newStatus: newStatus});
     }
 
-    // --- DETAIL VIEW ---
     function openDetail(item) {
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
@@ -737,20 +730,31 @@
         }).then(() => { returnToLastView(); });
     }
 
-    // --- WALLET CHECKED BIDDING ---
+    // --- WALLET CHECKED BIDDING FIX (Replaced Alert) ---
     function placeBid() {
         let amt = document.getElementById('detail-bid-input').value;
+        let status = document.getElementById('bid-status'); // Status div
+        
         if(!amt) return;
         
         if(parseInt(amt) > userData.wallet) {
-            alert("INSUFFICIENT FUNDS. You only have $" + userData.wallet.toLocaleString());
+            status.innerText = "INSUFFICIENT FUNDS ($" + userData.wallet.toLocaleString() + ")";
+            status.style.color = "#ff4444";
             return;
         }
+        
+        status.innerText = "PLACING BID...";
+        status.style.color = "cyan";
 
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin })
-        }).then(() => { document.getElementById('detail-bid-input').value = ""; });
+        }).then(() => { 
+            document.getElementById('detail-bid-input').value = "";
+            status.innerText = "BID PLACED";
+            status.style.color = "#2ecc71";
+            setTimeout(() => { status.innerText = ""; }, 3000);
+        });
     }
 
     function toggleImgInput() {
