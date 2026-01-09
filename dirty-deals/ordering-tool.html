@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - v9.0</title>
+    <title>Dirty Deals - RealTime v9.1</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -471,7 +471,8 @@
     }
 
     function fetchAdminUsers() {
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}`).then(r=>r.json()).then(users=>{
+        // Cache Busting
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(users=>{
             let c = document.getElementById('hk-user-list'); c.innerHTML = '';
             users.forEach(u => {
                 c.innerHTML += `<tr>
@@ -487,7 +488,8 @@
     }
 
     function fetchAdminOrders() {
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}`).then(r=>r.json()).then(orders=>{
+        // Cache Busting
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{
             let c = document.getElementById('hk-order-list'); c.innerHTML = '';
             orders.forEach(o => {
                 c.innerHTML += `<tr>
@@ -646,12 +648,13 @@
     function submitRealOrder() {
         var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING...";
         var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText };
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
     }
 
     function checkForMail() {
         if(!state.userPin) return;
-        fetch(GOOGLE_SCRIPT_URL + "?userId=" + state.userId + "&pin=" + state.userPin).then(function(r){ return r.json(); }).then(function(data) {
+        // CACHE BUSTING
+        fetch(`${GOOGLE_SCRIPT_URL}?userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) {
             if(!data) return; var hasUnread = false;
             for(var i=0; i<data.length; i++) { if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) { hasUnread = true; break; } }
             var icon = document.getElementById('mail-alert'); if(hasUnread) icon.classList.add('has-mail'); else icon.classList.remove('has-mail');
@@ -660,7 +663,8 @@
 
     function fetchMyOrders() {
         var c = document.getElementById('history-container');
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin).then(function(r){ return r.json(); }).then(function(data) {
+        // CACHE BUSTING
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) {
             c.innerHTML = ''; state.activeOrders = 0; state.completedOrders = 0;
             if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
             for(var i=0; i<data.length; i++) {
@@ -678,7 +682,8 @@
 
     function fetchGlobalOrders() {
         var c = document.getElementById('grinder-container');
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin).then(function(r){ return r.json(); }).then(function(data) {
+        // CACHE BUSTING
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) {
             c.innerHTML = '';
             for(var i=0; i<data.length; i++) {
                 if(!data[i].item) continue;
