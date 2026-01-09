@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - RealTime v9.1</title>
+    <title>Dirty Deals - Chat Fix v9.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -145,8 +145,13 @@
         .gb-complete:hover { background: #2ecc71; }
         .progress-strip { width: 100%; background: #000; border: 1px solid #333; color: #2ecc71; text-align: center; font-size: 0.85em; font-weight: bold; padding: 4px; cursor: text; border-radius: 3px; }
         .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; justify-content: center; align-items: center; border: 1px solid #111; }
+        
+        /* CHAT FIXES */
         .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
-        .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; }
+        .chat-logs { 
+            max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; 
+            white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; word-break: break-all;
+        }
         .chat-input-row { display: flex; gap: 5px; }
         .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
         .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
@@ -648,7 +653,7 @@
     function submitRealOrder() {
         var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING...";
         var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText };
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
+        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
     }
 
     function checkForMail() {
@@ -713,7 +718,7 @@
         }
 
         var div = document.createElement('div'); div.className = "history-item";
-        div.innerHTML = `<div class="h-top"><div class="h-info"><div class="h-row user">${o.username} <span style="font-family:monospace; color:#666;">(${o.userId})</span></div><div class="h-row item">${o.item} <span style="color:#888;">x${o.qty}</span></div><div class="h-row price">$${parseInt(o.price).toLocaleString()}</div>${o.grinder ? '<div class="h-row worker">Worker: '+o.grinder+'</div>' : ''}</div><div class="status-container"><div class="status-badge st-${status}">${status}</div>${controls}</div></div><div class="chat-area"><div class="chat-logs">${(o.chat ? o.chat.split(" | ").join("\n") : "No messages.")}</div><div class="chat-input-row"><input type="text" class="chat-input" placeholder="Type message..."><button class="chat-send" onclick="sendChatFromBtn(this, '${o.timestamp}', '${(o.orderUserId||o.userId)}')">SEND</button></div></div>`;
+        div.innerHTML = `<div class="h-top"><div class="h-info"><div class="h-row user">${o.username} <span style="font-family:monospace; color:#666;">(${o.userId})</span></div><div class="h-row item">${o.item} <span style="color:#888;">x${o.qty}</span></div><div class="h-row price">$${parseInt(o.price).toLocaleString()}</div>${o.grinder ? '<div class="h-row worker">Worker: '+o.grinder+'</div>' : ''}</div><div class="status-container"><div class="status-badge st-${status}">${status}</div>${controls}</div></div><div class="chat-area"><div class="chat-logs">${(o.chat ? o.chat.split(" | ").join("\n") : "No messages.")}</div><div class="chat-input-row"><input type="text" class="chat-input" placeholder="Type message..." maxlength="140"><button class="chat-send" onclick="sendChatFromBtn(this, '${o.timestamp}', '${(o.orderUserId||o.userId)}')">SEND</button></div></div>`;
         return div;
     }
 
