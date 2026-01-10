@@ -54,6 +54,23 @@
             padding-top: 5px;
         }
 
+        /* Header Flash Overlay */
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.5); /* White flash */
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5; /* Below controls/title, above bg */
+            animation: headerFlash 4s ease-in-out infinite;
+        }
+
+        @keyframes headerFlash {
+            0%, 45%, 55%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
         .header-title {
             position: absolute; left: 50%; top: 20%;
             transform: translate(-50%, -50%);
@@ -71,31 +88,33 @@
             bottom: 0; left: 0; width: 100%; height: 45px;
             overflow: hidden;
             pointer-events: none;
+            z-index: 6; /* Above flash overlay */
         }
 
         /* AMBULANCE IMAGE */
         #ambulance-img {
             position: absolute;
-            bottom: 4px; left: -100px; /* Start off-screen */
-            height: 32px; /* Fixed height to fit header */
+            bottom: 0px; left: -120px; /* Start off-screen */
+            height: 45px; /* Increased Size */
             width: auto;
             z-index: 5;
+            transform: scaleX(-1); /* Flipped horizontally */
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
             animation: driveCycle 15s ease-in-out infinite;
         }
 
         @keyframes driveCycle {
-            0% { left: -100px; }
-            15% { left: 50%; transform: translateX(-50%); } /* Drive In to Center */
-            35% { left: 50%; transform: translateX(-50%); } /* WAIT (Stop for 3s) */
-            45% { left: 120%; transform: translateX(0); } /* Drive Away */
-            100% { left: 120%; }
+            0% { left: -120px; }
+            15% { left: 50%; transform: translateX(-50%) scaleX(-1); } /* Drive In to Center */
+            35% { left: 50%; transform: translateX(-50%) scaleX(-1); } /* WAIT (Stop for 3s) */
+            45% { left: 120%; transform: translateX(0) scaleX(-1); } /* Drive Away */
+            100% { left: 120%; transform: scaleX(-1); }
         }
 
         /* NAME DROP ANIMATION */
         #user-name-drop {
             position: absolute;
-            bottom: 10px; left: 50%; 
+            bottom: 12px; left: 50%; 
             transform: translateX(-50%);
             font-family: 'Rajdhani', sans-serif;
             font-weight: 900; font-size: 1.1em;
