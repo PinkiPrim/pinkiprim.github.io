@@ -10,7 +10,7 @@
             /* Heli Theme */
             --primary: #ff9800; /* Safety Orange */
             --primary-dim: #b26a00;
-            --bg-glass: rgba(20, 20, 20, 0.95);
+            --bg-glass: rgba(20, 20, 20, 0.98);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
             --border: 1px solid rgba(255, 152, 0, 0.4);
@@ -35,18 +35,18 @@
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             resize: both; overflow: hidden;
             min-height: 200px;
-            transition: width 0.2s ease, height 0.2s ease;
+            transition: width 0.1s, height 0.1s;
         }
 
         /* --- MINI MODE --- */
         #tracker-app.mini-mode {
             width: 420px !important;
-            height: 74px !important;
-            min-height: 74px !important;
+            height: 70px !important;
+            min-height: 70px !important;
             border-radius: 12px;
             background: rgba(15, 10, 5, 0.98);
             border: 1px solid var(--primary);
@@ -202,7 +202,14 @@
 
         input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: inherit; }
         input:focus { outline: 1px solid var(--primary); }
-        .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
+        .calc-output { 
+            margin-top: 5px; 
+            font-family: 'Rajdhani', sans-serif; 
+            font-size: 0.85em; 
+            color: var(--text-dim); 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+        }
         
         .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
         .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
@@ -214,8 +221,8 @@
 <body>
 
 <div id="tracker-app">
-    <div id="micro-view" onmousedown="dragMouseDown(event)">
-        <button id="btn-expand" class="micro-btn">EXPAND</button>
+    <div id="micro-view">
+        <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
         
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
             <div class="micro-group">
@@ -274,7 +281,7 @@
         </div>
 
         <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
-            <button id="btn-mini" class="micro-btn" style="position:relative; top:0; right:0;">MINI</button>
+            <button id="mini-btn" onclick="window.toggleMini()">MINI</button>
             <span id="clock">00:00</span>
         </div>
     </header>
@@ -322,9 +329,9 @@
             <input type="number" id="target-input" placeholder="e.g. 100000">
             
             <div class="quick-btn-row">
-                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
-                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
-                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+                <button class="quick-btn" onclick="window.setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="window.setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="window.setCalc(10000000)">10M</button>
             </div>
 
             <div class="calc-output" id="calc-result">Start flying to enable calculator...</div>
@@ -344,6 +351,20 @@
 <table id="summary-table" style="display:none;"></table>
 
 <script>
+// --- GLOBAL FUNCTIONS (Must be defined first) ---
+window.toggleMini = function() {
+    const app = document.getElementById('tracker-app');
+    app.classList.toggle('mini-mode');
+    const isMini = app.classList.contains('mini-mode');
+    document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
+    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+};
+
+window.setCalc = function(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator();
+};
+
 // --- CONFIG ---
 const KEYS = {
     XP: "exp_piloting_heli",
@@ -366,28 +387,11 @@ if (savedTarget) document.getElementById('target-input').value = savedTarget;
 const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
 if (savedMini === "true") {
     document.getElementById('tracker-app').classList.add('mini-mode');
-    document.getElementById('btn-mini').innerText = "FULL";
+    document.getElementById('mini-btn').innerText = "FULL";
 }
-
-// SETUP LISTENERS
-document.getElementById('btn-mini').addEventListener('click', toggleMini);
-document.getElementById('btn-expand').addEventListener('click', toggleMini);
 
 const calcInput = document.getElementById('target-input');
 if(calcInput) calcInput.addEventListener('input', runCalculator);
-
-function toggleMini() {
-    const app = document.getElementById('tracker-app');
-    app.classList.toggle('mini-mode');
-    const isMini = app.classList.contains('mini-mode');
-    document.getElementById('btn-mini').innerText = isMini ? "FULL" : "MINI";
-    localStorage.setItem(STORAGE_KEY_MINI, isMini);
-}
-
-function setCalc(amount) {
-    document.getElementById('target-input').value = amount;
-    runCalculator();
-}
 
 // --- CLOCK ---
 setInterval(() => {
@@ -589,9 +593,10 @@ function runCalculator() {
 }
 
 // --- DRAG HANDLER ---
-let elmnt = document.getElementById("tracker-app");
-let header = document.getElementById("drag-handle");
-let microView = document.getElementById("micro-view");
+const elmnt = document.getElementById("tracker-app");
+const header = document.getElementById("drag-handle");
+const microView = document.getElementById("micro-view");
+
 let isDragging = false, startX, startY, initialLeft, initialTop;
 
 header.addEventListener("mousedown", dragStart);
