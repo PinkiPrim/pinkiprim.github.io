@@ -33,7 +33,7 @@
         #tracker-app {
             position: absolute;
             top: 50px; left: 50px;
-            width: 320px;
+            width: 320px; /* Standard Width */
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -41,79 +41,87 @@
             display: flex; flex-direction: column;
             resize: both; overflow: hidden;
             min-height: 200px;
+            transition: width 0.3s ease;
         }
 
-        /* --- HEADER --- */
+        /* --- MINI MODE STYLES --- */
+        #tracker-app.mini-mode {
+            width: 240px !important; /* Compact Width */
+        }
+        #tracker-app.mini-mode header {
+            height: 50px; /* Shorter header in mini */
+        }
+        #tracker-app.mini-mode .header-title {
+            font-size: 1em; top: 30%;
+        }
+        #tracker-app.mini-mode #user-name-fly {
+            font-size: 0.8em; top: 28px;
+        }
+        #tracker-app.mini-mode .section {
+            margin-bottom: 5px; padding-bottom: 5px;
+        }
+        #tracker-app.mini-mode .value {
+            font-size: 0.95em;
+        }
+        #tracker-app.mini-mode input[type="number"] {
+            padding: 2px; font-size: 0.8em; margin-top: 2px;
+        }
+        #tracker-app.mini-mode .quick-btn {
+            padding: 1px 4px; font-size: 0.65em;
+        }
+        #tracker-app.mini-mode .calc-output {
+            margin-top: 2px; font-size: 0.7em;
+        }
+        /* End Mini Mode */
+
+        /* --- HEADER & SKY --- */
         header {
-            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-            height: 32px; 
+            background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
+            height: 65px; /* Tall header for clouds */
             padding: 0 10px;
             cursor: move;
             position: relative;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            overflow: hidden; /* Keep animations inside header area if needed, though name is below */
+            display: flex; align-items: flex-start; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            overflow: hidden; 
+            padding-top: 5px;
         }
 
         .header-title {
-            position: absolute; left: 50%; top: 50%;
+            position: absolute; left: 50%; top: 25%;
             transform: translate(-50%, -50%);
             font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; font-size: 1.1em;
+            font-weight: 900; font-size: 1.2em;
             text-transform: uppercase; letter-spacing: 2px;
-            color: #000; pointer-events: none; white-space: nowrap;
+            color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
             z-index: 10;
         }
 
-        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; z-index: 10; }
-        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #000; font-size: 0.85em; z-index: 10; }
-
-        /* --- ANIMATION CONTAINER (Below Header) --- */
-        #sky-container {
-            position: relative;
-            height: 24px; /* Space for name and clouds */
-            background: linear-gradient(to bottom, rgba(3, 169, 244, 0.1), transparent);
-            overflow: hidden;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        /* CLOUDS */
-        .cloud {
-            position: absolute;
-            background-image: url('https://pngimg.com/uploads/cloud/cloud_PNG112272.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            opacity: 0.3;
-            pointer-events: none;
-        }
-
-        .cloud-1 { top: 2px; left: -50px; width: 40px; height: 20px; animation: floatCloud 25s linear infinite; }
-        .cloud-2 { top: 8px; left: -60px; width: 30px; height: 15px; animation: floatCloud 35s linear infinite 5s; }
-        .cloud-3 { top: 4px; left: -40px; width: 35px; height: 18px; animation: floatCloud 45s linear infinite 12s; }
-
-        @keyframes floatCloud {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(400px); }
-        }
-
-        /* FLYING NAME */
+        /* FLYING NAME ANIMATION */
         #user-name-fly {
             position: absolute;
-            top: 4px; left: -150px; /* Start off-screen left */
+            top: 38px; left: -150px;
             font-family: 'Rajdhani', sans-serif;
             font-weight: 700;
-            font-size: 0.9em;
-            color: var(--accent);
-            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            font-size: 0.95em;
+            color: #fff;
             white-space: nowrap;
-            /* Animation applied via JS to handle loop */
+            pointer-events: none;
+            z-index: 10;
+            
+            /* GLOW / AURA EFFECT */
+            text-shadow: 
+                0 0 5px var(--primary),
+                0 0 10px var(--accent),
+                0 0 20px var(--primary-dim);
         }
 
         @keyframes flyCycle {
-            0% { left: -150px; transform: translateY(0); }
-            10% { left: 50%; transform: translateX(-50%) translateY(0); } /* Fly In to Center */
+            0% { left: -150px; transform: translateX(0) translateY(0); opacity: 0; }
+            10% { left: 50%; transform: translateX(-50%) translateY(0); opacity: 1; } 
             
-            /* Hover / Wind Effect in Center */
+            /* Wind Hover Effect */
             20% { left: 50%; transform: translateX(-50%) translateY(-2px); }
             30% { left: 50%; transform: translateX(-50%) translateY(1px); }
             40% { left: 50%; transform: translateX(-50%) translateY(-1px); }
@@ -123,59 +131,63 @@
             80% { left: 50%; transform: translateX(-50%) translateY(0); }
 
             90% { left: 50%; transform: translateX(-50%); opacity: 1; }
-            100% { left: 400px; transform: translateX(0); opacity: 0; } /* Fly Out Right */
+            100% { left: 120%; transform: translateX(0); opacity: 0; } 
         }
 
-        /* --- CONTENT --- */
+        /* CLOUDS */
+        .cloud {
+            position: absolute;
+            background-image: url('https://pngimg.com/uploads/cloud/cloud_PNG112272.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.25;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .cloud-1 { top: 10px; left: -50px; width: 60px; height: 30px; animation: floatCloud 25s linear infinite; }
+        .cloud-2 { top: 35px; left: -60px; width: 40px; height: 20px; animation: floatCloud 35s linear infinite 5s; }
+        .cloud-3 { top: 20px; left: -40px; width: 50px; height: 25px; animation: floatCloud 45s linear infinite 12s; }
+
+        @keyframes floatCloud {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(450px); }
+        }
+
+        /* CONTROLS */
+        .header-controls {
+            display: flex; gap: 8px; z-index: 20; align-items: center;
+        }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
+        
+        #mini-btn {
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer;
+        }
+        #mini-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
+
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
+
         #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
         /* --- COMPACT ROUTE INFO --- */
         .route-box {
             background: rgba(3, 169, 244, 0.1);
             border: 1px dashed var(--accent);
-            border-radius: 6px; 
-            padding: 5px; 
-            margin-bottom: 6px; 
-            text-align: center;
+            border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center;
         }
-        .route-label {
-            font-size: 0.6em; color: var(--accent);
-            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px;
-        }
-        .route-name {
-            font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700;
-            color: #fff; line-height: 1.1; margin-bottom: 2px;
-        }
-        .route-progress {
-            font-size: 0.75em; color: var(--text-dim); font-weight: bold;
-        }
+        .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
+        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; line-height: 1.1; margin-bottom: 2px; }
+        .route-progress { font-size: 0.75em; color: var(--text-dim); font-weight: bold; }
 
-        /* --- STATUS & TIMER (Stacked) --- */
+        /* --- STATUS & TIMER --- */
         .status-container {
-            background: rgba(255,255,255,0.05); 
-            border-radius: 6px; 
-            padding: 4px; 
-            margin-bottom: 10px;
-            text-align: center;
-            display: flex; flex-direction: column; gap: 2px;
+            background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px; margin-bottom: 10px;
+            text-align: center; display: flex; flex-direction: column; gap: 2px;
         }
-        
-        .status-line {
-            font-family: 'Rajdhani', sans-serif; 
-            font-weight: 700; 
-            font-size: 0.8em; 
-            color: #ccc;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-
-        .timer-line {
-            font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; 
-            font-size: 1.1em; 
-            color: var(--text-dim); line-height: 1;
-            transition: color 0.2s ease;
-        }
+        .status-line { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px; }
+        .timer-line { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: var(--text-dim); line-height: 1; transition: color 0.2s ease; }
         .timer-line.active { color: var(--green); text-shadow: 0 0 8px rgba(0, 230, 118, 0.4); }
         .timer-line.urgent { color: var(--red); text-shadow: 0 0 8px rgba(255, 82, 82, 0.6); }
 
@@ -187,25 +199,14 @@
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
-        .progress-container {
-            position: relative; height: 14px;
-            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0;
-            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
-        }
+        .progress-container { position: relative; height: 14px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
-        .progress-text {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 0.65em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
-        }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
         .xp-remaining-text { text-align: center; font-size: 0.75em; color: var(--text-dim); margin-bottom: 8px; }
         .xp-remaining-text b { color: var(--primary); }
 
         /* SESSION BOX */
-        .run-box {
-            background: rgba(79, 195, 247, 0.1);
-            border: 1px solid rgba(79, 195, 247, 0.3);
-            border-radius: 4px; padding: 6px; margin-bottom: 8px;
-        }
+        .run-box { background: rgba(79, 195, 247, 0.1); border: 1px solid rgba(79, 195, 247, 0.3); border-radius: 4px; padding: 6px; margin-bottom: 8px; }
         .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em; }
         .run-val { font-weight: bold; color: #fff; }
         .run-label { font-size: 0.8em; color: #aaa; }
@@ -214,34 +215,18 @@
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; text-align: center; }
 
         /* INVENTORY ROW */
-        .inv-row {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.2); padding: 4px 8px;
-            margin-bottom: 4px; border-radius: 4px;
-            border-left: 3px solid var(--text-dim);
-        }
+        .inv-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; border-left: 3px solid var(--text-dim); }
         .inv-name { font-size: 0.85em; }
         .inv-stats { font-size: 0.9em; font-weight: bold; text-align: right; }
         .low-stock { border-left-color: var(--red); background: rgba(255, 82, 82, 0.1); }
 
         /* CALCULATOR */
-        input[type="number"] {
-            width: 90%; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; color: white; padding: 4px;
-            border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em;
-        }
+        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 4px; border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em; }
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
         
-        /* QUICK BUTTONS */
-        .quick-btn-row {
-            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
-        }
-        .quick-btn {
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
-            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
-        }
+        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         #settings-panel, #job-list, #summary-table { display: none !important; }
@@ -251,21 +236,22 @@
 
 <div id="tracker-app">
     <header id="drag-handle">
-        <div class="header-left">
+        <div class="header-controls">
             <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
         </div>
-        <div class="header-title">✈️ Airline Ops</div>
-        <div class="header-right">
-            <span id="clock">00:00</span>
-        </div>
-    </header>
-
-    <div id="sky-container">
+        
         <div class="cloud cloud-1"></div>
         <div class="cloud cloud-2"></div>
         <div class="cloud cloud-3"></div>
-        <div id="user-name-fly">Pilot</div>
-    </div>
+        
+        <div class="header-title">AIRLINE OPS</div>
+        <div id="user-name-fly">Pilot ...</div>
+
+        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <button id="mini-btn" onclick="toggleMini()">MINI</button>
+            <span id="clock">00:00</span>
+        </div>
+    </header>
 
     <div id="content">
         
@@ -357,6 +343,7 @@ const JOB_BXP_KEY_A = "exp_token_a|piloting|piloting";
 const JOB_BXP_KEY_B = "exp_token|piloting|piloting";
 const ITEM_MEAL = "fridge_airline_meal";
 const STORAGE_KEY_CALC = "target_xp_airline"; 
+const STORAGE_KEY_MINI = "mini_mode_airline";
 
 // Anti-Flicker & Flight Counting Logic
 let routeResetTimeout = null;
@@ -383,17 +370,30 @@ if (savedTarget) {
     document.getElementById('target-input').value = savedTarget;
 }
 
+// RESTORE MINI MODE
+const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
+if (savedMini === "true") {
+    document.getElementById('tracker-app').classList.add('mini-mode');
+    document.getElementById('mini-btn').innerText = "FULL";
+}
+
+// --- MINI MODE TOGGLE ---
+function toggleMini() {
+    const app = document.getElementById('tracker-app');
+    app.classList.toggle('mini-mode');
+    
+    const isMini = app.classList.contains('mini-mode');
+    document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
+    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+}
+
 // --- ANIMATION CONTROLLER ---
-// Start the cycle and repeat every 15 seconds
 const nameEl = document.getElementById('user-name-fly');
 function startNameCycle() {
-    // Reset animation
     nameEl.style.animation = 'none';
-    nameEl.offsetHeight; /* trigger reflow */
-    // Apply animation: 15s total duration
+    nameEl.offsetHeight; 
     nameEl.style.animation = 'flyCycle 15s linear infinite'; 
 }
-// Start immediately
 startNameCycle();
 
 // --- CLOCK ---
@@ -408,7 +408,7 @@ function requestData() {
             let keys = [
                 "exp_piloting_piloting", "exp_token_a|piloting|piloting", "exp_token|piloting|piloting",
                 "status", "inventory", "chest", "trunkCapacity", "trunkWeight",
-                "name" // Request Name for Animation
+                "name" 
             ];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
