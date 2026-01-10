@@ -92,11 +92,10 @@
             background: linear-gradient(135deg, #01579b, #0288d1, #01579b);
             background-size: 200% 200%;
             animation: shopLight 5s ease infinite;
-            padding: 0 12px;
-            height: 80px; /* Taller for scene */
+            padding: 10px 12px 0 12px; /* Top padding for alignment */
+            height: 85px; /* Increased height for scene */
             cursor: move;
-            /* Centered alignment */
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: flex-start;
             position: relative;
             overflow: hidden;
             border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -111,16 +110,18 @@
         .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
         .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
         .nav-icon:hover { color: #fff; }
+        
         .header-title {
             font-family: 'Rajdhani', sans-serif; font-weight: 900;
-            text-transform: uppercase; letter-spacing: 1px; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.3em;
             z-index: 10;
+            margin-top: 0px; /* Fixed alignment */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.6);
         }
-
 
         /* SCENE CONTAINER */
         #mech-scene {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 50px;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 45px;
             pointer-events: none; overflow: hidden;
         }
 
@@ -176,22 +177,22 @@
 
         /* NAME ANIMATION (Hammer Fix) */
         #user-name-mech {
-            position: absolute; top: 45px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
             font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.9em;
-            white-space: nowrap; color: #fff;
+            white-space: nowrap; color: #ddd;
             animation: nameBreakFix 14s ease-in-out infinite;
             z-index: 15;
         }
         
         #hammer-anim {
-            position: absolute; top: 10px; left: 60%; 
+            position: absolute; top: 15px; left: 60%; 
             font-size: 1.5em; opacity: 0;
             animation: hammerSmack 14s ease-in-out infinite;
             z-index: 16;
         }
 
         @keyframes nameBreakFix {
-            0%, 40% { transform: translateX(-50%) rotate(15deg) translateY(5px); color: #888; letter-spacing: -1px; } /* Broken */
+            0%, 40% { transform: translateX(-50%) rotate(15deg) translateY(5px); color: #aaa; letter-spacing: -1px; } /* Broken */
             43% { transform: translateX(-50%) rotate(0deg) translateY(0px); color: #fff; letter-spacing: 1px; text-shadow: 0 0 10px var(--primary); } /* Fixed */
             90% { opacity: 1; }
             100% { opacity: 0; }
@@ -199,8 +200,8 @@
 
         @keyframes hammerSmack {
             0%, 38% { opacity: 0; transform: rotate(45deg); }
-            40% { opacity: 1; top: 20px; transform: rotate(45deg); } /* Raise */
-            42% { top: 40px; transform: rotate(-45deg); } /* SMACK */
+            40% { opacity: 1; top: 15px; transform: rotate(45deg); } /* Raise */
+            42% { top: 35px; transform: rotate(-45deg); } /* SMACK */
             45% { opacity: 0; }
             100% { opacity: 0; }
         }
@@ -606,8 +607,8 @@
     const microView = document.getElementById("micro-view");
     let isDragging = false, startX, startY, initialLeft, initialTop;
 
-    header.onmousedown = dragStart;
-    microView.onmousedown = dragStart;
+    header.addEventListener('mousedown', dragStart);
+    microView.addEventListener('mousedown', dragStart);
 
     function dragStart(e) {
         if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
