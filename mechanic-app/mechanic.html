@@ -41,6 +41,51 @@
             min-height: 200px;
         }
 
+        /* --- MINI MODE --- */
+        #app-container.mini-mode {
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: rgba(10, 10, 15, 0.98);
+            border: 1px solid var(--primary);
+            resize: none;
+        }
+
+        #app-container.mini-mode header, 
+        #app-container.mini-mode #mech-scene,
+        #app-container.mini-mode #content { display: none !important; }
+
+        #micro-view {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
+        }
+        #app-container.mini-mode #micro-view { display: flex; }
+
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
+        .micro-group { display: flex; align-items: center; gap: 8px; }
+        .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
+        .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
+        .micro-val.highlight { color: var(--primary); }
+        .micro-val.active { color: var(--green); }
+        
+        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
+
+        .micro-btn {
+            position: absolute; top: 4px; right: 4px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa; padding: 0px 4px; border-radius: 3px; font-size: 0.6em; cursor: pointer;
+            z-index: 50;
+        }
+        .micro-btn:hover { background: var(--primary); color: white; }
+
         /* --- HEADER & ANIMATION --- */
         header {
             /* Garage Gradient */
@@ -48,7 +93,7 @@
             background-size: 200% 200%;
             animation: shopLight 5s ease infinite;
             padding: 0 12px;
-            height: 70px; /* Taller for scene */
+            height: 80px; /* Taller for scene */
             cursor: move;
             display: flex; justify-content: space-between; align-items: flex-start;
             position: relative;
@@ -63,101 +108,98 @@
             100% { background-position: 0% 50%; }
         }
 
-        .header-title {
-            font-family: 'Rajdhani', sans-serif; font-weight: 900;
-            text-transform: uppercase; letter-spacing: 1px; font-size: 1.2em;
-            z-index: 10;
-        }
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
 
         /* SCENE CONTAINER */
         #mech-scene {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 40px;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 50px;
             pointer-events: none; overflow: hidden;
         }
 
         /* ACTORS */
         .actor { position: absolute; bottom: 2px; font-size: 1.8em; }
         
-        #truck { left: -50px; z-index: 5; }
+        #truck { left: -60px; z-index: 5; transform: scaleX(-1); } /* Flip to face right */
         #mechanic { left: -50px; z-index: 6; opacity: 0; }
-        #car { right: 20px; z-index: 4; filter: grayscale(100%); } /* Broken car is grey */
-        #tool { position: absolute; bottom: 15px; right: 25px; font-size: 1.2em; opacity: 0; z-index: 7; }
+        #car { right: 10px; z-index: 4; filter: grayscale(100%); } 
+        #tool { position: absolute; bottom: 25px; right: 15px; font-size: 1.2em; opacity: 0; z-index: 7; }
 
-        /* SCENE ANIMATION (12s Cycle) */
-        /* 1. Truck Arrives */
+        /* --- COMPLEX SCENE ANIMATION (14s Cycle) --- */
         @keyframes driveIn {
-            0% { left: -50px; }
-            20% { left: 40px; } /* Park */
-            80% { left: 40px; } /* Wait */
-            100% { left: 350px; } /* Drive Off */
+            0% { left: -60px; }
+            10% { left: 20px; } /* Arrive */
+            85% { left: 20px; } /* Wait for mech */
+            100% { left: 350px; } /* Drive off */
         }
-        #truck { animation: driveIn 12s linear infinite; }
+        #truck { animation: driveIn 14s linear infinite; }
 
-        /* 2. Mechanic Gets Out */
         @keyframes fixAction {
-            0%, 20% { opacity: 0; left: 40px; }
-            25% { opacity: 1; left: 40px; } /* Appear */
-            35% { left: 180px; } /* Walk to car */
-            65% { left: 180px; } /* Work */
-            75% { left: 40px; } /* Walk back */
-            80% { opacity: 0; } /* Get in */
-            100% { opacity: 0; left: 40px; }
+            0%, 10% { opacity: 0; left: 20px; transform: scaleX(-1); } /* In truck */
+            11% { opacity: 1; left: 20px; transform: scaleX(-1); } /* Get out (Face Right) */
+            25% { left: 230px; transform: scaleX(-1); } /* Walk to car (Face Right) */
+            60% { left: 230px; transform: scaleX(-1); } /* Stay at car working */
+            70% { left: 20px; transform: scaleX(1); } /* Walk back (Face Left) */
+            84% { opacity: 1; left: 20px; transform: scaleX(1); } /* At door */
+            85% { opacity: 0; } /* Get in */
+            100% { opacity: 0; left: 20px; }
         }
-        #mechanic { animation: fixAction 12s linear infinite; }
+        #mechanic { animation: fixAction 14s linear infinite; }
 
-        /* 3. Wrench Work */
         @keyframes wrenchTurn {
-            0%, 35% { opacity: 0; }
-            36% { opacity: 1; transform: rotate(0deg); }
-            45% { transform: rotate(-45deg); }
-            55% { transform: rotate(0deg); }
-            64% { opacity: 1; }
-            65% { opacity: 0; }
+            0%, 25% { opacity: 0; }
+            26% { opacity: 1; transform: rotate(0deg); }
+            35% { transform: rotate(-45deg); }
+            45% { transform: rotate(0deg); }
+            55% { opacity: 1; transform: rotate(-45deg); }
+            56% { opacity: 0; }
             100% { opacity: 0; }
         }
-        #tool { animation: wrenchTurn 12s linear infinite; }
+        #tool { animation: wrenchTurn 14s linear infinite; }
 
-        /* 4. Car Fixed */
         @keyframes carFix {
-            0%, 60% { filter: grayscale(100%); }
-            65% { filter: grayscale(0%); filter: drop-shadow(0 0 5px gold); } /* Fixed! */
+            0%, 50% { filter: grayscale(100%); }
+            55% { filter: grayscale(0%); filter: drop-shadow(0 0 5px gold); } /* Fixed! */
             90% { opacity: 1; }
-            95% { opacity: 0; } /* Disappear to reset */
+            95% { opacity: 0; } /* Reset scene */
             100% { opacity: 0; filter: grayscale(100%); }
         }
-        #car { animation: carFix 12s linear infinite; }
+        #car { animation: carFix 14s linear infinite; }
 
 
         /* NAME ANIMATION (Hammer Fix) */
         #user-name-mech {
-            position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: 45px; left: 50%; transform: translateX(-50%);
             font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.9em;
             white-space: nowrap; color: #fff;
-            animation: nameBreakFix 10s ease-in-out infinite;
+            animation: nameBreakFix 14s ease-in-out infinite;
+            z-index: 15;
         }
         
         #hammer-anim {
             position: absolute; top: 10px; left: 60%; 
             font-size: 1.5em; opacity: 0;
-            animation: hammerSmack 10s ease-in-out infinite;
+            animation: hammerSmack 14s ease-in-out infinite;
+            z-index: 16;
         }
 
         @keyframes nameBreakFix {
             0%, 40% { transform: translateX(-50%) rotate(15deg) translateY(5px); color: #888; letter-spacing: -1px; } /* Broken */
-            45% { transform: translateX(-50%) rotate(0deg) translateY(0px); color: #fff; letter-spacing: 1px; text-shadow: 0 0 10px var(--primary); } /* Fixed */
+            43% { transform: translateX(-50%) rotate(0deg) translateY(0px); color: #fff; letter-spacing: 1px; text-shadow: 0 0 10px var(--primary); } /* Fixed */
             90% { opacity: 1; }
             100% { opacity: 0; }
         }
 
         @keyframes hammerSmack {
-            0%, 35% { opacity: 0; transform: rotate(45deg); }
-            40% { opacity: 1; top: 10px; transform: rotate(45deg); } /* Raise */
-            43% { top: 25px; transform: rotate(-45deg); } /* SMACK */
+            0%, 38% { opacity: 0; transform: rotate(45deg); }
+            40% { opacity: 1; top: 20px; transform: rotate(45deg); } /* Raise */
+            42% { top: 40px; transform: rotate(-45deg); } /* SMACK */
             45% { opacity: 0; }
             100% { opacity: 0; }
         }
 
-        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; z-index: 20; }
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; z-index: 20; color: #fff; margin-top: 4px; }
 
         /* --- CONTENT --- */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
@@ -197,9 +239,52 @@
 <body>
 
 <div id="app-container">
+    <div id="micro-view" onmousedown="dragMouseDown(event)">
+        <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
+        
+        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div class="micro-group">
+                <span style="font-size:1.2em">🔧</span>
+                <span class="micro-val highlight">MECH OPS</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Calls:</span>
+                <span class="micro-val active" id="micro-calls">0</span>
+            </div>
+        </div>
+
+        <div class="micro-row">
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Lvl</span>
+                <span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-bar"></div>
+                </div>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">XP:</span>
+                <span class="micro-val" id="micro-xp">0</span>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">Tok:</span>
+                <span class="micro-val active" id="micro-tokens">0</span>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">Left:</span>
+                <span class="micro-val highlight" id="micro-calc">--</span>
+            </div>
+        </div>
+    </div>
+
     <header id="drag-handle">
-        <a href="https://pinkiprim.github.io/pinkiapps.html" style="text-decoration:none; margin-right:12px; cursor:pointer; font-size:1.2em; z-index:20;">🏠</a>
-        <span class="header-title">🔧 Mechanic Ops</span>
+        <div class="header-controls">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
+        </div>
+        
+        <span class="header-title" style="margin-top: -10px;">🔧 Mechanic Ops</span>
         
         <div id="mech-scene">
             <div id="truck" class="actor">🛻</div>
@@ -211,7 +296,10 @@
         <div id="hammer-anim">🔨</div>
         <div id="user-name-mech">Mechanic ...</div>
 
-        <span id="clock" style="z-index:20;">00:00</span>
+        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <button id="mini-btn" class="micro-btn" style="position:relative; top:0; right:0;" onclick="window.toggleMini()">MINI</button>
+            <span id="clock">00:00</span>
+        </div>
     </header>
 
     <div id="content">
@@ -287,6 +375,14 @@
         runCalculator();
     };
 
+    window.toggleMini = function() {
+        const app = document.getElementById('app-container');
+        app.classList.toggle('mini-mode');
+        const isMini = app.classList.contains('mini-mode');
+        document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
+        localStorage.setItem("mini_mode_mechanic", isMini);
+    };
+
     // --- MECHANIC CONFIG ---
     const KEYS = {
         XP: "exp_trucking_mechanic",
@@ -310,6 +406,12 @@
     const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
     if (savedTarget) document.getElementById('target-input').value = savedTarget;
     
+    const savedMini = localStorage.getItem("mini_mode_mechanic");
+    if (savedMini === "true") {
+        document.getElementById('app-container').classList.add('mini-mode');
+        document.getElementById('mini-btn').innerText = "FULL";
+    }
+
     document.getElementById('target-input').addEventListener('input', runCalculator);
 
     setInterval(() => {
@@ -383,6 +485,7 @@
         if (amt >= 0) {
             STATE.currentBXP = amt;
             document.getElementById('disp-bxp').innerText = formatNum(amt);
+            document.getElementById('micro-tokens').innerText = formatNum(amt);
         }
     }
 
@@ -430,12 +533,19 @@
         const prevLvlXP = getXPFromLevel(lvl);
         const percent = Math.min(100, Math.max(0, ((STATE.currentXP - prevLvlXP) / (nextLvlXP - prevLvlXP)) * 100));
 
+        // Main
         document.getElementById('disp-level').innerText = lvl;
         document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
         document.getElementById('level-bar').style.width = percent + "%";
         document.getElementById('level-text').innerText = percent.toFixed(1) + "%";
         document.getElementById('disp-callouts').innerText = STATE.callouts;
         document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+
+        // Micro
+        document.getElementById('micro-level').innerText = lvl;
+        document.getElementById('micro-xp').innerText = formatNum(STATE.currentXP);
+        document.getElementById('micro-bar').style.width = percent + "%";
+        document.getElementById('micro-calls').innerText = STATE.callouts;
 
         runCalculator();
     }
@@ -449,15 +559,18 @@
     function runCalculator() {
         const val = document.getElementById('target-input').value;
         const el = document.getElementById('calc-result');
+        const microEl = document.getElementById('micro-calc');
         
         localStorage.setItem(STORAGE_KEY_CALC, val);
 
         if (STATE.avgXP === 0) {
             el.innerHTML = "<i>Complete a job to enable calc...</i>";
+            microEl.innerText = "Wait..";
             return;
         }
         if (!val) {
             el.innerText = "Enter target above.";
+            microEl.innerText = "Set..";
             return;
         }
 
@@ -474,18 +587,24 @@
             const jobs = Math.ceil(diff / STATE.avgXP);
             el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
                            `<span style="color:var(--primary)">Callouts to go: <b>${formatNum(jobs)}</b></span>`;
+            microEl.innerText = formatNum(jobs);
         } else {
             const jobs = Math.ceil(inputVal / STATE.avgXP);
             el.innerHTML = `To add ${formatNum(inputVal)} XP:<br>Effort: <b>${formatNum(jobs)} jobs</b>`;
+            microEl.innerText = "Done";
         }
     }
 
     // --- DRAG HANDLER ---
     const elmnt = document.getElementById("app-container");
     const header = document.getElementById("drag-handle");
+    const microView = document.getElementById("micro-view");
     let isDragging = false, startX, startY, initialLeft, initialTop;
 
-    header.addEventListener('mousedown', (e) => {
+    header.onmousedown = dragStart;
+    microView.onmousedown = dragStart;
+
+    function dragStart(e) {
         if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
         e.preventDefault();
         isDragging = true;
@@ -496,7 +615,7 @@
         initialTop = rect.top;
         document.addEventListener('mousemove', dragMove);
         document.addEventListener('mouseup', dragEnd);
-    });
+    }
 
     function dragMove(e) {
         if(!isDragging) return;
