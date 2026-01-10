@@ -76,16 +76,16 @@
         /* AMBULANCE IMAGE */
         #ambulance-img {
             position: absolute;
-            bottom: 2px; left: -120px; /* Start off-screen */
-            width: 80px; /* Adjust size */
-            height: auto;
+            bottom: 4px; left: -100px; /* Start off-screen */
+            height: 32px; /* Fixed height to fit header */
+            width: auto;
             z-index: 5;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
             animation: driveCycle 15s ease-in-out infinite;
         }
 
         @keyframes driveCycle {
-            0% { left: -120px; }
+            0% { left: -100px; }
             15% { left: 50%; transform: translateX(-50%); } /* Drive In to Center */
             35% { left: 50%; transform: translateX(-50%); } /* WAIT (Stop for 3s) */
             45% { left: 120%; transform: translateX(0); } /* Drive Away */
@@ -95,7 +95,7 @@
         /* NAME DROP ANIMATION */
         #user-name-drop {
             position: absolute;
-            bottom: 12px; left: 50%; 
+            bottom: 10px; left: 50%; 
             transform: translateX(-50%);
             font-family: 'Rajdhani', sans-serif;
             font-weight: 900; font-size: 1.1em;
@@ -176,7 +176,7 @@
         <div class="header-title">EMS OPS</div>
         
         <div id="street-container">
-            <img id="ambulance-img" src="https://cdn.creazilla.com/cliparts/77403/ambulance-clipart-lg.png" alt="Ambulance">
+            <img id="ambulance-img" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f691.png" alt="Ambulance">
             <div id="user-name-drop">Paramedic ...</div>
         </div>
 
