@@ -39,53 +39,148 @@
             display: flex; flex-direction: column;
             resize: both; overflow: hidden;
             min-height: 200px;
+            transition: width 0.2s ease, height 0.2s ease;
         }
 
-        header {
-            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-            padding: 8px 12px;
+        /* --- MINI MODE --- */
+        #tracker-app.mini-mode {
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: rgba(10, 10, 10, 0.98);
+            border: 1px solid var(--primary);
+            resize: none;
+        }
+
+        #tracker-app.mini-mode header, 
+        #tracker-app.mini-mode #sky-container,
+        #tracker-app.mini-mode #content { display: none !important; }
+
+        #micro-view {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
             cursor: move;
-            display: flex; justify-content: space-between; align-items: center;
-            font-family: 'Rajdhani', sans-serif; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
+        }
+        #tracker-app.mini-mode #micro-view { display: flex; }
+
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
+        .micro-group { display: flex; align-items: center; gap: 8px; }
+        .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
+        .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
+        .micro-val.highlight { color: var(--primary); }
+        .micro-val.active { color: var(--green); }
+        
+        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
+
+        .micro-btn {
+            position: absolute; top: 4px; right: 4px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa; padding: 0px 4px; border-radius: 3px; font-size: 0.6em; cursor: pointer;
+        }
+        .micro-btn:hover { background: var(--primary); color: white; }
+
+        /* --- HEADER & ANIMATION --- */
+        header {
+            background: linear-gradient(180deg, var(--primary-dim), rgba(2, 119, 189, 0.2));
+            height: 70px; /* Taller for drops */
+            padding: 0 10px;
+            cursor: move;
+            position: relative;
+            display: flex; align-items: flex-start; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            overflow: hidden;
+            padding-top: 5px;
         }
 
+        .header-title {
+            position: absolute; left: 50%; top: 20%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        /* ANIMATION CONTAINER */
+        #sky-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* PARACHUTE & CRATE GROUP */
+        .drop-group {
+            position: absolute;
+            top: -60px; /* Start above header */
+            display: flex; flex-direction: column; align-items: center;
+            opacity: 0.8;
+        }
+
+        .parachute {
+            font-size: 1.2em;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+            z-index: 6;
+        }
+
+        .crate {
+            font-size: 1em;
+            margin-top: -5px; /* Connect visually */
+            animation: crateWiggle 2s ease-in-out infinite alternate;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+            transform-origin: top center; /* Swing from top */
+        }
+
+        /* ANIMATIONS */
+        @keyframes dropFall {
+            0% { top: -60px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 80px; opacity: 0; } /* Fall past bottom */
+        }
+
+        @keyframes crateWiggle {
+            from { transform: rotate(-15deg); }
+            to { transform: rotate(15deg); }
+        }
+
+        /* 5 UNIQUE DROPS */
+        .drop-1 { left: 10%; animation: dropFall 8s linear infinite; transform: scale(0.8); }
+        .drop-2 { left: 30%; animation: dropFall 6s linear infinite 2s; transform: scale(1); }
+        .drop-3 { left: 50%; animation: dropFall 9s linear infinite 1s; transform: scale(0.7); }
+        .drop-4 { left: 70%; animation: dropFall 7s linear infinite 4s; transform: scale(0.9); }
+        .drop-5 { left: 90%; animation: dropFall 10s linear infinite 0.5s; transform: scale(0.6); }
+
+
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
+        
+        #mini-btn { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+        #mini-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
+        
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
+
+        /* --- CONTENT --- */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        /* DESTINATION */
-        .destination-display {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px dashed var(--accent);
-            border-radius: 6px; padding: 10px; margin-bottom: 15px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        .dest-label {
-            font-size: 0.7em; color: var(--accent);
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;
-        }
-        .dest-value {
-            font-family: 'Rajdhani', sans-serif; font-size: 1.3em; font-weight: 700;
-            color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); line-height: 1.1;
-        }
+        .destination-display { background: rgba(255, 193, 7, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 10px; margin-bottom: 15px; text-align: center; transition: all 0.3s ease; }
+        .dest-label { font-size: 0.7em; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+        .dest-value { font-family: 'Rajdhani', sans-serif; font-size: 1.3em; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); line-height: 1.1; }
+        
+        .multi-warning { display: none; font-size: 0.75em; margin-top: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; animation: warnPulse 1s infinite alternate; }
+        @keyframes warnPulse { from { color: white; text-shadow: 0 0 2px black; } to { color: #ff3333; text-shadow: 0 0 10px red; } }
 
-        /* WARNING SYSTEM */
-        .multi-warning {
-            display: none; /* Hidden by default */
-            font-size: 0.75em;
-            margin-top: 8px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            animation: warnPulse 1s infinite alternate;
-        }
-
-        @keyframes warnPulse {
-            from { color: white; text-shadow: 0 0 2px black; }
-            to { color: #ff3333; text-shadow: 0 0 10px red; }
-        }
-
-        /* STATS */
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
 
@@ -94,26 +189,14 @@
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
 
-        .progress-container {
-            position: relative; height: 16px;
-            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0;
-            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
-        }
+        .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
-        .progress-text {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
-        }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
 
         .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
         .xp-remaining-text b { color: var(--primary); }
 
-        /* RUN TRACKER BOX */
-        .run-box {
-            background: rgba(2, 119, 189, 0.1);
-            border: 1px solid rgba(2, 119, 189, 0.3);
-            border-radius: 4px; padding: 8px; margin-bottom: 10px;
-        }
+        .run-box { background: rgba(2, 119, 189, 0.1); border: 1px solid rgba(2, 119, 189, 0.3); border-radius: 4px; padding: 8px; margin-bottom: 10px; }
         .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9em; }
         .run-val { font-weight: bold; color: #fff; }
         .run-label { font-size: 0.8em; color: #aaa; }
@@ -121,36 +204,18 @@
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
 
-        /* TRUNK */
         .trunk-header { display: flex; justify-content: space-between; align-items: center; }
         .sync-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #444; margin-left: 5px; }
         .sync-dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
         .sync-dot.cached { background: var(--orange); }
+        .trunk-item { display: flex; justify-content: space-between; font-size: 0.85em; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        .trunk-item {
-            display: flex; justify-content: space-between;
-            font-size: 0.85em; padding: 4px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        /* CALCULATOR */
-        input[type="number"] {
-            width: 90%; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; color: white; padding: 5px;
-            border-radius: 4px; margin-top: 5px; font-family: inherit;
-        }
+        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: inherit; }
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
         
-        /* QUICK BUTTONS */
-        .quick-btn-row {
-            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
-        }
-        .quick-btn {
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
-            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
-        }
+        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         #settings-panel, #job-list, #summary-table { display: none !important; }
@@ -159,10 +224,69 @@
 <body>
 
 <div id="tracker-app">
+    <div id="micro-view" onmousedown="dragMouseDown(event)">
+        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+        
+        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div class="micro-group">
+                <span style="font-size:1.2em">📦</span>
+                <span class="micro-val highlight">CARGO OPS</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Dest:</span>
+                <span class="micro-val" id="micro-dest" style="max-width:140px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Load:</span>
+                <span class="micro-val active" id="micro-weight">0kg</span>
+            </div>
+        </div>
+
+        <div class="micro-row">
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Lvl</span>
+                <span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-bar"></div>
+                </div>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">XP:</span>
+                <span class="micro-val" id="micro-xp">0</span>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">Tok:</span>
+                <span class="micro-val active" id="micro-tokens">0</span>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">Left:</span>
+                <span class="micro-val highlight" id="micro-calc">--</span>
+            </div>
+        </div>
+    </div>
+
     <header id="drag-handle">
-        <a href="https://pinkiprim.github.io/pinkiapps.html" style="text-decoration:none; margin-right:12px; cursor:pointer; font-size:1.2em;">🏠</a>
-        <span>✈️ Cargo Ops</span>
-        <span id="clock" style="font-size:0.8em">00:00</span>
+        <div class="header-controls">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
+        </div>
+        
+        <div class="header-title">CARGO OPS</div>
+        
+        <div id="sky-container">
+            <div class="drop-group drop-1"><div class="parachute">🪂</div><div class="crate">📦</div></div>
+            <div class="drop-group drop-2"><div class="parachute">🪂</div><div class="crate">📦</div></div>
+            <div class="drop-group drop-3"><div class="parachute">🪂</div><div class="crate">📦</div></div>
+            <div class="drop-group drop-4"><div class="parachute">🪂</div><div class="crate">📦</div></div>
+            <div class="drop-group drop-5"><div class="parachute">🪂</div><div class="crate">📦</div></div>
+        </div>
+
+        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <button id="mini-btn" onclick="toggleMini()">MINI</button>
+            <span id="clock">00:00</span>
+        </div>
     </header>
 
     <div id="content">
@@ -258,6 +382,7 @@ const AIRPORTS = {
 let TRUNK_KEY = null;
 let LAST_VEHICLE = null; 
 const STORAGE_KEY_CALC = "target_xp_cargo";
+const STORAGE_KEY_MINI = "mini_mode_cargo";
 
 let MEMORY = {
     inventory: {},
@@ -271,21 +396,30 @@ const JOB_BXP_KEY = "exp_token_a|piloting|cargos";
 
 const STATE = {
     currentXP: 0, 
-    
-    // Flight Session Tracking
     runActive: false,
-    runStartXP: 0,      // XP at start of current flight
-    currentRunGain: 0,  // XP gained during current flight
-    
+    runStartXP: 0, 
+    currentRunGain: 0, 
     completedRuns: 0,
-    totalRunXP: 0,      // Sum of XP from all completed runs
-    avgRunXP: 0         // Calculated Average
+    totalRunXP: 0, 
+    avgRunXP: 0
 };
 
 // --- INIT ---
 const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
-if (savedTarget) {
-    document.getElementById('target-input').value = savedTarget;
+if (savedTarget) document.getElementById('target-input').value = savedTarget;
+
+const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
+if (savedMini === "true") {
+    document.getElementById('tracker-app').classList.add('mini-mode');
+    document.getElementById('mini-btn').innerText = "FULL";
+}
+
+function toggleMini() {
+    const app = document.getElementById('tracker-app');
+    app.classList.toggle('mini-mode');
+    const isMini = app.classList.contains('mini-mode');
+    document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
+    localStorage.setItem(STORAGE_KEY_MINI, isMini);
 }
 
 // --- CLOCK ---
@@ -326,7 +460,6 @@ function processPayload(data) {
             MEMORY.trunk = {}; 
             MEMORY.weight = 0;
             TRUNK_KEY = null;
-            // Reset run state on vehicle switch
             STATE.runActive = false;
             STATE.currentRunGain = 0;
         }
@@ -383,7 +516,7 @@ function processPayload(data) {
         }
     }
 
-    // 4. DESTINATION & RUN DETECTION (Logic Updated)
+    // 4. DESTINATION & RUN DETECTION
     let hasCargo = checkForCargo(MEMORY.inventory, MEMORY.trunk);
     
     // 5. XP LOGIC
@@ -398,7 +531,9 @@ function processPayload(data) {
     // 6. RENDER UI
     renderTrunkList(MEMORY.trunk);
     if(data.trunkCapacity !== undefined) {
-        document.getElementById('trunk-capacity').innerText = `${MEMORY.weight}/${Math.round(data.trunkCapacity)}kg`;
+        let txt = `${MEMORY.weight}/${Math.round(data.trunkCapacity)}kg`;
+        document.getElementById('trunk-capacity').innerText = txt;
+        document.getElementById('micro-weight').innerText = txt;
     }
 
     // 7. BXP LOGIC
@@ -406,7 +541,9 @@ function processPayload(data) {
     if(!bxp && MEMORY.inventory[JOB_BXP_KEY]) bxp = MEMORY.inventory[JOB_BXP_KEY];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
-        document.getElementById('disp-bxp').innerText = formatNumber(val);
+        let txt = formatNumber(val);
+        document.getElementById('disp-bxp').innerText = txt;
+        document.getElementById('micro-tokens').innerText = txt;
     }
 }
 
@@ -442,26 +579,24 @@ function checkForCargo(pockets, trunk) {
         }
     };
 
-    // Scan Trunk AND Pockets
     scan(trunk);
     scan(pockets);
     
-    // UI Elements
     const box = document.getElementById('dest-box');
     const txt = document.getElementById('disp-destination');
     const warningEl = document.getElementById('multi-warning');
+    const microDest = document.getElementById('micro-dest');
     
-    // Logic: Determine Destination
     if (!cargoFound) {
         txt.innerText = "Waiting for cargo...";
+        microDest.innerText = "No Cargo";
         box.style.borderColor = "var(--accent)";
         box.style.background = "rgba(255, 193, 7, 0.1)";
         txt.style.color = "#fff";
         warningEl.style.display = "none";
-        return false; // NO CARGO
+        return false; 
     }
 
-    // Find the location with the HIGHEST quantity
     const locations = Object.keys(cargoCounts);
     let bestLoc = locations[0];
     for (let loc of locations) {
@@ -470,13 +605,14 @@ function checkForCargo(pockets, trunk) {
         }
     }
 
-    // Update Display
-    txt.innerText = `${bestLoc} - ${AIRPORTS[bestLoc]}`;
+    let destText = `${bestLoc} - ${AIRPORTS[bestLoc]}`;
+    txt.innerText = destText;
+    microDest.innerText = destText.substring(0, 15);
+    
     box.style.borderColor = "var(--green)";
     box.style.background = "rgba(0, 230, 118, 0.1)";
     txt.style.color = "var(--green)";
 
-    // WARNING LOGIC: Do we have multiple *different* destinations?
     if (locations.length > 1) {
         warningEl.style.display = "block";
         warningEl.innerText = `⚠ Multiple Cargo Types ⚠`;
@@ -484,7 +620,7 @@ function checkForCargo(pockets, trunk) {
         warningEl.style.display = "none";
     }
 
-    return true; // CARGO PRESENT
+    return true; 
 }
 
 function updateRunLogic(currentXP, hasCargo) {
@@ -519,14 +655,19 @@ function updateRunLogic(currentXP, hasCargo) {
 
 function renderStats() {
     const lvl = getLevelInfo(STATE.currentXP);
-    document.getElementById('disp-xp').innerText = formatNumber(STATE.currentXP);
+    const xpTxt = formatNumber(STATE.currentXP);
+    
+    document.getElementById('disp-xp').innerText = xpTxt;
+    document.getElementById('micro-xp').innerText = xpTxt;
+    
     document.getElementById('disp-level').innerText = lvl.level;
+    document.getElementById('micro-level').innerText = lvl.level;
     
     const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
     document.getElementById('level-bar').style.width = pct + "%";
     document.getElementById('level-text').innerText = pct + "%";
+    document.getElementById('micro-bar').style.width = pct + "%";
 
-    // FLIGHT SESSION STATS
     document.getElementById('disp-flight-xp').innerText = formatNumber(STATE.currentRunGain) + " XP";
     document.getElementById('disp-flight-avg').innerText = Math.round(STATE.avgRunXP) + " XP";
     document.getElementById('disp-ops').innerText = STATE.completedRuns;
@@ -537,7 +678,6 @@ function renderStats() {
     runCalculator();
 }
 
-// --- UTILS ---
 function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
     if (num >= 1000) return (num / 1000).toFixed(1) + "K";
@@ -566,11 +706,20 @@ function setCalc(amount) {
 function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
+    const microEl = document.getElementById('micro-calc');
     
     localStorage.setItem(STORAGE_KEY_CALC, val);
 
-    if (STATE.avgRunXP === 0) { el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; return; }
-    if (!val) { el.innerText = "Enter target above."; return; }
+    if (STATE.avgRunXP === 0) { 
+        el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; 
+        microEl.innerText = "Wait..";
+        return; 
+    }
+    if (!val) { 
+        el.innerText = "Enter target above."; 
+        microEl.innerText = "Set..";
+        return; 
+    }
 
     let inputVal = parseInt(val.replace(/,/g, ''));
     let targetXP = inputVal;
@@ -585,8 +734,10 @@ function runCalculator() {
         const diff = targetXP - STATE.currentXP;
         const ops = Math.ceil(diff / STATE.avgRunXP);
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(ops)}</b></span>`;
+        microEl.innerText = formatNumber(ops);
     } else {
         el.innerHTML = `Target reached.`;
+        microEl.innerText = "Done";
     }
 }
 
@@ -615,66 +766,60 @@ function renderTrunkList(trunk) {
 }
 
 // --- DRAG HANDLER ---
-(() => {
-    const app = document.getElementById('tracker-app');
-    const handle = document.getElementById('drag-handle');
-    const rh = document.getElementById('resize-handle');
-    if (!app || !handle) return;
-    
-    let sx=0, sy=0, ax=0, ay=0, dragging=false;
-    let sw=0, sh=0, resizing=false;
+let elmnt = document.getElementById("tracker-app");
+let header = document.getElementById("drag-handle");
+let microView = document.getElementById("micro-view");
+let isDragging = false;
+let startX, startY, initialLeft, initialTop;
 
-    function startDrag(clientX, clientY, e) {
-        if (e && e.target.closest('button')) return;
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        dragging = true; sx = clientX; sy = clientY;
-        const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
-        handle.classList.add('dragging');
-    }
+header.addEventListener("mousedown", dragStart);
+microView.addEventListener("mousedown", dragStart);
 
-    handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+function dragStart(e) {
+    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
+    e.preventDefault();
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = elmnt.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+    document.addEventListener("mousemove", dragMove);
+    document.addEventListener("mouseup", dragEnd);
+}
 
-    if (rh) {
-        function startResize(clientX, clientY, e) {
-            if (e) { e.preventDefault(); e.stopPropagation(); }
-            resizing = true; sx = e.clientX; sy = e.clientY;
-            const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
-        }
-        rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
-    }
+function dragMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    elmnt.style.left = `${initialLeft + dx}px`;
+    elmnt.style.top = `${initialTop + dy}px`;
+}
 
-    function handleMove(clientX, clientY, e) {
-        if (dragging) {
-            if (e) e.preventDefault();
-            const dx = clientX - sx, dy = clientY - sy;
-            app.style.transform = `translate(${dx}px, ${dy}px)`;
-        } else if (resizing) {
-            if (e) e.preventDefault();
-            const dx = clientX - sx, dy = clientY - sy;
-            app.style.width  = `${Math.max(280, sw + dx)}px`;
-            app.style.height = `${Math.max(120, sh + dy)}px`;
-        }
-    }
-    
-    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+function dragEnd() {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragMove);
+    document.removeEventListener("mouseup", dragEnd);
+}
 
-    function endDrag() {
-        if (dragging) {
-            const transform = app.style.transform;
-            const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
-            if (match) {
-                const dx = parseFloat(match[1]) || 0;
-                const dy = parseFloat(match[2]) || 0;
-                app.style.transform = '';
-                app.style.left = `${ax + dx}px`;
-                app.style.top = `${ay + dy}px`;
-            }
-        }
-        dragging = false; resizing = false;
-        handle.classList.remove('dragging');
-    }
-    window.addEventListener('mouseup', endDrag);
-})();
+const rh = document.getElementById('resize-handle');
+if (rh) {
+    rh.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResize);
+    });
+}
+function resize(e) {
+    if(elmnt.classList.contains('mini-mode')) return;
+    elmnt.style.width = Math.max(280, e.clientX - elmnt.getBoundingClientRect().left) + 'px';
+    elmnt.style.height = Math.max(200, e.clientY - elmnt.getBoundingClientRect().top) + 'px';
+}
+function stopResize() {
+    window.removeEventListener('mousemove', resize);
+    window.removeEventListener('mouseup', stopResize);
+}
 </script>
 </body>
 </html>
