@@ -122,19 +122,19 @@
         /* PARACHUTE & CRATE GROUP */
         .drop-group {
             position: absolute;
-            top: -70px; /* Start higher up due to larger size */
+            top: -90px; /* Start higher up due to larger size */
             display: flex; flex-direction: column; align-items: center;
             opacity: 0.8;
         }
 
         .parachute {
-            font-size: 1.6em; /* Increased size by ~30% */
+            font-size: 2.2em; /* Increased size further */
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
             z-index: 6;
         }
 
         .crate {
-            font-size: 1.3em; /* Increased size by 30% */
+            font-size: 1.8em; /* Increased size further */
             margin-top: -5px; /* Connect visually */
             animation: crateWiggle 2s ease-in-out infinite alternate;
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
@@ -143,10 +143,10 @@
 
         /* ANIMATIONS */
         @keyframes dropFall {
-            0% { top: -70px; opacity: 0; }
+            0% { top: -90px; opacity: 0; }
             10% { opacity: 1; }
             90% { opacity: 1; }
-            100% { top: 90px; opacity: 0; } /* Fall past bottom */
+            100% { top: 110px; opacity: 0; } /* Fall past bottom */
         }
 
         @keyframes crateWiggle {
