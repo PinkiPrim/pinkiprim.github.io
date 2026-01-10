@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final v9.6</title>
+    <title>Dirty Deals - v9.7</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -358,7 +358,7 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
     
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
     var ADMIN_IDS = ["757858", "744622", "637174"];
@@ -520,7 +520,18 @@
     function openUserEdit(id, role, status, staff) {
         document.getElementById('user-edit-modal').style.display = 'flex';
         document.getElementById('ue-id').value = id;
-        document.getElementById('ue-role').value = role || "Customer";
+        
+        // TRIM AND SET ROLE
+        let cleanRole = role.trim();
+        let roleSelect = document.getElementById('ue-role');
+        roleSelect.value = cleanRole || "Customer";
+        
+        // If exact match fails (e.g. casing issue), default to Customer but maybe warn visually
+        if (roleSelect.value === "" && cleanRole !== "") {
+             console.log("Role mismatch for dropdown: " + cleanRole);
+             roleSelect.value = "Customer";
+        }
+
         document.getElementById('ue-status').value = status;
         document.getElementById('ue-staff').value = staff || "No";
     }
