@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Preservation v9.8</title>
+    <title>Dirty Deals - Customer Fix v9.9</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -550,7 +550,8 @@
         let status = document.getElementById('ue-status').value;
         let staff = document.getElementById('ue-staff').value;
         
-        if (role === "Customer") role = ""; 
+        // REMOVED THE LINE THAT WAS CLEARING CUSTOMER ROLE
+        // The value "Customer" is now sent directly to the sheet.
 
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
@@ -675,11 +676,7 @@
         }
         var btns = document.querySelectorAll('.header-btn'); for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
         document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view)).classList.add('active');
-        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); 
-        if(view === 'housekeeping') {
-            fetchAdminUsers(true); // Pre-fetch grinders for dropdown
-            switchAdminTab('users');
-        }
+        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); if(view === 'housekeeping') switchAdminTab('users');
     }
 
     function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
