@@ -129,16 +129,23 @@
         @keyframes scrollTrack { 0% { transform: translateX(0); } 100% { transform: translateX(-20px); } }
 
         /* Train & Station */
-        .station { position: absolute; bottom: 12px; right: 20px; font-size: 2em; z-index: 4; }
+        .station { 
+            position: absolute; bottom: 12px; 
+            left: 200px; /* Specific stop point */
+            font-size: 2em; z-index: 4; 
+        }
+        
         .train { 
             position: absolute; bottom: 8px; left: -50px; font-size: 2em; z-index: 5; 
+            transform: scaleX(-1); /* Face Right */
             animation: trainRide 12s linear infinite;
         }
 
+        /* Animation Sequence: Drive -> Stop at 200px -> Wait -> Leave */
         @keyframes trainRide {
-            0% { left: -50px; }
-            30% { left: 180px; } /* Arrive at station */
-            70% { left: 180px; } /* Wait */
+            0% { left: -60px; }
+            35% { left: 190px; } /* Arrive at station (slightly offset for emoji center) */
+            65% { left: 190px; } /* Wait */
             100% { left: 350px; } /* Depart */
         }
 
