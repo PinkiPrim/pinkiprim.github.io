@@ -2,20 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Hunter Helper v2</title>
+    <title>TT Hunter Helper</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
-        /* --- THEME: HUNTER GREEN --- */
         :root {
-            --primary: #558b2f; /* Forest Green */
-            --primary-dim: #2e5c18;
-            --bg-glass: rgba(15, 15, 15, 0.95);
+            /* Hunter Theme */
+            --primary: #76ff03; /* Bright Lime Green */
+            --primary-dim: #33691e;
+            --bg-glass: rgba(10, 20, 10, 0.95);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
-            --border: 1px solid rgba(85, 139, 47, 0.4);
-            --green: #00e676;
-            --accent: #ffb300; /* Amber */
+            --border: 1px solid rgba(118, 255, 3, 0.4);
+            --accent: #ffab00; /* Amber for meat/pelts */
         }
 
         body {
@@ -39,17 +38,153 @@
             display: flex; flex-direction: column;
             resize: both; overflow: hidden;
             min-height: 200px;
+            transition: width 0.2s ease, height 0.2s ease;
         }
 
-        header {
-            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-            padding: 8px 12px;
+        /* --- MINI MODE --- */
+        #tracker-app.mini-mode {
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: rgba(5, 15, 5, 0.98);
+            border: 1px solid var(--primary);
+            resize: none;
+        }
+
+        #tracker-app.mini-mode header, 
+        #tracker-app.mini-mode #leaf-container,
+        #tracker-app.mini-mode #content { display: none !important; }
+
+        #micro-view {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
             cursor: move;
-            display: flex; justify-content: space-between; align-items: center;
-            font-family: 'Rajdhani', sans-serif; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 1px; font-size: 1.1em;
+        }
+        #tracker-app.mini-mode #micro-view { display: flex; }
+
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
+        .micro-group { display: flex; align-items: center; gap: 8px; }
+        .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
+        .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
+        .micro-val.highlight { color: var(--primary); }
+        .micro-val.active { color: var(--accent); }
+        
+        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
+
+        .micro-btn {
+            position: absolute; top: 4px; right: 4px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa; padding: 0px 4px; border-radius: 3px; font-size: 0.6em; cursor: pointer;
+        }
+        .micro-btn:hover { background: var(--primary); color: black; }
+
+        /* --- HEADER & ANIMATION --- */
+        header {
+            /* Forest Gradient */
+            background: linear-gradient(135deg, #1b5e20, #33691e, #1b5e20);
+            background-size: 200% 200%;
+            animation: forestBreath 8s ease-in-out infinite;
+            height: 60px;
+            padding: 0 10px;
+            cursor: move;
+            position: relative;
+            display: flex; align-items: flex-start; justify-content: space-between;
+            border-bottom: 1px solid rgba(118,255,3,0.3);
+            overflow: hidden;
+            padding-top: 5px;
         }
 
+        @keyframes forestBreath {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .header-title {
+            position: absolute; left: 50%; top: 20%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+
+        /* USER NAME ANIMATION (Scope Reticle) */
+        #user-name-hunt {
+            position: absolute;
+            bottom: 8px; left: 50%; 
+            transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 900; font-size: 1.1em;
+            white-space: nowrap;
+            opacity: 0;
+            z-index: 10;
+            animation: huntCycle 15s linear infinite;
+        }
+
+        @keyframes huntCycle {
+            0% { opacity: 0; letter-spacing: 5px; color: var(--text-dim); }
+            10% { opacity: 1; letter-spacing: 1px; color: #fff; } 
+            
+            /* Target Lock */
+            40% { color: #fff; text-shadow: 0 0 5px var(--primary); }
+            50% { color: var(--primary); text-shadow: 0 0 15px var(--primary); transform: translateX(-50%) scale(1.1); }
+            60% { color: #fff; text-shadow: 0 0 5px var(--primary); transform: translateX(-50%) scale(1.0); }
+            
+            /* Fade into Camo */
+            80% { opacity: 1; color: #558b2f; } 
+            90% { opacity: 0; transform: translateX(-50%) translateY(5px); }
+            100% { opacity: 0; }
+        }
+
+        /* LEAF CONTAINER */
+        #leaf-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .leaf {
+            position: absolute;
+            top: -10px;
+            width: 6px; height: 6px;
+            background: var(--primary);
+            opacity: 0.6;
+            border-radius: 0 50% 0 50%;
+            animation: fall 6s linear infinite;
+        }
+
+        .leaf:nth-child(1) { left: 10%; animation-duration: 7s; animation-delay: 0s; transform: rotate(20deg); }
+        .leaf:nth-child(2) { left: 30%; animation-duration: 5s; animation-delay: 1s; transform: rotate(-20deg); background: var(--accent); }
+        .leaf:nth-child(3) { left: 60%; animation-duration: 8s; animation-delay: 2s; transform: rotate(45deg); }
+        .leaf:nth-child(4) { left: 80%; animation-duration: 6s; animation-delay: 0.5s; transform: rotate(-10deg); background: var(--accent); }
+
+        @keyframes fall {
+            0% { top: -10px; transform: translateX(0) rotate(0deg); opacity: 0.8; }
+            100% { top: 70px; transform: translateX(20px) rotate(360deg); opacity: 0; }
+        }
+
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
+        
+        #mini-btn { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+        #mini-btn:hover { background: var(--primary); color: black; border-color: var(--primary); }
+        
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
+
+        /* --- CONTENT --- */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
         .section { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -58,60 +193,30 @@
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 3px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
-        .value.bxp { color: var(--green); }
+        .value.bxp { color: var(--accent); }
 
-        .progress-container {
-            position: relative; height: 16px;
-            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 10px 0;
-            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
-        }
+        .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 10px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
-        .progress-text {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
-        }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
 
         /* INVENTORY STYLES */
-        .inv-row {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.3); padding: 5px 8px;
-            margin-bottom: 4px; border-radius: 4px;
-            border-left: 3px solid var(--text-dim);
-        }
-        
-        .meat-row {
-            border-left-color: var(--accent);
-            background: rgba(255, 179, 0, 0.1);
-            margin-bottom: 8px; font-weight: bold;
-        }
-
+        .inv-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 5px 8px; margin-bottom: 4px; border-radius: 4px; border-left: 3px solid var(--text-dim); }
+        .meat-row { border-left-color: var(--accent); background: rgba(255, 179, 0, 0.1); margin-bottom: 8px; font-weight: bold; }
         .inv-name { font-size: 0.85em; }
         .inv-stats { font-size: 0.85em; font-weight: bold; text-align: right; }
-        
         .animal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .animal-col .inv-row { border-left: 2px solid var(--primary); }
 
-        input[type="number"] {
-            width: 90%; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; color: white; padding: 5px;
-            border-radius: 4px; margin-top: 5px; font-family: inherit;
-        }
+        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: inherit; }
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
         
-        /* QUICK BUTTONS */
-        .quick-btn-row {
-            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
-        }
-        .quick-btn {
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
-            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
-        }
-        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
+        .quick-btn:hover { background: var(--primary); color: black; border-color: var(--primary); }
 
         #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
@@ -119,10 +224,66 @@
 <body>
 
 <div id="tracker-app">
+    <div id="micro-view" onmousedown="dragMouseDown(event)">
+        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+        
+        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div class="micro-group">
+                <span style="font-size:1.2em">🦌</span>
+                <span class="micro-val highlight">HUNT OPS</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Kills:</span>
+                <span class="micro-val active" id="micro-kills">0</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Meat:</span>
+                <span class="micro-val" id="micro-meat">0</span>
+            </div>
+        </div>
+
+        <div class="micro-row">
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Lvl</span>
+                <span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-bar"></div>
+                </div>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">XP:</span>
+                <span class="micro-val" id="micro-xp">0</span>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">Tok:</span>
+                <span class="micro-val active" id="micro-tokens">0</span>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">Left:</span>
+                <span class="micro-val highlight" id="micro-calc">--</span>
+            </div>
+        </div>
+    </div>
+
     <header id="drag-handle">
-        <a href="https://pinkiprim.github.io/pinkiapps.html" style="text-decoration:none; margin-right:12px; cursor:pointer; font-size:1.2em;">🏠</a>
-        <span>🦌 Hunter Ops</span>
-        <span id="clock" style="font-size:0.8em">00:00</span>
+        <div class="header-controls">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
+        </div>
+        
+        <div class="header-title">HUNTER OPS</div>
+        
+        <div id="leaf-container">
+            <div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div>
+            <div id="user-name-hunt">Hunter ...</div>
+        </div>
+
+        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <button id="mini-btn" onclick="toggleMini()">MINI</button>
+            <span id="clock">00:00</span>
+        </div>
     </header>
 
     <div id="content">
@@ -155,18 +316,18 @@
 
             <div class="animal-grid">
                 <div class="animal-col">
-                    <div class="inv-row"><div class="inv-name">Hunting: Boar</div><div class="inv-stats" id="stock-boar">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Bear</div><div class="inv-stats" id="stock-bear">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Cougar</div><div class="inv-stats" id="stock-mtlion">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Coyote</div><div class="inv-stats" id="stock-coyote">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Deer</div><div class="inv-stats" id="stock-deer">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Boar</div><div class="inv-stats" id="stock-boar">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Bear</div><div class="inv-stats" id="stock-bear">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Cougar</div><div class="inv-stats" id="stock-mtlion">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Coyote</div><div class="inv-stats" id="stock-coyote">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Deer</div><div class="inv-stats" id="stock-deer">0</div></div>
                 </div>
                 <div class="animal-col">
-                    <div class="inv-row"><div class="inv-name">Hunting: Leopard</div><div class="inv-stats" id="stock-leopard">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Lion</div><div class="inv-stats" id="stock-lion">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Rabbit</div><div class="inv-stats" id="stock-rabbit">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Rat</div><div class="inv-stats" id="stock-rat">0</div></div>
-                    <div class="inv-row"><div class="inv-name">Hunting: Wolf</div><div class="inv-stats" id="stock-wolf">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Leopard</div><div class="inv-stats" id="stock-leopard">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Lion</div><div class="inv-stats" id="stock-lion">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Rabbit</div><div class="inv-stats" id="stock-rabbit">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Rat</div><div class="inv-stats" id="stock-rat">0</div></div>
+                    <div class="inv-row"><div class="inv-name">Wolf</div><div class="inv-stats" id="stock-wolf">0</div></div>
                 </div>
             </div>
         </div>
@@ -198,73 +359,76 @@
 <table id="summary-table" style="display:none;"></table>
 
 <script>
-    // --- CLOCK ---
-    setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    }, 1000);
+    // --- GLOBAL SCOPE ---
+    window.setCalc = function(amount) {
+        document.getElementById('target-input').value = amount;
+        runCalculator();
+    };
+
+    window.toggleMini = function() {
+        const app = document.getElementById('tracker-app');
+        app.classList.toggle('mini-mode');
+        const isMini = app.classList.contains('mini-mode');
+        document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
+        localStorage.setItem("mini_mode_hunter", isMini);
+    };
 
     // --- CONFIG ---
-    const KEYS = {
-        XP: "exp_hunting_skill",
-        BXP: "exp_token_a|hunting|skill"
-    };
+    const KEYS = { XP: "exp_hunting_skill", BXP: "exp_token_a|hunting|skill" };
     const STORAGE_KEY_CALC = "target_xp_hunter";
-
-    // ITEM DEFINITIONS (IDs verified via Deep Probe)
     const ITEMS = {
-        meat:    { id: "processed_meat", alt: ["meat"] }, // Fallback for meat
-        boar:    { id: "hide_boar" },
-        bear:    { id: "hide_bear" },
-        mtlion:  { id: "hide_mtlion" }, // MOUNTAIN LION / COUGAR
-        coyote:  { id: "hide_coyote" },
-        deer:    { id: "hide_deer" },
-        leopard: { id: "hide_leopard" },
-        lion:    { id: "hide_lion" },
-        rabbit:  { id: "hide_rabbit" },
-        rat:     { id: "hide_rat" },
-        wolf:    { id: "hide_wolf" }
+        meat:    { id: "processed_meat", alt: ["meat"] },
+        boar:    { id: "hide_boar" }, bear: { id: "hide_bear" },
+        mtlion:  { id: "hide_mtlion" }, coyote: { id: "hide_coyote" },
+        deer:    { id: "hide_deer" }, leopard: { id: "hide_leopard" },
+        lion:    { id: "hide_lion" }, rabbit: { id: "hide_rabbit" },
+        rat:     { id: "hide_rat" }, wolf: { id: "hide_wolf" }
     };
 
-    const STATE = {
-        currentXP: 0, currentBXP: 0, startXP: null,
-        callouts: 0, avgXP: 0
-    };
+    const STATE = { currentXP: 0, currentBXP: 0, startXP: null, callouts: 0, avgXP: 0 };
 
     // --- INIT ---
-    const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
-    if (savedTarget) {
-        document.getElementById('target-input').value = savedTarget;
-    }
+    document.addEventListener("DOMContentLoaded", function() {
+        const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+        if (savedTarget) document.getElementById('target-input').value = savedTarget;
+        
+        const savedMini = localStorage.getItem("mini_mode_hunter");
+        if (savedMini === "true") {
+            document.getElementById('tracker-app').classList.add('mini-mode');
+            document.getElementById('mini-btn').innerText = "FULL";
+        }
+
+        document.getElementById('target-input').addEventListener('input', runCalculator);
+
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        }, 1000);
+
+        requestData();
+        setInterval(requestData, 1000);
+    });
 
     // --- COMMS ---
     function requestData() {
         if(window.parent) {
-            try {
-                // Request specific keys AND general data to be safe
-                window.parent.postMessage({ 
-                    type: "getNamedData",
-                    keys: [KEYS.XP, KEYS.BXP, "inventory"]
-                }, "*");
-                window.parent.postMessage({ type: "getData" }, "*");
+            try { 
+                window.parent.postMessage({ type: "getNamedData", keys: [KEYS.XP, KEYS.BXP, "inventory", "name"] }, "*");
+                window.parent.postMessage({ type: "getData" }, "*"); 
             } catch(e) {}
         }
     }
-    // Poll every 1 second
-    requestData();
-    setInterval(requestData, 1000);
 
-    // --- MAIN LISTENER ---
     window.addEventListener('message', (event) => {
         let payload = event.data;
         if (payload && payload.type === 'data' && payload.data) payload = payload.data;
         if (!payload) return;
 
-        // 1. Process XP
+        if(payload.name) document.getElementById('user-name-hunt').innerText = "Hunter " + payload.name;
+
         let newXP = payload[KEYS.XP];
         if(!newXP && payload.inventory) {
-            // Sometimes XP comes inside the inventory JSON
-            try {
-                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
+            try { 
+                const inv = (typeof payload.inventory === 'string') ? JSON.parse(payload.inventory) : payload.inventory;
                 if(inv[KEYS.XP]) newXP = inv[KEYS.XP];
             } catch(e){}
         }
@@ -274,52 +438,37 @@
             updateXP(val);
         }
 
-        // 2. Process Inventory
         if (payload.inventory) {
             try {
-                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
+                const inv = (typeof payload.inventory === 'string') ? JSON.parse(payload.inventory) : payload.inventory;
                 processInventory(inv);
             } catch(e){}
-        } else {
-            // Fallback for BXP if not in inventory object
-            if (payload[KEYS.BXP]) updateBXP(payload[KEYS.BXP]);
+        } else if (payload[KEYS.BXP]) {
+            updateBXP(payload[KEYS.BXP]);
         }
     });
 
     function processInventory(inv) {
         if (!inv) return;
-
-        // BXP Check
         if (inv[KEYS.BXP]) updateBXP(inv[KEYS.BXP]);
 
-        // Normalize Inventory to simple array for searching
-        // Format: { "hide_wolf": { amount: 1 }, ... }
         for (let type in ITEMS) {
             let def = ITEMS[type];
             let foundQty = 0;
-
-            // Direct check for main ID (e.g. "hide_wolf")
-            if (inv[def.id]) {
-                foundQty += (inv[def.id].amount || inv[def.id]);
-            }
-
-            // Optional Alts check (for meat or unexpected names)
+            if (inv[def.id]) foundQty += (inv[def.id].amount || inv[def.id]);
             if (def.alt) {
                 def.alt.forEach(altKey => {
-                    // Check if key contains the alt string
                     for(let k in inv) {
-                        if(k.includes(altKey) && k !== def.id) {
-                            foundQty += (inv[k].amount || inv[k]);
-                        }
+                        if(k.includes(altKey) && k !== def.id) foundQty += (inv[k].amount || inv[k]);
                     }
                 });
             }
-
             const el = document.getElementById(`stock-${type}`);
             if(el) {
                 el.innerText = foundQty;
                 el.style.color = foundQty > 0 ? "white" : "var(--text-dim)";
             }
+            if(type === 'meat') document.getElementById('micro-meat').innerText = foundQty;
         }
     }
 
@@ -328,10 +477,10 @@
         if (amt >= 0) {
             STATE.currentBXP = amt;
             document.getElementById('disp-bxp').innerText = formatNum(amt);
+            document.getElementById('micro-tokens').innerText = formatNum(amt);
         }
     }
 
-    // --- XP LOGIC ---
     function updateXP(newXP) {
         if (STATE.startXP === null) {
             STATE.startXP = newXP;
@@ -339,13 +488,11 @@
             renderDisplay();
             return;
         }
-
         if (newXP > STATE.currentXP) {
             STATE.callouts++;
             const gained = newXP - STATE.startXP;
             STATE.avgXP = gained / STATE.callouts;
         }
-
         STATE.currentXP = newXP;
         renderDisplay();
     }
@@ -356,12 +503,19 @@
         const prevLvlXP = getXPFromLevel(lvl);
         const percent = getPercentValue(STATE.currentXP, prevLvlXP, nextLvlXP);
 
+        // Main
         document.getElementById('disp-level').innerText = lvl;
         document.getElementById('disp-xp').innerText = formatNum(STATE.currentXP);
         document.getElementById('level-bar').style.width = percent + "%";
         document.getElementById('level-text').innerText = percent + "%";
         document.getElementById('disp-callouts').innerText = STATE.callouts;
         document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
+
+        // Micro
+        document.getElementById('micro-level').innerText = lvl;
+        document.getElementById('micro-xp').innerText = formatNum(STATE.currentXP);
+        document.getElementById('micro-bar').style.width = percent + "%";
+        document.getElementById('micro-kills').innerText = STATE.callouts;
 
         runCalculator();
     }
@@ -377,108 +531,93 @@
     }
 
     // --- CALCULATOR ---
-    const calcInput = document.getElementById('target-input');
-    if(calcInput) calcInput.addEventListener('input', runCalculator);
-
-    function setCalc(amount) {
-        document.getElementById('target-input').value = amount;
-        runCalculator();
-    }
-
     function runCalculator() {
         const val = document.getElementById('target-input').value;
         const el = document.getElementById('calc-result');
+        const microEl = document.getElementById('micro-calc');
         
         localStorage.setItem(STORAGE_KEY_CALC, val);
 
         if (STATE.avgXP === 0) {
             el.innerHTML = "<i>Hunt an animal to enable calc...</i>";
+            microEl.innerText = "Wait..";
             return;
         }
         if (!val) {
             el.innerText = "Enter target above.";
+            microEl.innerText = "Set..";
             return;
         }
 
         let inputVal = parseInt(val.replace(/,/g, ''));
         let targetXP = inputVal;
-
-        if (inputVal < 200) {
-            let lvlXP = getXPFromLevel(inputVal);
-            if (lvlXP > STATE.currentXP) targetXP = lvlXP;
-        }
+        if (inputVal < 200) targetXP = getXPFromLevel(inputVal);
 
         if (targetXP > STATE.currentXP) {
             const diff = targetXP - STATE.currentXP;
             const jobs = Math.ceil(diff / STATE.avgXP);
-            el.innerHTML = `Remaining XP: <b>${formatNum(diff)}</b><br>` + 
-                           `<span style="color:var(--primary)">Est. Kills: <b>${formatNum(jobs)}</b></span>`;
+            el.innerHTML = `Remaining: <b>${formatNum(diff)} XP</b><br><span style="color:var(--primary)">Est. Kills: <b>${formatNum(jobs)}</b></span>`;
+            microEl.innerText = formatNum(jobs);
         } else {
             el.innerHTML = "Target reached.";
+            microEl.innerText = "Done";
         }
     }
 
     // --- DRAG HANDLER ---
-    (() => {
-        const app = document.getElementById('tracker-app');
-        const handle = document.getElementById('drag-handle');
-        const rh = document.getElementById('resize-handle');
-        if (!app || !handle) return;
-        
-        let sx=0, sy=0, ax=0, ay=0, dragging=false;
-        let sw=0, sh=0, resizing=false;
+    const elmnt = document.getElementById("tracker-app");
+    const header = document.getElementById("drag-handle");
+    const microView = document.getElementById("micro-view");
+    let isDragging = false, startX, startY, initialLeft, initialTop;
 
-        function startDrag(clientX, clientY, e) {
-            if (e && e.target.closest('button')) return;
-            if (e) { e.preventDefault(); e.stopPropagation(); }
-            dragging = true; sx = clientX; sy = clientY;
-            const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
-            handle.classList.add('dragging');
-        }
+    header.onmousedown = dragStart;
+    microView.onmousedown = dragStart;
 
-        handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+    function dragStart(e) {
+        if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+        e.preventDefault();
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = elmnt.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        document.addEventListener("mousemove", dragMove);
+        document.addEventListener("mouseup", dragEnd);
+    }
 
-        if (rh) {
-            function startResize(clientX, clientY, e) {
-                if (e) { e.preventDefault(); e.stopPropagation(); }
-                resizing = true; sx = e.clientX; sy = e.clientY;
-                const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
-            }
-            rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
-        }
+    function dragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        elmnt.style.left = (initialLeft + dx) + "px";
+        elmnt.style.top = (initialTop + dy) + "px";
+    }
 
-        function handleMove(clientX, clientY, e) {
-            if (dragging) {
-                if (e) e.preventDefault();
-                const dx = clientX - sx, dy = clientY - sy;
-                app.style.transform = `translate(${dx}px, ${dy}px)`;
-            } else if (resizing) {
-                if (e) e.preventDefault();
-                const dx = clientX - sx, dy = clientY - sy;
-                app.style.width  = `${Math.max(280, sw + dx)}px`;
-                app.style.height = `${Math.max(120, sh + dy)}px`;
-            }
-        }
-        
-        window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+    function dragEnd() {
+        isDragging = false;
+        document.removeEventListener("mousemove", dragMove);
+        document.removeEventListener("mouseup", dragEnd);
+    }
 
-        function endDrag() {
-            if (dragging) {
-                const transform = app.style.transform;
-                const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
-                if (match) {
-                    const dx = parseFloat(match[1]) || 0;
-                    const dy = parseFloat(match[2]) || 0;
-                    app.style.transform = '';
-                    app.style.left = `${ax + dx}px`;
-                    app.style.top = `${ay + dy}px`;
-                }
-            }
-            dragging = false; resizing = false;
-            handle.classList.remove('dragging');
-        }
-        window.addEventListener('mouseup', endDrag);
-    })();
+    const rh = document.getElementById('resize-handle');
+    if (rh) {
+        rh.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            window.addEventListener('mousemove', resize);
+            window.addEventListener('mouseup', stopResize);
+        });
+    }
+    function resize(e) {
+        if(elmnt.classList.contains('mini-mode')) return;
+        elmnt.style.width = Math.max(300, e.clientX - elmnt.getBoundingClientRect().left) + 'px';
+        elmnt.style.height = Math.max(200, e.clientY - elmnt.getBoundingClientRect().top) + 'px';
+    }
+    function stopResize() {
+        window.removeEventListener('mousemove', resize);
+        window.removeEventListener('mouseup', stopResize);
+    }
 </script>
 </body>
 </html>
