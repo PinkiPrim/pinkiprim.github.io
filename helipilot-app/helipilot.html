@@ -127,13 +127,14 @@
             font-size: 2em;
             z-index: 7; 
             filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
-            transform: scaleX(-1);
-            animation: heliBob 2s ease-in-out infinite alternate;
+            /* Flip horizontal to face Right (Left-to-Right flight) */
+            transform: scaleX(-1); 
+            animation: heliBob 3s ease-in-out infinite alternate;
         }
 
         @keyframes heliBob {
-            from { transform: scaleX(-1) translateY(0); }
-            to { transform: scaleX(-1) translateY(-5px); }
+            0% { transform: scaleX(-1) translateY(0); }
+            100% { transform: scaleX(-1) translateY(-8px); }
         }
 
         /* BUILDINGS */
@@ -142,23 +143,25 @@
             bottom: -5px; 
             font-size: 2.5em;
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8));
-            visibility: hidden; /* Important for start */
+            /* All buildings move right-to-left continuously */
             animation: scrollCity 10s linear infinite;
+            /* Start off-screen to the right if delay is 0, but negative delay puts them on screen */
+            right: -60px; 
         }
 
         /* Layers */
-        .b-back { z-index: 6; filter: brightness(0.7); font-size: 2.2em; }
+        .b-back { z-index: 6; filter: brightness(0.6); font-size: 2.2em; }
         .b-front { z-index: 8; opacity: 0.95; }
 
-        /* Offsets */
+        /* Negative delays ensure they are spaced out immediately on load */
         .b1 { animation-delay: 0s; }
-        .b2 { animation-delay: 2.5s; }
-        .b3 { animation-delay: 5s; }
-        .b4 { animation-delay: 7.5s; }
+        .b2 { animation-delay: -2.5s; }
+        .b3 { animation-delay: -5s; }
+        .b4 { animation-delay: -7.5s; }
 
         @keyframes scrollCity {
-            0% { left: 100%; visibility: visible; }
-            100% { left: -80px; visibility: visible; }
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-450px); } /* Move left by approx container width + buffer */
         }
 
         .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
@@ -169,7 +172,7 @@
             font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; 
             background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); 
             color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer;
-            z-index: 50;
+            pointer-events: auto; /* Ensure clickable */
         }
         #mini-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
         
@@ -213,7 +216,7 @@
 <body>
 
 <div id="tracker-app">
-    <div id="micro-view" onmousedown="dragMouseDown(event)">
+    <div id="micro-view">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
         
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -368,6 +371,7 @@ if (savedMini === "true") {
     document.getElementById('mini-btn').innerText = "FULL";
 }
 
+// Global Toggle
 window.toggleMini = function() {
     const app = document.getElementById('tracker-app');
     app.classList.toggle('mini-mode');
@@ -465,9 +469,16 @@ function parseFlightStatus(lines) {
 
     lines.forEach(line => {
         const cleanLine = line.replace(/~[a-z]~/g, "").trim();
-        if (cleanLine.startsWith("Destination:")) destination = cleanLine.split(":")[1].trim();
-        if (cleanLine.startsWith("Distance:")) distance = cleanLine.split(":")[1].trim();
-        if (cleanLine.startsWith("Stops:")) stops = cleanLine.split(":")[1].trim();
+        
+        if (cleanLine.startsWith("Destination:")) {
+            destination = cleanLine.split(":")[1].trim();
+        }
+        if (cleanLine.startsWith("Distance:")) {
+            distance = cleanLine.split(":")[1].trim();
+        }
+        if (cleanLine.startsWith("Stops:")) {
+            stops = cleanLine.split(":")[1].trim();
+        }
     });
 
     document.getElementById('disp-dest').innerText = destination;
@@ -576,18 +587,18 @@ function runCalculator() {
     }
 }
 
-// --- DRAG HANDLER (Restored to Cargo/Firefighter Logic) ---
-let elmnt = document.getElementById("tracker-app");
-let header = document.getElementById("drag-handle");
-let microView = document.getElementById("micro-view");
-let isDragging = false;
-let startX, startY, initialLeft, initialTop;
+// --- DRAG HANDLER (Standard Version) ---
+const elmnt = document.getElementById("tracker-app");
+const header = document.getElementById("drag-handle");
+const microView = document.getElementById("micro-view");
 
-header.addEventListener("mousedown", dragStart);
-microView.addEventListener("mousedown", dragStart);
+let isDragging = false, startX, startY, initialLeft, initialTop;
+
+header.onmousedown = dragStart;
+microView.onmousedown = dragStart;
 
 function dragStart(e) {
-    // Prevent drag if clicking buttons or inputs
+    // IGNORE clicks on buttons/inputs to fix Mini button issue
     if(e.target.closest('button') || e.target.closest('input')) return;
     
     e.preventDefault();
@@ -599,8 +610,8 @@ function dragStart(e) {
     initialLeft = rect.left;
     initialTop = rect.top;
     
-    document.addEventListener("mousemove", dragMove);
-    document.addEventListener("mouseup", dragEnd);
+    document.onmouseup = dragEnd;
+    document.onmousemove = dragMove;
 }
 
 function dragMove(e) {
@@ -608,16 +619,17 @@ function dragMove(e) {
     e.preventDefault();
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    elmnt.style.left = `${initialLeft + dx}px`;
-    elmnt.style.top = `${initialTop + dy}px`;
+    elmnt.style.left = (initialLeft + dx) + "px";
+    elmnt.style.top = (initialTop + dy) + "px";
 }
 
 function dragEnd() {
     isDragging = false;
-    document.removeEventListener("mousemove", dragMove);
-    document.removeEventListener("mouseup", dragEnd);
+    document.onmouseup = null;
+    document.onmousemove = null;
 }
 
+// Resize logic
 const rh = document.getElementById('resize-handle');
 if (rh) {
     rh.addEventListener('mousedown', (e) => {
