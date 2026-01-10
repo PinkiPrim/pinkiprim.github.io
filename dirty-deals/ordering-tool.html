@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - v9.7</title>
+    <title>Dirty Deals - Preservation v9.8</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -521,14 +521,20 @@
         document.getElementById('user-edit-modal').style.display = 'flex';
         document.getElementById('ue-id').value = id;
         
-        // TRIM AND SET ROLE
-        let cleanRole = role.trim();
+        // 1. ATTEMPT TO SET ROLE
+        let cleanRole = role ? role.trim() : "";
         let roleSelect = document.getElementById('ue-role');
-        roleSelect.value = cleanRole || "Customer";
+        roleSelect.value = cleanRole;
         
-        // If exact match fails (e.g. casing issue), default to Customer but maybe warn visually
-        if (roleSelect.value === "" && cleanRole !== "") {
-             console.log("Role mismatch for dropdown: " + cleanRole);
+        // 2. SAFETY: If value didn't stick (e.g. role is not in dropdown), ADD IT DYNAMICALLY
+        // This ensures existing roles are never lost or wiped.
+        if (roleSelect.value !== cleanRole && cleanRole !== "") {
+            let newOpt = document.createElement('option');
+            newOpt.text = cleanRole + " (Current)";
+            newOpt.value = cleanRole;
+            roleSelect.add(newOpt);
+            roleSelect.value = cleanRole;
+        } else if (cleanRole === "") {
              roleSelect.value = "Customer";
         }
 
