@@ -145,21 +145,15 @@
             animation: scrollCity 10s linear infinite;
         }
 
-        /* Layering Strategy:
-           Z-Index 6: Behind Heli
-           Z-Index 8: In Front of Heli
-        */
-        
-        /* Back Layer (Slow, Darker) */
+        /* Layers */
         .b-back { z-index: 6; filter: brightness(0.7); font-size: 2.2em; }
-        /* Front Layer (Fast, Normal) */
         .b-front { z-index: 8; opacity: 0.95; }
 
         /* Offsets */
-        .b1 { animation-delay: 0s; }       /* Front */
-        .b2 { animation-delay: 2.5s; }     /* Back */
-        .b3 { animation-delay: 5s; }       /* Front */
-        .b4 { animation-delay: 7.5s; }     /* Back */
+        .b1 { animation-delay: 0s; }
+        .b2 { animation-delay: 2.5s; }
+        .b3 { animation-delay: 5s; }
+        .b4 { animation-delay: 7.5s; }
 
         @keyframes scrollCity {
             0% { left: 100%; visibility: visible; }
@@ -170,7 +164,12 @@
         .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
         .nav-icon:hover { color: #fff; }
         
-        #mini-btn { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+        #mini-btn { 
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; 
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); 
+            color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer;
+            z-index: 50; /* Ensure it is clickable over animation */
+        }
         #mini-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
         
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
@@ -465,16 +464,9 @@ function parseFlightStatus(lines) {
 
     lines.forEach(line => {
         const cleanLine = line.replace(/~[a-z]~/g, "").trim();
-        
-        if (cleanLine.startsWith("Destination:")) {
-            destination = cleanLine.split(":")[1].trim();
-        }
-        if (cleanLine.startsWith("Distance:")) {
-            distance = cleanLine.split(":")[1].trim();
-        }
-        if (cleanLine.startsWith("Stops:")) {
-            stops = cleanLine.split(":")[1].trim();
-        }
+        if (cleanLine.startsWith("Destination:")) destination = cleanLine.split(":")[1].trim();
+        if (cleanLine.startsWith("Distance:")) distance = cleanLine.split(":")[1].trim();
+        if (cleanLine.startsWith("Stops:")) stops = cleanLine.split(":")[1].trim();
     });
 
     document.getElementById('disp-dest').innerText = destination;
@@ -540,7 +532,7 @@ function getPercentValue(exp, cap) {
 const calcInput = document.getElementById('target-input');
 if(calcInput) calcInput.addEventListener('input', runCalculator);
 
-function setCalc(amount) {
+window.setCalc = function(amount) {
     document.getElementById('target-input').value = amount;
     runCalculator();
 }
@@ -583,7 +575,7 @@ function runCalculator() {
     }
 }
 
-// --- DRAG HANDLER ---
+// --- DRAG HANDLER (FIXED) ---
 let elmnt = document.getElementById("tracker-app");
 let header = document.getElementById("drag-handle");
 let microView = document.getElementById("micro-view");
@@ -594,14 +586,17 @@ header.addEventListener("mousedown", dragStart);
 microView.addEventListener("mousedown", dragStart);
 
 function dragStart(e) {
-    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
+    if(e.target.closest('button') || e.target.closest('input')) return;
     e.preventDefault();
+    
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
+    
     const rect = elmnt.getBoundingClientRect();
     initialLeft = rect.left;
     initialTop = rect.top;
+    
     document.addEventListener("mousemove", dragMove);
     document.addEventListener("mouseup", dragEnd);
 }
