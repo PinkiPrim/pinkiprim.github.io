@@ -122,16 +122,17 @@
         /* HELICOPTER */
         #heli-anim {
             position: absolute;
-            bottom: 5px; left: 20px; /* Fixed horizontal, bobs vertically */
-            font-size: 2em; /* Twemoji Size */
-            z-index: 7; /* Default Z */
+            bottom: 5px; left: 20px; 
+            font-size: 2em;
+            z-index: 7;
             filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+            transform: scaleX(-1); /* Flip to face left */
             animation: heliBob 2s ease-in-out infinite alternate;
         }
 
         @keyframes heliBob {
-            from { transform: translateY(0); }
-            to { transform: translateY(-5px); }
+            from { transform: scaleX(-1) translateY(0); }
+            to { transform: scaleX(-1) translateY(-5px); }
         }
 
         /* BUILDINGS (Scrolling Right to Left) */
@@ -140,19 +141,18 @@
             bottom: -5px; 
             font-size: 2.5em;
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8));
+            visibility: hidden; /* Hide initially to prevent clumping */
+            animation: scrollCity 9s linear infinite;
         }
 
-        /* Layers: Heli is Z=7 */
-        /* Building 1: Behind Heli (Z=6) */
-        .b1 { z-index: 6; animation: scrollCity 8s linear infinite; }
-        /* Building 2: In Front of Heli (Z=8) */
-        .b2 { z-index: 8; animation: scrollCity 8s linear infinite 2.5s; opacity: 0.9; }
-        /* Building 3: Behind Heli (Z=6) */
-        .b3 { z-index: 6; animation: scrollCity 8s linear infinite 5s; }
+        /* Layers & Delays */
+        .b1 { z-index: 6; animation-delay: 0s; }
+        .b2 { z-index: 8; animation-delay: 3s; opacity: 0.9; }
+        .b3 { z-index: 6; animation-delay: 6s; }
 
         @keyframes scrollCity {
-            0% { left: 100%; transform: translateX(0); }
-            100% { left: -50px; transform: translateX(0); }
+            0% { left: 100%; visibility: visible; }
+            100% { left: -80px; visibility: visible; }
         }
 
         .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
@@ -404,7 +404,7 @@ function processPayload(data) {
     let currentXP = data[KEYS.XP];
     if(!currentXP && data.inventory) {
         try {
-            const inv = typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
+            const inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
             if(inv[KEYS.XP]) currentXP = inv[KEYS.XP];
         } catch(e){}
     }
@@ -431,7 +431,7 @@ function processPayload(data) {
     let bxp = data[KEYS.BXP];
     if(!bxp && data.inventory) {
         try {
-            const inv = typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
+            const inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
             if(inv[KEYS.BXP]) bxp = inv[KEYS.BXP];
         } catch(e){}
     }
