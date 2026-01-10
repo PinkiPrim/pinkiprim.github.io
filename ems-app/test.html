@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Paramedic Helper</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+
+        /* --- THEME --- */
+        :root {
+            --primary: #e53935; /* EMS Red */
+            --primary-dim: #b71c1c;
+            --bg-glass: rgba(15, 15, 15, 0.95);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(229, 57, 53, 0.3);
+            --green: #00e676;
+            --alert: #ff9100;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        #tracker-app {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
+            min-height: 200px;
+        }
+
+        /* --- HEADER & ANIMATION --- */
+        header {
+            background: linear-gradient(180deg, var(--primary-dim), rgba(229, 57, 53, 0.2));
+            height: 60px; /* Taller for animation */
+            padding: 0 10px;
+            cursor: move;
+            position: relative;
+            display: flex; align-items: flex-start; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            overflow: hidden;
+            padding-top: 5px;
+        }
+
+        .header-title {
+            position: absolute; left: 50%; top: 20%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        /* ANIMATION CONTAINER */
+        #street-container {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 40px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* AMBULANCE ANIMATION */
+        #ambulance-anim {
+            position: absolute;
+            bottom: 2px; left: -100px;
+            width: 60px; height: 35px;
+            background-image: url('https://cdn.creazilla.com/cliparts/77403/ambulance-clipart-lg.png');
+            background-size: contain; background-repeat: no-repeat;
+            z-index: 5;
+            animation: driveCycle 15s ease-in-out infinite;
+        }
+
+        @keyframes driveCycle {
+            0% { left: -100px; }
+            15% { left: 50%; transform: translateX(-50%); } /* Drive In */
+            40% { left: 50%; transform: translateX(-50%); } /* Stop/Wait */
+            50% { left: 120%; transform: translateX(0); } /* Drive Away */
+            100% { left: 120%; }
+        }
+
+        /* NAME DROP ANIMATION */
+        #user-name-drop {
+            position: absolute;
+            bottom: 10px; left: 50%; 
+            transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 900; font-size: 1.1em;
+            color: #fff;
+            white-space: nowrap;
+            opacity: 0;
+            z-index: 4; /* Behind ambulance initially */
+            animation: nameCycle 15s linear infinite;
+        }
+
+        @keyframes nameCycle {
+            0%, 40% { opacity: 0; } /* Hidden while ambulance arrives/waits */
+            42% { opacity: 1; color: #fff; } /* Appear as ambulance leaves */
+            
+            /* Flash Effect */
+            45% { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+            50% { color: #fff; text-shadow: none; }
+            55% { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+            60% { color: #fff; text-shadow: none; }
+            65% { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+            70% { color: #fff; text-shadow: none; }
+            75% { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+            80% { color: #fff; text-shadow: none; }
+            
+            90% { opacity: 1; }
+            95% { opacity: 0; } /* Fade out for loop */
+            100% { opacity: 0; }
+        }
+
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
+
+        /* --- CONTENT --- */
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+
+        .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .section:last-child { border-bottom: none; }
+
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value.highlight { color: var(--primary); }
+        .value.bxp { color: var(--green); }
+
+        .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
+
+        .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
+        .xp-remaining-text b { color: var(--primary); }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
+
+        .inv-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; border-left: 3px solid var(--text-dim); }
+        .inv-name { font-size: 0.8em; }
+        .inv-stats { font-size: 0.8em; font-weight: bold; text-align: right; }
+        .low-stock { border-left-color: var(--alert); }
+
+        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: inherit; }
+        input:focus { outline: 1px solid var(--primary); }
+        .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
+        
+        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        #settings-panel, #job-list, #summary-table { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="tracker-app">
+    <header id="drag-handle">
+        <div class="header-controls">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
+        </div>
+        
+        <div class="header-title">EMS OPS</div>
+        
+        <div id="street-container">
+            <div id="ambulance-anim"></div>
+            <div id="user-name-drop">Paramedic ...</div>
+        </div>
+
+        <div class="header-controls">
+            <span id="clock">00:00</span>
+        </div>
+    </header>
+
+    <div id="content">
+        
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div>
+                    <div class="label">Paramedic Level</div>
+                    <div class="value highlight" style="font-size:1.6em" id="disp-level">...</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="label">Current XP</div>
+                    <div class="value" id="disp-xp" style="font-size:0.9em">0</div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="level-bar"></div>
+                <div class="progress-text" id="level-text">Waiting for data...</div>
+            </div>
+            
+            <div class="xp-remaining-text" id="disp-xp-remaining">
+                Waiting for data...
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="label">BXP Tokens</div>
+                    <div class="value bxp" id="disp-bxp">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Avg XP</div>
+                    <div class="value" id="disp-avg">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Revives/Heals</div>
+                    <div class="value" id="disp-callouts">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="label">Inventory</div>
+            <div class="inv-row" id="row-defib">
+                <div class="inv-name">⚡ Defib Kit</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-defib">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="border:none;">
+            <div class="label">Target Calculator</div>
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b>:</div>
+            <input type="number" id="target-input" placeholder="e.g. 100000">
+            
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+
+            <div class="calc-output" id="calc-result">
+                Start working to enable calculator...
+            </div>
+        </div>
+
+    </div>
+    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
+</div>
+
+<div id="settings-icon" style="display:none;"></div>
+<div id="settings-panel" style="display:none;">
+    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
+    <button id="reset-exp-log"></button>
+    <div id="xp-font-size-value"></div>
+</div>
+<div id="job-list" style="display:none;"></div>
+<table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
+
+<script>
+// --- CLOCK ---
+function updateClock() {
+    const now = new Date();
+    const el = document.getElementById('clock');
+    if(el) el.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// --- ENGINE VARS ---
+let lastInventoryObj = {};
+let selectedJobs = [];
+let expLogs = {};
+let lastBXPs = {};
+let initialExps = {};
+let lastExps = {};
+let hasFirstGain = {};
+let lastUpdateTime = {};
+let lastDisplayedExps = {};
+let lastRenderTime = 0;
+let hasReceivedAnyData = false;
+let hasRequestedOnce = false;
+
+const STORAGE_KEY_CALC = "target_xp_ems";
+const RECENT_WINDOW_MS = 10 * 60 * 1000;
+const RENDER_THROTTLE_MS = 500;
+
+// --- INIT ---
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) {
+    document.getElementById('target-input').value = savedTarget;
+}
+
+const JOBS = [
+  { key: "emergency", label: "EMS" }
+];
+
+const JOB_EXP_KEYS = { emergency: "exp_ems_ems" };
+const JOB_BXP_KEYS = { emergency: "exp_token_a|ems|ems" };
+
+function formatNumber(num) {
+  if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toLocaleString();
+}
+
+function getAllRequiredKeys() {
+  const expKeys = Object.values(JOB_EXP_KEYS);
+  const bxpKeys = Object.values(JOB_BXP_KEYS);
+  const inventoryKey = ["inventory", "exp_paramedic", "name"];
+  return [...expKeys, ...bxpKeys, ...inventoryKey];
+}
+
+function getLevelInfo(exp) {
+  let level = 0;
+  let xpCap = 5;
+  while (exp >= xpCap) {
+    exp -= xpCap;
+    level++;
+    xpCap = (level + 1) * 5;
+  }
+  return { level, expInLevel: exp, expForNext: xpCap };
+}
+
+function getPercentValue(exp, cap) {
+  if (typeof exp !== "number") return null;
+  const pct = Math.max(0, Math.min(100, (exp / cap) * 100));
+  return +pct.toFixed(1);
+}
+
+function saveData() {
+  localStorage.setItem("exp-logs-ems", JSON.stringify(expLogs));
+}
+
+function loadData() {
+  selectedJobs = ["emergency"]; 
+  expLogs = JSON.parse(localStorage.getItem("exp-logs-ems") || "{}");
+}
+
+function renderStats() {
+  const now = Date.now();
+  if (now - lastRenderTime < RENDER_THROTTLE_MS) {
+    return;
+  }
+  lastRenderTime = now;
+  updateEMSHUD(); 
+}
+
+function calculateJobStats(jobKey) {
+  const currentExp = lastExps[jobKey] || 0;
+  const bxp = lastBXPs[jobKey] || 0;
+  return {
+    currentExp,
+    bxp,
+    levelInfo: getLevelInfo(currentExp)
+  };
+}
+
+function processGameData(data) {
+  // Update Name
+  if(data.name) {
+      document.getElementById('user-name-drop').innerText = "Paramedic " + data.name;
+  }
+
+  const now = Date.now();
+  let inventory = {};
+  
+  if (data.inventory) {
+    try {
+      inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
+      if (inventory) {
+          lastInventoryObj = inventory;
+          processInventory(inventory); 
+      }
+    } catch {
+      inventory = lastInventoryObj;
+    }
+  } else {
+    inventory = lastInventoryObj;
+  }
+  
+  if (data.exp_paramedic && !data[JOB_EXP_KEYS.emergency]) {
+      data[JOB_EXP_KEYS.emergency] = data.exp_paramedic;
+  }
+
+  JOBS.forEach(job => {
+    const expKey = JOB_EXP_KEYS[job.key];
+    const exp = data[expKey];
+    if (typeof exp === "number") {
+      lastExps[job.key] = exp;
+    }
+  });
+  
+  selectedJobs.forEach(jobKey => {
+    const expKey = JOB_EXP_KEYS[jobKey];
+    const exp = data[expKey];
+    
+    if (typeof exp === "number") {
+      if (!expLogs[jobKey]) expLogs[jobKey] = [];
+      const log = expLogs[jobKey];
+      
+      if (!hasFirstGain[jobKey]) {
+        if (typeof initialExps[jobKey] !== "number") {
+          initialExps[jobKey] = exp;
+        }
+      }
+      if (!hasFirstGain[jobKey] && exp !== initialExps[jobKey]) {
+        hasFirstGain[jobKey] = true;
+        if (typeof initialExps[jobKey] !== "number" || initialExps[jobKey] === 0) {
+          initialExps[jobKey] = exp - (exp - (log[log.length - 1]?.exp || 0));
+        }
+      }
+      
+      const lastEntry = log[log.length - 1];
+      if (lastEntry === undefined) {
+        lastUpdateTime[jobKey] = now;
+      } else if (exp > lastEntry.exp) {
+        log.push({ time: now, exp });
+        lastUpdateTime[jobKey] = now;
+        const lastDisplayed = lastDisplayedExps[jobKey] || 0;
+        if (exp > lastDisplayed) {
+          lastDisplayedExps[jobKey] = exp;
+        }
+      }
+      if (log.length === 0 && hasFirstGain[jobKey]) {
+        log.push({ time: now - 5000, exp: initialExps[jobKey] });
+        log.push({ time: now, exp });
+        lastUpdateTime[jobKey] = now;
+      }
+      if (log.length > 2) {
+        const recentCutoff = now - RECENT_WINDOW_MS;
+        expLogs[jobKey] = log.filter((entry, idx) => {
+          return idx === 0 || entry.time >= recentCutoff;
+        });
+      }
+    }
+    
+    const bxpToken = JOB_BXP_KEYS[jobKey];
+    let bxpObj;
+    if (bxpToken && data[bxpToken]) {
+      bxpObj = data[bxpToken];
+    }
+    else if (bxpToken && inventory && typeof inventory === 'object') {
+      bxpObj = inventory[bxpToken];
+      if (!bxpObj) {
+        const fallbackKey = Object.keys(inventory).find(k => k.startsWith(bxpToken));
+        if (fallbackKey) bxpObj = inventory[fallbackKey];
+      }
+    }
+    if (bxpObj && typeof bxpObj.amount === "number") {
+      lastBXPs[jobKey] = bxpObj.amount;
+    } else if (typeof bxpObj === "number") {
+      lastBXPs[jobKey] = bxpObj;
+    } else {
+      delete lastBXPs[jobKey];
+    }
+  });
+  saveData();
+  renderStats();
+}
+
+function requestDataOnce(force = false) {
+  if (hasRequestedOnce && !force) return;
+  hasRequestedOnce = true;
+  try {
+    const keys = getAllRequiredKeys();
+    window.parent.postMessage({ 
+      type: "getNamedData",
+      keys: keys
+    }, "*");
+  } catch (e) {
+    window.parent.postMessage({ type: "getData" }, "*");
+  }
+}
+
+function init() {
+  loadData();
+  renderStats();
+  
+  setInterval(requestDataOnce, 1000); 
+  
+  window.addEventListener("message", (event) => {
+    const msg = event.data;
+    if (msg && msg.type === "data" && msg.data) {
+      hasReceivedAnyData = true;          
+      processGameData(msg.data);
+    }
+  });
+
+  requestDataOnce();
+  setTimeout(() => { if (!hasReceivedAnyData) requestDataOnce(true); }, 1200);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+// --- DRAG HANDLER ---
+(() => {
+  const app = document.getElementById('tracker-app');
+  const handle = document.getElementById('drag-handle');
+  const rh = document.getElementById('resize-handle');
+  if (!app || !handle) return;
+  
+  let sx=0, sy=0, ax=0, ay=0, dragging=false;
+  let sw=0, sh=0, resizing=false;
+
+  function startDrag(clientX, clientY, e) {
+    if (e && e.target.closest('button, input')) return;
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    dragging = true; sx = clientX; sy = clientY;
+    const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
+    handle.classList.add('dragging');
+  }
+
+  handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+
+  if (rh) {
+    function startResize(clientX, clientY, e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      resizing = true; sx = e.clientX; sy = e.clientY;
+      const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
+    }
+    rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
+  }
+
+  function handleMove(clientX, clientY, e) {
+    if (dragging) {
+      if (e) e.preventDefault();
+      const dx = clientX - sx, dy = clientY - sy;
+      app.style.transform = `translate(${dx}px, ${dy}px)`;
+    } else if (resizing) {
+      if (e) e.preventDefault();
+      const dx = clientX - sx, dy = clientY - sy;
+      app.style.width  = `${Math.max(280, sw + dx)}px`;
+      app.style.height = `${Math.max(120, sh + dy)}px`;
+    }
+  }
+  
+  window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+
+  function endDrag() {
+    if (dragging) {
+      const transform = app.style.transform;
+      const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+      if (match) {
+        const dx = parseFloat(match[1]) || 0;
+        const dy = parseFloat(match[2]) || 0;
+        app.style.transform = '';
+        app.style.left = `${ax + dx}px`;
+        app.style.top = `${ay + dy}px`;
+      }
+    }
+    dragging = false; resizing = false;
+    handle.classList.remove('dragging');
+  }
+  window.addEventListener('mouseup', endDrag);
+})();
+
+// --- EMS LOGIC ---
+
+function processInventory(inv) {
+    const invArray = Object.entries(inv).map(([id, data]) => {
+        let qty = 0;
+        if (typeof data === 'number') qty = data;
+        else if (typeof data === 'object') qty = data.amount || data.count || 0;
+        return { id: id.toLowerCase(), qty: qty };
+    });
+    const matches = invArray.filter(i => i.id.includes('defib'));
+    const defibCount = matches.reduce((sum, item) => sum + item.qty, 0);
+    const el = document.getElementById('stock-defib');
+    if(el) {
+        el.innerText = defibCount;
+        el.style.color = defibCount < 2 ? "var(--alert)" : "white";
+    }
+}
+
+let bridge_StartXP = null;
+let bridge_SessionXP = 0;
+let bridge_Revives = 0;
+let bridge_LastKnownXP = -1;
+
+function updateEMSHUD() {
+    const stats = calculateJobStats('emergency');
+    const current = stats.currentExp;
+    
+    document.getElementById('disp-xp').innerText = formatNumber(current);
+    document.getElementById('disp-level').innerText = stats.levelInfo.level;
+    document.getElementById('level-bar').style.width = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
+    document.getElementById('level-text').innerText = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext) + "%";
+    
+    if(stats.bxp > 0) document.getElementById('disp-bxp').innerText = formatNumber(stats.bxp);
+    
+    if (bridge_StartXP === null && current > 0) {
+        bridge_StartXP = current;
+        bridge_LastKnownXP = current;
+    }
+    
+    if (bridge_LastKnownXP > -1 && current > bridge_LastKnownXP) {
+        const diff = current - bridge_LastKnownXP;
+        if (diff > 5) {
+            bridge_SessionXP += diff;
+            bridge_Revives++;
+        }
+        bridge_LastKnownXP = current;
+    }
+    
+    document.getElementById('disp-callouts').innerText = bridge_Revives;
+    
+    const averageXP = bridge_Revives > 0 ? (bridge_SessionXP / bridge_Revives) : 0;
+    
+    document.getElementById('disp-avg').innerText = Math.round(averageXP);
+    
+    const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
+    let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
+    
+    if (averageXP > 0) {
+        const revsNeeded = Math.ceil(xpNeeded / averageXP);
+        remainingText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(revsNeeded)} revives)</span>`;
+    } else {
+        remainingText += ` <span style="opacity:0.5; font-size:0.9em">(Working...)</span>`;
+    }
+    document.getElementById('disp-xp-remaining').innerHTML = remainingText;
+    
+    runCalculator(averageXP); 
+}
+
+const calcInput = document.getElementById('target-input');
+let currentAvg = 0;
+
+if(calcInput) {
+    calcInput.addEventListener('input', () => runCalculator(currentAvg));
+}
+
+function setCalc(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator(currentAvg);
+}
+
+function getXPFromLevel(targetLvl) {
+    let xp = 0;
+    let level = 0;
+    let cap = 5;
+    while(level < targetLvl) {
+        xp += cap;
+        level++;
+        cap = (level + 1) * 5;
+    }
+    return xp;
+}
+
+function runCalculator(avg) {
+    if(avg) currentAvg = avg;
+    const val = document.getElementById('target-input').value;
+    const el = document.getElementById('calc-result');
+    
+    localStorage.setItem(STORAGE_KEY_CALC, val);
+    
+    if (currentAvg === 0) {
+        el.innerHTML = "<i>Work to enable calc...</i>";
+        return;
+    }
+    if (!val) {
+        el.innerText = "Enter target above.";
+        return;
+    }
+
+    let inputVal = parseInt(val.replace(/,/g, ''));
+    let targetXP = inputVal;
+    
+    const currentExp = lastExps['emergency'] || 0;
+    if (inputVal < 200) { 
+         let lvlXP = getXPFromLevel(inputVal);
+         if (lvlXP > currentExp) targetXP = lvlXP;
+    }
+
+    if (targetXP > currentExp) {
+        const diff = targetXP - currentExp;
+        const revives = Math.ceil(diff / currentAvg);
+        
+        let output = `Remaining: <b>${formatNumber(diff)} XP</b><br>`;
+        output += `<span style="color:var(--primary)">Est. Revives: <b>${formatNumber(revives)}</b></span>`;
+        
+        el.innerHTML = output;
+    } else {
+        el.innerHTML = `Target reached.`;
+    }
+}
+
+</script>
+</body>
+</html>
