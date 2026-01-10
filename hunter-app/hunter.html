@@ -87,10 +87,10 @@
 
         /* --- HEADER & ANIMATION --- */
         header {
-            /* Forest Gradient */
-            background: linear-gradient(135deg, #1b5e20, #33691e, #1b5e20);
-            background-size: 200% 200%;
-            animation: forestBreath 8s ease-in-out infinite;
+            /* Black/Green Smooth Rotation Gradient */
+            background: linear-gradient(-45deg, #000000, #1b5e20, #0a2e0a, #000000);
+            background-size: 400% 400%;
+            animation: gradientRotate 15s ease infinite;
             height: 60px;
             padding: 0 10px;
             cursor: move;
@@ -101,7 +101,7 @@
             padding-top: 5px;
         }
 
-        @keyframes forestBreath {
+        @keyframes gradientRotate {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
@@ -162,8 +162,8 @@
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
             z-index: 6;
         }
-        .deer { left: 10px; }
-        .bunny { right: 10px; transform: translateY(-50%) scaleX(-1); } /* Flip bunny */
+        .deer { left: 10px; transform: translateY(-50%) scaleX(-1); } /* Face Right */
+        .bunny { right: 10px; transform: translateY(-50%) scaleX(1); } /* Face Left */
 
         /* Scope Reticle */
         .scope-container {
@@ -186,25 +186,34 @@
             box-shadow: 0 0 8px red, 0 0 2px white;
         }
 
-        /* Improved Leaves */
+        /* Improved Leaves (More and across header) */
         .leaf {
             position: absolute;
             top: -20px;
-            width: 14px; height: 14px; /* Bigger */
+            width: 14px; height: 14px;
             background: var(--primary);
-            opacity: 0.7;
-            /* Leaf shape */
+            opacity: 0.6;
             border-radius: 2px 15px 2px 15px;
             animation: fall 6s linear infinite;
         }
 
-        .leaf:nth-child(1) { left: 20%; animation-duration: 7s; animation-delay: 0s; transform: rotate(20deg); }
-        .leaf:nth-child(2) { left: 40%; animation-duration: 5s; animation-delay: 1s; transform: rotate(-20deg); background: var(--accent); }
-        .leaf:nth-child(3) { left: 70%; animation-duration: 8s; animation-delay: 2s; transform: rotate(45deg); }
-        .leaf:nth-child(4) { left: 90%; animation-duration: 6s; animation-delay: 0.5s; transform: rotate(-10deg); background: var(--accent); }
+        /* Randomize leaf positions and delays */
+        .leaf:nth-child(1) { left: 5%; animation-duration: 7s; animation-delay: 0s; transform: rotate(20deg); }
+        .leaf:nth-child(2) { left: 15%; animation-duration: 5s; animation-delay: 1s; transform: rotate(-20deg); background: var(--accent); }
+        .leaf:nth-child(3) { left: 25%; animation-duration: 8s; animation-delay: 2.5s; transform: rotate(45deg); }
+        .leaf:nth-child(4) { left: 35%; animation-duration: 6s; animation-delay: 0.5s; transform: rotate(-10deg); background: var(--accent); }
+        .leaf:nth-child(5) { left: 45%; animation-duration: 9s; animation-delay: 3s; transform: rotate(30deg); }
+        .leaf:nth-child(6) { left: 55%; animation-duration: 5.5s; animation-delay: 1.5s; transform: rotate(-5deg); background: var(--accent); }
+        .leaf:nth-child(7) { left: 65%; animation-duration: 7.5s; animation-delay: 4s; transform: rotate(60deg); }
+        .leaf:nth-child(8) { left: 75%; animation-duration: 6.5s; animation-delay: 2s; transform: rotate(-30deg); background: var(--accent); }
+        .leaf:nth-child(9) { left: 85%; animation-duration: 8.5s; animation-delay: 1s; transform: rotate(10deg); }
+        .leaf:nth-child(10) { left: 95%; animation-duration: 5s; animation-delay: 3.5s; transform: rotate(-40deg); background: var(--accent); }
+        .leaf:nth-child(11) { left: 2%; animation-duration: 10s; animation-delay: 5s; transform: rotate(15deg); }
+        .leaf:nth-child(12) { left: 98%; animation-duration: 11s; animation-delay: 0s; transform: rotate(-15deg); }
+
 
         @keyframes fall {
-            0% { top: -20px; transform: translateX(0) rotate(0deg); opacity: 0.8; }
+            0% { top: -20px; transform: translateX(0) rotate(0deg); opacity: 0.6; }
             100% { top: 70px; transform: translateX(30px) rotate(360deg); opacity: 0; }
         }
 
@@ -317,6 +326,8 @@
             </div>
             <div class="animal-target bunny">🐇</div>
             
+            <div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div>
+            <div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div>
             <div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div>
             <div id="user-name-hunt">Hunter ...</div>
         </div>
