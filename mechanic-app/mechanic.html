@@ -95,11 +95,11 @@
             padding: 0 12px;
             height: 80px; /* Taller for scene */
             cursor: move;
-            display: flex; justify-content: space-between; align-items: flex-start;
+            /* Centered alignment */
+            display: flex; justify-content: space-between; align-items: center;
             position: relative;
             overflow: hidden;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-top: 5px;
         }
 
         @keyframes shopLight {
@@ -111,6 +111,12 @@
         .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
         .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
         .nav-icon:hover { color: #fff; }
+        .header-title {
+            font-family: 'Rajdhani', sans-serif; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.2em;
+            z-index: 10;
+        }
+
 
         /* SCENE CONTAINER */
         #mech-scene {
@@ -124,7 +130,7 @@
         #truck { left: -60px; z-index: 5; transform: scaleX(-1); } /* Flip to face right */
         #mechanic { left: -50px; z-index: 6; opacity: 0; }
         #car { right: 10px; z-index: 4; filter: grayscale(100%); } 
-        #tool { position: absolute; bottom: 25px; right: 15px; font-size: 1.2em; opacity: 0; z-index: 7; }
+        #tool { position: absolute; bottom: 20px; right: 15px; font-size: 1.2em; opacity: 0; z-index: 7; }
 
         /* --- COMPLEX SCENE ANIMATION (14s Cycle) --- */
         @keyframes driveIn {
@@ -149,10 +155,10 @@
 
         @keyframes wrenchTurn {
             0%, 25% { opacity: 0; }
-            26% { opacity: 1; transform: rotate(0deg); }
-            35% { transform: rotate(-45deg); }
-            45% { transform: rotate(0deg); }
-            55% { opacity: 1; transform: rotate(-45deg); }
+            26% { opacity: 1; transform: translateY(0px) rotate(0deg); }
+            35% { transform: translateY(8px) rotate(-45deg); } /* Move down and rotate */
+            45% { transform: translateY(0px) rotate(0deg); } /* Move up */
+            55% { opacity: 1; transform: translateY(8px) rotate(-45deg); } /* Move down and rotate */
             56% { opacity: 0; }
             100% { opacity: 0; }
         }
@@ -284,7 +290,7 @@
             <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
         </div>
         
-        <span class="header-title" style="margin-top: -10px;">🔧 Mechanic Ops</span>
+        <span class="header-title">🔧 Mechanic Ops</span>
         
         <div id="mech-scene">
             <div id="truck" class="actor">🛻</div>
@@ -485,7 +491,6 @@
         if (amt >= 0) {
             STATE.currentBXP = amt;
             document.getElementById('disp-bxp').innerText = formatNum(amt);
-            document.getElementById('micro-tokens').innerText = formatNum(amt);
         }
     }
 
