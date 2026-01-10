@@ -43,19 +43,50 @@
             transition: width 0.2s ease, height 0.2s ease;
         }
 
-        /* --- WATER SPLASH --- */
-        #water-splash {
+        /* --- WATER SPLASH SYSTEM --- */
+        #water-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 100; opacity: 0;
-            background: radial-gradient(circle at center, rgba(225, 245, 254, 0.9) 0%, rgba(41, 182, 246, 0.8) 40%, rgba(2, 119, 189, 0.95) 100%);
-            mix-blend-mode: hard-light; transform: scale(0.8);
+            pointer-events: none; z-index: 100; overflow: hidden;
+            opacity: 0; transition: opacity 0.5s;
         }
-        .splash-active { animation: douseFire 1.2s ease-out forwards; }
-        @keyframes douseFire {
+        
+        /* The main blast overlay */
+        #splash-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 30%, rgba(225, 245, 254, 0.9) 0%, rgba(41, 182, 246, 0.6) 50%, transparent 80%);
+            mix-blend-mode: hard-light;
+            opacity: 0; transform: scale(0.8);
+        }
+
+        /* Individual Drips */
+        .drip {
+            position: absolute;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(41, 182, 246, 0.9));
+            border-radius: 50px;
+            width: 3px; height: 15px;
+            opacity: 0.8;
+            filter: blur(1px);
+        }
+
+        /* Active State Classes */
+        .splash-active #water-layer { opacity: 1; }
+        
+        .splash-active #splash-overlay {
+            animation: impactSplash 2.5s ease-out forwards;
+        }
+
+        @keyframes impactSplash {
             0% { opacity: 0; transform: scale(0.5); }
-            10% { opacity: 1; transform: scale(1.1); }
-            30% { opacity: 0.9; transform: scale(1.0); }
+            5% { opacity: 1; transform: scale(1.1); } /* HIT */
+            20% { opacity: 0.8; transform: scale(1.0); }
             100% { opacity: 0; transform: scale(1.05); }
+        }
+
+        @keyframes dripFall {
+            0% { transform: translateY(0) scaleY(1); opacity: 0; }
+            10% { opacity: 1; }
+            80% { opacity: 0.8; }
+            100% { transform: translateY(300px) scaleY(1.5); opacity: 0; }
         }
 
         /* --- MINI MODE --- */
@@ -194,7 +225,9 @@
 <body>
 
 <div id="app-container">
-    <div id="water-splash"></div>
+    <div id="water-layer">
+        <div id="splash-overlay"></div>
+        </div>
 
     <div id="micro-view" onmousedown="dragMouseDown(event)">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
@@ -398,10 +431,29 @@
     }
 
     function triggerSplash() {
-        const el = document.getElementById('water-splash');
-        el.classList.remove('splash-active');
-        void el.offsetWidth;
-        el.classList.add('splash-active');
+        const app = document.getElementById('app-container');
+        const layer = document.getElementById('water-layer');
+        
+        // Remove existing drips
+        const oldDrips = layer.querySelectorAll('.drip');
+        oldDrips.forEach(d => d.remove());
+
+        // Reset Animation
+        app.classList.remove('splash-active');
+        void app.offsetWidth; // Force Reflow
+        
+        // Generate Drips
+        for(let i=0; i<20; i++) {
+            const drip = document.createElement('div');
+            drip.className = 'drip';
+            drip.style.left = Math.random() * 100 + "%";
+            drip.style.top = (Math.random() * -50) + "px"; // Start slightly above
+            drip.style.animation = `dripFall ${1.5 + Math.random()}s linear forwards`;
+            drip.style.animationDelay = (Math.random() * 0.5) + "s";
+            layer.appendChild(drip);
+        }
+
+        app.classList.add('splash-active');
     }
 
     function renderDisplay() {
