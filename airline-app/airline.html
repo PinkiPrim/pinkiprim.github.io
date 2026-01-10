@@ -7,7 +7,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Airline Theme - Sky Blue/Cloud White */
+            /* Airline Theme */
             --primary: #03a9f4; 
             --primary-dim: #0277bd;
             --bg-glass: rgba(18, 18, 18, 0.95);
@@ -33,154 +33,175 @@
         #tracker-app {
             position: absolute;
             top: 50px; left: 50px;
-            width: 320px;
+            width: 320px; /* Standard Width */
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
             display: flex; flex-direction: column;
-            resize: both; overflow: hidden;
+            overflow: hidden;
+            transition: width 0.2s ease, height 0.2s ease, border-radius 0.2s ease;
             min-height: 200px;
         }
 
-        /* --- HEADER --- */
+        /* --- MINI MODE (Double Line Bar) --- */
+        #tracker-app.mini-mode {
+            width: 420px !important;
+            height: 74px !important; /* Double Line Height */
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: rgba(10, 10, 10, 0.98);
+            border: 1px solid var(--primary);
+        }
+
+        /* Hide Standard Elements in Mini Mode */
+        #tracker-app.mini-mode header, 
+        #tracker-app.mini-mode #sky-container, 
+        #tracker-app.mini-mode #content {
+            display: none !important;
+        }
+
+        /* Show Micro Elements in Mini Mode */
+        #micro-view {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
+        }
+
+        #tracker-app.mini-mode #micro-view { display: flex; }
+
+        /* Mini Rows */
+        .micro-row {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; height: 50%;
+        }
+        
+        .micro-group { display: flex; align-items: center; gap: 8px; }
+        .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
+        
+        .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
+        .micro-val.highlight { color: var(--primary); }
+        .micro-val.active { color: var(--green); }
+        .micro-val.urgent { color: var(--red); }
+
+        /* Mini Progress Bar */
+        .micro-progress-bg {
+            width: 60px; height: 6px; background: rgba(255,255,255,0.1);
+            border-radius: 3px; overflow: hidden; margin: 0 5px;
+        }
+        .micro-progress-fill {
+            height: 100%; background: var(--primary); width: 0%;
+        }
+
+        .micro-btn {
+            position: absolute; top: 4px; right: 4px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa; padding: 0px 4px; border-radius: 3px; 
+            font-size: 0.6em; cursor: pointer; text-transform: uppercase;
+        }
+        .micro-btn:hover { background: var(--primary); color: white; }
+
+        /* --- STANDARD HEADER & SKY --- */
         header {
-            background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-            height: 32px; 
+            background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
+            height: 65px; 
             padding: 0 10px;
             cursor: move;
             position: relative;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: flex-start; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            overflow: hidden; 
+            padding-top: 5px;
         }
 
         .header-title {
-            position: absolute; left: 50%; top: 50%;
+            position: absolute; left: 50%; top: 25%;
             transform: translate(-50%, -50%);
             font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; font-size: 1.1em;
+            font-weight: 900; font-size: 1.2em;
             text-transform: uppercase; letter-spacing: 2px;
-            color: #000; pointer-events: none; white-space: nowrap;
+            color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
-        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; }
-        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #000; font-size: 0.85em; }
-
-        #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
-
-        /* --- COMPACT ROUTE INFO --- */
-        .route-box {
-            background: rgba(3, 169, 244, 0.1);
-            border: 1px dashed var(--accent);
-            border-radius: 6px; 
-            padding: 5px; 
-            margin-bottom: 6px; 
-            text-align: center;
-        }
-        .route-label {
-            font-size: 0.6em; color: var(--accent);
-            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px;
-        }
-        .route-name {
-            font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700;
-            color: #fff; line-height: 1.1; margin-bottom: 2px;
-        }
-        .route-progress {
-            font-size: 0.75em; color: var(--text-dim); font-weight: bold;
+        #user-name-fly {
+            position: absolute; top: 38px; left: -150px;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.95em;
+            color: #fff; white-space: nowrap; pointer-events: none; z-index: 10;
+            text-shadow: 0 0 5px var(--primary), 0 0 10px var(--accent), 0 0 20px var(--primary-dim);
         }
 
-        /* --- STATUS & TIMER (Stacked) --- */
-        .status-container {
-            background: rgba(255,255,255,0.05); 
-            border-radius: 6px; 
-            padding: 4px; 
-            margin-bottom: 10px;
-            text-align: center;
-            display: flex; flex-direction: column; gap: 2px;
+        @keyframes flyCycle {
+            0% { left: -150px; transform: translateX(0) translateY(0); opacity: 0; }
+            10% { left: 50%; transform: translateX(-50%) translateY(0); opacity: 1; } 
+            20% { left: 50%; transform: translateX(-50%) translateY(-2px); }
+            30% { left: 50%; transform: translateX(-50%) translateY(1px); }
+            40% { left: 50%; transform: translateX(-50%) translateY(-1px); }
+            50% { left: 50%; transform: translateX(-50%) translateY(2px); }
+            60% { left: 50%; transform: translateX(-50%) translateY(-2px); }
+            70% { left: 50%; transform: translateX(-50%) translateY(1px); }
+            80% { left: 50%; transform: translateX(-50%) translateY(0); }
+            90% { left: 50%; transform: translateX(-50%); opacity: 1; }
+            100% { left: 120%; transform: translateX(0); opacity: 0; } 
         }
+
+        .cloud { position: absolute; background-image: url('https://pngimg.com/uploads/cloud/cloud_PNG112272.png'); background-size: contain; background-repeat: no-repeat; opacity: 0.25; pointer-events: none; z-index: 1; }
+        .cloud-1 { top: 10px; left: -50px; width: 60px; height: 30px; animation: floatCloud 25s linear infinite; }
+        .cloud-2 { top: 35px; left: -60px; width: 40px; height: 20px; animation: floatCloud 35s linear infinite 5s; }
+        .cloud-3 { top: 20px; left: -40px; width: 50px; height: 25px; animation: floatCloud 45s linear infinite 12s; }
+        @keyframes floatCloud { 0% { transform: translateX(0); } 100% { transform: translateX(450px); } }
+
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
         
-        .status-line {
-            font-family: 'Rajdhani', sans-serif; 
-            font-weight: 700; 
-            font-size: 0.8em; 
-            color: #ccc;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            text-transform: uppercase; letter-spacing: 1px;
-        }
+        #mini-btn { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+        #mini-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
 
-        .timer-line {
-            font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; 
-            font-size: 1.1em; 
-            color: var(--text-dim); line-height: 1;
-            transition: color 0.2s ease;
-        }
+        /* --- STANDARD CONTENT --- */
+        #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+        .route-box { background: rgba(3, 169, 244, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center; }
+        .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
+        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; line-height: 1.1; margin-bottom: 2px; }
+        .route-progress { font-size: 0.75em; color: var(--text-dim); font-weight: bold; }
+        .status-container { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px; margin-bottom: 10px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+        .status-line { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px; }
+        .timer-line { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: var(--text-dim); line-height: 1; transition: color 0.2s ease; }
         .timer-line.active { color: var(--green); text-shadow: 0 0 8px rgba(0, 230, 118, 0.4); }
         .timer-line.urgent { color: var(--red); text-shadow: 0 0 8px rgba(255, 82, 82, 0.6); }
-
-        /* --- STATS --- */
         .section { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
-
-        .progress-container {
-            position: relative; height: 14px;
-            background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0;
-            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
-        }
+        .progress-container { position: relative; height: 14px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
-        .progress-text {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 0.65em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2;
-        }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
         .xp-remaining-text { text-align: center; font-size: 0.75em; color: var(--text-dim); margin-bottom: 8px; }
         .xp-remaining-text b { color: var(--primary); }
-
-        /* SESSION BOX */
-        .run-box {
-            background: rgba(79, 195, 247, 0.1);
-            border: 1px solid rgba(79, 195, 247, 0.3);
-            border-radius: 4px; padding: 6px; margin-bottom: 8px;
-        }
+        .run-box { background: rgba(79, 195, 247, 0.1); border: 1px solid rgba(79, 195, 247, 0.3); border-radius: 4px; padding: 6px; margin-bottom: 8px; }
         .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em; }
         .run-val { font-weight: bold; color: #fff; }
         .run-label { font-size: 0.8em; color: #aaa; }
-
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; text-align: center; }
-
-        /* INVENTORY ROW */
-        .inv-row {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.2); padding: 4px 8px;
-            margin-bottom: 4px; border-radius: 4px;
-            border-left: 3px solid var(--text-dim);
-        }
+        .inv-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; border-left: 3px solid var(--text-dim); }
         .inv-name { font-size: 0.85em; }
         .inv-stats { font-size: 0.9em; font-weight: bold; text-align: right; }
         .low-stock { border-left-color: var(--red); background: rgba(255, 82, 82, 0.1); }
-
-        /* CALCULATOR */
-        input[type="number"] {
-            width: 90%; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; color: white; padding: 4px;
-            border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em;
-        }
+        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 4px; border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em; }
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
-        
-        /* QUICK BUTTONS */
-        .quick-btn-row {
-            display: flex; gap: 5px; margin-top: 5px; justify-content: center;
-        }
-        .quick-btn {
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer;
-            font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1;
-        }
+        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         #settings-panel, #job-list, #summary-table { display: none !important; }
@@ -189,18 +210,78 @@
 <body>
 
 <div id="tracker-app">
+    <div id="micro-view" onmousedown="dragMouseDown(event)">
+        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+        
+        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div class="micro-group">
+                <span style="font-size:1.2em">✈️</span>
+                <span class="micro-val" id="micro-status">IDLE</span>
+                <span class="micro-val" id="micro-timer" style="width:25px; text-align:right;">--</span>
+            </div>
+            
+            <div class="micro-group">
+                <span class="micro-label">To:</span>
+                <span class="micro-val" id="micro-dest" style="max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">--</span>
+            </div>
+
+            <div class="micro-group">
+                <span class="micro-label">🍱</span>
+                <span class="micro-val" id="micro-meal">0</span>
+            </div>
+        </div>
+
+        <div class="micro-row">
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Lvl</span>
+                <span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-bar"></div>
+                </div>
+            </div>
+
+            <div class="micro-sep"></div>
+
+            <div class="micro-group">
+                <span class="micro-label">XP:</span>
+                <span class="micro-val" id="micro-xp">0</span>
+            </div>
+
+            <div class="micro-sep"></div>
+
+            <div class="micro-group">
+                <span class="micro-label">Tok:</span>
+                <span class="micro-val active" id="micro-tokens">0</span>
+            </div>
+
+            <div class="micro-sep"></div>
+
+            <div class="micro-group">
+                <span class="micro-label">Left:</span>
+                <span class="micro-val highlight" id="micro-calc">--</span>
+            </div>
+        </div>
+    </div>
+
     <header id="drag-handle">
-        <div class="header-left">
+        <div class="header-controls">
             <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
         </div>
-        <div class="header-title">✈️ Airline Ops</div>
-        <div class="header-right">
+        
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <div class="cloud cloud-3"></div>
+        
+        <div class="header-title">AIRLINE OPS</div>
+        <div id="user-name-fly">Pilot ...</div>
+
+        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <button id="mini-btn" onclick="toggleMini()">MINI</button>
             <span id="clock">00:00</span>
         </div>
     </header>
 
     <div id="content">
-        
         <div class="route-box" id="route-box">
             <div class="route-label">Current Destination</div>
             <div class="route-name" id="disp-route-name">Waiting for route...</div>
@@ -267,19 +348,10 @@
 
             <div class="calc-output" id="calc-result">Complete 1 flight to calibrate...</div>
         </div>
-
     </div>
+    
     <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
-
-<div id="settings-icon" style="display:none;"></div>
-<div id="settings-panel" style="display:none;">
-    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <button id="reset-exp-log"></button>
-    <div id="xp-font-size-value"></div>
-</div>
-<div id="job-list" style="display:none;"></div>
-<table id="summary-table" style="display:none;"></table>
 
 <script>
 // --- STATE ---
@@ -288,33 +360,43 @@ const JOB_EXP_KEY = "exp_piloting_piloting";
 const JOB_BXP_KEY_A = "exp_token_a|piloting|piloting";
 const JOB_BXP_KEY_B = "exp_token|piloting|piloting";
 const ITEM_MEAL = "fridge_airline_meal";
-const STORAGE_KEY_CALC = "target_xp_airline"; // Storage Key
+const STORAGE_KEY_CALC = "target_xp_airline"; 
+const STORAGE_KEY_MINI = "mini_mode_airline";
 
-// Anti-Flicker & Flight Counting Logic
 let routeResetTimeout = null;
 let hasCountedCurrent = false;
 let TRUNK_KEY = null;
 
-// MEMORY OBJECT to persist data between partial updates
-const MEMORY = {
-    inventory: {},
-    trunk: {}
-};
-
-const STATE = {
-    currentXP: 0, 
-    startXP: 0,
-    sessionGain: 0,
-    completedRuns: 0,
-    avgXP: 0
-};
+const MEMORY = { inventory: {}, trunk: {} };
+const STATE = { currentXP: 0, startXP: 0, sessionGain: 0, completedRuns: 0, avgXP: 0 };
 
 // --- INIT ---
-// Load saved Calculator Target
 const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
-if (savedTarget) {
-    document.getElementById('target-input').value = savedTarget;
+if (savedTarget) document.getElementById('target-input').value = savedTarget;
+
+// RESTORE MINI MODE
+const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
+if (savedMini === "true") {
+    document.getElementById('tracker-app').classList.add('mini-mode');
+    document.getElementById('mini-btn').innerText = "FULL";
 }
+
+// --- MINI MODE TOGGLE ---
+function toggleMini() {
+    const app = document.getElementById('tracker-app');
+    app.classList.toggle('mini-mode');
+    const isMini = app.classList.contains('mini-mode');
+    document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
+    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+}
+
+// --- ANIMATION ---
+const nameEl = document.getElementById('user-name-fly');
+function startNameCycle() {
+    nameEl.style.animation = 'none'; nameEl.offsetHeight; 
+    nameEl.style.animation = 'flyCycle 15s linear infinite'; 
+}
+startNameCycle();
 
 // --- CLOCK ---
 setInterval(() => {
@@ -327,7 +409,7 @@ function requestData() {
         try { 
             let keys = [
                 "exp_piloting_piloting", "exp_token_a|piloting|piloting", "exp_token|piloting|piloting",
-                "status", "inventory", "chest", "trunkCapacity", "trunkWeight"
+                "status", "inventory", "chest", "trunkCapacity", "trunkWeight", "name" 
             ];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
@@ -341,38 +423,46 @@ window.addEventListener('message', (event) => {
     let payload = event.data;
     if (payload && payload.type === 'data' && payload.data) payload = payload.data;
     if (!payload) return;
-
     processPayload(payload);
 });
 
 function processPayload(data) {
-    // 1. STATUS PARSING (Airline Logic)
+    if (data.name) document.getElementById('user-name-fly').innerText = "Pilot " + data.name;
+
+    // 1. STATUS PARSING
     if (data.status) {
         if (routeResetTimeout) { clearTimeout(routeResetTimeout); routeResetTimeout = null; }
-
         try {
             let statusData = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
-            
             if (statusData && statusData.lines) {
                 let lines = statusData.lines;
                 
-                // Line 0: Status & Timer
                 if (lines[0]) {
                     let rawStatusLine = cleanString(lines[0]); 
                     let cleanStatus = rawStatusLine.replace("Status:", "").replace(/\(\d+\s*seconds?\)/i, "").trim();
                     let timerMatch = rawStatusLine.match(/\((\d+)\s*seconds?\)/i);
                     let timerEl = document.getElementById('disp-timer');
+                    let microTimer = document.getElementById('micro-timer');
+                    let microStatus = document.getElementById('micro-status');
                     
                     document.getElementById('disp-status').innerText = cleanStatus || "ACTIVE";
+                    microStatus.innerText = cleanStatus || "ACTIVE";
 
                     if (timerMatch) {
                         let sec = parseInt(timerMatch[1]);
                         timerEl.innerText = sec + "s";
-                        timerEl.className = "timer-line active"; 
-                        if (sec <= 10) timerEl.className = "timer-line urgent"; 
+                        microTimer.innerText = sec + "s";
+                        
+                        let timerClass = (sec <= 10) ? "timer-line urgent" : "timer-line active";
+                        let microClass = (sec <= 10) ? "micro-val urgent" : "micro-val active";
+                        
+                        timerEl.className = timerClass;
+                        microTimer.className = microClass;
                     } else {
                         timerEl.innerText = "--";
+                        microTimer.innerText = "--";
                         timerEl.className = "timer-line";
+                        microTimer.className = "micro-val";
                     }
 
                     if (cleanStatus.toUpperCase().includes("DEBOARDING")) {
@@ -381,8 +471,7 @@ function processPayload(data) {
                             hasCountedCurrent = true; 
                             updateAverages();
                         }
-                    }
-                    else if ((cleanStatus.toUpperCase().includes("BOARDING") || cleanStatus.toUpperCase().includes("ROUTE")) && !cleanStatus.toUpperCase().includes("DEBOARDING")) {
+                    } else if ((cleanStatus.toUpperCase().includes("BOARDING") || cleanStatus.toUpperCase().includes("ROUTE")) && !cleanStatus.toUpperCase().includes("DEBOARDING")) {
                         hasCountedCurrent = false;
                     }
                 }
@@ -390,111 +479,67 @@ function processPayload(data) {
                 if (lines[1]) {
                     let destLine = cleanString(lines[1]).replace("Destination:", "").trim();
                     document.getElementById('disp-route-name').innerText = destLine;
-                } else {
-                    document.getElementById('disp-route-name').innerText = "Unknown Destination";
+                    document.getElementById('micro-dest').innerText = destLine.substring(0, 18);
                 }
 
                 if (lines[2]) {
                     let distLine = cleanString(lines[2]).replace("Distance to destination:", "").trim();
                     document.getElementById('disp-dist').innerText = "Dist: " + distLine;
-                } else {
-                    document.getElementById('disp-dist').innerText = "Dist: --";
                 }
             }
         } catch (e) {}
-    } else {
-        if (!routeResetTimeout) {
-            routeResetTimeout = setTimeout(() => {
-                document.getElementById('disp-route-name').innerText = "No Flight Active";
-                document.getElementById('disp-dist').innerText = "Dist: -/-";
-                document.getElementById('disp-status').innerText = "IDLE";
-                document.getElementById('disp-timer').innerText = "--";
-                document.getElementById('disp-timer').className = "timer-line";
-                routeResetTimeout = null;
-                hasCountedCurrent = false; 
-            }, 3000);
-        }
     }
 
     // 2. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
-        if (STATE.startXP === 0) {
-            STATE.startXP = currentXP;
-            STATE.currentXP = currentXP;
-        } 
-        else {
-            STATE.currentXP = currentXP;
-            STATE.sessionGain = currentXP - STATE.startXP;
-            updateAverages();
-        }
+        if (STATE.startXP === 0) { STATE.startXP = currentXP; STATE.currentXP = currentXP; } 
+        else { STATE.currentXP = currentXP; STATE.sessionGain = currentXP - STATE.startXP; updateAverages(); }
         renderStats();
     }
 
-    // 3. INVENTORY LOGIC (Memory-Based with Safety)
+    // 3. INVENTORY LOGIC
+    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) TRUNK_KEY = "chest_" + data.chest;
     
-    // Find Trunk Key
-    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
-        TRUNK_KEY = "chest_" + data.chest;
-    }
-    
-    // Update Memory: Pockets
     if(data.inventory) {
-        try {
-            let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
-            if(inv && Object.keys(inv).length > 0) {
-                MEMORY.inventory = inv;
-            }
-        } catch(e){}
+        try { let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; if(inv && Object.keys(inv).length > 0) MEMORY.inventory = inv; } catch(e){}
     }
-    
-    // Update Memory: Trunk
     if(TRUNK_KEY && data[TRUNK_KEY]) {
-        try {
-            let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY];
-            if(trunk && Object.keys(trunk).length > 0) {
-                MEMORY.trunk = trunk;
-            }
-        } catch(e){}
+        try { let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; if(trunk && Object.keys(trunk).length > 0) MEMORY.trunk = trunk; } catch(e){}
     }
     
-    // Calculate Total from Memory
     let totalMeals = 0;
+    if(MEMORY.inventory && MEMORY.inventory[ITEM_MEAL]) totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
+    if(MEMORY.trunk && MEMORY.trunk[ITEM_MEAL]) totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
     
-    // Check Pocket Memory
-    if(MEMORY.inventory && MEMORY.inventory[ITEM_MEAL]) {
-        totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
-    }
-    // Check Trunk Memory
-    if(MEMORY.trunk && MEMORY.trunk[ITEM_MEAL]) {
-        totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
-    }
-    
-    // Update UI
     const mealEl = document.getElementById('stock-meal');
     const mealRow = document.getElementById('row-meal');
+    const microMeal = document.getElementById('micro-meal');
+    
     mealEl.innerText = totalMeals;
+    microMeal.innerText = totalMeals;
     
-    if(totalMeals < 5) mealRow.className = "inv-row low-stock";
-    else mealRow.className = "inv-row";
-
-    // 4. BXP LOGIC (Direct + Memory Fallback)
-    let bxp = data[JOB_BXP_KEY_A] || data[JOB_BXP_KEY_B];
-    
-    if (!bxp && MEMORY.inventory) {
-        bxp = MEMORY.inventory[JOB_BXP_KEY_A] || MEMORY.inventory[JOB_BXP_KEY_B];
+    if(totalMeals < 5) {
+        mealRow.className = "inv-row low-stock";
+        microMeal.className = "micro-val urgent";
+    } else {
+        mealRow.className = "inv-row";
+        microMeal.className = "micro-val";
     }
 
+    // 4. BXP LOGIC
+    let bxp = data[JOB_BXP_KEY_A] || data[JOB_BXP_KEY_B];
+    if (!bxp && MEMORY.inventory) bxp = MEMORY.inventory[JOB_BXP_KEY_A] || MEMORY.inventory[JOB_BXP_KEY_B];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
-        document.getElementById('disp-bxp').innerText = formatNumber(val);
+        let txt = formatNumber(val);
+        document.getElementById('disp-bxp').innerText = txt;
+        document.getElementById('micro-tokens').innerText = txt;
     }
 }
 
 function updateAverages() {
-    if (STATE.completedRuns > 0) {
-        STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
-    }
+    if (STATE.completedRuns > 0) STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
 }
 
 function cleanString(str) {
@@ -504,16 +549,25 @@ function cleanString(str) {
 
 function renderStats() {
     const lvl = getLevelInfo(STATE.currentXP);
-    document.getElementById('disp-xp').innerText = formatNumber(STATE.currentXP);
+    const xpText = formatNumber(STATE.currentXP);
+    
+    document.getElementById('disp-xp').innerText = xpText;
+    document.getElementById('micro-xp').innerText = xpText;
+    
     document.getElementById('disp-level').innerText = lvl.level;
+    document.getElementById('micro-level').innerText = lvl.level;
     
     const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
     document.getElementById('level-bar').style.width = pct + "%";
     document.getElementById('level-text').innerText = pct + "%";
+    
+    document.getElementById('micro-bar').style.width = pct + "%";
 
     document.getElementById('disp-session-xp').innerText = formatNumber(STATE.sessionGain) + " XP";
     document.getElementById('disp-xp-drop').innerText = Math.round(STATE.avgXP) + " XP";
+    
     document.getElementById('disp-drops').innerText = STATE.completedRuns;
+    // Flights done not in mini bar due to space, but tokens are there.
 
     const needed = Math.round(lvl.expForNext - lvl.expInLevel);
     document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
@@ -549,16 +603,18 @@ function setCalc(amount) {
 function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
+    const microEl = document.getElementById('micro-calc');
     
-    // Save to local storage
     localStorage.setItem(STORAGE_KEY_CALC, val);
 
     if (STATE.completedRuns === 0) { 
         el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; 
+        microEl.innerText = "Wait..";
         return; 
     }
     if (!val) { 
         el.innerText = "Enter target above."; 
+        microEl.innerText = "Set..";
         return; 
     }
 
@@ -576,72 +632,76 @@ function runCalculator() {
         const avgDrop = (STATE.avgXP > 0) ? STATE.avgXP : 1; 
         const estDrops = Math.ceil(diff / avgDrop);
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(estDrops)}</b></span>`;
+        microEl.innerText = formatNumber(estDrops);
     } else {
         el.innerHTML = `Target reached.`;
+        microEl.innerText = "Done";
     }
 }
 
-// --- DRAG HANDLER ---
-(() => {
-    const app = document.getElementById('tracker-app');
-    const handle = document.getElementById('drag-handle');
-    const rh = document.getElementById('resize-handle');
-    if (!app || !handle) return;
+// --- FIXED DRAG HANDLER (1:1 Movement) ---
+let elmnt = document.getElementById("tracker-app");
+let header = document.getElementById("drag-handle");
+let microView = document.getElementById("micro-view");
+
+let isDragging = false;
+let startX, startY, initialLeft, initialTop;
+
+// Attach listeners
+header.addEventListener("mousedown", dragStart);
+microView.addEventListener("mousedown", dragStart);
+
+function dragStart(e) {
+    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
+    e.preventDefault();
     
-    let sx=0, sy=0, ax=0, ay=0, dragging=false;
-    let sw=0, sh=0, resizing=false;
-
-    function startDrag(clientX, clientY, e) {
-        if (e && e.target.closest('button, input')) return; 
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        dragging = true; sx = clientX; sy = clientY;
-        const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
-        handle.classList.add('dragging');
-    }
-
-    handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
-
-    if (rh) {
-        function startResize(clientX, clientY, e) {
-            if (e) { e.preventDefault(); e.stopPropagation(); }
-            resizing = true; sx = e.clientX; sy = e.clientY;
-            const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
-        }
-        rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
-    }
-
-    function handleMove(clientX, clientY, e) {
-        if (dragging) {
-            if (e) e.preventDefault();
-            const dx = clientX - sx, dy = clientY - sy;
-            app.style.transform = `translate(${dx}px, ${dy}px)`;
-        } else if (resizing) {
-            if (e) e.preventDefault();
-            const dx = clientX - sx, dy = clientY - sy;
-            app.style.width  = `${Math.max(280, sw + dx)}px`;
-            app.style.height = `${Math.max(120, sh + dy)}px`;
-        }
-    }
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
     
-    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+    const rect = elmnt.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+    
+    document.addEventListener("mousemove", dragMove);
+    document.addEventListener("mouseup", dragEnd);
+}
 
-    function endDrag() {
-        if (dragging) {
-            const transform = app.style.transform;
-            const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
-            if (match) {
-                const dx = parseFloat(match[1]) || 0;
-                const dy = parseFloat(match[2]) || 0;
-                app.style.transform = '';
-                app.style.left = `${ax + dx}px`;
-                app.style.top = `${ay + dy}px`;
-            }
-        }
-        dragging = false; resizing = false;
-        handle.classList.remove('dragging');
-    }
-    window.addEventListener('mouseup', endDrag);
-})();
+function dragMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    elmnt.style.left = `${initialLeft + dx}px`;
+    elmnt.style.top = `${initialTop + dy}px`;
+}
+
+function dragEnd() {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragMove);
+    document.removeEventListener("mouseup", dragEnd);
+}
+
+// Resize handle logic
+const rh = document.getElementById('resize-handle');
+if (rh) {
+    rh.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResize);
+    });
+}
+function resize(e) {
+    if(elmnt.classList.contains('mini-mode')) return;
+    elmnt.style.width = Math.max(280, e.clientX - elmnt.getBoundingClientRect().left) + 'px';
+    elmnt.style.height = Math.max(200, e.clientY - elmnt.getBoundingClientRect().top) + 'px';
+}
+function stopResize() {
+    window.removeEventListener('mousemove', resize);
+    window.removeEventListener('mouseup', stopResize);
+}
 </script>
 </body>
 </html>
