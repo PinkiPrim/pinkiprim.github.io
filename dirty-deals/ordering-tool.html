@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final v9.5</title>
+    <title>Dirty Deals - Final v9.6</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -481,13 +481,14 @@
         if(tab === 'orders') fetchAdminOrders();
     }
 
-    function fetchAdminUsers() {
+    function fetchAdminUsers(silent) {
         // Cache Busting
         fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(users=>{
-            let c = document.getElementById('hk-user-list'); c.innerHTML = '';
             // Store grinders globally
             availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id));
-            
+            if (silent) return; // If called quietly (like on init), don't render table
+
+            let c = document.getElementById('hk-user-list'); c.innerHTML = '';
             users.forEach(u => {
                 c.innerHTML += `<tr>
                     <td>${u.id}</td><td>${u.name}</td>
@@ -657,7 +658,11 @@
         }
         var btns = document.querySelectorAll('.header-btn'); for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
         document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view)).classList.add('active');
-        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); if(view === 'housekeeping') switchAdminTab('users');
+        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); 
+        if(view === 'housekeeping') {
+            fetchAdminUsers(true); // Pre-fetch grinders for dropdown
+            switchAdminTab('users');
+        }
     }
 
     function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
