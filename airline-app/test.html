@@ -7,7 +7,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Airline Theme - Sky Blue/Cloud White */
             --primary: #03a9f4; 
             --primary-dim: #0277bd;
             --bg-glass: rgba(18, 18, 18, 0.95);
@@ -39,45 +38,66 @@
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
             display: flex; flex-direction: column;
-            resize: both; overflow: hidden;
-            min-height: 200px;
-            transition: width 0.3s ease;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            min-height: 200px; /* Standard Height */
         }
 
-        /* --- MINI MODE STYLES --- */
-        #tracker-app.mini-mode {
-            width: 240px !important; /* Compact Width */
+        /* --- MICRO MODE (The Straight Line) --- */
+        #tracker-app.micro-mode {
+            width: auto !important;
+            min-width: 480px; /* Wide enough for the line */
+            max-width: 800px;
+            height: 36px !important; /* Single Line Height */
+            min-height: 36px !important;
+            border-radius: 18px; /* Rounded pill shape */
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid var(--primary);
         }
-        #tracker-app.mini-mode header {
-            height: 50px; /* Shorter header in mini */
-        }
-        #tracker-app.mini-mode .header-title {
-            font-size: 1em; top: 30%;
-        }
-        #tracker-app.mini-mode #user-name-fly {
-            font-size: 0.8em; top: 28px;
-        }
-        #tracker-app.mini-mode .section {
-            margin-bottom: 5px; padding-bottom: 5px;
-        }
-        #tracker-app.mini-mode .value {
-            font-size: 0.95em;
-        }
-        #tracker-app.mini-mode input[type="number"] {
-            padding: 2px; font-size: 0.8em; margin-top: 2px;
-        }
-        #tracker-app.mini-mode .quick-btn {
-            padding: 1px 4px; font-size: 0.65em;
-        }
-        #tracker-app.mini-mode .calc-output {
-            margin-top: 2px; font-size: 0.7em;
-        }
-        /* End Mini Mode */
 
-        /* --- HEADER & SKY --- */
+        /* Hide Standard Elements in Micro Mode */
+        #tracker-app.micro-mode header, 
+        #tracker-app.micro-mode #sky-container, 
+        #tracker-app.micro-mode #content {
+            display: none !important;
+        }
+
+        /* Show Micro Elements in Micro Mode */
+        #micro-view {
+            display: none;
+            height: 100%;
+            align-items: center;
+            padding: 0 10px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.9em;
+            gap: 12px;
+            cursor: move; /* Whole bar is draggable */
+            white-space: nowrap;
+        }
+
+        #tracker-app.micro-mode #micro-view {
+            display: flex;
+        }
+
+        /* Micro View Items */
+        .micro-item { display: flex; align-items: center; gap: 5px; }
+        .micro-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2); }
+        .micro-label { color: var(--text-dim); font-size: 0.85em; text-transform: uppercase; }
+        .micro-val { color: #fff; font-weight: 700; }
+        .micro-val.active { color: var(--green); }
+        .micro-val.urgent { color: var(--red); }
+        
+        .micro-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 1px 6px; border-radius: 4px; 
+            font-size: 0.75em; cursor: pointer; text-transform: uppercase;
+        }
+        .micro-btn:hover { background: var(--primary); }
+
+        /* --- STANDARD HEADER & SKY --- */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
-            height: 65px; /* Tall header for clouds */
+            height: 65px; 
             padding: 0 10px;
             cursor: move;
             position: relative;
@@ -98,30 +118,16 @@
             z-index: 10;
         }
 
-        /* FLYING NAME ANIMATION */
         #user-name-fly {
-            position: absolute;
-            top: 38px; left: -150px;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 700;
-            font-size: 0.95em;
-            color: #fff;
-            white-space: nowrap;
-            pointer-events: none;
-            z-index: 10;
-            
-            /* GLOW / AURA EFFECT */
-            text-shadow: 
-                0 0 5px var(--primary),
-                0 0 10px var(--accent),
-                0 0 20px var(--primary-dim);
+            position: absolute; top: 38px; left: -150px;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.95em;
+            color: #fff; white-space: nowrap; pointer-events: none; z-index: 10;
+            text-shadow: 0 0 5px var(--primary), 0 0 10px var(--accent), 0 0 20px var(--primary-dim);
         }
 
         @keyframes flyCycle {
             0% { left: -150px; transform: translateX(0) translateY(0); opacity: 0; }
             10% { left: 50%; transform: translateX(-50%) translateY(0); opacity: 1; } 
-            
-            /* Wind Hover Effect */
             20% { left: 50%; transform: translateX(-50%) translateY(-2px); }
             30% { left: 50%; transform: translateX(-50%) translateY(1px); }
             40% { left: 50%; transform: translateX(-50%) translateY(-1px); }
@@ -129,112 +135,99 @@
             60% { left: 50%; transform: translateX(-50%) translateY(-2px); }
             70% { left: 50%; transform: translateX(-50%) translateY(1px); }
             80% { left: 50%; transform: translateX(-50%) translateY(0); }
-
             90% { left: 50%; transform: translateX(-50%); opacity: 1; }
             100% { left: 120%; transform: translateX(0); opacity: 0; } 
         }
 
-        /* CLOUDS */
-        .cloud {
-            position: absolute;
-            background-image: url('https://pngimg.com/uploads/cloud/cloud_PNG112272.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            opacity: 0.25;
-            pointer-events: none;
-            z-index: 1;
-        }
+        .cloud { position: absolute; background-image: url('https://pngimg.com/uploads/cloud/cloud_PNG112272.png'); background-size: contain; background-repeat: no-repeat; opacity: 0.25; pointer-events: none; z-index: 1; }
         .cloud-1 { top: 10px; left: -50px; width: 60px; height: 30px; animation: floatCloud 25s linear infinite; }
         .cloud-2 { top: 35px; left: -60px; width: 40px; height: 20px; animation: floatCloud 35s linear infinite 5s; }
         .cloud-3 { top: 20px; left: -40px; width: 50px; height: 25px; animation: floatCloud 45s linear infinite 12s; }
+        @keyframes floatCloud { 0% { transform: translateX(0); } 100% { transform: translateX(450px); } }
 
-        @keyframes floatCloud {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(450px); }
-        }
-
-        /* CONTROLS */
-        .header-controls {
-            display: flex; gap: 8px; z-index: 20; align-items: center;
-        }
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
         .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
         .nav-icon:hover { color: #fff; }
         
-        #mini-btn {
-            font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em;
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
-            color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer;
-        }
+        #mini-btn { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
         #mini-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
-
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
 
+        /* --- STANDARD CONTENT --- */
         #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
-
-        /* --- COMPACT ROUTE INFO --- */
-        .route-box {
-            background: rgba(3, 169, 244, 0.1);
-            border: 1px dashed var(--accent);
-            border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center;
-        }
+        .route-box { background: rgba(3, 169, 244, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center; }
         .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
         .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; line-height: 1.1; margin-bottom: 2px; }
         .route-progress { font-size: 0.75em; color: var(--text-dim); font-weight: bold; }
-
-        /* --- STATUS & TIMER --- */
-        .status-container {
-            background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px; margin-bottom: 10px;
-            text-align: center; display: flex; flex-direction: column; gap: 2px;
-        }
+        .status-container { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px; margin-bottom: 10px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
         .status-line { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px; }
         .timer-line { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: var(--text-dim); line-height: 1; transition: color 0.2s ease; }
         .timer-line.active { color: var(--green); text-shadow: 0 0 8px rgba(0, 230, 118, 0.4); }
         .timer-line.urgent { color: var(--red); text-shadow: 0 0 8px rgba(255, 82, 82, 0.6); }
-
-        /* --- STATS --- */
         .section { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
-
         .progress-container { position: relative; height: 14px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
         .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
         .xp-remaining-text { text-align: center; font-size: 0.75em; color: var(--text-dim); margin-bottom: 8px; }
         .xp-remaining-text b { color: var(--primary); }
-
-        /* SESSION BOX */
         .run-box { background: rgba(79, 195, 247, 0.1); border: 1px solid rgba(79, 195, 247, 0.3); border-radius: 4px; padding: 6px; margin-bottom: 8px; }
         .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em; }
         .run-val { font-weight: bold; color: #fff; }
         .run-label { font-size: 0.8em; color: #aaa; }
-
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; text-align: center; }
-
-        /* INVENTORY ROW */
         .inv-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; border-left: 3px solid var(--text-dim); }
         .inv-name { font-size: 0.85em; }
         .inv-stats { font-size: 0.9em; font-weight: bold; text-align: right; }
         .low-stock { border-left-color: var(--red); background: rgba(255, 82, 82, 0.1); }
-
-        /* CALCULATOR */
         input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 4px; border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em; }
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
-        
         .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
         .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
-
-        #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
 </head>
 <body>
 
 <div id="tracker-app">
+    <div id="micro-view" onmousedown="dragMouseDown(event)">
+        <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon" style="color:var(--primary)">✈️</a>
+        
+        <div class="micro-item">
+            <span class="micro-val" id="micro-status">IDLE</span>
+            <span class="micro-val" id="micro-timer">--</span>
+        </div>
+        
+        <div class="micro-sep"></div>
+        
+        <div class="micro-item">
+            <span class="micro-label">Dest:</span>
+            <span class="micro-val" id="micro-dest">--</span>
+        </div>
+
+        <div class="micro-sep"></div>
+
+        <div class="micro-item">
+            <span class="micro-label">Meals:</span>
+            <span class="micro-val" id="micro-meal">0</span>
+        </div>
+
+        <div class="micro-sep"></div>
+
+        <div class="micro-item">
+            <span class="micro-label">Flights Left:</span>
+            <span class="micro-val" id="micro-calc" style="color:var(--primary)">--</span>
+        </div>
+
+        <div style="flex:1"></div> <button class="micro-btn" onclick="toggleMini()">MAX</button>
+    </div>
+
     <header id="drag-handle">
         <div class="header-controls">
             <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
@@ -254,7 +247,6 @@
     </header>
 
     <div id="content">
-        
         <div class="route-box" id="route-box">
             <div class="route-label">Current Destination</div>
             <div class="route-name" id="disp-route-name">Waiting for route...</div>
@@ -321,19 +313,10 @@
 
             <div class="calc-output" id="calc-result">Complete 1 flight to calibrate...</div>
         </div>
-
     </div>
+    
     <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
-
-<div id="settings-icon" style="display:none;"></div>
-<div id="settings-panel" style="display:none;">
-    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <button id="reset-exp-log"></button>
-    <div id="xp-font-size-value"></div>
-</div>
-<div id="job-list" style="display:none;"></div>
-<table id="summary-table" style="display:none;"></table>
 
 <script>
 // --- STATE ---
@@ -343,55 +326,39 @@ const JOB_BXP_KEY_A = "exp_token_a|piloting|piloting";
 const JOB_BXP_KEY_B = "exp_token|piloting|piloting";
 const ITEM_MEAL = "fridge_airline_meal";
 const STORAGE_KEY_CALC = "target_xp_airline"; 
-const STORAGE_KEY_MINI = "mini_mode_airline";
+const STORAGE_KEY_MINI = "micro_mode_airline"; // Changed key name for clarity
 
-// Anti-Flicker & Flight Counting Logic
 let routeResetTimeout = null;
 let hasCountedCurrent = false;
 let TRUNK_KEY = null;
 
-// MEMORY OBJECT to persist data between partial updates
-const MEMORY = {
-    inventory: {},
-    trunk: {}
-};
-
-const STATE = {
-    currentXP: 0, 
-    startXP: 0,
-    sessionGain: 0,
-    completedRuns: 0,
-    avgXP: 0
-};
+const MEMORY = { inventory: {}, trunk: {} };
+const STATE = { currentXP: 0, startXP: 0, sessionGain: 0, completedRuns: 0, avgXP: 0 };
 
 // --- INIT ---
 const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
-if (savedTarget) {
-    document.getElementById('target-input').value = savedTarget;
-}
+if (savedTarget) document.getElementById('target-input').value = savedTarget;
 
-// RESTORE MINI MODE
+// RESTORE MICRO MODE
 const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
 if (savedMini === "true") {
-    document.getElementById('tracker-app').classList.add('mini-mode');
+    document.getElementById('tracker-app').classList.add('micro-mode');
     document.getElementById('mini-btn').innerText = "FULL";
 }
 
-// --- MINI MODE TOGGLE ---
+// --- MICRO MODE TOGGLE ---
 function toggleMini() {
     const app = document.getElementById('tracker-app');
-    app.classList.toggle('mini-mode');
-    
-    const isMini = app.classList.contains('mini-mode');
-    document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
-    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+    app.classList.toggle('micro-mode');
+    const isMicro = app.classList.contains('micro-mode');
+    document.getElementById('mini-btn').innerText = isMicro ? "FULL" : "MINI";
+    localStorage.setItem(STORAGE_KEY_MINI, isMicro);
 }
 
-// --- ANIMATION CONTROLLER ---
+// --- ANIMATION ---
 const nameEl = document.getElementById('user-name-fly');
 function startNameCycle() {
-    nameEl.style.animation = 'none';
-    nameEl.offsetHeight; 
+    nameEl.style.animation = 'none'; nameEl.offsetHeight; 
     nameEl.style.animation = 'flyCycle 15s linear infinite'; 
 }
 startNameCycle();
@@ -407,8 +374,7 @@ function requestData() {
         try { 
             let keys = [
                 "exp_piloting_piloting", "exp_token_a|piloting|piloting", "exp_token|piloting|piloting",
-                "status", "inventory", "chest", "trunkCapacity", "trunkWeight",
-                "name" 
+                "status", "inventory", "chest", "trunkCapacity", "trunkWeight", "name" 
             ];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
@@ -422,43 +388,46 @@ window.addEventListener('message', (event) => {
     let payload = event.data;
     if (payload && payload.type === 'data' && payload.data) payload = payload.data;
     if (!payload) return;
-
     processPayload(payload);
 });
 
 function processPayload(data) {
-    // 0. SET USER NAME
-    if (data.name) {
-        document.getElementById('user-name-fly').innerText = "Pilot " + data.name;
-    }
+    if (data.name) document.getElementById('user-name-fly').innerText = "Pilot " + data.name;
 
-    // 1. STATUS PARSING (Airline Logic)
+    // 1. STATUS PARSING
     if (data.status) {
         if (routeResetTimeout) { clearTimeout(routeResetTimeout); routeResetTimeout = null; }
-
         try {
             let statusData = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
-            
             if (statusData && statusData.lines) {
                 let lines = statusData.lines;
                 
-                // Line 0: Status & Timer
                 if (lines[0]) {
                     let rawStatusLine = cleanString(lines[0]); 
                     let cleanStatus = rawStatusLine.replace("Status:", "").replace(/\(\d+\s*seconds?\)/i, "").trim();
                     let timerMatch = rawStatusLine.match(/\((\d+)\s*seconds?\)/i);
                     let timerEl = document.getElementById('disp-timer');
+                    let microTimer = document.getElementById('micro-timer');
+                    let microStatus = document.getElementById('micro-status');
                     
                     document.getElementById('disp-status').innerText = cleanStatus || "ACTIVE";
+                    microStatus.innerText = cleanStatus || "ACTIVE";
 
                     if (timerMatch) {
                         let sec = parseInt(timerMatch[1]);
                         timerEl.innerText = sec + "s";
-                        timerEl.className = "timer-line active"; 
-                        if (sec <= 10) timerEl.className = "timer-line urgent"; 
+                        microTimer.innerText = sec + "s";
+                        
+                        let timerClass = (sec <= 10) ? "timer-line urgent" : "timer-line active";
+                        let microClass = (sec <= 10) ? "micro-val urgent" : "micro-val active";
+                        
+                        timerEl.className = timerClass;
+                        microTimer.className = microClass;
                     } else {
                         timerEl.innerText = "--";
+                        microTimer.innerText = "--";
                         timerEl.className = "timer-line";
+                        microTimer.className = "micro-val";
                     }
 
                     if (cleanStatus.toUpperCase().includes("DEBOARDING")) {
@@ -467,8 +436,7 @@ function processPayload(data) {
                             hasCountedCurrent = true; 
                             updateAverages();
                         }
-                    }
-                    else if ((cleanStatus.toUpperCase().includes("BOARDING") || cleanStatus.toUpperCase().includes("ROUTE")) && !cleanStatus.toUpperCase().includes("DEBOARDING")) {
+                    } else if ((cleanStatus.toUpperCase().includes("BOARDING") || cleanStatus.toUpperCase().includes("ROUTE")) && !cleanStatus.toUpperCase().includes("DEBOARDING")) {
                         hasCountedCurrent = false;
                     }
                 }
@@ -476,101 +444,57 @@ function processPayload(data) {
                 if (lines[1]) {
                     let destLine = cleanString(lines[1]).replace("Destination:", "").trim();
                     document.getElementById('disp-route-name').innerText = destLine;
-                } else {
-                    document.getElementById('disp-route-name').innerText = "Unknown Destination";
+                    document.getElementById('micro-dest').innerText = destLine.substring(0, 15); // Truncate for micro view
                 }
 
                 if (lines[2]) {
                     let distLine = cleanString(lines[2]).replace("Distance to destination:", "").trim();
                     document.getElementById('disp-dist').innerText = "Dist: " + distLine;
-                } else {
-                    document.getElementById('disp-dist').innerText = "Dist: --";
                 }
             }
         } catch (e) {}
-    } else {
-        if (!routeResetTimeout) {
-            routeResetTimeout = setTimeout(() => {
-                document.getElementById('disp-route-name').innerText = "No Flight Active";
-                document.getElementById('disp-dist').innerText = "Dist: -/-";
-                document.getElementById('disp-status').innerText = "IDLE";
-                document.getElementById('disp-timer').innerText = "--";
-                document.getElementById('disp-timer').className = "timer-line";
-                routeResetTimeout = null;
-                hasCountedCurrent = false; 
-            }, 3000);
-        }
     }
 
     // 2. XP LOGIC
     let currentXP = data[JOB_EXP_KEY];
     if (typeof currentXP === 'number') {
-        if (STATE.startXP === 0) {
-            STATE.startXP = currentXP;
-            STATE.currentXP = currentXP;
-        } 
-        else {
-            STATE.currentXP = currentXP;
-            STATE.sessionGain = currentXP - STATE.startXP;
-            updateAverages();
-        }
+        if (STATE.startXP === 0) { STATE.startXP = currentXP; STATE.currentXP = currentXP; } 
+        else { STATE.currentXP = currentXP; STATE.sessionGain = currentXP - STATE.startXP; updateAverages(); }
         renderStats();
     }
 
-    // 3. INVENTORY LOGIC (Memory-Based with Safety)
+    // 3. INVENTORY LOGIC
+    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) TRUNK_KEY = "chest_" + data.chest;
     
-    // Find Trunk Key
-    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
-        TRUNK_KEY = "chest_" + data.chest;
-    }
-    
-    // Update Memory: Pockets
     if(data.inventory) {
-        try {
-            let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
-            if(inv && Object.keys(inv).length > 0) {
-                MEMORY.inventory = inv;
-            }
-        } catch(e){}
+        try { let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; if(inv && Object.keys(inv).length > 0) MEMORY.inventory = inv; } catch(e){}
     }
-    
-    // Update Memory: Trunk
     if(TRUNK_KEY && data[TRUNK_KEY]) {
-        try {
-            let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY];
-            if(trunk && Object.keys(trunk).length > 0) {
-                MEMORY.trunk = trunk;
-            }
-        } catch(e){}
+        try { let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; if(trunk && Object.keys(trunk).length > 0) MEMORY.trunk = trunk; } catch(e){}
     }
     
-    // Calculate Total from Memory
     let totalMeals = 0;
+    if(MEMORY.inventory && MEMORY.inventory[ITEM_MEAL]) totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
+    if(MEMORY.trunk && MEMORY.trunk[ITEM_MEAL]) totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
     
-    // Check Pocket Memory
-    if(MEMORY.inventory && MEMORY.inventory[ITEM_MEAL]) {
-        totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
-    }
-    // Check Trunk Memory
-    if(MEMORY.trunk && MEMORY.trunk[ITEM_MEAL]) {
-        totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
-    }
-    
-    // Update UI
     const mealEl = document.getElementById('stock-meal');
     const mealRow = document.getElementById('row-meal');
+    const microMeal = document.getElementById('micro-meal');
+    
     mealEl.innerText = totalMeals;
+    microMeal.innerText = totalMeals;
     
-    if(totalMeals < 5) mealRow.className = "inv-row low-stock";
-    else mealRow.className = "inv-row";
-
-    // 4. BXP LOGIC (Direct + Memory Fallback)
-    let bxp = data[JOB_BXP_KEY_A] || data[JOB_BXP_KEY_B];
-    
-    if (!bxp && MEMORY.inventory) {
-        bxp = MEMORY.inventory[JOB_BXP_KEY_A] || MEMORY.inventory[JOB_BXP_KEY_B];
+    if(totalMeals < 5) {
+        mealRow.className = "inv-row low-stock";
+        microMeal.className = "micro-val urgent";
+    } else {
+        mealRow.className = "inv-row";
+        microMeal.className = "micro-val";
     }
 
+    // 4. BXP LOGIC
+    let bxp = data[JOB_BXP_KEY_A] || data[JOB_BXP_KEY_B];
+    if (!bxp && MEMORY.inventory) bxp = MEMORY.inventory[JOB_BXP_KEY_A] || MEMORY.inventory[JOB_BXP_KEY_B];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         document.getElementById('disp-bxp').innerText = formatNumber(val);
@@ -578,9 +502,7 @@ function processPayload(data) {
 }
 
 function updateAverages() {
-    if (STATE.completedRuns > 0) {
-        STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
-    }
+    if (STATE.completedRuns > 0) STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
 }
 
 function cleanString(str) {
@@ -635,15 +557,18 @@ function setCalc(amount) {
 function runCalculator() {
     const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
+    const microEl = document.getElementById('micro-calc');
     
     localStorage.setItem(STORAGE_KEY_CALC, val);
 
     if (STATE.completedRuns === 0) { 
         el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; 
+        microEl.innerText = "Calibrating...";
         return; 
     }
     if (!val) { 
         el.innerText = "Enter target above."; 
+        microEl.innerText = "Set Target";
         return; 
     }
 
@@ -661,72 +586,64 @@ function runCalculator() {
         const avgDrop = (STATE.avgXP > 0) ? STATE.avgXP : 1; 
         const estDrops = Math.ceil(diff / avgDrop);
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(estDrops)}</b></span>`;
+        microEl.innerText = formatNumber(estDrops);
     } else {
         el.innerHTML = `Target reached.`;
+        microEl.innerText = "Done";
     }
 }
 
 // --- DRAG HANDLER ---
-(() => {
-    const app = document.getElementById('tracker-app');
-    const handle = document.getElementById('drag-handle');
-    const rh = document.getElementById('resize-handle');
-    if (!app || !handle) return;
-    
-    let sx=0, sy=0, ax=0, ay=0, dragging=false;
-    let sw=0, sh=0, resizing=false;
+let elmnt = document.getElementById("tracker-app");
+let header = document.getElementById("drag-handle");
+let microView = document.getElementById("micro-view");
+let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
 
-    function startDrag(clientX, clientY, e) {
-        if (e && e.target.closest('button, input')) return; 
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        dragging = true; sx = clientX; sy = clientY;
-        const rect = app.getBoundingClientRect(); ax = rect.left; ay = rect.top;
-        handle.classList.add('dragging');
-    }
+header.onmousedown = dragMouseDown;
+// microView is handled via inline onmousedown
 
-    handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+function dragMouseDown(e) {
+    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+    e.preventDefault();
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    document.onmousemove = elementDrag;
+}
 
-    if (rh) {
-        function startResize(clientX, clientY, e) {
-            if (e) { e.preventDefault(); e.stopPropagation(); }
-            resizing = true; sx = e.clientX; sy = e.clientY;
-            const rect = app.getBoundingClientRect(); sw = rect.width; sh = rect.height;
-        }
-        rh.addEventListener('mousedown', (e) => startResize(e.clientX, e.clientY, e));
-    }
+function elementDrag(e) {
+    e.preventDefault();
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+}
 
-    function handleMove(clientX, clientY, e) {
-        if (dragging) {
-            if (e) e.preventDefault();
-            const dx = clientX - sx, dy = clientY - sy;
-            app.style.transform = `translate(${dx}px, ${dy}px)`;
-        } else if (resizing) {
-            if (e) e.preventDefault();
-            const dx = clientX - sx, dy = clientY - sy;
-            app.style.width  = `${Math.max(280, sw + dx)}px`;
-            app.style.height = `${Math.max(120, sh + dy)}px`;
-        }
-    }
-    
-    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+function closeDragElement() {
+    document.onmouseup = null;
+    document.onmousemove = null;
+}
 
-    function endDrag() {
-        if (dragging) {
-            const transform = app.style.transform;
-            const match = transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
-            if (match) {
-                const dx = parseFloat(match[1]) || 0;
-                const dy = parseFloat(match[2]) || 0;
-                app.style.transform = '';
-                app.style.left = `${ax + dx}px`;
-                app.style.top = `${ay + dy}px`;
-            }
-        }
-        dragging = false; resizing = false;
-        handle.classList.remove('dragging');
-    }
-    window.addEventListener('mouseup', endDrag);
-})();
+// Resize handle logic remains similar if needed, but usually not for fixed/micro modes
+const rh = document.getElementById('resize-handle');
+if (rh) {
+    rh.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResize);
+    });
+}
+function resize(e) {
+    if(elmnt.classList.contains('micro-mode')) return; // Disable resize in micro mode
+    elmnt.style.width = Math.max(280, e.clientX - elmnt.getBoundingClientRect().left) + 'px';
+    elmnt.style.height = Math.max(200, e.clientY - elmnt.getBoundingClientRect().top) + 'px';
+}
+function stopResize() {
+    window.removeEventListener('mousemove', resize);
+    window.removeEventListener('mouseup', stopResize);
+}
 </script>
 </body>
 </html>
