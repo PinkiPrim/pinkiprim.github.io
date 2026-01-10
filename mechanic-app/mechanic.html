@@ -86,14 +86,14 @@
         }
         .micro-btn:hover { background: var(--primary); color: white; }
 
-        /* --- HEADER & ANIMATION --- */
+        /* --- HEADER & ANIMATION (55px HEIGHT) --- */
         header {
-            /* Garage Gradient */
             background: linear-gradient(135deg, #01579b, #0288d1, #01579b);
             background-size: 200% 200%;
             animation: shopLight 5s ease infinite;
-            padding: 10px 12px 0 12px; /* Top padding for alignment */
-            height: 85px; /* Increased height for scene */
+            /* Tighter padding for 55px height */
+            padding: 2px 10px; 
+            height: 55px; 
             cursor: move;
             display: flex; justify-content: space-between; align-items: flex-start;
             position: relative;
@@ -107,49 +107,49 @@
             100% { background-position: 0% 50%; }
         }
 
-        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; margin-top: 4px; }
         .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
         .nav-icon:hover { color: #fff; }
         
         .header-title {
             font-family: 'Rajdhani', sans-serif; font-weight: 900;
-            text-transform: uppercase; letter-spacing: 1px; font-size: 1.3em;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 1.2em;
             z-index: 10;
-            margin-top: 0px; /* Fixed alignment */
+            margin-top: 2px; /* Push to top */
             text-shadow: 0 2px 4px rgba(0,0,0,0.6);
         }
 
         /* SCENE CONTAINER */
         #mech-scene {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 45px;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 35px;
             pointer-events: none; overflow: hidden;
         }
 
-        /* ACTORS */
-        .actor { position: absolute; bottom: 2px; font-size: 1.8em; }
+        /* ACTORS (Scaled down for 55px) */
+        .actor { position: absolute; bottom: 0px; font-size: 1.6em; }
         
-        #truck { left: -60px; z-index: 5; transform: scaleX(-1); } /* Flip to face right */
+        #truck { left: -60px; z-index: 5; transform: scaleX(-1); }
         #mechanic { left: -50px; z-index: 6; opacity: 0; }
         #car { right: 10px; z-index: 4; filter: grayscale(100%); } 
-        #tool { position: absolute; bottom: 20px; right: 15px; font-size: 1.2em; opacity: 0; z-index: 7; }
+        #tool { position: absolute; bottom: 15px; right: 15px; font-size: 1.1em; opacity: 0; z-index: 7; }
 
-        /* --- COMPLEX SCENE ANIMATION (14s Cycle) --- */
+        /* --- SCENE ANIMATION --- */
         @keyframes driveIn {
             0% { left: -60px; }
-            10% { left: 20px; } /* Arrive */
-            85% { left: 20px; } /* Wait for mech */
-            100% { left: 350px; } /* Drive off */
+            10% { left: 20px; } 
+            85% { left: 20px; } 
+            100% { left: 350px; } 
         }
         #truck { animation: driveIn 14s linear infinite; }
 
         @keyframes fixAction {
-            0%, 10% { opacity: 0; left: 20px; transform: scaleX(-1); } /* In truck */
-            11% { opacity: 1; left: 20px; transform: scaleX(-1); } /* Get out (Face Right) */
-            25% { left: 230px; transform: scaleX(-1); } /* Walk to car (Face Right) */
-            60% { left: 230px; transform: scaleX(-1); } /* Stay at car working */
-            70% { left: 20px; transform: scaleX(1); } /* Walk back (Face Left) */
-            84% { opacity: 1; left: 20px; transform: scaleX(1); } /* At door */
-            85% { opacity: 0; } /* Get in */
+            0%, 10% { opacity: 0; left: 20px; transform: scaleX(-1); } 
+            11% { opacity: 1; left: 20px; transform: scaleX(-1); } 
+            25% { left: 230px; transform: scaleX(-1); } 
+            60% { left: 230px; transform: scaleX(-1); } 
+            70% { left: 20px; transform: scaleX(1); } 
+            84% { opacity: 1; left: 20px; transform: scaleX(1); } 
+            85% { opacity: 0; } 
             100% { opacity: 0; left: 20px; }
         }
         #mechanic { animation: fixAction 14s linear infinite; }
@@ -157,9 +157,9 @@
         @keyframes wrenchTurn {
             0%, 25% { opacity: 0; }
             26% { opacity: 1; transform: translateY(0px) rotate(0deg); }
-            35% { transform: translateY(8px) rotate(-45deg); } /* Move down and rotate */
-            45% { transform: translateY(0px) rotate(0deg); } /* Move up */
-            55% { opacity: 1; transform: translateY(8px) rotate(-45deg); } /* Move down and rotate */
+            35% { transform: translateY(5px) rotate(-45deg); } /* Reduced Y for smaller height */
+            45% { transform: translateY(0px) rotate(0deg); } 
+            55% { opacity: 1; transform: translateY(5px) rotate(-45deg); } 
             56% { opacity: 0; }
             100% { opacity: 0; }
         }
@@ -167,41 +167,41 @@
 
         @keyframes carFix {
             0%, 50% { filter: grayscale(100%); }
-            55% { filter: grayscale(0%); filter: drop-shadow(0 0 5px gold); } /* Fixed! */
+            55% { filter: grayscale(0%); filter: drop-shadow(0 0 5px gold); } 
             90% { opacity: 1; }
-            95% { opacity: 0; } /* Reset scene */
+            95% { opacity: 0; } 
             100% { opacity: 0; filter: grayscale(100%); }
         }
         #car { animation: carFix 14s linear infinite; }
 
 
-        /* NAME ANIMATION (Hammer Fix) */
+        /* NAME ANIMATION (Adjusted for 55px) */
         #user-name-mech {
-            position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
-            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.9em;
+            position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em;
             white-space: nowrap; color: #ddd;
             animation: nameBreakFix 14s ease-in-out infinite;
             z-index: 15;
         }
         
         #hammer-anim {
-            position: absolute; top: 15px; left: 60%; 
-            font-size: 1.5em; opacity: 0;
+            position: absolute; top: 5px; left: 60%; 
+            font-size: 1.2em; opacity: 0;
             animation: hammerSmack 14s ease-in-out infinite;
             z-index: 16;
         }
 
         @keyframes nameBreakFix {
-            0%, 40% { transform: translateX(-50%) rotate(15deg) translateY(5px); color: #aaa; letter-spacing: -1px; } /* Broken */
-            43% { transform: translateX(-50%) rotate(0deg) translateY(0px); color: #fff; letter-spacing: 1px; text-shadow: 0 0 10px var(--primary); } /* Fixed */
+            0%, 40% { transform: translateX(-50%) rotate(15deg) translateY(3px); color: #aaa; letter-spacing: -1px; } 
+            43% { transform: translateX(-50%) rotate(0deg) translateY(0px); color: #fff; letter-spacing: 1px; text-shadow: 0 0 10px var(--primary); } 
             90% { opacity: 1; }
             100% { opacity: 0; }
         }
 
         @keyframes hammerSmack {
             0%, 38% { opacity: 0; transform: rotate(45deg); }
-            40% { opacity: 1; top: 15px; transform: rotate(45deg); } /* Raise */
-            42% { top: 35px; transform: rotate(-45deg); } /* SMACK */
+            40% { opacity: 1; top: 5px; transform: rotate(45deg); } 
+            42% { top: 20px; transform: rotate(-45deg); } /* Shortened smack distance */
             45% { opacity: 0; }
             100% { opacity: 0; }
         }
@@ -607,8 +607,8 @@
     const microView = document.getElementById("micro-view");
     let isDragging = false, startX, startY, initialLeft, initialTop;
 
-    header.addEventListener('mousedown', dragStart);
-    microView.addEventListener('mousedown', dragStart);
+    header.onmousedown = dragStart;
+    microView.onmousedown = dragStart;
 
     function dragStart(e) {
         if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
