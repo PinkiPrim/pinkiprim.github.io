@@ -390,37 +390,53 @@
         }, 1500); 
     }
 
+    // --- FIX FOR VERIFYING LOOP ---
     function submitPin() {
         const pin = document.getElementById('login-pin').value;
+        const statusEl = document.getElementById('login-status');
+        const btn = document.getElementById('btn-enter');
+
         if(pin.length < 4) {
-            document.getElementById('login-status').innerText = "PIN must be at least 4 digits";
-            document.getElementById('login-status').style.color = "#ff4444";
+            statusEl.innerText = "PIN must be at least 4 digits";
+            statusEl.style.color = "#ff4444";
             return;
         }
         userData.pin = pin;
-        document.getElementById('btn-enter').disabled = true;
-        document.getElementById('btn-enter').innerText = "VERIFYING...";
+        
+        btn.disabled = true;
+        btn.innerText = "VERIFYING...";
+        statusEl.innerText = "Connecting to Server...";
+        statusEl.style.color = "#888";
 
+        // USE GET REQUEST TO ENSURE JSON RESPONSE IS READABLE
         fetch(`${CONST_GOOGLE_URL}?action=login&userId=${userData.id}&name=${userData.name}&pin=${userData.pin}`)
         .then(res => res.json())
         .then(data => {
-            if (data.status === "success") {
+            if (data && data.status === "success") {
                 isAuthenticated = true; 
                 document.getElementById('login-screen').style.display = 'none';
                 if(data.msg === "PIN Set") alert("Your PIN has been set to: " + pin + ". Don't forget it!");
                 document.body.classList.remove('docked-mode');
                 enterMarket();
-            } else if (data.status === "error" && data.msg.includes("ID Not Found")) {
-                document.getElementById('login-status').innerText = "ID NOT WHITELISTED.";
-                document.getElementById('login-status').style.color = "#ff4444";
+            } else if (data && data.status === "error" && data.msg.includes("ID Not Found")) {
+                statusEl.innerText = "ID NOT WHITELISTED.";
+                statusEl.style.color = "#ff4444";
                 document.getElementById('pin-section').style.display = 'none';
                 document.getElementById('btn-request').style.display = 'block';
             } else {
-                document.getElementById('login-status').innerText = data.msg;
-                document.getElementById('login-status').style.color = "#ff4444";
-                document.getElementById('btn-enter').disabled = false;
-                document.getElementById('btn-enter').innerText = "LOGIN";
+                // If data is undefined or status is error
+                statusEl.innerText = (data && data.msg) ? data.msg : "Connection Failed. Try again.";
+                statusEl.style.color = "#ff4444";
+                btn.disabled = false;
+                btn.innerText = "LOGIN";
             }
+        })
+        .catch(err => {
+            console.error("Login Fetch Error:", err);
+            statusEl.innerText = "CONNECTION ERROR (Network)";
+            statusEl.style.color = "#ff4444";
+            btn.disabled = false;
+            btn.innerText = "LOGIN";
         });
     }
 
@@ -474,7 +490,6 @@
         document.getElementById('login-screen').style.display = 'none';
     }
 
-    // [Standard Functions]
     function openSubmenu(view) {
         lastView = view;
         document.getElementById('pivot-wrapper').classList.add('expanded');
@@ -482,6 +497,7 @@
         document.getElementById('main-menu').style.pointerEvents = 'none';
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-' + view).style.display = 'flex';
+        // Always fetch data when opening a view
         if(view === 'browse' || view === 'mydata' || view === 'hk' || view === 'users') fetchData(view);
         setTimeout(() => document.getElementById('submenu-layer').classList.add('active'), 300);
     }
@@ -581,6 +597,7 @@
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
+        // Polling details is good for live updates
         if(pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(refreshDetail, 1000);
         renderDetail(item);
@@ -588,8 +605,14 @@
 
     function refreshDetail() {
         fetch(`${CONST_GOOGLE_URL}?action=getAll&userId=${userData.id}`).then(r=>r.json()).then(data=>{
-            currentData = data; const item = data.find(i => String(i.id) === String(currentDetailId));
-            if(item) renderDetail(item);
+            currentData = data; 
+            const item = data.find(i => String(i.id) === String(currentDetailId));
+            if(item) {
+                renderDetail(item);
+            } else {
+                // Item deleted or gone?
+                // optionally handle this
+            }
         });
     }
 
@@ -658,7 +681,6 @@
         }
     }
 
-    // --- TIMERS ---
     function updateAllTimers() {
         const now = new Date().getTime();
         document.querySelectorAll('.card-timer').forEach(el => {
@@ -676,7 +698,6 @@
         return `${h}h ${m}m ${s}s`;
     }
 
-    // --- PIN MODAL ---
     function promptAdminAction(actionType, extraData) {
         pendingAdminAction = { type: actionType, data: extraData };
         document.getElementById('pin-modal').style.display = 'flex';
@@ -715,7 +736,6 @@
         });
     }
 
-    // --- STANDARD ACTIONS ---
     function removeListing() {
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
@@ -730,7 +750,7 @@
         }).then(() => { returnToLastView(); });
     }
 
-    // --- WALLET CHECKED BIDDING FIX (Replaced Alert) ---
+    // --- WALLET CHECKED BIDDING FIX ---
     function placeBid() {
         let amt = document.getElementById('detail-bid-input').value;
         let status = document.getElementById('bid-status'); // Status div
@@ -797,14 +817,23 @@
         });
     }
 
+    // --- FIX FOR HOUSEKEEPING REFRESH ---
     function returnToLastView() {
+        // Stop detail polling
         if(pollingInterval) clearInterval(pollingInterval);
+        
         const wrapper = document.getElementById('pivot-wrapper');
         document.body.classList.remove('mini-mode');
         wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = ''; wrapper.style.width = ''; wrapper.style.height = '';
+        
         document.getElementById('view-detail').style.display = 'none';
+        
+        // Ensure lastView is valid, default to 'browse'
         if (!lastView || !document.getElementById('view-' + lastView)) lastView = 'browse';
+        
         document.getElementById('view-' + lastView).style.display = 'flex';
+        
+        // FORCE REFRESH OF DATA FOR THE VIEW WE ARE RETURNING TO
         fetchData(lastView);
     }
 
