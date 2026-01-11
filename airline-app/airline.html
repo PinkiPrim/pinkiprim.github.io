@@ -33,7 +33,7 @@
         #tracker-app {
             position: absolute;
             top: 50px; left: 50px;
-            width: 320px; /* Standard Width */
+            width: 320px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -44,24 +44,20 @@
             min-height: 200px;
         }
 
-        /* --- MINI MODE (Double Line Bar) --- */
+        /* --- MINI MODE --- */
         #tracker-app.mini-mode {
             width: 420px !important;
-            height: 74px !important; /* Double Line Height */
+            height: 74px !important;
             min-height: 74px !important;
             border-radius: 12px;
             background: rgba(10, 10, 10, 0.98);
             border: 1px solid var(--primary);
         }
 
-        /* Hide Standard Elements in Mini Mode */
         #tracker-app.mini-mode header, 
         #tracker-app.mini-mode #sky-container, 
-        #tracker-app.mini-mode #content {
-            display: none !important;
-        }
+        #tracker-app.mini-mode #content { display: none !important; }
 
-        /* Show Micro Elements in Mini Mode */
         #micro-view {
             display: none;
             flex-direction: column;
@@ -71,32 +67,19 @@
             font-family: 'Rajdhani', sans-serif;
             cursor: move;
         }
-
         #tracker-app.mini-mode #micro-view { display: flex; }
 
-        /* Mini Rows */
-        .micro-row {
-            display: flex; justify-content: space-between; align-items: center;
-            width: 100%; height: 50%;
-        }
-        
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
         .micro-group { display: flex; align-items: center; gap: 8px; }
         .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
-        
         .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
         .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
         .micro-val.highlight { color: var(--primary); }
         .micro-val.active { color: var(--green); }
         .micro-val.urgent { color: var(--red); }
-
-        /* Mini Progress Bar */
-        .micro-progress-bg {
-            width: 60px; height: 6px; background: rgba(255,255,255,0.1);
-            border-radius: 3px; overflow: hidden; margin: 0 5px;
-        }
-        .micro-progress-fill {
-            height: 100%; background: var(--primary); width: 0%;
-        }
+        
+        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
 
         .micro-btn {
             position: absolute; top: 4px; right: 4px;
@@ -191,7 +174,7 @@
         .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em; }
         .run-val { font-weight: bold; color: #fff; }
         .run-label { font-size: 0.8em; color: #aaa; }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; text-align: center; }
         .inv-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; border-left: 3px solid var(--text-dim); }
         .inv-name { font-size: 0.85em; }
@@ -210,7 +193,7 @@
 <body>
 
 <div id="tracker-app">
-    <div id="micro-view" onmousedown="dragMouseDown(event)">
+    <div id="micro-view">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
         
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -321,8 +304,9 @@
             </div>
 
             <div class="stat-grid">
-                <div class="stat-box"><div class="label">Pilot Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Bonus XP</div><div class="value bxp" id="disp-bxp">0</div></div>
                 <div class="stat-box"><div class="label">Flights Done</div><div class="value" id="disp-drops" style="color:var(--accent)">0</div></div>
+                <div class="stat-box"><div class="label">Tokens</div><div class="value" id="disp-tokens" style="color:var(--accent)">0</div></div>
             </div>
         </div>
 
@@ -357,31 +341,31 @@
 // --- STATE ---
 let SESSION_START_TIME = Date.now();
 const JOB_EXP_KEY = "exp_piloting_piloting";
-const JOB_BXP_KEY_A = "exp_token_a|piloting|piloting";
-const JOB_BXP_KEY_B = "exp_token|piloting|piloting";
+const JOB_BXP_KEY_BONUS = "exp_token|piloting|piloting"; // Bonus XP
+const JOB_BXP_KEY_TOKEN = "exp_token_a|piloting|piloting"; // Pilot Tokens
 const ITEM_MEAL = "fridge_airline_meal";
 const STORAGE_KEY_CALC = "target_xp_airline"; 
 const STORAGE_KEY_MINI = "mini_mode_airline";
 
 let routeResetTimeout = null;
-let hasCountedCurrent = false;
 let TRUNK_KEY = null;
 
 const MEMORY = { inventory: {}, trunk: {} };
-const STATE = { currentXP: 0, startXP: 0, sessionGain: 0, completedRuns: 0, avgXP: 0 };
+const STATE = { 
+    currentXP: 0, startXP: 0, sessionGain: 0, completedRuns: 0, avgXP: 0,
+    isDeboarding: false 
+};
 
 // --- INIT ---
 const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
 if (savedTarget) document.getElementById('target-input').value = savedTarget;
 
-// RESTORE MINI MODE
 const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
 if (savedMini === "true") {
     document.getElementById('tracker-app').classList.add('mini-mode');
     document.getElementById('mini-btn').innerText = "FULL";
 }
 
-// --- MINI MODE TOGGLE ---
 function toggleMini() {
     const app = document.getElementById('tracker-app');
     app.classList.toggle('mini-mode');
@@ -390,7 +374,6 @@ function toggleMini() {
     localStorage.setItem(STORAGE_KEY_MINI, isMini);
 }
 
-// --- ANIMATION ---
 const nameEl = document.getElementById('user-name-fly');
 function startNameCycle() {
     nameEl.style.animation = 'none'; nameEl.offsetHeight; 
@@ -398,7 +381,6 @@ function startNameCycle() {
 }
 startNameCycle();
 
-// --- CLOCK ---
 setInterval(() => {
     document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }, 1000);
@@ -408,7 +390,7 @@ function requestData() {
     if(window.parent) {
         try { 
             let keys = [
-                "exp_piloting_piloting", "exp_token_a|piloting|piloting", "exp_token|piloting|piloting",
+                JOB_EXP_KEY, JOB_BXP_KEY_BONUS, JOB_BXP_KEY_TOKEN,
                 "status", "inventory", "chest", "trunkCapacity", "trunkWeight", "name" 
             ];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
@@ -429,7 +411,7 @@ window.addEventListener('message', (event) => {
 function processPayload(data) {
     if (data.name) document.getElementById('user-name-fly').innerText = "Pilot " + data.name;
 
-    // 1. STATUS PARSING
+    // 1. STATUS & FLIGHT LOGIC
     if (data.status) {
         if (routeResetTimeout) { clearTimeout(routeResetTimeout); routeResetTimeout = null; }
         try {
@@ -441,23 +423,19 @@ function processPayload(data) {
                     let rawStatusLine = cleanString(lines[0]); 
                     let cleanStatus = rawStatusLine.replace("Status:", "").replace(/\(\d+\s*seconds?\)/i, "").trim();
                     let timerMatch = rawStatusLine.match(/\((\d+)\s*seconds?\)/i);
-                    let timerEl = document.getElementById('disp-timer');
-                    let microTimer = document.getElementById('micro-timer');
-                    let microStatus = document.getElementById('micro-status');
                     
                     document.getElementById('disp-status').innerText = cleanStatus || "ACTIVE";
-                    microStatus.innerText = cleanStatus || "ACTIVE";
+                    document.getElementById('micro-status').innerText = cleanStatus || "ACTIVE";
 
+                    let timerEl = document.getElementById('disp-timer');
+                    let microTimer = document.getElementById('micro-timer');
                     if (timerMatch) {
                         let sec = parseInt(timerMatch[1]);
                         timerEl.innerText = sec + "s";
                         microTimer.innerText = sec + "s";
-                        
-                        let timerClass = (sec <= 10) ? "timer-line urgent" : "timer-line active";
-                        let microClass = (sec <= 10) ? "micro-val urgent" : "micro-val active";
-                        
-                        timerEl.className = timerClass;
-                        microTimer.className = microClass;
+                        let urgentClass = (sec <= 10) ? "urgent" : "active";
+                        timerEl.className = `timer-line ${urgentClass}`;
+                        microTimer.className = `micro-val ${urgentClass}`;
                     } else {
                         timerEl.innerText = "--";
                         microTimer.innerText = "--";
@@ -465,14 +443,18 @@ function processPayload(data) {
                         microTimer.className = "micro-val";
                     }
 
-                    if (cleanStatus.toUpperCase().includes("DEBOARDING")) {
-                        if (!hasCountedCurrent) {
+                    // --- FLIGHT COMPLETION LOGIC (Clean Landing Fix) ---
+                    const statusUpper = cleanStatus.toUpperCase();
+
+                    if (statusUpper.includes("DE-BOARDING") || statusUpper.includes("DEBOARDING")) {
+                         STATE.isDeboarding = true; 
+                    } else {
+                        // If we WERE deboarding, and now we are NOT (e.g. Idle/Boarding), flight complete
+                        if (STATE.isDeboarding === true) {
                             STATE.completedRuns++;
-                            hasCountedCurrent = true; 
+                            STATE.isDeboarding = false; // Reset flag
                             updateAverages();
                         }
-                    } else if ((cleanStatus.toUpperCase().includes("BOARDING") || cleanStatus.toUpperCase().includes("ROUTE")) && !cleanStatus.toUpperCase().includes("DEBOARDING")) {
-                        hasCountedCurrent = false;
                     }
                 }
 
@@ -498,19 +480,23 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 3. INVENTORY LOGIC
-    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) TRUNK_KEY = "chest_" + data.chest;
+    // 3. INVENTORY LOGIC (Meals)
+    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
+        TRUNK_KEY = "chest_" + data.chest;
+    }
     
     if(data.inventory) {
-        try { let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; if(inv && Object.keys(inv).length > 0) MEMORY.inventory = inv; } catch(e){}
+        try { let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; if(inv) MEMORY.inventory = inv; } catch(e){}
     }
     if(TRUNK_KEY && data[TRUNK_KEY]) {
-        try { let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; if(trunk && Object.keys(trunk).length > 0) MEMORY.trunk = trunk; } catch(e){}
+        try { let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; if(trunk) MEMORY.trunk = trunk; } catch(e){}
     }
     
     let totalMeals = 0;
-    if(MEMORY.inventory && MEMORY.inventory[ITEM_MEAL]) totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
-    if(MEMORY.trunk && MEMORY.trunk[ITEM_MEAL]) totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
+    // Check Inventory
+    if(MEMORY.inventory[ITEM_MEAL]) totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
+    // Check Trunk (Fridge)
+    if(MEMORY.trunk[ITEM_MEAL]) totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
     
     const mealEl = document.getElementById('stock-meal');
     const mealRow = document.getElementById('row-meal');
@@ -527,13 +513,23 @@ function processPayload(data) {
         microMeal.className = "micro-val";
     }
 
-    // 4. BXP LOGIC
-    let bxp = data[JOB_BXP_KEY_A] || data[JOB_BXP_KEY_B];
-    if (!bxp && MEMORY.inventory) bxp = MEMORY.inventory[JOB_BXP_KEY_A] || MEMORY.inventory[JOB_BXP_KEY_B];
+    // 4. BXP / TOKENS LOGIC (Separated)
+    // Bonus XP Pool
+    let bxp = data[JOB_BXP_KEY_BONUS];
+    if (!bxp && MEMORY.inventory) bxp = MEMORY.inventory[JOB_BXP_KEY_BONUS];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         let txt = formatNumber(val);
         document.getElementById('disp-bxp').innerText = txt;
+    }
+
+    // Pilot Tokens (Tradable)
+    let tokens = data[JOB_BXP_KEY_TOKEN];
+    if (!tokens && MEMORY.inventory) tokens = MEMORY.inventory[JOB_BXP_KEY_TOKEN];
+    if (tokens) {
+        let val = (typeof tokens === 'object') ? tokens.amount : tokens;
+        let txt = formatNumber(val);
+        document.getElementById('disp-tokens').innerText = txt;
         document.getElementById('micro-tokens').innerText = txt;
     }
 }
@@ -567,7 +563,6 @@ function renderStats() {
     document.getElementById('disp-xp-drop').innerText = Math.round(STATE.avgXP) + " XP";
     
     document.getElementById('disp-drops').innerText = STATE.completedRuns;
-    // Flights done not in mini bar due to space, but tokens are there.
 
     const needed = Math.round(lvl.expForNext - lvl.expInLevel);
     document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
@@ -639,7 +634,7 @@ function runCalculator() {
     }
 }
 
-// --- FIXED DRAG HANDLER (1:1 Movement) ---
+// --- DRAG HANDLER ---
 let elmnt = document.getElementById("tracker-app");
 let header = document.getElementById("drag-handle");
 let microView = document.getElementById("micro-view");
@@ -647,22 +642,18 @@ let microView = document.getElementById("micro-view");
 let isDragging = false;
 let startX, startY, initialLeft, initialTop;
 
-// Attach listeners
 header.addEventListener("mousedown", dragStart);
 microView.addEventListener("mousedown", dragStart);
 
 function dragStart(e) {
     if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
     e.preventDefault();
-    
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
-    
     const rect = elmnt.getBoundingClientRect();
     initialLeft = rect.left;
     initialTop = rect.top;
-    
     document.addEventListener("mousemove", dragMove);
     document.addEventListener("mouseup", dragEnd);
 }
@@ -670,10 +661,8 @@ function dragStart(e) {
 function dragMove(e) {
     if (!isDragging) return;
     e.preventDefault();
-    
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    
     elmnt.style.left = `${initialLeft + dx}px`;
     elmnt.style.top = `${initialTop + dy}px`;
 }
@@ -684,7 +673,7 @@ function dragEnd() {
     document.removeEventListener("mouseup", dragEnd);
 }
 
-// Resize handle logic
+// Resize logic
 const rh = document.getElementById('resize-handle');
 if (rh) {
     rh.addEventListener('mousedown', (e) => {
@@ -703,5 +692,3 @@ function stopResize() {
     window.removeEventListener('mouseup', stopResize);
 }
 </script>
-</body>
-</html>
