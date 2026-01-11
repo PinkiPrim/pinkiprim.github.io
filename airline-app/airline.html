@@ -89,7 +89,7 @@
         }
         .micro-btn:hover { background: var(--primary); color: white; }
 
-        /* --- STANDARD HEADER & SKY --- */
+        /* --- HEADER --- */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
             height: 65px; 
@@ -148,7 +148,7 @@
         #mini-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
 
-        /* --- STANDARD CONTENT --- */
+        /* --- CONTENT --- */
         #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .route-box { background: rgba(3, 169, 244, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center; }
         .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
@@ -194,7 +194,7 @@
 
 <div id="tracker-app">
     <div id="micro-view">
-        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+        <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
         
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
             <div class="micro-group">
@@ -259,7 +259,7 @@
         <div id="user-name-fly">Pilot ...</div>
 
         <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
-            <button id="mini-btn" onclick="toggleMini()">MINI</button>
+            <button id="mini-btn" onclick="window.toggleMini()">MINI</button>
             <span id="clock">00:00</span>
         </div>
     </header>
@@ -325,9 +325,9 @@
             <input type="number" id="target-input" placeholder="e.g. 500000">
             
             <div class="quick-btn-row">
-                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
-                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
-                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+                <button class="quick-btn" onclick="window.setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="window.setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="window.setCalc(10000000)">10M</button>
             </div>
 
             <div class="calc-output" id="calc-result">Complete 1 flight to calibrate...</div>
@@ -341,8 +341,11 @@
 // --- STATE ---
 let SESSION_START_TIME = Date.now();
 const JOB_EXP_KEY = "exp_piloting_piloting";
-const JOB_BXP_KEY_BONUS = "exp_token|piloting|piloting"; // Bonus XP
-const JOB_BXP_KEY_TOKEN = "exp_token_a|piloting|piloting"; // Pilot Tokens
+
+// --- KEY SWAP: _a = Pool (Bonus XP), no_a = Token (Physical Item) ---
+const JOB_BXP_KEY_BONUS = "exp_token_a|piloting|piloting"; 
+const JOB_BXP_KEY_TOKEN = "exp_token|piloting|piloting"; 
+
 const ITEM_MEAL = "fridge_airline_meal";
 const STORAGE_KEY_CALC = "target_xp_airline"; 
 const STORAGE_KEY_MINI = "mini_mode_airline";
@@ -366,13 +369,18 @@ if (savedMini === "true") {
     document.getElementById('mini-btn').innerText = "FULL";
 }
 
-function toggleMini() {
+window.toggleMini = function() {
     const app = document.getElementById('tracker-app');
     app.classList.toggle('mini-mode');
     const isMini = app.classList.contains('mini-mode');
     document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
     localStorage.setItem(STORAGE_KEY_MINI, isMini);
-}
+};
+
+window.setCalc = function(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator();
+};
 
 const nameEl = document.getElementById('user-name-fly');
 function startNameCycle() {
@@ -391,9 +399,11 @@ function requestData() {
         try { 
             let keys = [
                 JOB_EXP_KEY, JOB_BXP_KEY_BONUS, JOB_BXP_KEY_TOKEN,
-                "status", "inventory", "chest", "trunkCapacity", "trunkWeight", "name" 
+                "status", "inventory", "chest", "trunkCapacity", "trunkWeight", "name", "vehicle"
             ];
+            // If we found a dynamic trunk key, add it to requests
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
+            
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
             window.parent.postMessage({ type: "getData" }, "*"); 
         } catch(e) {}
@@ -443,16 +453,15 @@ function processPayload(data) {
                         microTimer.className = "micro-val";
                     }
 
-                    // --- FLIGHT COMPLETION LOGIC (Clean Landing Fix) ---
+                    // --- FLIGHT COUNTER (Wait for Deboarding to END) ---
                     const statusUpper = cleanStatus.toUpperCase();
-
                     if (statusUpper.includes("DE-BOARDING") || statusUpper.includes("DEBOARDING")) {
                          STATE.isDeboarding = true; 
                     } else {
-                        // If we WERE deboarding, and now we are NOT (e.g. Idle/Boarding), flight complete
+                        // Status changed FROM deboarding TO something else (Idle/Boarding)
                         if (STATE.isDeboarding === true) {
                             STATE.completedRuns++;
-                            STATE.isDeboarding = false; // Reset flag
+                            STATE.isDeboarding = false; 
                             updateAverages();
                         }
                     }
@@ -480,22 +489,39 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 3. INVENTORY LOGIC (Meals)
-    if(data.chest && typeof data.chest === 'string' && data.chest.includes("veh_")) {
-        TRUNK_KEY = "chest_" + data.chest;
+    // 3. INVENTORY LOGIC (Smart Fridge Detection)
+    // Scan for a chest key that matches the current vehicle ID (e.g., 'iy69')
+    // This ignores chests from other parked planes.
+    let currentVeh = data.vehicle ? data.vehicle.trim().toLowerCase() : "";
+    
+    if (currentVeh && (!TRUNK_KEY || !TRUNK_KEY.includes(currentVeh))) {
+        // Find matching chest
+        for (let key in data) {
+            if (key.startsWith("chest_") && key.includes(currentVeh)) {
+                TRUNK_KEY = key;
+                break;
+            }
+        }
     }
     
     if(data.inventory) {
         try { let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; if(inv) MEMORY.inventory = inv; } catch(e){}
     }
     if(TRUNK_KEY && data[TRUNK_KEY]) {
-        try { let trunk = (typeof data[TRUNK_KEY] === 'string') ? JSON.parse(data[TRUNK_KEY]) : data[TRUNK_KEY]; if(trunk) MEMORY.trunk = trunk; } catch(e){}
+        try { 
+            // Handle empty string case for chest data
+            let trunkData = data[TRUNK_KEY];
+            if (trunkData && trunkData !== "") {
+                let trunk = (typeof trunkData === 'string') ? JSON.parse(trunkData) : trunkData; 
+                if(trunk) MEMORY.trunk = trunk; 
+            } else {
+                MEMORY.trunk = {}; // Empty fridge
+            }
+        } catch(e) { MEMORY.trunk = {}; }
     }
     
     let totalMeals = 0;
-    // Check Inventory
     if(MEMORY.inventory[ITEM_MEAL]) totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
-    // Check Trunk (Fridge)
     if(MEMORY.trunk[ITEM_MEAL]) totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
     
     const mealEl = document.getElementById('stock-meal');
@@ -513,17 +539,14 @@ function processPayload(data) {
         microMeal.className = "micro-val";
     }
 
-    // 4. BXP / TOKENS LOGIC (Separated)
-    // Bonus XP Pool
+    // 4. BXP & TOKENS (Swapped Logic)
     let bxp = data[JOB_BXP_KEY_BONUS];
     if (!bxp && MEMORY.inventory) bxp = MEMORY.inventory[JOB_BXP_KEY_BONUS];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
-        let txt = formatNumber(val);
-        document.getElementById('disp-bxp').innerText = txt;
+        document.getElementById('disp-bxp').innerText = formatNumber(val);
     }
 
-    // Pilot Tokens (Tradable)
     let tokens = data[JOB_BXP_KEY_TOKEN];
     if (!tokens && MEMORY.inventory) tokens = MEMORY.inventory[JOB_BXP_KEY_TOKEN];
     if (tokens) {
@@ -531,6 +554,9 @@ function processPayload(data) {
         let txt = formatNumber(val);
         document.getElementById('disp-tokens').innerText = txt;
         document.getElementById('micro-tokens').innerText = txt;
+    } else {
+        document.getElementById('disp-tokens').innerText = "0";
+        document.getElementById('micro-tokens').innerText = "0";
     }
 }
 
@@ -584,15 +610,6 @@ function getLevelInfo(exp) {
 
 function getPercentValue(exp, cap) {
     return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
-}
-
-// --- CALCULATOR ---
-const calcInput = document.getElementById('target-input');
-if(calcInput) calcInput.addEventListener('input', runCalculator);
-
-function setCalc(amount) {
-    document.getElementById('target-input').value = amount;
-    runCalculator();
 }
 
 function runCalculator() {
@@ -692,3 +709,5 @@ function stopResize() {
     window.removeEventListener('mouseup', stopResize);
 }
 </script>
+</body>
+</html>
