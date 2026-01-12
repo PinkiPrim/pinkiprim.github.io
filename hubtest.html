@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Unified Job Ops</title>
+    <style id="main-style">
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: white;
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        /* --- THE SHELL --- */
+        #app-shell {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px; min-height: 200px;
+            transition: opacity 0.3s ease, width 0.3s ease, height 0.3s ease;
+            opacity: 1;
+        }
+
+        /* --- UNKNOWN JOB OVERLAY --- */
+        #unknown-overlay {
+            position: absolute; top: 50px; left: 50px;
+            width: 600px; height: 40px;
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid #444;
+            border-radius: 20px;
+            display: flex; align-items: center;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
+            z-index: 9999;
+        }
+
+        .marquee-container {
+            width: 100%; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        .marquee-content {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 12s linear infinite;
+            font-size: 1em; font-weight: bold; line-height: 40px;
+        }
+
+        .mq-text { color: #ddd; margin-right: 4px; }
+        .mq-job { color: #fff; margin: 0 8px; font-weight: 900; letter-spacing: 1px; }
+        
+        .mq-airline { text-shadow: 0 0 10px #03a9f4; }
+        .mq-bus { text-shadow: 0 0 10px #00bcd4; }
+        .mq-cargo { text-shadow: 0 0 10px #0277bd; }
+        .mq-ems { text-shadow: 0 0 10px #e53935; }
+        .mq-fire { text-shadow: 0 0 10px #ff5100; }
+        .mq-heli { text-shadow: 0 0 10px #ff9800; }
+        .mq-hunter { text-shadow: 0 0 10px #76ff03; }
+        .mq-mech { text-shadow: 0 0 10px #0091ea; }
+        .mq-train { text-shadow: 0 0 10px #ffb300; }
+
+        @keyframes marquee {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+
+        #resize-handle {
+            position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100;
+        }
+        .mini-mode #resize-handle { display: none; }
+        .hidden { display: none !important; }
+    </style>
+    
+    <style id="job-style"></style>
+</head>
+<body>
+
+<div id="unknown-overlay" class="hidden" onmousedown="dragStart(event)">
+    <div class="marquee-container">
+        <div class="marquee-content">
+            <span class="mq-text">Unknown Job. Start:</span>
+            <span class="mq-job mq-airline">AIRLINE</span>
+            <span class="mq-job mq-bus">BUS</span>
+            <span class="mq-job mq-cargo">CARGO</span>
+            <span class="mq-job mq-ems">EMS</span>
+            <span class="mq-job mq-fire">FIRE</span>
+            <span class="mq-job mq-heli">HELI</span>
+            <span class="mq-job mq-hunter">HUNTER</span>
+            <span class="mq-job mq-mech">MECH</span>
+            <span class="mq-job mq-train">TRAIN</span>
+            <span class="mq-text">- to begin tracking.</span>
+        </div>
+    </div>
+</div>
+
+<div id="app-shell"></div>
+
+<script>
+// --- CORE SYSTEM ---
+const APP = {
+    currentJob: null,
+    shell: document.getElementById('app-shell'),
+    unknownBox: document.getElementById('unknown-overlay'),
+    styleTag: document.getElementById('job-style'),
+    activeModule: null,
+    drag: { startX:0, startY:0, l:0, t:0 }
+};
+
+// --- DATA PARSERS ---
+const UTIL = {
+    parseInv: (d) => { try { return (typeof d === 'string' ? JSON.parse(d) : d) || {}; } catch { return {}; } },
+    clean: (s) => s ? s.replace(/~[a-z]~/g, "").trim() : "",
+    num: (n) => Math.floor(n).toLocaleString(),
+    lvl: (xp) => { let l=0,c=5; while(xp>=c){xp-=c;l++;c=(l+1)*5;} return {l,p:xp,n:c}; },
+    pct: (c,t) => Math.min(100, Math.max(0, (c/t)*100)),
+    getTrunk: (d) => {
+        if(d.chest && d.chest.includes("veh_")) return "chest_"+d.chest;
+        return Object.keys(d).find(k=>k.startsWith("chest_veh_")) || null;
+    }
+};
+
+// --- JOB DEFINITIONS ---
+const JOBS = {
+    // ✈️ AIRLINE
+    "pilot_airline": {
+        css: `
+            :root { --p: #03a9f4; --bg: rgba(18,18,18,0.95); --w: #fff; --g: #00e676; --r: #ff5252; }
+            #app-shell { background:var(--bg); border:1px solid rgba(3,169,244,0.3); border-radius:8px; display:flex; flex-direction:column; overflow:hidden; }
+            #app-shell.mini-mode { width:420px!important; height:74px!important; background:#0a0a0a; border:1px solid var(--p); border-radius:12px; }
+            .mini-mode header, .mini-mode #content { display:none!important; }
+            #micro { display:none; flex-direction:column; justify-content:center; height:100%; padding:0 12px; font-family:'Rajdhani'; cursor:move; }
+            .mini-mode #micro { display:flex; }
+            .mr { display:flex; justify-content:space-between; align-items:center; height:50%; }
+            .mv { color:var(--w); font-weight:700; } .mh { color:var(--p); }
+            header { background:linear-gradient(180deg, #0277bd, rgba(3,169,244,0.2)); height:65px; padding:0 10px; cursor:move; position:relative; overflow:hidden; }
+            .ht { position:absolute; left:50%; top:25%; transform:translate(-50%,-50%); font-family:'Rajdhani'; font-weight:900; font-size:1.2em; color:var(--w); }
+            #fly-name { position:absolute; top:38px; left:-150px; font-family:'Rajdhani'; font-weight:700; color:var(--w); animation:fly 15s linear infinite; }
+            @keyframes fly { 0%{left:-150px;opacity:0} 10%{left:50%;transform:translateX(-50%);opacity:1} 90%{opacity:1} 100%{left:120%;opacity:0} }
+            #content { padding:10px; flex:1; overflow-y:auto; }
+            .box { background:rgba(3,169,244,0.1); border:1px dashed #81d4fa; border-radius:6px; padding:5px; text-align:center; margin-bottom:6px; }
+            .bar { height:14px; background:rgba(0,0,0,0.5); border-radius:4px; margin:4px 0; overflow:hidden; }
+            .fill { height:100%; background:var(--p); width:0%; transition:width 0.3s; }
+            .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; }
+            .stat { background:rgba(255,255,255,0.05); padding:5px; border-radius:4px; text-align:center; }
+            .lbl { font-size:0.7em; color:#aaa; text-transform:uppercase; }
+        `,
+        html: `
+            <div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:none;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button>
+                <div class="mr" style="border-bottom:1px solid #333"><div>✈️ <span class="mv" id="m-stat">IDLE</span></div><div><span class="mv" id="m-dest">--</span></div><div>🍱 <span class="mv" id="m-meal">0</span></div></div>
+                <div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv active" id="m-tok">0</span></div></div>
+            </div>
+            <header onmousedown="dragStart(event)">
+                <div style="font-size:1.2em;cursor:pointer">🏠</div><div class="ht">AIRLINE OPS</div><div id="fly-name">Pilot ...</div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div>
+            </header>
+            <div id="content">
+                <div class="box"><div class="lbl" style="color:#81d4fa">Destination</div><div class="mv" id="d-dest">Waiting...</div><div class="lbl" id="d-dist">Dist: -/-</div></div>
+                <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between"><div><span class="lbl">Level</span> <span class="mv mh" id="d-lvl">0</span></div><div style="text-align:right"><span class="lbl">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div></div>
+                <div class="grid"><div class="stat"><div class="lbl">BXP</div><div class="mv" style="color:var(--g)" id="d-bxp">0</div></div><div class="stat"><div class="lbl">Runs</div><div class="mv" id="d-runs">0</div></div><div class="stat"><div class="lbl">Tokens</div><div class="mv" id="d-tok">0</div></div></div>
+                <div style="margin-top:8px;background:rgba(0,0,0,0.2);padding:4px;border-radius:4px;display:flex;justify-content:space-between"><div>🍱 Meals</div><div style="font-weight:bold" id="d-meal">0</div></div>
+            </div>
+            <div id="resize-handle" onmousedown="resizeStart(event)"></div>
+        `,
+        update: (d) => {
+            const xp = d.exp_piloting_piloting || 0;
+            const l = UTIL.lvl(xp);
+            
+            // Text Updates
+            if(d.name) document.getElementById('fly-name').innerText = "Pilot "+d.name;
+            setText('d-lvl', l.l); setText('m-lvl', l.l);
+            setText('d-xp', UTIL.num(xp)); setText('m-xp', UTIL.num(xp));
+            document.getElementById('d-bar').style.width = UTIL.pct(l.p, l.n)+"%";
+            
+            // Status
+            if(d.status) {
+                try {
+                    const ln = JSON.parse(d.status).lines;
+                    setText('m-stat', UTIL.clean(ln[0]).split(":")[1]||"Active");
+                    if(ln[1]) { const dst = UTIL.clean(ln[1]).replace("Destination:",""); setText('d-dest', dst); setText('m-dest', dst.substr(0,10)); }
+                    if(ln[2]) setText('d-dist', UTIL.clean(ln[2]));
+                }catch(e){}
+            }
+            
+            // Inv
+            const inv = UTIL.parseInv(d.inventory);
+            const chest = UTIL.parseInv(d[UTIL.getTrunk(d)]);
+            const meals = (inv.fridge_airline_meal?.amount||0) + (chest.fridge_airline_meal?.amount||0);
+            setText('d-meal', meals); setText('m-meal', meals);
+            
+            // Tokens
+            const bxp = d["exp_token_a|piloting|piloting"];
+            if(bxp) setText('d-bxp', UTIL.num(bxp.amount||bxp));
+            const tok = d["exp_token|piloting|piloting"] || inv["exp_token|piloting|piloting"];
+            if(tok) { const t = UTIL.num(tok.amount||tok); setText('d-tok', t); setText('m-tok', t); }
+        }
+    },
+
+    // 🚌 BUS
+    "exp_train_bus": { // Mapped from key
+        css: `/* BUS CSS */ :root { --p: #00bcd4; --bg: rgba(18,18,18,0.95); } #app-shell { background:var(--bg); border:1px solid rgba(0,188,212,0.3); } /* Same shell/mini logic */ header { background:linear-gradient(180deg, #008ba3, rgba(0,188,212,0.2)); height:60px; padding:0 10px; cursor:move; position:relative; display:flex; justify-content:space-between; } .ht { position:absolute; left:50%; top:20%; transform:translate(-50%,-50%); font-family:'Rajdhani'; font-weight:900; font-size:1.2em; color:#fff; } #bus-anim { position:absolute; bottom:2px; left:-100px; height:32px; animation:drive 8s linear infinite; } @keyframes drive { 0%{left:-100px} 100%{left:120%} } /* ... rest of bus css ... */`,
+        html: `<header onmousedown="dragStart(event)"><div class="ht">BUS OPS</div><img id="bus-anim" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f68c.png"><div style="flex:1"></div><button onclick="toggleMini()">MINI</button></header><div id="content">...</div>`,
+        update: (d) => { /* Bus logic */ }
+    },
+    
+    // 📦 CARGO
+    "pilot_cargo": {
+        css: `:root { --p: #0277bd; } header { background:linear-gradient(180deg, #004c8c, rgba(2,119,189,0.2)); height:70px; } .crate { font-size:1.8em; animation:fall 5s linear infinite; position:absolute; top:-50px; } @keyframes fall { 100%{top:100%} }`,
+        html: `<header onmousedown="dragStart(event)"><div class="ht">CARGO OPS</div><div class="crate" style="left:20%">📦</div><div class="crate" style="left:70%;animation-delay:2s">📦</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
+        update: (d) => { /* Cargo logic */ }
+    },
+
+    // 🚑 EMS
+    "paramedic": {
+        css: `:root { --p: #e53935; } header { background:linear-gradient(180deg, #b71c1c, rgba(229,57,53,0.2)); height:60px; } #amb { position:absolute; bottom:0; left:-100px; height:45px; animation:drive 10s ease infinite; transform:scaleX(-1); } @keyframes drive { 50%{left:50%} 100%{left:120%} }`,
+        html: `<header onmousedown="dragStart(event)"><div class="ht">EMS OPS</div><img id="amb" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f691.png"><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
+        update: (d) => { /* EMS logic */ }
+    },
+
+    // 🔥 FIRE
+    "firefighter": {
+        css: `:root { --p: #ff5100; } header { background:linear-gradient(135deg, #b71c1c, #e65100); animation:fire 3s infinite; } @keyframes fire { 50%{filter:brightness(1.2)} }`,
+        html: `<header onmousedown="dragStart(event)"><div class="ht">FIRE OPS</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
+        update: (d) => { /* Fire logic */ }
+    },
+
+    // 🚁 HELI
+    "pilot_heli": {
+        css: `:root { --p: #ff9800; } header { background:linear-gradient(180deg, #b26a00, rgba(255,152,0,0.2)); } #heli { position:absolute; bottom:5px; left:20px; font-size:2em; animation:bob 2s infinite alternate; } @keyframes bob { from{transform:translateY(0)} to{transform:translateY(-5px)} }`,
+        html: `<header onmousedown="dragStart(event)"><div class="ht">HELI OPS</div><div id="heli">🚁</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
+        update: (d) => { /* Heli logic */ }
+    },
+
+    // 🏹 HUNTER
+    "exp_hunting_skill": { // Mapped
+        css: `:root { --p: #76ff03; } header { background:linear-gradient(-45deg, #000, #1b5e20); } .leaf { position:absolute; color:var(--p); animation:fall 5s infinite; }`,
+        html: `<header onmousedown="dragStart(event)"><div class="ht">HUNTER OPS</div><div class="leaf" style="left:10%">🍃</div><div class="leaf" style="left:80%;animation-delay:1s">🍃</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
+        update: (d) => { /* Hunter logic */ }
+    },
+
+    // 🔧 MECHANIC
+    "mechanic": {
+        css: `:root { --p: #0091ea; } header { background:linear-gradient(135deg, #01579b, #0288d1); } #truck { position:absolute; bottom:0; left:-60px; font-size:1.6em; animation:drive 14s linear infinite; } @keyframes drive { 100%{left:350px} }`,
+        html: `<header onmousedown="dragStart(event)"><div class="ht">MECH OPS</div><div id="truck">🛻</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
+        update: (d) => { /* Mech logic */ }
+    },
+
+    // 🚂 TRAIN
+    "exp_train_train": { // Mapped
+        css: `:root { --p: #ffb300; } header { background:linear-gradient(90deg, #5d4037, #3e2723); } .train { position:absolute; bottom:5px; left:-50px; font-size:2em; animation:choo 12s linear infinite; } @keyframes choo { 100%{left:350px} }`,
+        html: `<header onmousedown="dragStart(event)"><div class="ht">TRAIN OPS</div><div class="train">🚂</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
+        update: (d) => { /* Train logic */ }
+    }
+};
+
+// --- LOGIC MAP ---
+// Maps API 'job' name to our JOBS keys
+const JOB_MAP = {
+    "pilot_airline": "pilot_airline",
+    "paramedic": "paramedic",
+    "firefighter": "firefighter",
+    "pilot_cargo": "pilot_cargo",
+    "pilot_heli": "pilot_heli",
+    "mechanic": "mechanic",
+    // These rely on exp key detection if job name isn't specific
+    "bus": "exp_train_bus",
+    "train": "exp_train_train",
+    "hunter": "exp_hunting_skill" 
+};
+
+// --- ENGINE FUNCTIONS ---
+function setText(id, t) { const e = document.getElementById(id); if(e) e.innerText = t; }
+
+function switchJob(jobKey) {
+    if(APP.currentJob === jobKey) return;
+    
+    // 1. Check if job exists
+    if(!JOBS[jobKey]) {
+        APP.currentJob = null;
+        APP.shell.classList.add('hidden');
+        APP.unknownBox.classList.remove('hidden');
+        APP.styleTag.innerHTML = "";
+        return;
+    }
+
+    // 2. Load Job
+    APP.unknownBox.classList.add('hidden');
+    APP.shell.classList.remove('hidden');
+    APP.styleTag.innerHTML = JOBS[jobKey].css;
+    APP.shell.innerHTML = JOBS[jobKey].html;
+    
+    if(JOBS[jobKey].init) JOBS[jobKey].init();
+    APP.activeModule = JOBS[jobKey];
+    APP.currentJob = jobKey;
+
+    // Restore Mini
+    if(localStorage.getItem("mini_"+jobKey) === "true") {
+        APP.shell.classList.add('mini-mode');
+        const b = document.querySelector('button[onclick="toggleMini()"]');
+        if(b) b.innerText = "FULL";
+    }
+}
+
+window.toggleMini = function() {
+    APP.shell.classList.toggle('mini-mode');
+    const isMini = APP.shell.classList.contains('mini-mode');
+    const b = document.querySelector('button[onclick="toggleMini()"]');
+    if(b) b.innerText = isMini ? "FULL" : "MINI";
+    if(APP.currentJob) localStorage.setItem("mini_"+APP.currentJob, isMini);
+};
+
+// --- MAIN LOOP ---
+window.addEventListener('message', (e) => {
+    let d = e.data;
+    if(d.type === 'data' && d.data) d = d.data;
+    if(!d) return;
+
+    // Detect Job
+    let jobKey = d.job;
+    
+    // Fallback detection for jobs sharing names or using skills
+    if (d.exp_train_bus && d.job === "train_conductor") jobKey = "exp_train_bus";
+    if (d.exp_train_train && d.job === "train_conductor") jobKey = "exp_train_train"; 
+    
+    // Use Map
+    const mapped = JOB_MAP[jobKey] || jobKey;
+    
+    switchJob(mapped);
+    
+    if(APP.activeModule) APP.activeModule.update(d);
+    
+    const clk = document.getElementById('clock');
+    if(clk) clk.innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+});
+
+// Request Data
+setInterval(() => {
+    if(window.parent) {
+        // Request keys for ALL jobs to ensure switching works
+        const k = [
+            "job", "status", "inventory", "chest", "name",
+            "exp_piloting_piloting", "exp_token_a|piloting|piloting",
+            "exp_ems_ems", "exp_token_a|ems|ems",
+            "exp_ems_fire", "exp_token_a|ems|fire",
+            "exp_piloting_cargos", "exp_token_a|piloting|cargos",
+            "exp_piloting_heli", "exp_token_a|piloting|heli",
+            "exp_hunting_skill", "exp_token_a|hunting|skill",
+            "exp_train_train", "exp_token_a|train|train",
+            "exp_train_bus", "exp_token_a|train|bus",
+            "exp_trucking_mechanic", "exp_token_a|trucking|mechanic"
+        ];
+        try {
+            window.parent.postMessage({ type: "getNamedData", keys: k }, "*");
+            window.parent.postMessage({ type: "getData" }, "*");
+        }catch(e){}
+    }
+}, 1000);
+
+// --- DRAG ---
+window.dragStart = function(e) {
+    if(e.target.tagName === 'BUTTON') return;
+    e.preventDefault();
+    APP.drag.active = true;
+    APP.drag.startX = e.clientX;
+    APP.drag.startY = e.clientY;
+    const t = APP.currentJob ? APP.shell : APP.unknownBox;
+    const r = t.getBoundingClientRect();
+    APP.drag.l = r.left; APP.drag.t = r.top;
+    document.addEventListener('mousemove', dragMove);
+    document.addEventListener('mouseup', dragEnd);
+};
+function dragMove(e) {
+    if(!APP.drag.active) return;
+    const dx = e.clientX - APP.drag.startX;
+    const dy = e.clientY - APP.drag.startY;
+    const t = APP.currentJob ? APP.shell : APP.unknownBox;
+    t.style.left = (APP.drag.l + dx) + "px";
+    t.style.top = (APP.drag.t + dy) + "px";
+}
+function dragEnd() {
+    APP.drag.active = false;
+    document.removeEventListener('mousemove', dragMove);
+    document.removeEventListener('mouseup', dragEnd);
+}
+// --- RESIZE ---
+window.resizeStart = function(e) {
+    e.preventDefault(); e.stopPropagation();
+    window.addEventListener("mousemove", resizeMove);
+    window.addEventListener("mouseup", resizeEnd);
+};
+function resizeMove(e) {
+    if(APP.shell.classList.contains('mini-mode')) return;
+    APP.shell.style.width = Math.max(280, e.clientX - APP.shell.getBoundingClientRect().left) + 'px';
+}
+function resizeEnd() {
+    window.removeEventListener("mousemove", resizeMove);
+    window.removeEventListener("mouseup", resizeEnd);
+}
+
+</script>
+</body>
+</html>
