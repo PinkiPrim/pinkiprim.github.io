@@ -47,7 +47,7 @@
         .marquee-content {
             display: inline-block;
             padding-left: 100%;
-            animation: marquee 12s linear infinite;
+            animation: marquee 15s linear infinite;
             font-size: 1em; font-weight: bold; line-height: 40px;
         }
 
@@ -128,137 +128,177 @@ const UTIL = {
 const JOBS = {
     // ✈️ AIRLINE
     "pilot_airline": {
-        css: `
-            :root { --p: #03a9f4; --bg: rgba(18,18,18,0.95); --w: #fff; --g: #00e676; --r: #ff5252; }
-            #app-shell { background:var(--bg); border:1px solid rgba(3,169,244,0.3); border-radius:8px; display:flex; flex-direction:column; overflow:hidden; }
-            #app-shell.mini-mode { width:420px!important; height:74px!important; background:#0a0a0a; border:1px solid var(--p); border-radius:12px; }
-            .mini-mode header, .mini-mode #content { display:none!important; }
-            #micro { display:none; flex-direction:column; justify-content:center; height:100%; padding:0 12px; font-family:'Rajdhani'; cursor:move; }
-            .mini-mode #micro { display:flex; }
-            .mr { display:flex; justify-content:space-between; align-items:center; height:50%; }
-            .mv { color:var(--w); font-weight:700; } .mh { color:var(--p); }
-            header { background:linear-gradient(180deg, #0277bd, rgba(3,169,244,0.2)); height:65px; padding:0 10px; cursor:move; position:relative; overflow:hidden; }
-            .ht { position:absolute; left:50%; top:25%; transform:translate(-50%,-50%); font-family:'Rajdhani'; font-weight:900; font-size:1.2em; color:var(--w); }
-            #fly-name { position:absolute; top:38px; left:-150px; font-family:'Rajdhani'; font-weight:700; color:var(--w); animation:fly 15s linear infinite; }
-            @keyframes fly { 0%{left:-150px;opacity:0} 10%{left:50%;transform:translateX(-50%);opacity:1} 90%{opacity:1} 100%{left:120%;opacity:0} }
-            #content { padding:10px; flex:1; overflow-y:auto; }
-            .box { background:rgba(3,169,244,0.1); border:1px dashed #81d4fa; border-radius:6px; padding:5px; text-align:center; margin-bottom:6px; }
-            .bar { height:14px; background:rgba(0,0,0,0.5); border-radius:4px; margin:4px 0; overflow:hidden; }
-            .fill { height:100%; background:var(--p); width:0%; transition:width 0.3s; }
-            .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; }
-            .stat { background:rgba(255,255,255,0.05); padding:5px; border-radius:4px; text-align:center; }
-            .lbl { font-size:0.7em; color:#aaa; text-transform:uppercase; }
-        `,
-        html: `
-            <div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:none;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button>
-                <div class="mr" style="border-bottom:1px solid #333"><div>✈️ <span class="mv" id="m-stat">IDLE</span></div><div><span class="mv" id="m-dest">--</span></div><div>🍱 <span class="mv" id="m-meal">0</span></div></div>
-                <div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv active" id="m-tok">0</span></div></div>
-            </div>
-            <header onmousedown="dragStart(event)">
-                <div style="font-size:1.2em;cursor:pointer">🏠</div><div class="ht">AIRLINE OPS</div><div id="fly-name">Pilot ...</div>
-                <div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div>
-            </header>
-            <div id="content">
-                <div class="box"><div class="lbl" style="color:#81d4fa">Destination</div><div class="mv" id="d-dest">Waiting...</div><div class="lbl" id="d-dist">Dist: -/-</div></div>
-                <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between"><div><span class="lbl">Level</span> <span class="mv mh" id="d-lvl">0</span></div><div style="text-align:right"><span class="lbl">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div></div>
-                <div class="grid"><div class="stat"><div class="lbl">BXP</div><div class="mv" style="color:var(--g)" id="d-bxp">0</div></div><div class="stat"><div class="lbl">Runs</div><div class="mv" id="d-runs">0</div></div><div class="stat"><div class="lbl">Tokens</div><div class="mv" id="d-tok">0</div></div></div>
-                <div style="margin-top:8px;background:rgba(0,0,0,0.2);padding:4px;border-radius:4px;display:flex;justify-content:space-between"><div>🍱 Meals</div><div style="font-weight:bold" id="d-meal">0</div></div>
-            </div>
-            <div id="resize-handle" onmousedown="resizeStart(event)"></div>
-        `,
+        css: `:root{--p:#03a9f4;--bg:rgba(18,18,18,0.95);--w:#fff;--g:#00e676;--r:#ff5252}#app-shell{background:var(--bg);border:1px solid rgba(3,169,244,0.3);border-radius:8px;display:flex;flex-direction:column;overflow:hidden}#app-shell.mini-mode{width:420px!important;height:74px!important;background:#0a0a0a;border:1px solid var(--p);border-radius:12px}.mini-mode header,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(180deg,#0277bd,rgba(3,169,244,0.2));height:65px;padding:0 10px;cursor:move;position:relative;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.15);overflow:hidden;padding-top:5px}.ht{position:absolute;left:50%;top:25%;transform:translate(-50%,-50%);font-family:'Rajdhani';font-weight:900;font-size:1.2em;color:var(--w);z-index:10}#fly-name{position:absolute;top:38px;left:-150px;font-family:'Rajdhani';font-weight:700;font-size:0.95em;color:var(--w);animation:fly 15s linear infinite;z-index:10}@keyframes fly{0%{left:-150px;opacity:0}10%{left:50%;transform:translateX(-50%);opacity:1}90%{opacity:1}100%{left:120%;opacity:0}}.cloud{position:absolute;background-image:url('https://pngimg.com/uploads/cloud/cloud_PNG112272.png');background-size:contain;background-repeat:no-repeat;opacity:0.25;z-index:1}.cloud-1{top:10px;left:-50px;width:60px;height:30px;animation:floatCloud 25s linear infinite}.cloud-2{top:35px;left:-60px;width:40px;height:20px;animation:floatCloud 35s linear infinite 5s}@keyframes floatCloud{0%{transform:translateX(0)}100%{transform:translateX(450px)}}#content{padding:10px;flex:1;overflow-y:auto}.box{background:rgba(3,169,244,0.1);border:1px dashed #81d4fa;border-radius:6px;padding:5px;text-align:center;margin-bottom:6px}.bar{height:14px;background:rgba(0,0,0,0.5);border-radius:4px;margin:4px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%;transition:width 0.3s}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.stat{background:rgba(255,255,255,0.05);padding:5px;border-radius:4px;text-align:center}.lbl{font-size:0.7em;color:#aaa;text-transform:uppercase}.inv-row{display:flex;justify-content:space-between;background:rgba(0,0,0,0.2);padding:4px 8px;margin-bottom:4px;border-radius:4px;border-left:3px solid #aaa}.low-stock{border-left-color:var(--r);background:rgba(255,82,82,0.1)}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:none;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid #333"><div>✈️ <span class="mv" id="m-stat">IDLE</span></div><div><span class="mv" id="m-dest">--</span></div><div>🍱 <span class="mv" id="m-meal">0</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv active" style="color:var(--g)" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div style="font-size:1.2em;cursor:pointer">🏠</div><div class="cloud cloud-1"></div><div class="cloud cloud-2"></div><div class="ht">AIRLINE OPS</div><div id="fly-name">Pilot ...</div><div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div class="box"><div class="lbl" style="color:#81d4fa">Destination</div><div class="mv" id="d-dest">Waiting...</div><div class="lbl" id="d-dist">Dist: -/-</div></div><div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between"><div><span class="lbl">Level</span> <span class="mv mh" id="d-lvl">0</span></div><div style="text-align:right"><span class="lbl">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div style="text-align:center;font-size:0.75em;color:#aaa" id="d-rem">...</div></div><div class="grid"><div class="stat"><div class="lbl">BXP</div><div class="mv" style="color:var(--g)" id="d-bxp">0</div></div><div class="stat"><div class="lbl">Runs</div><div class="mv" id="d-runs">0</div></div><div class="stat"><div class="lbl">Tokens</div><div class="mv" id="d-tok">0</div></div></div><div style="margin-top:8px"><div class="lbl">Inventory</div><div class="inv-row" id="row-meal"><div style="font-size:0.85em">🍱 Meals</div><div style="font-weight:bold" id="d-meal">0</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
         update: (d) => {
-            const xp = d.exp_piloting_piloting || 0;
-            const l = UTIL.lvl(xp);
+            const xp=d.exp_piloting_piloting||0; const l=UTIL.lvl(xp);
+            if(d.name) document.getElementById('fly-name').innerText="Pilot "+d.name;
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            document.getElementById('m-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-rem', `${UTIL.num(l.n-l.p)} XP to next`);
             
-            // Text Updates
-            if(d.name) document.getElementById('fly-name').innerText = "Pilot "+d.name;
-            setText('d-lvl', l.l); setText('m-lvl', l.l);
-            setText('d-xp', UTIL.num(xp)); setText('m-xp', UTIL.num(xp));
-            document.getElementById('d-bar').style.width = UTIL.pct(l.p, l.n)+"%";
+            if(d.status){try{const ln=JSON.parse(d.status).lines; if(ln[0])setText('m-stat',UTIL.clean(ln[0]).split(":")[1]||"Active"); if(ln[1]){const dst=UTIL.clean(ln[1]).replace("Destination:",""); setText('d-dest',dst); setText('m-dest',dst.substr(0,12));} if(ln[2])setText('d-dist',UTIL.clean(ln[2]));}catch(e){}}
             
-            // Status
-            if(d.status) {
-                try {
-                    const ln = JSON.parse(d.status).lines;
-                    setText('m-stat', UTIL.clean(ln[0]).split(":")[1]||"Active");
-                    if(ln[1]) { const dst = UTIL.clean(ln[1]).replace("Destination:",""); setText('d-dest', dst); setText('m-dest', dst.substr(0,10)); }
-                    if(ln[2]) setText('d-dist', UTIL.clean(ln[2]));
-                }catch(e){}
-            }
+            const inv=UTIL.parseInv(d.inventory); const ch=UTIL.parseInv(d[UTIL.getTrunk(d)]);
+            const m=(inv.fridge_airline_meal?.amount||0)+(ch.fridge_airline_meal?.amount||0);
+            setText('d-meal',m); setText('m-meal',m);
+            document.getElementById('row-meal').className=m<5?"inv-row low-stock":"inv-row";
             
-            // Inv
-            const inv = UTIL.parseInv(d.inventory);
-            const chest = UTIL.parseInv(d[UTIL.getTrunk(d)]);
-            const meals = (inv.fridge_airline_meal?.amount||0) + (chest.fridge_airline_meal?.amount||0);
-            setText('d-meal', meals); setText('m-meal', meals);
-            
-            // Tokens
-            const bxp = d["exp_token_a|piloting|piloting"];
-            if(bxp) setText('d-bxp', UTIL.num(bxp.amount||bxp));
-            const tok = d["exp_token|piloting|piloting"] || inv["exp_token|piloting|piloting"];
-            if(tok) { const t = UTIL.num(tok.amount||tok); setText('d-tok', t); setText('m-tok', t); }
+            const bxp=d["exp_token_a|piloting|piloting"]; if(bxp)setText('d-bxp',UTIL.num(bxp.amount||bxp));
+            const tok=d["exp_token|piloting|piloting"]||inv["exp_token|piloting|piloting"]; if(tok){const t=UTIL.num(tok.amount||tok);setText('d-tok',t);setText('m-tok',t);}
         }
-    },
-
-    // 🚌 BUS
-    "exp_train_bus": { // Mapped from key
-        css: `/* BUS CSS */ :root { --p: #00bcd4; --bg: rgba(18,18,18,0.95); } #app-shell { background:var(--bg); border:1px solid rgba(0,188,212,0.3); } /* Same shell/mini logic */ header { background:linear-gradient(180deg, #008ba3, rgba(0,188,212,0.2)); height:60px; padding:0 10px; cursor:move; position:relative; display:flex; justify-content:space-between; } .ht { position:absolute; left:50%; top:20%; transform:translate(-50%,-50%); font-family:'Rajdhani'; font-weight:900; font-size:1.2em; color:#fff; } #bus-anim { position:absolute; bottom:2px; left:-100px; height:32px; animation:drive 8s linear infinite; } @keyframes drive { 0%{left:-100px} 100%{left:120%} } /* ... rest of bus css ... */`,
-        html: `<header onmousedown="dragStart(event)"><div class="ht">BUS OPS</div><img id="bus-anim" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f68c.png"><div style="flex:1"></div><button onclick="toggleMini()">MINI</button></header><div id="content">...</div>`,
-        update: (d) => { /* Bus logic */ }
-    },
-    
-    // 📦 CARGO
-    "pilot_cargo": {
-        css: `:root { --p: #0277bd; } header { background:linear-gradient(180deg, #004c8c, rgba(2,119,189,0.2)); height:70px; } .crate { font-size:1.8em; animation:fall 5s linear infinite; position:absolute; top:-50px; } @keyframes fall { 100%{top:100%} }`,
-        html: `<header onmousedown="dragStart(event)"><div class="ht">CARGO OPS</div><div class="crate" style="left:20%">📦</div><div class="crate" style="left:70%;animation-delay:2s">📦</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
-        update: (d) => { /* Cargo logic */ }
-    },
-
-    // 🚑 EMS
-    "paramedic": {
-        css: `:root { --p: #e53935; } header { background:linear-gradient(180deg, #b71c1c, rgba(229,57,53,0.2)); height:60px; } #amb { position:absolute; bottom:0; left:-100px; height:45px; animation:drive 10s ease infinite; transform:scaleX(-1); } @keyframes drive { 50%{left:50%} 100%{left:120%} }`,
-        html: `<header onmousedown="dragStart(event)"><div class="ht">EMS OPS</div><img id="amb" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f691.png"><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
-        update: (d) => { /* EMS logic */ }
-    },
-
-    // 🔥 FIRE
-    "firefighter": {
-        css: `:root { --p: #ff5100; } header { background:linear-gradient(135deg, #b71c1c, #e65100); animation:fire 3s infinite; } @keyframes fire { 50%{filter:brightness(1.2)} }`,
-        html: `<header onmousedown="dragStart(event)"><div class="ht">FIRE OPS</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
-        update: (d) => { /* Fire logic */ }
-    },
-
-    // 🚁 HELI
-    "pilot_heli": {
-        css: `:root { --p: #ff9800; } header { background:linear-gradient(180deg, #b26a00, rgba(255,152,0,0.2)); } #heli { position:absolute; bottom:5px; left:20px; font-size:2em; animation:bob 2s infinite alternate; } @keyframes bob { from{transform:translateY(0)} to{transform:translateY(-5px)} }`,
-        html: `<header onmousedown="dragStart(event)"><div class="ht">HELI OPS</div><div id="heli">🚁</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
-        update: (d) => { /* Heli logic */ }
-    },
-
-    // 🏹 HUNTER
-    "exp_hunting_skill": { // Mapped
-        css: `:root { --p: #76ff03; } header { background:linear-gradient(-45deg, #000, #1b5e20); } .leaf { position:absolute; color:var(--p); animation:fall 5s infinite; }`,
-        html: `<header onmousedown="dragStart(event)"><div class="ht">HUNTER OPS</div><div class="leaf" style="left:10%">🍃</div><div class="leaf" style="left:80%;animation-delay:1s">🍃</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
-        update: (d) => { /* Hunter logic */ }
     },
 
     // 🔧 MECHANIC
     "mechanic": {
-        css: `:root { --p: #0091ea; } header { background:linear-gradient(135deg, #01579b, #0288d1); } #truck { position:absolute; bottom:0; left:-60px; font-size:1.6em; animation:drive 14s linear infinite; } @keyframes drive { 100%{left:350px} }`,
-        html: `<header onmousedown="dragStart(event)"><div class="ht">MECH OPS</div><div id="truck">🛻</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
-        update: (d) => { /* Mech logic */ }
+        css: `:root{--p:#0091ea;--bg:rgba(15,15,15,0.95);--w:#fff;--g:#00e676;--r:#ff3d00}#app-shell{background:var(--bg);border:1px solid rgba(0,145,234,0.3);border-radius:8px;display:flex;flex-direction:column;overflow:hidden}#app-shell.mini-mode{width:420px!important;height:74px!important;border-radius:12px;background:rgba(10,10,15,0.98);border:1px solid var(--p)}.mini-mode header,.mini-mode #scene,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(135deg,#01579b,#0288d1);height:55px;padding:2px 10px;cursor:move;position:relative;overflow:hidden}.ht{font-family:'Rajdhani';font-weight:900;font-size:1.2em;z-index:10;margin-top:2px}#scene{position:absolute;bottom:0;left:0;width:100%;height:35px;pointer-events:none}#truck{position:absolute;bottom:0;left:-60px;font-size:1.6em;transform:scaleX(-1);animation:drive 14s linear infinite;z-index:5}@keyframes drive{0%{left:-60px}10%{left:20px}85%{left:20px}100%{left:350px}}#content{padding:12px;flex:1;overflow-y:auto}.inv-row{display:flex;justify-content:space-between;background:rgba(0,0,0,0.2);padding:4px 8px;margin-bottom:4px;border-radius:4px;border-left:3px solid #aaa}.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}.stat{background:rgba(255,255,255,0.05);padding:8px;border-radius:4px;text-align:center}.bar{height:18px;background:rgba(0,0,0,0.5);border-radius:4px;margin:5px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:1px solid #aaa;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid rgba(255,255,255,0.1)"><div>🔧 <span class="mv mh">MECH OPS</span></div><div>Calls: <span class="mv" style="color:var(--g)" id="m-calls">0</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv" style="color:var(--g)" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div style="font-size:1.1em;z-index:20;margin-top:4px">🏠</div><span class="ht">🔧 MECH OPS</span><div id="scene"><div id="truck">🛻</div></div><div style="flex:1"></div><div style="display:flex;flex-direction:column;align-items:flex-end;z-index:20"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div style="display:flex;justify-content:space-between"><div><span style="color:#aaa;font-size:0.75em">LEVEL</span> <span class="mv mh" style="font-size:1.6em" id="d-lvl">0</span></div><div style="text-align:right"><span style="color:#aaa;font-size:0.75em">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div class="stat-grid" style="margin-top:10px"><div class="stat"><div style="font-size:0.7em;color:#aaa">BXP</div><div class="mv" style="color:var(--g)" id="d-bxp">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">AVG</div><div class="mv" id="d-avg">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">CALLS</div><div class="mv" id="d-calls">0</div></div></div><div style="margin-top:15px;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px"><div style="font-size:0.75em;color:#aaa;margin-bottom:5px">INVENTORY</div><div class="inv-row"><div>🔧 Wrench</div><div style="font-weight:bold" id="stk-wrench">0</div></div><div class="inv-row"><div>⚡ Jumper</div><div style="font-weight:bold" id="stk-jumper">0</div></div><div class="inv-row"><div>⛽ Jerry Can</div><div style="font-weight:bold" id="stk-jerry">0</div></div><div class="inv-row"><div>🔨 Hammer</div><div style="font-weight:bold" id="stk-hammer">0</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
+        init: function() { this.st={xp:0,sXP:null,calls:0}; },
+        update: function(d) {
+            const xp=d.exp_trucking_mechanic||0; const l=UTIL.lvl(xp);
+            if(this.st.sXP===null) this.st.sXP=xp;
+            if(xp>this.st.xp){this.st.calls++;} this.st.xp=xp;
+            
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-calls',this.st.calls); setText('m-calls',this.st.calls);
+            
+            const bxp=d["exp_token_a|trucking|mechanic"]; if(bxp){const t=UTIL.num(bxp.amount||bxp);setText('d-bxp',t);setText('m-tok',t);}
+            
+            const inv=UTIL.parseInv(d.inventory);
+            const getQ=(k)=>(inv[k]?.amount||inv[k]||0);
+            setText('stk-wrench',getQ('wrench')); setText('stk-jumper',getQ('jumper_cable'));
+            setText('stk-jerry',getQ('jerry_can')); setText('stk-hammer',getQ('hammer'));
+        }
+    },
+
+    // 🚑 EMS
+    "paramedic": {
+        css: `:root{--p:#e53935;--bg:rgba(15,15,15,0.95);--w:#fff;--g:#00e676}#app-shell{background:var(--bg);border:1px solid rgba(229,57,53,0.3);border-radius:8px;display:flex;flex-direction:column}#app-shell.mini-mode{width:420px!important;height:74px!important;background:#0a0a0a;border:1px solid var(--p);border-radius:12px}.mini-mode header,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(180deg,#b71c1c,rgba(229,57,53,0.2));height:60px;padding:0 10px;cursor:move;position:relative;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.15);overflow:hidden;padding-top:5px}.ht{position:absolute;left:50%;top:20%;transform:translate(-50%,-50%);font-family:'Rajdhani';font-weight:900;font-size:1.2em;color:var(--w)}#street{position:absolute;bottom:0;left:0;width:100%;height:45px;pointer-events:none}#amb{position:absolute;bottom:0;left:-100px;height:45px;transform:scaleX(-1);animation:drv 10s ease infinite}@keyframes drv{50%{left:50%}100%{left:120%}}#content{padding:12px;flex:1;overflow-y:auto}.bar{height:16px;background:rgba(0,0,0,0.5);border-radius:4px;margin:5px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.stat{background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;text-align:center}.inv{display:flex;justify-content:space-between;background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:4px;border-left:3px solid #aaa}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:1px solid #aaa;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid rgba(255,255,255,0.1)"><div>🚑 <span class="mv mh">EMS OPS</span></div><div>Rev: <span class="mv" style="color:var(--g)" id="m-rev">0</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv" style="color:var(--g)" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div>🏠</div><div class="ht">EMS OPS</div><div id="street"><img id="amb" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f691.png"></div><div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div style="display:flex;justify-content:space-between"><div><span style="font-size:0.7em;color:#aaa">LEVEL</span> <span class="mv mh" style="font-size:1.6em" id="d-lvl">0</span></div><div style="text-align:right"><span style="font-size:0.7em;color:#aaa">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div class="grid" style="margin-top:10px"><div class="stat"><div style="font-size:0.7em;color:#aaa">BXP</div><div class="mv" style="color:var(--g)" id="d-bxp">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">REVS</div><div class="mv" id="d-rev">0</div></div></div><div style="margin-top:15px;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px"><div style="font-size:0.75em;color:#aaa;margin-bottom:5px">INVENTORY</div><div class="inv"><div>⚡ Defib</div><div style="font-weight:bold" id="stk-defib">--</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
+        init: function(){ this.st={xp:0,rev:0,sXP:null}; },
+        update: function(d){
+            const xp=d.exp_ems_ems||d.exp_paramedic||0; const l=UTIL.lvl(xp);
+            if(this.st.sXP===null)this.st.sXP=xp;
+            if(xp>this.st.xp)this.st.rev++; this.st.xp=xp;
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-rev',this.st.rev); setText('m-rev',this.st.rev);
+            const bxp=d["exp_token_a|ems|ems"]; if(bxp){const t=UTIL.num(bxp.amount||bxp);setText('d-bxp',t);setText('m-tok',t);}
+            const inv=UTIL.parseInv(d.inventory);
+            setText('stk-defib', inv.defib?.amount||inv.defib||0);
+        }
+    },
+
+    // 🔥 FIRE
+    "firefighter": {
+        css: `:root{--p:#ff5100;--bg:rgba(15,5,5,0.95);--w:#fff;--g:#00e676}#app-shell{background:var(--bg);border:1px solid rgba(255,81,0,0.4);border-radius:8px;display:flex;flex-direction:column}#app-shell.mini-mode{width:420px!important;height:74px!important;background:#0a0a0a;border:1px solid var(--p);border-radius:12px}.mini-mode header,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(135deg,#b71c1c,#e65100);height:60px;padding:0 10px;cursor:move;position:relative;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,81,0,0.3);overflow:hidden;padding-top:5px}.ht{position:absolute;left:50%;top:20%;transform:translate(-50%,-50%);font-family:'Rajdhani';font-weight:900;font-size:1.2em;color:var(--w)}#embers{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}.em{position:absolute;bottom:0;width:4px;height:4px;background:#ffeb3b;border-radius:50%;opacity:0;animation:rise 4s infinite}@keyframes rise{0%{bottom:0;opacity:1}100%{bottom:60px;opacity:0}}#content{padding:12px;flex:1;overflow-y:auto}.bar{height:16px;background:rgba(0,0,0,0.5);border-radius:4px;margin:5px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.stat{background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;text-align:center}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:1px solid #aaa;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid #333"><div>🔥 <span class="mv mh">FIRE OPS</span></div><div>Fires: <span class="mv" style="color:var(--g)" id="m-fires">0</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv" style="color:var(--g)" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div>🏠</div><div class="ht">FIRE OPS</div><div id="embers"><div class="em" style="left:10%"></div><div class="em" style="left:50%;animation-delay:1s"></div><div class="em" style="left:80%;animation-delay:2s"></div></div><div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div style="display:flex;justify-content:space-between"><div><span style="font-size:0.7em;color:#aaa">LEVEL</span> <span class="mv mh" style="font-size:1.8em" id="d-lvl">0</span></div><div style="text-align:right"><span style="font-size:0.7em;color:#aaa">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div class="grid" style="margin-top:10px"><div class="stat"><div style="font-size:0.7em;color:#aaa">BXP</div><div class="mv" style="color:var(--g)" id="d-bxp">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">FIRES</div><div class="mv" id="d-fires">0</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
+        init: function(){ this.st={xp:0,fires:0,sXP:null}; },
+        update: function(d){
+            const xp=d.exp_ems_fire||0; const l=UTIL.lvl(xp);
+            if(this.st.sXP===null)this.st.sXP=xp;
+            if(xp>this.st.xp)this.st.fires++; this.st.xp=xp;
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-fires',this.st.fires); setText('m-fires',this.st.fires);
+            const bxp=d["exp_token_a|ems|fire"]; if(bxp){const t=UTIL.num(bxp.amount||bxp);setText('d-bxp',t);setText('m-tok',t);}
+        }
+    },
+
+    // 📦 CARGO
+    "pilot_cargo": {
+        css: `:root{--p:#0277bd;--bg:rgba(15,15,15,0.95);--w:#fff;--g:#00e676;--a:#ffc107}#app-shell{background:var(--bg);border:1px solid rgba(2,119,189,0.3);border-radius:8px;display:flex;flex-direction:column}#app-shell.mini-mode{width:420px!important;height:74px!important;background:#0a0a0a;border:1px solid var(--p);border-radius:12px}.mini-mode header,.mini-mode #sky,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(180deg,#004c8c,rgba(2,119,189,0.2));height:70px;padding:0 10px;cursor:move;position:relative;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.15);overflow:hidden;padding-top:5px}.ht{position:absolute;left:50%;top:20%;transform:translate(-50%,-50%);font-family:'Rajdhani';font-weight:900;font-size:1.2em;color:var(--w);z-index:10}#sky{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}.crate{position:absolute;top:-50px;font-size:1.5em;animation:drop 5s linear infinite}@keyframes drop{100%{top:100%}}#content{padding:12px;flex:1;overflow-y:auto}.dest{background:rgba(255,193,7,0.1);border:1px dashed var(--a);border-radius:6px;padding:10px;text-align:center;margin-bottom:10px}.bar{height:16px;background:rgba(0,0,0,0.5);border-radius:4px;margin:5px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.stat{background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;text-align:center}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:1px solid #aaa;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid #333"><div>📦 <span class="mv mh">CARGO OPS</span></div><div>Dest: <span class="mv" id="m-dest">--</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv" style="color:var(--g)" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div>🏠</div><div class="ht">CARGO OPS</div><div id="sky"><div class="crate" style="left:20%">📦</div><div class="crate" style="left:80%;animation-delay:2s">📦</div></div><div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div class="dest"><div style="font-size:0.7em;color:var(--a);text-transform:uppercase">NEXT DROP</div><div class="mv" style="font-size:1.2em" id="d-dest">Waiting...</div></div><div style="display:flex;justify-content:space-between"><div><span style="font-size:0.7em;color:#aaa">LEVEL</span> <span class="mv mh" style="font-size:1.6em" id="d-lvl">0</span></div><div style="text-align:right"><span style="font-size:0.7em;color:#aaa">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div class="grid" style="margin-top:10px"><div class="stat"><div style="font-size:0.7em;color:#aaa">BXP</div><div class="mv" style="color:var(--g)" id="d-bxp">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">DROPS</div><div class="mv" id="d-drops">0</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
+        init: function(){ this.st={xp:0,sXP:null,drops:0}; },
+        update: function(d){
+            const xp=d.exp_piloting_cargos||0; const l=UTIL.lvl(xp);
+            if(this.st.sXP===null)this.st.sXP=xp;
+            if(xp>this.st.xp)this.st.drops++; this.st.xp=xp;
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-drops',this.st.drops);
+            const bxp=d["exp_token_a|piloting|cargos"]; if(bxp){const t=UTIL.num(bxp.amount||bxp);setText('d-bxp',t);setText('m-tok',t);}
+            // Detect Cargo
+            const inv=UTIL.parseInv(d.inventory); const ch=UTIL.parseInv(d[UTIL.getTrunk(d)]);
+            let dest="No Cargo";
+            for(let k in {...inv,...ch}){ if(k.includes("cargo_")){ dest=k.split("cargo_")[1].split("_")[0].toUpperCase(); break; } }
+            setText('d-dest',dest); setText('m-dest',dest);
+        }
+    },
+
+    // 🏹 HUNTER
+    "exp_hunting_skill": {
+        css: `:root{--p:#76ff03;--bg:rgba(10,20,10,0.95);--w:#fff;--a:#ffab00}#app-shell{background:var(--bg);border:1px solid rgba(118,255,3,0.4);border-radius:8px;display:flex;flex-direction:column}#app-shell.mini-mode{width:420px!important;height:74px!important;background:#050f05;border:1px solid var(--p);border-radius:12px}.mini-mode header,.mini-mode #leaf,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(-45deg,#000,#1b5e20);height:60px;padding:0 10px;cursor:move;position:relative;display:flex;justify-content:space-between;border-bottom:1px solid rgba(118,255,3,0.3);overflow:hidden;padding-top:5px}.ht{position:absolute;left:50%;top:20%;transform:translate(-50%,-50%);font-family:'Rajdhani';font-weight:900;font-size:1.2em;color:var(--w)}#leaf{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}.lf{position:absolute;top:-20px;font-size:1em;animation:fall 5s infinite;color:var(--p)}@keyframes fall{100%{top:80px;transform:rotate(360deg)}}#content{padding:12px;flex:1;overflow-y:auto}.bar{height:16px;background:rgba(0,0,0,0.5);border-radius:4px;margin:5px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.stat{background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;text-align:center}.inv{background:rgba(255,179,0,0.1);border-left:3px solid var(--a);padding:5px;border-radius:4px;display:flex;justify-content:space-between;margin-bottom:8px}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:1px solid #aaa;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid #333"><div>🏹 <span class="mv mh">HUNTER OPS</span></div><div>Meat: <span class="mv" style="color:var(--a)" id="m-meat">0</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv" style="color:var(--a)" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div>🏠</div><div class="ht">HUNTER OPS</div><div id="leaf"><div class="lf" style="left:10%">🍃</div><div class="lf" style="left:80%;animation-delay:1s">🍃</div></div><div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div style="display:flex;justify-content:space-between"><div><span style="font-size:0.7em;color:#aaa">LEVEL</span> <span class="mv mh" style="font-size:1.6em" id="d-lvl">0</span></div><div style="text-align:right"><span style="font-size:0.7em;color:#aaa">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div class="grid" style="margin-top:10px"><div class="stat"><div style="font-size:0.7em;color:#aaa">BXP</div><div class="mv" style="color:var(--a)" id="d-bxp">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">KILLS</div><div class="mv" id="d-kills">0</div></div></div><div style="margin-top:15px;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px"><div style="font-size:0.75em;color:#aaa;margin-bottom:5px">INVENTORY</div><div class="inv"><div>🥩 Meat</div><div style="font-weight:bold" id="stk-meat">0</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
+        init: function(){ this.st={xp:0,sXP:null,kills:0}; },
+        update: function(d){
+            const xp=d.exp_hunting_skill||0; const l=UTIL.lvl(xp);
+            if(this.st.sXP===null)this.st.sXP=xp;
+            if(xp>this.st.xp)this.st.kills++; this.st.xp=xp;
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-kills',this.st.kills);
+            const bxp=d["exp_token_a|hunting|skill"]; if(bxp){const t=UTIL.num(bxp.amount||bxp);setText('d-bxp',t);setText('m-tok',t);}
+            const inv=UTIL.parseInv(d.inventory);
+            const m=(inv.processed_meat?.amount||inv.processed_meat||0);
+            setText('stk-meat',m); setText('m-meat',m);
+        }
+    },
+
+    // 🚁 HELI
+    "pilot_heli": {
+        css: `:root{--p:#ff9800;--bg:rgba(20,20,20,0.98);--w:#fff}#app-shell{background:var(--bg);border:1px solid rgba(255,152,0,0.4);border-radius:8px;display:flex;flex-direction:column}#app-shell.mini-mode{width:420px!important;height:70px!important;background:#0f0a05;border:1px solid var(--p);border-radius:12px}.mini-mode header,.mini-mode #sky,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(180deg,#b26a00,rgba(255,152,0,0.2));height:60px;padding:0 10px;cursor:move;position:relative;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.15);overflow:hidden;padding-top:5px}.ht{position:absolute;left:50%;top:20%;transform:translate(-50%,-50%);font-family:'Rajdhani';font-weight:900;font-size:1.2em;color:var(--w)}#sky{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}#heli{position:absolute;bottom:5px;left:20px;font-size:2em;animation:bob 2s infinite alternate}@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-5px)}}#content{padding:12px;flex:1;overflow-y:auto}.bar{height:16px;background:rgba(0,0,0,0.5);border-radius:4px;margin:5px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.stat{background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;text-align:center}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:1px solid #aaa;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid #333"><div>🚁 <span class="mv mh">HELI OPS</span></div><div>Dist: <span class="mv" id="m-dist">--</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv" style="color:#00e676" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div>🏠</div><div class="ht">HELI OPS</div><div id="sky"><div id="heli">🚁</div></div><div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div style="background:rgba(255,255,255,0.05);padding:10px;border-radius:6px;margin-bottom:10px;text-align:center"><div style="font-size:0.7em;color:var(--p)">DESTINATION</div><div class="mv" id="d-dest">Waiting...</div><div style="font-size:0.7em;color:#aaa" id="d-dist">--</div></div><div style="display:flex;justify-content:space-between"><div><span style="font-size:0.7em;color:#aaa">LEVEL</span> <span class="mv mh" style="font-size:1.6em" id="d-lvl">0</span></div><div style="text-align:right"><span style="font-size:0.7em;color:#aaa">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div class="grid" style="margin-top:10px"><div class="stat"><div style="font-size:0.7em;color:#aaa">BXP</div><div class="mv" style="color:#00e676" id="d-bxp">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">JOBS</div><div class="mv" id="d-jobs">0</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
+        init: function(){ this.st={xp:0,sXP:null,jobs:0}; },
+        update: function(d){
+            const xp=d.exp_piloting_heli||0; const l=UTIL.lvl(xp);
+            if(this.st.sXP===null)this.st.sXP=xp;
+            if(xp>this.st.xp)this.st.jobs++; this.st.xp=xp;
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-jobs',this.st.jobs);
+            const bxp=d["exp_token_a|piloting|heli"]; if(bxp){const t=UTIL.num(bxp.amount||bxp);setText('d-bxp',t);setText('m-tok',t);}
+            if(d.status){ try{const ln=JSON.parse(d.status).lines; if(ln[0]) {const dst=UTIL.clean(ln[0]).split(":")[1]; setText('d-dest',dst); setText('m-dest',dst);} if(ln[1]) setText('d-dist',UTIL.clean(ln[1]).split(":")[1]); }catch(e){}}
+        }
+    },
+
+    // 🚌 BUS
+    "exp_train_bus": {
+        css: `:root{--p:#00bcd4;--bg:rgba(18,18,18,0.95);--w:#fff}#app-shell{background:var(--bg);border:1px solid rgba(0,188,212,0.3);border-radius:8px;display:flex;flex-direction:column}#app-shell.mini-mode{width:420px!important;height:74px!important;background:#0a0a0a;border:1px solid var(--p);border-radius:12px}.mini-mode header,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(180deg,#008ba3,rgba(0,188,212,0.2));height:60px;padding:0 10px;cursor:move;position:relative;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.15);overflow:hidden;padding-top:5px}.ht{position:absolute;left:50%;top:20%;transform:translate(-50%,-50%);font-family:'Rajdhani';font-weight:900;font-size:1.2em;color:var(--w)}#bus{position:absolute;bottom:2px;left:-100px;height:32px;animation:drive 8s linear infinite}@keyframes drive{0%{left:-100px}100%{left:120%}}#content{padding:12px;flex:1;overflow-y:auto}.bar{height:16px;background:rgba(0,0,0,0.5);border-radius:4px;margin:5px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.stat{background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;text-align:center}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:1px solid #aaa;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid #333"><div>🚌 <span class="mv mh">BUS OPS</span></div><div>Route: <span class="mv" id="m-route">--</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv" style="color:#00e676" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div>🏠</div><div class="ht">BUS OPS</div><img id="bus" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f68c.png"><div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div style="background:rgba(0,188,212,0.1);padding:10px;border-radius:6px;margin-bottom:10px;text-align:center"><div style="font-size:0.7em;color:var(--p)">ROUTE</div><div class="mv" id="d-route">Waiting...</div><div style="font-size:0.7em;color:#aaa" id="d-stop">Stop: -/-</div></div><div style="display:flex;justify-content:space-between"><div><span style="font-size:0.7em;color:#aaa">LEVEL</span> <span class="mv mh" style="font-size:1.6em" id="d-lvl">0</span></div><div style="text-align:right"><span style="font-size:0.7em;color:#aaa">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div class="grid" style="margin-top:10px"><div class="stat"><div style="font-size:0.7em;color:#aaa">BXP</div><div class="mv" style="color:#00e676" id="d-bxp">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">STOPS</div><div class="mv" id="d-stops">0</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
+        init: function(){ this.st={xp:0,sXP:null,stops:0}; },
+        update: function(d){
+            const xp=d.exp_train_bus||0; const l=UTIL.lvl(xp);
+            if(this.st.sXP===null)this.st.sXP=xp;
+            if(xp>this.st.xp)this.st.stops++; this.st.xp=xp;
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-stops',this.st.stops);
+            const bxp=d["exp_token_a|train|bus"]; if(bxp){const t=UTIL.num(bxp.amount||bxp);setText('d-bxp',t);setText('m-tok',t);}
+            if(d.status){try{const ln=JSON.parse(d.status).lines; if(ln[0]) { const m = UTIL.clean(ln[0]).match(/(.*)(\[\d+\/\d+\])/); if(m){setText('d-route',m[1]);setText('m-route',m[1].substr(0,10));setText('d-stop',m[2]);}else{setText('d-route',UTIL.clean(ln[0]));} } }catch(e){}}
+        }
     },
 
     // 🚂 TRAIN
-    "exp_train_train": { // Mapped
-        css: `:root { --p: #ffb300; } header { background:linear-gradient(90deg, #5d4037, #3e2723); } .train { position:absolute; bottom:5px; left:-50px; font-size:2em; animation:choo 12s linear infinite; } @keyframes choo { 100%{left:350px} }`,
-        html: `<header onmousedown="dragStart(event)"><div class="ht">TRAIN OPS</div><div class="train">🚂</div><button onclick="toggleMini()" style="position:absolute;right:10px;top:10px">MINI</button></header><div id="content">...</div>`,
-        update: (d) => { /* Train logic */ }
+    "exp_train_train": {
+        css: `:root{--p:#ffb300;--bg:rgba(18,18,18,0.95);--w:#fff}#app-shell{background:var(--bg);border:1px solid rgba(255,179,0,0.3);border-radius:8px;display:flex;flex-direction:column}#app-shell.mini-mode{width:420px!important;height:74px!important;background:#0a0a0a;border:1px solid var(--p);border-radius:12px}.mini-mode header,.mini-mode #content{display:none!important}#micro{display:none;flex-direction:column;justify-content:center;height:100%;padding:0 12px;font-family:'Rajdhani';cursor:move}.mini-mode #micro{display:flex}.mr{display:flex;justify-content:space-between;align-items:center;height:50%}.mv{color:var(--w);font-weight:700}.mh{color:var(--p)}header{background:linear-gradient(90deg,#5d4037,#3e2723);height:60px;padding:0 10px;cursor:move;position:relative;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,179,0,0.3);overflow:hidden;padding-top:5px}.ht{position:absolute;left:50%;top:20%;transform:translate(-50%,-50%);font-family:'Rajdhani';font-weight:900;font-size:1.2em;color:var(--p)}#track{position:absolute;bottom:0;left:0;width:100%;height:30px;background:rgba(0,0,0,0.3);border-top:2px solid #5d4037}.train{position:absolute;bottom:5px;left:-50px;font-size:2em;transform:scaleX(-1);animation:choo 12s linear infinite}@keyframes choo{100%{left:350px}}#content{padding:12px;flex:1;overflow-y:auto}.bar{height:16px;background:rgba(0,0,0,0.5);border-radius:4px;margin:5px 0;overflow:hidden}.fill{height:100%;background:var(--p);width:0%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.stat{background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;text-align:center}`,
+        html: `<div id="micro" onmousedown="dragStart(event)"><button style="position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.1);border:1px solid #aaa;color:#aaa;font-size:0.6em;cursor:pointer" onclick="toggleMini()">EXPAND</button><div class="mr" style="border-bottom:1px solid #333"><div>🚂 <span class="mv mh">TRAIN OPS</span></div><div>Drops: <span class="mv" style="color:#00e676" id="m-drops">0</span></div></div><div class="mr"><div style="min-width:90px">Lvl <span class="mv mh" id="m-lvl">0</span></div><div>XP: <span class="mv" id="m-xp">0</span></div><div>Tok: <span class="mv" style="color:#00e676" id="m-tok">0</span></div></div></div><header onmousedown="dragStart(event)"><div>🏠</div><div class="ht">TRAIN OPS</div><div id="track"><div class="train">🚂</div></div><div style="display:flex;flex-direction:column;align-items:flex-end"><button onclick="toggleMini()" style="font-family:'Rajdhani';font-weight:bold;font-size:0.7em;background:rgba(0,0,0,0.3);border:1px solid #fff;color:#ccc;cursor:pointer">MINI</button><span id="clock" style="font-family:'Rajdhani';font-weight:700;font-size:0.8em">00:00</span></div></header><div id="content"><div style="display:flex;justify-content:space-between"><div><span style="font-size:0.7em;color:#aaa">LEVEL</span> <span class="mv mh" style="font-size:1.6em" id="d-lvl">0</span></div><div style="text-align:right"><span style="font-size:0.7em;color:#aaa">XP</span> <span class="mv" id="d-xp">0</span></div></div><div class="bar"><div class="fill" id="d-bar"></div></div><div class="grid" style="margin-top:10px"><div class="stat"><div style="font-size:0.7em;color:#aaa">BXP</div><div class="mv" style="color:#00e676" id="d-bxp">0</div></div><div class="stat"><div style="font-size:0.7em;color:#aaa">DROPS</div><div class="mv" id="d-drops">0</div></div></div></div><div id="resize-handle" onmousedown="resizeStart(event)"></div>`,
+        init: function(){ this.st={xp:0,sXP:null,drops:0}; },
+        update: function(d){
+            const xp=d.exp_train_train||0; const l=UTIL.lvl(xp);
+            if(this.st.sXP===null)this.st.sXP=xp;
+            if(xp>this.st.xp)this.st.drops++; this.st.xp=xp;
+            setText('d-lvl',l.l); setText('m-lvl',l.l); setText('d-xp',UTIL.num(xp)); setText('m-xp',UTIL.num(xp));
+            document.getElementById('d-bar').style.width=UTIL.pct(l.p,l.n)+"%";
+            setText('d-drops',this.st.drops); setText('m-drops',this.st.drops);
+            const bxp=d["exp_token_a|train|train"]; if(bxp){const t=UTIL.num(bxp.amount||bxp);setText('d-bxp',t);setText('m-tok',t);}
+        }
     }
 };
 
 // --- LOGIC MAP ---
-// Maps API 'job' name to our JOBS keys
 const JOB_MAP = {
     "pilot_airline": "pilot_airline",
     "paramedic": "paramedic",
@@ -266,19 +306,16 @@ const JOB_MAP = {
     "pilot_cargo": "pilot_cargo",
     "pilot_heli": "pilot_heli",
     "mechanic": "mechanic",
-    // These rely on exp key detection if job name isn't specific
-    "bus": "exp_train_bus",
-    "train": "exp_train_train",
-    "hunter": "exp_hunting_skill" 
+    "train_conductor": "exp_train_train" // Default
 };
 
-// --- ENGINE FUNCTIONS ---
-function setText(id, t) { const e = document.getElementById(id); if(e) e.innerText = t; }
+// --- FUNCTIONS ---
+function setText(id, t) { const e=document.getElementById(id); if(e)e.innerText=t; }
+function formatNum(n) { return Math.floor(n).toLocaleString(); }
 
 function switchJob(jobKey) {
     if(APP.currentJob === jobKey) return;
     
-    // 1. Check if job exists
     if(!JOBS[jobKey]) {
         APP.currentJob = null;
         APP.shell.classList.add('hidden');
@@ -287,67 +324,72 @@ function switchJob(jobKey) {
         return;
     }
 
-    // 2. Load Job
     APP.unknownBox.classList.add('hidden');
     APP.shell.classList.remove('hidden');
+    
+    // Inject Content
     APP.styleTag.innerHTML = JOBS[jobKey].css;
     APP.shell.innerHTML = JOBS[jobKey].html;
     
+    // Init Module
     if(JOBS[jobKey].init) JOBS[jobKey].init();
     APP.activeModule = JOBS[jobKey];
     APP.currentJob = jobKey;
 
-    // Restore Mini
-    if(localStorage.getItem("mini_"+jobKey) === "true") {
-        APP.shell.classList.add('mini-mode');
-        const b = document.querySelector('button[onclick="toggleMini()"]');
-        if(b) b.innerText = "FULL";
-    }
+    // Mini State Restore
+    const isMini = localStorage.getItem(`mini_${jobKey}`) === "true";
+    if(isMini) APP.shell.classList.add('mini-mode');
 }
 
 window.toggleMini = function() {
     APP.shell.classList.toggle('mini-mode');
     const isMini = APP.shell.classList.contains('mini-mode');
-    const b = document.querySelector('button[onclick="toggleMini()"]');
-    if(b) b.innerText = isMini ? "FULL" : "MINI";
-    if(APP.currentJob) localStorage.setItem("mini_"+APP.currentJob, isMini);
+    if(APP.currentJob) localStorage.setItem(`mini_${APP.currentJob}`, isMini);
 };
 
-// --- MAIN LOOP ---
+// --- DATA LOOP ---
 window.addEventListener('message', (e) => {
     let d = e.data;
     if(d.type === 'data' && d.data) d = d.data;
     if(!d) return;
 
-    // Detect Job
+    // 1. Job Detection
     let jobKey = d.job;
     
-    // Fallback detection for jobs sharing names or using skills
-    if (d.exp_train_bus && d.job === "train_conductor") jobKey = "exp_train_bus";
-    if (d.exp_train_train && d.job === "train_conductor") jobKey = "exp_train_train"; 
+    // 2. Anti-Flicker: Ignore partial packets missing job
+    if (jobKey === undefined || jobKey === null) {
+        if(APP.activeModule) APP.activeModule.update(d);
+        return;
+    }
+
+    // 3. Skill Overrides (Unemployed Mechanic Fix)
+    if (jobKey === "unemployed" || jobKey === "none") {
+        if (d.exp_trucking_mechanic) jobKey = "mechanic";
+        else if (d.exp_hunting_skill) jobKey = "exp_hunting_skill";
+    }
+
+    // 4. Mappings
+    if (d.exp_train_bus && jobKey === "train_conductor") jobKey = "exp_train_bus";
+    else if (d.exp_train_train && jobKey === "train_conductor") jobKey = "exp_train_train"; 
     
-    // Use Map
     const mapped = JOB_MAP[jobKey] || jobKey;
-    
     switchJob(mapped);
     
     if(APP.activeModule) APP.activeModule.update(d);
     
-    const clk = document.getElementById('clock');
-    if(clk) clk.innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const c=document.getElementById('clock'); if(c) c.innerText=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 });
 
-// Request Data
+// Request Loop
 setInterval(() => {
     if(window.parent) {
-        // Request keys for ALL jobs to ensure switching works
         const k = [
             "job", "status", "inventory", "chest", "name",
-            "exp_piloting_piloting", "exp_token_a|piloting|piloting",
+            "exp_piloting_piloting", "exp_token_a|piloting|piloting", "exp_token|piloting|piloting",
             "exp_ems_ems", "exp_token_a|ems|ems",
             "exp_ems_fire", "exp_token_a|ems|fire",
             "exp_piloting_cargos", "exp_token_a|piloting|cargos",
-            "exp_piloting_heli", "exp_token_a|piloting|heli",
+            "exp_piloting_heli", "exp_token_a|piloting|heli", "exp_token|piloting|heli",
             "exp_hunting_skill", "exp_token_a|hunting|skill",
             "exp_train_train", "exp_token_a|train|train",
             "exp_train_bus", "exp_token_a|train|bus",
@@ -400,7 +442,6 @@ function resizeEnd() {
     window.removeEventListener("mousemove", resizeMove);
     window.removeEventListener("mouseup", resizeEnd);
 }
-
 </script>
 </body>
 </html>
