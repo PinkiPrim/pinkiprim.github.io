@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>TT Chat Macro</title>
     <style>
-        /* ... (Same CSS as before) ... */
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
         :root {
@@ -18,7 +17,6 @@
             --border: 1px solid rgba(255,255,255,0.08);
             --green: #23a559;
             --red: #da373c;
-            --amber: #f0b232;
         }
 
         body {
@@ -44,7 +42,7 @@
             max-height: 800px;
             overflow: hidden;
             resize: both;
-            transition: width 0.2s, height 0.2s;
+            transition: opacity 0.2s;
         }
 
         /* --- MINI MODE --- */
@@ -65,6 +63,9 @@
             align-items: center; justify-content: center;
             font-size: 28px;
         }
+        
+        /* Hide Resize in Mini Mode */
+        #tracker-app.mini-mode + #resize-handle { display: none; }
 
         /* --- HEADER --- */
         header {
@@ -95,17 +96,17 @@
             flex: 1; overflow-y: auto; scrollbar-width: thin;
         }
 
-        /* Channel & Input */
+        /* Controls */
         .control-row { display: flex; gap: 8px; }
         
-        /* Command Prefix Input */
         #cmd-prefix {
-            background: var(--bg-panel); color: #fff; border: var(--border);
+            background: var(--bg-panel); color: var(--text-dim); border: var(--border);
             padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif;
-            font-weight: bold; width: 60px; text-align: center;
-            outline: none;
+            font-weight: bold; width: 50px; text-align: center;
+            outline: none; font-size: 0.9em;
         }
-        #cmd-prefix:focus { border-color: var(--primary); }
+        #cmd-prefix:focus { border-color: var(--primary); color: #fff; }
+        #cmd-prefix::placeholder { opacity: 0.5; }
 
         .input-wrapper {
             position: relative; flex: 1; display: flex;
@@ -121,9 +122,9 @@
         .emoji-toggle-btn {
             position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
             background: transparent; border: none; font-size: 1.2em; cursor: pointer;
-            filter: grayscale(1); transition: 0.2s;
+            filter: grayscale(1); transition: 0.2s; opacity: 0.7;
         }
-        .emoji-toggle-btn:hover { filter: grayscale(0); transform: translateY(-50%) scale(1.1); }
+        .emoji-toggle-btn:hover { filter: grayscale(0); transform: translateY(-50%) scale(1.1); opacity: 1; }
 
         .action-row { display: flex; gap: 8px; justify-content: flex-end; }
         
@@ -142,6 +143,7 @@
             background: var(--bg-panel); border: var(--border); border-radius: 6px;
             overflow: hidden; display: none; flex-direction: column;
             animation: slideDown 0.2s ease;
+            max-height: 200px;
         }
         #emoji-drawer.visible { display: flex; }
 
@@ -151,14 +153,14 @@
         .tab {
             padding: 8px 12px; cursor: pointer; font-size: 0.75em; font-weight: bold;
             color: var(--text-dim); text-transform: uppercase; white-space: nowrap;
-            border-bottom: 2px solid transparent;
+            border-bottom: 2px solid transparent; flex: 1; text-align: center;
         }
         .tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .tab.active { color: #fff; border-bottom-color: var(--primary); }
+        .tab.active { color: #fff; border-bottom-color: var(--primary); background: rgba(255,255,255,0.02); }
 
         .emoji-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-            gap: 4px; padding: 8px; max-height: 150px; overflow-y: auto;
+            gap: 4px; padding: 8px; overflow-y: auto;
         }
         
         .emoji-item {
@@ -188,7 +190,7 @@
             flex: 1; font-size: 0.9em; white-space: nowrap; overflow: hidden;
             text-overflow: ellipsis; cursor: pointer; color: #fff;
         }
-        .preset-text:hover { color: var(--primary-hover); text-decoration: underline; }
+        .preset-text:hover { color: var(--primary-hover); }
 
         .icon-btn {
             width: 26px; height: 26px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);
@@ -202,7 +204,7 @@
         #resize-handle {
             position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize;
         }
-        #tracker-app.mini-mode #resize-handle { display: none; }
+        #tracker-app.mini-mode + #resize-handle { display: none; }
 
     </style>
 </head>
@@ -219,11 +221,11 @@
 
     <div id="content">
         <div class="control-row">
-            <input type="text" id="cmd-prefix" placeholder="Cmd" value="ooc" title="Command Prefix (e.g. ooc, me, or leave empty for chat)">
+            <input type="text" id="cmd-prefix" placeholder="Cmd" value="me" title="Command (me, do, say, or empty)">
             
             <div class="input-wrapper">
                 <input type="text" id="msg-input" placeholder="Type message here...">
-                <button class="emoji-toggle-btn" onclick="window.toggleEmojiDrawer()">😊</button>
+                <button class="emoji-toggle-btn" onclick="window.toggleEmojiDrawer()" title="Open Emojis">😊</button>
             </div>
         </div>
 
@@ -253,9 +255,8 @@
                 </div>
         </div>
     </div>
-    
-    <div id="resize-handle"></div>
 </div>
+<div id="resize-handle"></div>
 
 <script>
 // --- CONFIGURATION ---
