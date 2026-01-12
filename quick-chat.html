@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>TT Chat Macro</title>
     <style>
+        /* ... (Same CSS as before) ... */
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
         :root {
@@ -43,6 +44,26 @@
             max-height: 800px;
             overflow: hidden;
             resize: both;
+            transition: width 0.2s, height 0.2s;
+        }
+
+        /* --- MINI MODE --- */
+        #tracker-app.mini-mode {
+            width: 60px !important; height: 60px !important;
+            min-height: 0; min-width: 0; resize: none;
+            border-radius: 50%; border: 2px solid #fff;
+            background: var(--primary);
+            cursor: pointer;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+        #tracker-app.mini-mode > * { display: none !important; }
+        #tracker-app.mini-mode::after {
+            content: "💬";
+            display: flex; width: 100%; height: 100%;
+            align-items: center; justify-content: center;
+            font-size: 28px;
         }
 
         /* --- HEADER --- */
@@ -77,12 +98,14 @@
         /* Channel & Input */
         .control-row { display: flex; gap: 8px; }
         
-        select {
+        /* Command Prefix Input */
+        #cmd-prefix {
             background: var(--bg-panel); color: #fff; border: var(--border);
             padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif;
-            font-weight: bold; cursor: pointer; outline: none; width: 100px;
+            font-weight: bold; width: 60px; text-align: center;
+            outline: none;
         }
-        select:hover { border-color: var(--text-dim); }
+        #cmd-prefix:focus { border-color: var(--primary); }
 
         .input-wrapper {
             position: relative; flex: 1; display: flex;
@@ -141,6 +164,7 @@
         .emoji-item {
             width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
             border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.03);
+            font-size: 1.2em; overflow: hidden;
         }
         .emoji-item:hover { background: var(--primary); }
         .emoji-item img { max-width: 32px; max-height: 32px; pointer-events: none; }
@@ -175,25 +199,6 @@
         .icon-btn.del:hover { background: var(--red); border-color: var(--red); }
         .icon-btn.bind.active { color: var(--green); border-color: var(--green); background: rgba(35, 165, 89, 0.1); }
 
-        /* --- MINI MODE --- */
-        #tracker-app.mini-mode {
-            width: 60px !important; height: 60px !important;
-            min-height: 0; min-width: 0; resize: none;
-            border-radius: 50%; border: 2px solid #fff;
-            background: var(--primary);
-            cursor: pointer;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
-
-        #tracker-app.mini-mode > * { display: none !important; }
-        #tracker-app.mini-mode::after {
-            content: "💬";
-            display: flex; width: 100%; height: 100%;
-            align-items: center; justify-content: center;
-            font-size: 28px;
-        }
-
         #resize-handle {
             position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize;
         }
@@ -207,40 +212,33 @@
     <header id="drag-handle">
         <div class="title"><span>💬</span> Quick Chat</div>
         <div style="display:flex; gap:5px;">
-            <button class="win-btn" onclick="toggleMini()">MINI</button>
-            <button class="win-btn close" onclick="closeApp()">✕</button>
+            <button class="win-btn" onclick="window.toggleMini()">MINI</button>
+            <button class="win-btn close" onclick="window.closeApp()">✕</button>
         </div>
     </header>
 
     <div id="content">
         <div class="control-row">
-            <select id="channel-select" title="Select Chat Channel">
-                <option value="say">Chat (say)</option>
-                <option value="ooc">OOC</option>
-                <option value="me">Action (me)</option>
-                <option value="do">Do</option>
-                <option value="f">Faction</option>
-                <option value="c">Company</option>
-                <option value="g">Global</option>
-            </select>
+            <input type="text" id="cmd-prefix" placeholder="Cmd" value="ooc" title="Command Prefix (e.g. ooc, me, or leave empty for chat)">
+            
             <div class="input-wrapper">
                 <input type="text" id="msg-input" placeholder="Type message here...">
-                <button class="emoji-toggle-btn" onclick="toggleEmojiDrawer()">😊</button>
+                <button class="emoji-toggle-btn" onclick="window.toggleEmojiDrawer()">😊</button>
             </div>
         </div>
 
         <div class="action-row">
-            <button class="btn btn-secondary" onclick="savePreset()">Save Preset</button>
-            <button class="btn btn-primary" onclick="sendMessage()">SEND</button>
+            <button class="btn btn-secondary" onclick="window.savePreset()">Save Preset</button>
+            <button class="btn btn-primary" onclick="window.sendMessage()">SEND</button>
         </div>
 
         <div id="emoji-drawer">
             <div class="tabs" id="emoji-tabs">
-                <div class="tab active" onclick="switchTab('Map')">Map</div>
-                <div class="tab" onclick="switchTab('Companies')">Corp</div>
-                <div class="tab" onclick="switchTab('Fun')">Fun</div>
-                <div class="tab" onclick="switchTab('Animated')">Anim</div>
-                <div class="tab" onclick="switchTab('Other')">Other</div>
+                <div class="tab active" onclick="window.switchTab('Map')">Map</div>
+                <div class="tab" onclick="window.switchTab('Companies')">Corp</div>
+                <div class="tab" onclick="window.switchTab('Fun')">Fun</div>
+                <div class="tab" onclick="window.switchTab('Animated')">Anim</div>
+                <div class="tab" onclick="window.switchTab('Other')">Other</div>
             </div>
             <div id="emoji-grid" class="emoji-grid">
                 </div>
@@ -261,8 +259,8 @@
 
 <script>
 // --- CONFIGURATION ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v2";
-const STORAGE_KEY_MINI = "tt_chat_mini_v2";
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v3";
+const STORAGE_KEY_MINI = "tt_chat_mini_v3";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
 
 // --- DATABASE: EXTRACTED FROM SOURCE ---
@@ -320,7 +318,12 @@ const EMOJI_DB = {
         { c: ":theharv:", f: "thumb/0/0e/Theharv.png/64px-Theharv.png" }, { c: ":thenking:", f: "thumb/4/4a/Thenking.png/64px-Thenking.png" },
         { c: ":thinking:", f: "thumb/2/29/Thinking.png/64px-Thinking.png" }, { c: ":this:", f: "thumb/d/da/This.png/64px-This.png" },
         { c: ":wave:", f: "thumb/e/e9/Wave.png/64px-Wave.png" }, { c: ":zabivakafish:", f: "thumb/2/20/Zabivakafish.png/64px-Zabivakafish.png" },
-        { c: ":zabivaka:", f: "thumb/2/2b/Zabivaka.png/64px-Zabivaka.png" }
+        { c: ":zabivaka:", f: "thumb/2/2b/Zabivaka.png/64px-Zabivaka.png" },
+        // Text based
+        { c: "(˵ ͡° ͜ʖ ͡°˵)", t: true }, { c: "( ͡° ᴥ  ͡° )", t: true }, { c: "ヽ(•_)ᕗ", t: true },
+        { c: "༼ つ ◕_◕ ༽つ", t: true }, { c: "( ⌐■ _■ )", t: true }, { c: "ᕕ( ᐛ )ᕗ", t: true },
+        { c: "(∩_∩)", t: true }, { c: "ಠ_ಠ", t: true }, { c: "ಥ_ಥ", t: true }, { c: "¯\\_(ツ)_/¯", t: true },
+        { c: "(╯°□°）╯︵ ┻━┻", t: true }, { c: "(  ͡~ ͜ʖ ͡°)", t: true }
     ],
     "Animated": [
         { c: ":ayoutried:", f: "d/d4/AYouTried.gif" }, { c: ":angryglitch:", f: "3/37/AngryGlitch.gif" },
@@ -360,7 +363,7 @@ let keybindMap = {};
 
 // --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
-    switchTab("Map");
+    window.switchTab("Map");
     renderPresets();
     
     // Restore Mini
@@ -370,14 +373,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Keyboard Input listener for ESC
     document.addEventListener('keydown', (e) => {
-        if (e.key === "Escape") closeApp();
+        if (e.key === "Escape") window.closeApp();
     });
 });
 
 // --- UI LOGIC ---
-function switchTab(cat) {
+window.switchTab = function(cat) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll(`.tab[onclick="switchTab('${cat}')"]`).forEach(t => t.classList.add('active'));
+    document.querySelectorAll(`.tab[onclick="window.switchTab('${cat}')"]`).forEach(t => t.classList.add('active'));
     
     const grid = document.getElementById("emoji-grid");
     grid.innerHTML = "";
@@ -386,19 +389,25 @@ function switchTab(cat) {
         EMOJI_DB[cat].forEach(emo => {
             const el = document.createElement("div");
             el.className = "emoji-item";
-            el.innerHTML = `<img src="${BASE_URL}/${emo.f}" title="${emo.c}">`;
-            el.onclick = () => insertEmoji(emo.c);
+            if (emo.t) {
+                el.innerText = emo.c;
+                el.style.fontSize = "0.7em";
+                el.style.whiteSpace = "nowrap";
+            } else {
+                el.innerHTML = `<img src="${BASE_URL}/${emo.f}" title="${emo.c}">`;
+            }
+            el.onclick = () => window.insertEmoji(emo.c);
             grid.appendChild(el);
         });
     }
-}
+};
 
-function toggleEmojiDrawer() {
+window.toggleEmojiDrawer = function() {
     const d = document.getElementById("emoji-drawer");
     d.classList.toggle("visible");
-}
+};
 
-function insertEmoji(code) {
+window.insertEmoji = function(code) {
     const inp = document.getElementById("msg-input");
     const start = inp.selectionStart;
     const end = inp.selectionEnd;
@@ -407,23 +416,23 @@ function insertEmoji(code) {
     const after  = text.substring(end, text.length);
     inp.value = before + (before.length > 0 && !before.endsWith(' ') ? ' ' : '') + code + (after.length > 0 && !after.startsWith(' ') ? ' ' : '') + after;
     inp.focus();
-}
+};
 
-function savePreset() {
+window.savePreset = function() {
     const txt = document.getElementById("msg-input").value.trim();
     if (!txt) return;
     presets.push({ id: Date.now(), text: txt, bind: null });
     localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
     renderPresets();
-}
+};
 
-function deletePreset(id) {
+window.deletePreset = function(id) {
     presets = presets.filter(p => p.id !== id);
     localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
     renderPresets();
-}
+};
 
-function bindPreset(id) {
+window.bindPreset = function(id) {
     const p = presets.find(x => x.id === id);
     if (!p) return;
     
@@ -434,7 +443,7 @@ function bindPreset(id) {
     localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
     renderPresets();
     registerBinding(p);
-}
+};
 
 function renderPresets() {
     const list = document.getElementById("preset-list");
@@ -447,25 +456,30 @@ function renderPresets() {
         const card = document.createElement("div");
         card.className = "preset-card";
         card.innerHTML = `
-            <div class="preset-text" onclick="sendMessage('${p.text.replace(/'/g, "\\'")}')">${p.text}</div>
-            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="bindPreset(${p.id})" title="Bind Key">
+            <div class="preset-text" onclick="window.sendMessage('${p.text.replace(/'/g, "\\'")}')">${p.text}</div>
+            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="window.bindPreset(${p.id})" title="Bind Key">
                 ${p.bind || '⌨'}
             </button>
-            <button class="icon-btn del" onclick="deletePreset(${p.id})" title="Delete">✕</button>
+            <button class="icon-btn del" onclick="window.deletePreset(${p.id})" title="Delete">✕</button>
         `;
         list.appendChild(card);
     });
 }
 
 // --- CORE COMMUNICATION ---
-function sendMessage(text = null) {
+window.sendMessage = function(text = null) {
     const inp = document.getElementById("msg-input");
     const msg = text !== null ? text : inp.value;
     if (!msg.trim()) return;
 
-    // FIX: Use the selected channel prefix!
-    const channel = document.getElementById("channel-select").value; // say, ooc, me, etc
-    const finalCommand = `${channel} ${msg}`;
+    // --- FIX FOR BLOCKED COMMANDS ---
+    // Instead of using command="/ooc msg", we use command="ooc msg" (no slash)
+    // The "prefix" input allows setting the command (ooc, me, or empty)
+    
+    const prefix = document.getElementById("cmd-prefix").value.trim();
+    
+    // If prefix exists, join with space. If empty, just send message (which might fail if 'say' is blocked, but this allows flexibility)
+    const finalCommand = prefix ? `${prefix} ${msg}` : msg;
 
     if (window.parent) {
         window.parent.postMessage({
@@ -477,7 +491,7 @@ function sendMessage(text = null) {
     }
 
     if (text === null) inp.value = ""; 
-}
+};
 
 function registerBinding(preset) {
     if (!window.parent || !preset.bind) return;
@@ -507,9 +521,9 @@ window.addEventListener('message', (e) => {
             if (presetId) {
                 const p = presets.find(x => x.id === presetId);
                 if (p) {
-                    sendMessage(p.text);
+                    window.sendMessage(p.text);
                     // Visual feedback
-                    const btn = document.querySelector(`button[onclick="bindPreset(${p.id})"]`);
+                    const btn = document.querySelector(`button[onclick="window.bindPreset(${p.id})"]`);
                     if(btn) {
                         btn.style.borderColor = "#fff";
                         setTimeout(() => btn.style.borderColor = "", 200);
@@ -531,11 +545,11 @@ window.toggleMini = function() {
     app.onclick = isMini ? window.toggleMini : null;
 };
 
-function closeApp() {
+window.closeApp = function() {
     if (window.parent) {
         window.parent.postMessage({ type: "close" }, "*");
     }
-}
+};
 
 // --- DRAG ---
 const elm = document.getElementById("tracker-app");
