@@ -2,563 +2,257 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Macro</title>
+    <title>Tycoon Deep Probe</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&family=Rajdhani:wght@600;800&display=swap');
 
         :root {
-            --bg-body: rgba(18, 18, 20, 0.98);
-            --bg-header: #1e1f22;
-            --bg-panel: rgba(43, 45, 49, 0.5);
-            --primary: #5865F2;
-            --primary-hover: #4752C4;
-            --text-main: #dbdee1;
-            --text-dim: #949ba4;
-            --border: 1px solid rgba(255,255,255,0.08);
-            --green: #23a559;
-            --red: #da373c;
+            --bg: #0f0f12;
+            --panel: #1a1a1e;
+            --border: #2f2f35;
+            --accent: #ff0055;
+            --text: #e0e0e0;
+            --code: #00e676;
+            --highlight: #ffb300;
         }
 
         body {
             margin: 0; padding: 0;
-            font-family: 'Roboto', sans-serif;
             background: transparent;
-            color: var(--text-main);
-            overflow: hidden;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text);
             height: 100vh; width: 100vw;
+            overflow: hidden;
             user-select: none;
         }
 
-        #tracker-app {
-            position: absolute;
-            top: 50px; left: 50px;
-            width: 360px;
-            background: var(--bg-body);
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+        #app {
+            position: absolute; top: 50px; left: 50px;
+            width: 500px; height: 600px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
             display: flex; flex-direction: column;
-            border: var(--border);
-            min-height: 400px;
-            max-height: 800px;
-            overflow: hidden;
-            resize: both;
-            transition: opacity 0.2s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            resize: both; overflow: hidden;
         }
 
-        /* --- MINI MODE --- */
-        #tracker-app.mini-mode {
-            width: 60px !important; height: 60px !important;
-            min-height: 0; min-width: 0; resize: none;
-            border-radius: 50%; border: 2px solid #fff;
-            background: var(--primary);
-            cursor: pointer;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
-
-        #tracker-app.mini-mode > * { display: none !important; }
-        #tracker-app.mini-mode::after {
-            content: "💬";
-            display: flex; width: 100%; height: 100%;
-            align-items: center; justify-content: center;
-            font-size: 28px;
-        }
-        
-        /* Hide Resize in Mini Mode */
-        #tracker-app.mini-mode + #resize-handle { display: none; }
-
-        /* --- HEADER --- */
         header {
-            background: var(--bg-header);
-            padding: 8px 12px;
+            background: #111; padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
             cursor: move;
-            border-bottom: var(--border);
-            height: 32px;
-        }
-
-        .title {
-            font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.1em;
-            letter-spacing: 1px; color: #fff; text-transform: uppercase;
-            display: flex; align-items: center; gap: 8px;
-        }
-
-        .win-btn {
-            background: transparent; border: none; color: var(--text-dim);
-            cursor: pointer; padding: 4px 8px; border-radius: 4px; font-weight: bold;
-        }
-        .win-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .win-btn.close:hover { background: var(--red); }
-
-        /* --- CONTENT --- */
-        #content {
-            padding: 12px; display: flex; flex-direction: column; gap: 12px;
-            flex: 1; overflow-y: auto; scrollbar-width: thin;
-        }
-
-        /* Controls */
-        .control-row { display: flex; gap: 8px; }
-        
-        #cmd-prefix {
-            background: var(--bg-panel); color: var(--text-dim); border: var(--border);
-            padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif;
-            font-weight: bold; width: 50px; text-align: center;
-            outline: none; font-size: 0.9em;
-        }
-        #cmd-prefix:focus { border-color: var(--primary); color: #fff; }
-        #cmd-prefix::placeholder { opacity: 0.5; }
-
-        .input-wrapper {
-            position: relative; flex: 1; display: flex;
         }
         
-        #msg-input {
-            width: 100%; background: #383a40; border: none; color: #fff;
-            padding: 10px 36px 10px 10px; border-radius: 4px; font-family: inherit;
-            outline: none; font-size: 0.95em;
-        }
-        #msg-input:focus { box-shadow: 0 0 0 2px var(--primary); }
+        .title { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.1em; color: var(--accent); letter-spacing: 1px; }
 
-        .emoji-toggle-btn {
-            position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-            background: transparent; border: none; font-size: 1.2em; cursor: pointer;
-            filter: grayscale(1); transition: 0.2s; opacity: 0.7;
-        }
-        .emoji-toggle-btn:hover { filter: grayscale(0); transform: translateY(-50%) scale(1.1); opacity: 1; }
+        #content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-        .action-row { display: flex; gap: 8px; justify-content: flex-end; }
+        /* --- TOP: COMMAND TESTER --- */
+        .tester-area {
+            padding: 10px; background: var(--panel); border-bottom: 1px solid var(--border);
+            display: flex; gap: 5px; align-items: center;
+        }
+        
+        .tester-label { font-size: 0.7em; color: #888; text-transform: uppercase; }
+        
+        #cmd-input {
+            flex: 1; background: #000; border: 1px solid var(--border);
+            color: var(--code); padding: 8px; font-family: inherit; font-size: 0.9em;
+            border-radius: 3px;
+        }
         
         .btn {
-            padding: 6px 16px; border-radius: 4px; border: none; cursor: pointer;
-            font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff;
-            text-transform: uppercase; font-size: 0.85em; transition: 0.2s;
+            background: var(--border); border: none; color: #fff;
+            padding: 8px 12px; cursor: pointer; border-radius: 3px;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold;
         }
-        .btn-primary { background: var(--primary); }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-secondary { background: #4e5058; }
-        .btn-secondary:hover { background: #6d6f78; }
+        .btn:hover { background: var(--accent); }
+        .btn.copy { background: var(--highlight); color: #000; }
 
-        /* Emoji Drawer */
-        #emoji-drawer {
-            background: var(--bg-panel); border: var(--border); border-radius: 6px;
-            overflow: hidden; display: none; flex-direction: column;
-            animation: slideDown 0.2s ease;
-            max-height: 200px;
-        }
-        #emoji-drawer.visible { display: flex; }
-
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .tabs { display: flex; background: rgba(0,0,0,0.2); overflow-x: auto; scrollbar-width: none; }
-        .tab {
-            padding: 8px 12px; cursor: pointer; font-size: 0.75em; font-weight: bold;
-            color: var(--text-dim); text-transform: uppercase; white-space: nowrap;
-            border-bottom: 2px solid transparent; flex: 1; text-align: center;
-        }
-        .tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .tab.active { color: #fff; border-bottom-color: var(--primary); background: rgba(255,255,255,0.02); }
-
-        .emoji-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-            gap: 4px; padding: 8px; overflow-y: auto;
-        }
-        
-        .emoji-item {
-            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-            border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.03);
-            font-size: 1.2em; overflow: hidden;
-        }
-        .emoji-item:hover { background: var(--primary); }
-        .emoji-item img { max-width: 32px; max-height: 32px; pointer-events: none; }
-
-        /* Presets List */
-        .section-header {
-            font-size: 0.75em; text-transform: uppercase; color: var(--text-dim);
-            font-weight: 800; letter-spacing: 1px; margin-top: 5px;
+        /* --- BOTTOM: LIVE DATA --- */
+        .data-header {
+            padding: 5px 10px; background: #000; font-size: 0.75em; color: #666;
             display: flex; justify-content: space-between; align-items: center;
         }
 
-        #preset-list { display: flex; flex-direction: column; gap: 6px; }
-
-        .preset-card {
-            background: var(--bg-panel); padding: 8px; border-radius: 4px;
-            display: flex; align-items: center; gap: 8px; border: 1px solid transparent;
+        #data-log {
+            flex: 1; overflow-y: auto; padding: 5px;
+            font-size: 0.8em; scrollbar-width: thin;
         }
-        .preset-card:hover { border-color: var(--text-dim); background: rgba(255,255,255,0.05); }
 
-        .preset-text {
-            flex: 1; font-size: 0.9em; white-space: nowrap; overflow: hidden;
-            text-overflow: ellipsis; cursor: pointer; color: #fff;
+        .log-row {
+            display: flex; border-bottom: 1px solid #222;
+            padding: 4px 0; transition: background 0.5s;
         }
-        .preset-text:hover { color: var(--primary-hover); }
+        .log-row.flash { background: rgba(255, 179, 0, 0.2); }
 
-        .icon-btn {
-            width: 26px; height: 26px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);
-            background: transparent; color: var(--text-dim); cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 0.85em;
-        }
-        .icon-btn:hover { color: #fff; border-color: #fff; }
-        .icon-btn.del:hover { background: var(--red); border-color: var(--red); }
-        .icon-btn.bind.active { color: var(--green); border-color: var(--green); background: rgba(35, 165, 89, 0.1); }
-
-        #resize-handle {
-            position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize;
-        }
-        #tracker-app.mini-mode + #resize-handle { display: none; }
+        .key-col { width: 40%; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 5px; }
+        .val-col { width: 60%; color: var(--code); word-break: break-all; }
+        
+        .null-val { color: #555; font-style: italic; }
 
     </style>
 </head>
 <body>
 
-<div id="tracker-app">
+<div id="app">
     <header id="drag-handle">
-        <div class="title"><span>💬</span> Quick Chat</div>
-        <div style="display:flex; gap:5px;">
-            <button class="win-btn" onclick="window.toggleMini()">MINI</button>
-            <button class="win-btn close" onclick="window.closeApp()">✕</button>
-        </div>
+        <div class="title">DATA PROBE // REPORT GEN</div>
+        <button class="btn" style="font-size:0.7em;" onclick="window.closeApp()">X</button>
     </header>
 
     <div id="content">
-        <div class="control-row">
-            <input type="text" id="cmd-prefix" placeholder="Cmd" value="me" title="Command (me, do, say, or empty)">
-            
-            <div class="input-wrapper">
-                <input type="text" id="msg-input" placeholder="Type message here...">
-                <button class="emoji-toggle-btn" onclick="window.toggleEmojiDrawer()" title="Open Emojis">😊</button>
+        <div class="tester-area" style="flex-direction:column; align-items:stretch;">
+            <div style="display:flex; justify-content:space-between;">
+                <span class="tester-label">Command Injector (Try variants here)</span>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="cmd-input" placeholder='e.g. "say hello" or just "hello"'>
+                <button class="btn" onclick="window.injectCommand()">SEND</button>
+            </div>
+            <div style="font-size:0.7em; color:#666; margin-top:2px;">
+                *Use "say hello" to test command. Use "hello" to test raw text.
             </div>
         </div>
 
-        <div class="action-row">
-            <button class="btn btn-secondary" onclick="window.savePreset()">Save Preset</button>
-            <button class="btn btn-primary" onclick="window.sendMessage()">SEND</button>
+        <div class="data-header">
+            <span>LIVE DATA FEED</span>
+            <span id="update-indicator">● Listening...</span>
+        </div>
+        
+        <div id="data-log">
+            <div style="padding:20px; text-align:center; color:#444;">
+                Waiting for game data...
+            </div>
         </div>
 
-        <div id="emoji-drawer">
-            <div class="tabs" id="emoji-tabs">
-                <div class="tab active" onclick="window.switchTab('Map')">Map</div>
-                <div class="tab" onclick="window.switchTab('Companies')">Corp</div>
-                <div class="tab" onclick="window.switchTab('Fun')">Fun</div>
-                <div class="tab" onclick="window.switchTab('Animated')">Anim</div>
-                <div class="tab" onclick="window.switchTab('Other')">Other</div>
-            </div>
-            <div id="emoji-grid" class="emoji-grid">
-                </div>
-        </div>
-
-        <div style="flex: 1; display:flex; flex-direction:column; min-height: 100px;">
-            <div class="section-header">
-                <span>Saved Messages</span>
-                <span id="bind-hint" style="font-size:0.8em; font-weight:normal; opacity:0.6;">Click ⌨ to bind key</span>
-            </div>
-            <div id="preset-list">
-                </div>
+        <div style="padding:10px; background:#000; text-align:center;">
+            <button class="btn copy" style="width:100%;" onclick="window.copyReport()">COPY FULL REPORT TO CLIPBOARD</button>
         </div>
     </div>
 </div>
-<div id="resize-handle"></div>
 
 <script>
-// --- CONFIGURATION ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v3";
-const STORAGE_KEY_MINI = "tt_chat_mini_v3";
-const BASE_URL = "https://dash.tycoon.community/wiki/images";
+// --- CORE ---
+let DATA_CACHE = {};
+let LAST_UPDATE = Date.now();
 
-// --- DATABASE: EXTRACTED FROM SOURCE ---
-const EMOJI_DB = {
-    "Map": [
-        { c: ":aircraftdealer:", f: "4/42/Aircraft_Dealer.png" }, { c: ":atm:", f: "0/0d/ATM.png" },
-        { c: ":boatdealer:", f: "a/af/Watercraft_Dealership.png" }, { c: ":boatgarage:", f: "d/dc/Boat_Garage.png" },
-        { c: ":business:", f: "5/54/Business2.png" }, { c: ":businessbonus:", f: "c/cf/Business_Bonus.png" },
-        { c: ":businessbonusmax:", f: "1/18/Business_Full.png" }, { c: ":businessowned:", f: "6/68/Business_Owned.png" },
-        { c: ":cablecar:", f: "c/c5/Cable_Car.png" }, { c: ":carwash:", f: "d/d8/CarWash.png" },
-        { c: ":clothingstore:", f: "e/ec/Clothing_store.png" }, { c: ":dealership:", f: "d/de/Car_Dealer.png" },
-        { c: ":emscallout:", f: "6/6c/EMS_Friend.png" }, { c: ":fishimporter:", f: "1/1e/Fish_Importer.png" },
-        { c: ":fishingzone:", f: "3/3f/Fish_Zone.png" }, { c: ":fuel:", f: "4/44/Fuel.png" },
-        { c: ":garage:", f: "8/88/Garage.png" }, { c: ":garbageoffice:", f: "e/e2/Garbage_Center.png" },
-        { c: ":grandexchange:", f: "6/60/Grand_Exchange.png" }, { c: ":helifuel:", f: "1/12/HeliFuel.png" },
-        { c: ":heligarage:", f: "c/c8/Helicopter_Garage.png" }, { c: ":hospital:", f: "6/66/Hospital.png" },
-        { c: ":huntingoffice:", f: "0/02/Hunter_Office.png" }, { c: ":jobcenter:", f: "a/ad/JobCenter.png" },
-        { c: ":loanoffice:", f: "9/9b/Loan_Office.png" }, { c: ":lscustoms:", f: "0/06/LS_Customs.png" },
-        { c: ":market:", f: "2/22/Generic_Shop.png" }, { c: ":marketfish:", f: "d/d4/Diving_Market.png" },
-        { c: ":marketmechanic:", f: "0/0a/Mechanic_market.png" }, { c: ":marketmedical:", f: "7/7d/Med_Market.png" },
-        { c: ":marketplace:", f: "c/c1/Marketplace.png" }, { c: ":marketpremium:", f: "6/66/VIP_Market.png" },
-        { c: ":ownedsemi:", f: "8/87/Owned_Semi.png" }, { c: ":ownedtrailer:", f: "c/c0/Owned_Trailer.png" },
-        { c: ":plane:", f: "0/0c/Plane.png" }, { c: ":planefuel:", f: "7/7a/Plane_Fuel.png" },
-        { c: ":planegarage:", f: "d/d4/Aircraft_Garage.png" }, { c: ":planeterminal:", f: "9/9c/Terminal.png" },
-        { c: ":properties:", f: "0/0c/House.png" }, { c: ":raceboat:", f: "5/56/Boat_Race.png" },
-        { c: ":racecar:", f: "3/33/Street_Race.png" }, { c: ":raceplane:", f: "4/40/Aerial_Race.png" },
-        { c: ":repair:", f: "4/46/Repair_point.png" }, { c: ":selfstorage:", f: "thumb/3/3c/Self_Storage.png/64px-Self_Storage.png" },
-        { c: ":trainmetro:", f: "a/a4/Metro_Train.png" }, { c: ":trainpassenger:", f: "a/a5/Passenger_Train.png" },
-        { c: ":truckingbuyer:", f: "a/a3/Trucking_Buyer.png" }, { c: ":truckingseller:", f: "7/7b/Trucking_Seller.png" }
-    ],
-    "Companies": [
-        { c: ":bat:", f: "thumb/6/6e/Bat-1.png/64px-Bat-1.png" }, { c: ":collins:", f: "thumb/0/0c/Collins.png/64px-Collins.png" },
-        { c: ":empire:", f: "thumb/2/2e/IA.png/64px-IA.png" }, { c: ":frllc:", f: "thumb/9/94/FRLLC.png/64px-FRLLC.png" },
-        { c: ":pigs:", f: "thumb/d/da/PIGS.png/67px-PIGS.png" }, { c: ":rts:", f: "thumb/f/f2/RTS2.png/57px-RTS2.png" }
-    ],
-    "Fun": [
-        { c: ":amogus:", f: "thumb/2/2a/Amogus.png/64px-Amogus.png" }, { c: ":anhero:", f: "thumb/2/2e/Anhero.png/64px-Anhero.png" },
-        { c: ":captainmlady:", f: "thumb/c/cc/Captainmlady.png/64px-Captainmlady.png" }, { c: ":catlul:", f: "thumb/d/df/Catlul.png/64px-Catlul.png" },
-        { c: ":cls:", f: "thumb/9/9d/Cls.png/64px-Cls.png" }, { c: ":coolcry:", f: "thumb/b/b9/Coolcry.png/64px-Coolcry.png" },
-        { c: ":flippyboi:", f: "thumb/7/78/Flippyboi.png/64px-Flippyboi.png" }, { c: ":gg:", f: "thumb/9/9d/GG2.png/64px-GG2.png" },
-        { c: ":glitch:", f: "thumb/0/01/Glitch.png/64px-Glitch.png" }, { c: ":goodjob:", f: "thumb/5/5b/Goodjob.png/64px-Goodjob.png" },
-        { c: ":goose:", f: "thumb/d/dd/Goose.png/64px-Goose.png" }, { c: ":heh:", f: "0/01/Heh.png" },
-        { c: ":iaeyes:", f: "thumb/1/1c/IAEyes.png/64px-IAEyes.png" }, { c: ":joedoubt:", f: "thumb/5/55/Joedoubt.png/64px-Joedoubt.png" },
-        { c: ":lul:", f: "thumb/6/6b/Lul.png/64px-Lul.png" }, { c: ":mariothink:", f: "thumb/9/9d/Mariothink.png/64px-Mariothink.png" },
-        { c: ":mek:", f: "thumb/7/74/Mek.png/64px-Mek.png" }, { c: ":meklove:", f: "thumb/5/5a/Meklove.png/64px-Meklove.png" },
-        { c: ":monkat:", f: "a/a0/MonkaT.png" }, { c: ":niv:", f: "thumb/a/a2/Niv.png/64px-Niv.png" },
-        { c: ":nou:", f: "thumb/c/cf/Nou.png/64px-Nou.png" }, { c: ":ohdear:", f: "thumb/1/13/Ohdear.png/64px-Ohdear.png" },
-        { c: ":ok_hand:", f: "thumb/2/25/Okhand.png/64px-Okhand.png" }, { c: ":oof:", f: "thumb/2/2c/Oof.png/64px-Oof.png" },
-        { c: ":plp:", f: "thumb/e/e2/Pepelaughpoint.png/64px-Pepelaughpoint.png" }, { c: ":pepebruh:", f: "thumb/7/76/Pepebruh.png/64px-Pepebruh.png" },
-        { c: ":pepecry:", f: "thumb/5/5a/Pepecry.png/64px-Pepecry.png" }, { c: ":pepeyikes:", f: "c/c1/Pepeyikes.png" },
-        { c: ":pog:", f: "thumb/d/d7/Pog2.png/64px-Pog2.png" }, { c: ":poggers:", f: "thumb/1/14/Poggers.png/64px-Poggers.png" },
-        { c: ":popcornRoo:", f: "thumb/5/5c/Popcornroo.png/64px-Popcornroo.png" }, { c: ":rainbowheart:", f: "thumb/1/12/Rainbowheart.png/64px-Rainbowheart.png" },
-        { c: ":scottishlove:", f: "thumb/4/41/Scottishlove.png/64px-Scottishlove.png" }, { c: ":sinkyboi:", f: "thumb/2/27/Sinkyboi.png/64px-Sinkyboi.png" },
-        { c: ":smart:", f: "thumb/0/02/Smart.png/64px-Smart.png" }, { c: ":streamlurk:", f: "thumb/c/c6/StreamLurk.png/64px-StreamLurk.png" },
-        { c: ":theharv:", f: "thumb/0/0e/Theharv.png/64px-Theharv.png" }, { c: ":thenking:", f: "thumb/4/4a/Thenking.png/64px-Thenking.png" },
-        { c: ":thinking:", f: "thumb/2/29/Thinking.png/64px-Thinking.png" }, { c: ":this:", f: "thumb/d/da/This.png/64px-This.png" },
-        { c: ":wave:", f: "thumb/e/e9/Wave.png/64px-Wave.png" }, { c: ":zabivakafish:", f: "thumb/2/20/Zabivakafish.png/64px-Zabivakafish.png" },
-        { c: ":zabivaka:", f: "thumb/2/2b/Zabivaka.png/64px-Zabivaka.png" },
-        // Text based
-        { c: "(˵ ͡° ͜ʖ ͡°˵)", t: true }, { c: "( ͡° ᴥ  ͡° )", t: true }, { c: "ヽ(•_)ᕗ", t: true },
-        { c: "༼ つ ◕_◕ ༽つ", t: true }, { c: "( ⌐■ _■ )", t: true }, { c: "ᕕ( ᐛ )ᕗ", t: true },
-        { c: "(∩_∩)", t: true }, { c: "ಠ_ಠ", t: true }, { c: "ಥ_ಥ", t: true }, { c: "¯\\_(ツ)_/¯", t: true },
-        { c: "(╯°□°）╯︵ ┻━┻", t: true }, { c: "(  ͡~ ͜ʖ ͡°)", t: true }
-    ],
-    "Animated": [
-        { c: ":ayoutried:", f: "d/d4/AYouTried.gif" }, { c: ":angryglitch:", f: "3/37/AngryGlitch.gif" },
-        { c: ":banned:", f: "2/2a/Banned.gif" }, { c: ":bluefirework:", f: "d/de/BlueFirework.gif" },
-        { c: ":bunnyrun:", f: "6/69/BunnyRun.gif" }, { c: ":bunnystand:", f: "6/65/BunnyStand.gif" },
-        { c: ":catscream:", f: "c/c1/Catscream.gif" }, { c: ":catwave:", f: "8/8c/Cat_Wave.gif" },
-        { c: ":chaos:", f: "1/13/Chaos.gif" }, { c: ":dogrun:", f: "2/26/DogRun.gif" },
-        { c: ":dogstand:", f: "d/dc/DogStand.gif" }, { c: ":discodance:", f: "d/d6/DiscoDance.gif" },
-        { c: ":eatingpopcorn:", f: "8/84/EatingPopcorn.gif" }, { c: ":facepalmz:", f: "0/07/FacePalmz.gif" },
-        { c: ":fedora:", f: "a/a0/Fedora.gif" }, { c: ":greenfirework:", f: "f/f8/GreenFirework.gif" },
-        { c: ":homerhide:", f: "b/bf/Homerhide.gif" }, { c: ":2stagefirework:", f: "8/8c/2StageFirework.gif" },
-        { c: ":loading:", f: "2/2f/Loading3.gif" }, { c: ":meltdown:", f: "9/99/Meltdown.gif" },
-        { c: ":meow:", f: "1/1a/Meow.gif" }, { c: ":morshu:", f: "e/ec/Morshu.gif" },
-        { c: ":muppetno:", f: "e/e2/Muppetno.gif" }, { c: ":norpanimated:", f: "5/5e/NoRPAnimated.gif" },
-        { c: ":ok_fidget:", f: "f/f1/OkFidget.gif" }, { c: ":overpriced:", f: "d/da/Overpriced.gif" },
-        { c: ":pbbt:", f: "0/02/Pbbt.gif" }, { c: ":pear7:", f: "7/75/Pear7.gif" },
-        { c: ":pepelaughexp:", f: "a/a4/Pepelaughexp.gif" }, { c: ":pinkfirework:", f: "c/ca/PinkFirework.gif" },
-        { c: ":planetakeoffblink:", f: "e/e2/TakeOffBlink.gif" }, { c: ":planelandingblink:", f: "4/45/LandingBlink.gif" },
-        { c: ":pandapingree:", f: "7/79/PandaPingRee.gif" }, { c: ":wesley:", f: "7/74/Wesley.gif" }
-    ],
-    "Other": [
-        { c: ":boost:", f: "thumb/c/cd/Boost.png/64px-Boost.png" }, { c: ":buy:", f: "thumb/f/f7/Buy.png/64px-Buy.png" },
-        { c: ":f7:", f: "thumb/6/60/F7.png/64px-F7.png" }, { c: ":fedex:", f: "thumb/a/a6/FedEx.png/64px-FedEx.png" },
-        { c: ":fedex-1:", f: "thumb/9/98/FedEx1.png/64px-FedEx1.png" }, { c: ":mountaincatviolet:", f: "thumb/c/c6/MountainCatViolet.png/64px-MountainCatViolet.png" },
-        { c: ":norp:", f: "thumb/c/cc/NoRP.png/64px-NoRP.png" }, { c: ":notification:", f: "thumb/f/f1/Notification.png/64px-Notification.png" },
-        { c: ":planelanding:", f: "9/9c/PlaneLanding.png" }, { c: ":planetakeoff:", f: "f/f0/PlaneTakeoff.png" },
-        { c: ":sell:", f: "thumb/f/fb/Sell.png/64px-Sell.png" }, { c: ":snailtycoon:", f: "thumb/3/33/SnailTycoon.png/64px-SnailTycoon.png" },
-        { c: ":sold:", f: "thumb/c/c1/Sold.png/64px-Sold.png" }, { c: ":trade:", f: "thumb/d/d5/Trade.png/64px-Trade.png" },
-        { c: ":ttycoon:", f: "thumb/f/fa/TTycoon.png/64px-TTycoon.png" }, { c: ":tycoon:", f: "thumb/b/bf/Tycoon.png/64px-Tycoon.png" },
-        { c: ":tycoonheart:", f: "thumb/1/17/TycoonHeart.png/64px-TycoonHeart.png" }, { c: ":tycoonpx:", f: "0/01/Tycoonpx.png" }
-    ]
-};
-
-// --- STATE ---
-let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
-let keybindMap = {};
-
-// --- INIT ---
-document.addEventListener("DOMContentLoaded", () => {
-    window.switchTab("Map");
-    renderPresets();
-    
-    // Restore Mini
-    if (localStorage.getItem(STORAGE_KEY_MINI) === "true") {
-        document.getElementById("tracker-app").classList.add("mini-mode");
-    }
-
-    // Keyboard Input listener for ESC
-    document.addEventListener('keydown', (e) => {
-        if (e.key === "Escape") window.closeApp();
-    });
+// Init
+window.addEventListener('load', () => {
+    // Start Data Loop
+    setInterval(requestData, 1000);
 });
 
-// --- UI LOGIC ---
-window.switchTab = function(cat) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll(`.tab[onclick="window.switchTab('${cat}')"]`).forEach(t => t.classList.add('active'));
-    
-    const grid = document.getElementById("emoji-grid");
-    grid.innerHTML = "";
-    
-    if (EMOJI_DB[cat]) {
-        EMOJI_DB[cat].forEach(emo => {
-            const el = document.createElement("div");
-            el.className = "emoji-item";
-            if (emo.t) {
-                el.innerText = emo.c;
-                el.style.fontSize = "0.7em";
-                el.style.whiteSpace = "nowrap";
-            } else {
-                el.innerHTML = `<img src="${BASE_URL}/${emo.f}" title="${emo.c}">`;
-            }
-            el.onclick = () => window.insertEmoji(emo.c);
-            grid.appendChild(el);
-        });
+// 1. DATA REQUESTER (Asks for EVERYTHING)
+function requestData() {
+    if(window.parent) {
+        // We request 'getData' which returns the full cache usually
+        // We also request keys that might not be in cache by default if we know them
+        window.parent.postMessage({ type: "getData" }, "*");
     }
-};
-
-window.toggleEmojiDrawer = function() {
-    const d = document.getElementById("emoji-drawer");
-    d.classList.toggle("visible");
-};
-
-window.insertEmoji = function(code) {
-    const inp = document.getElementById("msg-input");
-    const start = inp.selectionStart;
-    const end = inp.selectionEnd;
-    const text = inp.value;
-    const before = text.substring(0, start);
-    const after  = text.substring(end, text.length);
-    inp.value = before + (before.length > 0 && !before.endsWith(' ') ? ' ' : '') + code + (after.length > 0 && !after.startsWith(' ') ? ' ' : '') + after;
-    inp.focus();
-};
-
-window.savePreset = function() {
-    const txt = document.getElementById("msg-input").value.trim();
-    if (!txt) return;
-    presets.push({ id: Date.now(), text: txt, bind: null });
-    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
-    renderPresets();
-};
-
-window.deletePreset = function(id) {
-    presets = presets.filter(p => p.id !== id);
-    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
-    renderPresets();
-};
-
-window.bindPreset = function(id) {
-    const p = presets.find(x => x.id === id);
-    if (!p) return;
-    
-    const k = prompt(`Enter key for "${p.text}" (e.g. F5, NUMPAD1):`, p.bind || "");
-    if (k === null) return;
-    
-    p.bind = k.toUpperCase().trim();
-    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
-    renderPresets();
-    registerBinding(p);
-};
-
-function renderPresets() {
-    const list = document.getElementById("preset-list");
-    list.innerHTML = "";
-    
-    presets.forEach(p => {
-        // Register bind on load
-        if(p.bind) registerBinding(p);
-
-        const card = document.createElement("div");
-        card.className = "preset-card";
-        card.innerHTML = `
-            <div class="preset-text" onclick="window.sendMessage('${p.text.replace(/'/g, "\\'")}')">${p.text}</div>
-            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="window.bindPreset(${p.id})" title="Bind Key">
-                ${p.bind || '⌨'}
-            </button>
-            <button class="icon-btn del" onclick="window.deletePreset(${p.id})" title="Delete">✕</button>
-        `;
-        list.appendChild(card);
-    });
 }
 
-// --- CORE COMMUNICATION ---
-window.sendMessage = function(text = null) {
-    const inp = document.getElementById("msg-input");
-    const msg = text !== null ? text : inp.value;
-    if (!msg.trim()) return;
-
-    // --- FIX FOR BLOCKED COMMANDS ---
-    // Instead of using command="/ooc msg", we use command="ooc msg" (no slash)
-    // The "prefix" input allows setting the command (ooc, me, or empty)
-    
-    const prefix = document.getElementById("cmd-prefix").value.trim();
-    
-    // If prefix exists, join with space. If empty, just send message (which might fail if 'say' is blocked, but this allows flexibility)
-    const finalCommand = prefix ? `${prefix} ${msg}` : msg;
-
-    if (window.parent) {
-        window.parent.postMessage({
-            type: "sendCommand",
-            command: finalCommand
-        }, "*");
-    } else {
-        console.log("Mock Command:", finalCommand);
+// 2. DATA LISTENER
+window.addEventListener('message', (event) => {
+    let payload = event.data;
+    if (payload && payload.type === 'data' && payload.data) {
+        processData(payload.data);
     }
+});
 
-    if (text === null) inp.value = ""; 
-};
-
-function registerBinding(preset) {
-    if (!window.parent || !preset.bind) return;
+function processData(newData) {
+    const log = document.getElementById('data-log');
+    const indicator = document.getElementById('update-indicator');
     
-    const triggerName = `userapp_trigger_${preset.id}`;
-    keybindMap[triggerName] = preset.id;
+    // Pulse indicator
+    indicator.style.color = "#00e676";
+    setTimeout(() => indicator.style.color = "#666", 200);
 
-    window.parent.postMessage({
-        type: "registerTrigger",
-        trigger: triggerName,
-        name: `Chat: ${preset.text.substring(0, 10)}` // Label in keybind menu
-    }, "*");
-}
+    let hasChanges = false;
 
-// Listen for keybind triggers
-window.addEventListener('message', (e) => {
-    if (!e.data) return;
-    // Data might be wrapped
-    const payload = e.data.data || e.data;
-    
-    // Scan keys for triggers
-    for (const key in payload) {
-        if (key.startsWith("trigger_userapp_trigger_")) {
-            const trigKey = key.replace("trigger_", ""); // e.g. userapp_trigger_12345
-            const presetId = keybindMap[trigKey];
-            
-            if (presetId) {
-                const p = presets.find(x => x.id === presetId);
-                if (p) {
-                    window.sendMessage(p.text);
-                    // Visual feedback
-                    const btn = document.querySelector(`button[onclick="window.bindPreset(${p.id})"]`);
-                    if(btn) {
-                        btn.style.borderColor = "#fff";
-                        setTimeout(() => btn.style.borderColor = "", 200);
-                    }
-                }
-            }
+    // Merge and Check differences
+    for (const [key, value] of Object.entries(newData)) {
+        let stringVal = JSON.stringify(value);
+        
+        // If new key or value changed
+        if (DATA_CACHE[key] !== stringVal) {
+            DATA_CACHE[key] = stringVal;
+            hasChanges = true;
         }
     }
-});
 
-// --- WINDOW MANAGEMENT ---
-window.toggleMini = function() {
-    const app = document.getElementById("tracker-app");
-    app.classList.toggle("mini-mode");
-    const isMini = app.classList.contains("mini-mode");
-    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+    if (hasChanges) renderList();
+}
+
+function renderList() {
+    const container = document.getElementById('data-log');
+    container.innerHTML = "";
+
+    // Sort keys alphabetically
+    const keys = Object.keys(DATA_CACHE).sort();
+
+    keys.forEach(key => {
+        let val = DATA_CACHE[key];
+        
+        // Truncate long JSON strings for display
+        let displayVal = val;
+        if (val.length > 80) displayVal = val.substring(0, 80) + "...";
+
+        const row = document.createElement("div");
+        row.className = "log-row";
+        row.innerHTML = `
+            <div class="key-col">${key}</div>
+            <div class="val-col">${displayVal}</div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+// --- COMMAND INJECTOR ---
+window.injectCommand = function() {
+    const input = document.getElementById('cmd-input');
+    const cmd = input.value.trim();
+    if(!cmd) return;
+
+    if(window.parent) {
+        window.parent.postMessage({
+            type: "sendCommand",
+            command: cmd
+        }, "*");
+    } else {
+        console.log("Mock Send:", cmd);
+    }
+};
+
+// --- REPORT GENERATOR ---
+window.copyReport = function() {
+    const reportObj = {
+        timestamp: new Date().toISOString(),
+        keys_found: Object.keys(DATA_CACHE).length,
+        data: DATA_CACHE
+    };
+
+    const text = JSON.stringify(reportObj, null, 2);
     
-    // Enable clicking the circle to expand
-    app.onclick = isMini ? window.toggleMini : null;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.btn.copy');
+        btn.innerText = "COPIED!";
+        setTimeout(() => btn.innerText = "COPY FULL REPORT TO CLIPBOARD", 2000);
+    });
 };
 
 window.closeApp = function() {
-    if (window.parent) {
-        window.parent.postMessage({ type: "close" }, "*");
-    }
+    if (window.parent) window.parent.postMessage({ type: "close" }, "*");
 };
 
 // --- DRAG ---
-const elm = document.getElementById("tracker-app");
+const elm = document.getElementById("app");
 const head = document.getElementById("drag-handle");
 let isDragging = false, startX, startY, initLeft, initTop;
 
 head.addEventListener("mousedown", e => {
-    if(e.target.tagName === 'BUTTON' || e.target.closest('.win-btn')) return;
+    if(e.target.tagName === 'BUTTON') return;
     e.preventDefault();
     isDragging = true;
     startX = e.clientX; startY = e.clientY;
@@ -581,26 +275,6 @@ function dragEnd() {
     document.removeEventListener("mousemove", dragMove);
     document.removeEventListener("mouseup", dragEnd);
 }
-
-// --- RESIZE ---
-const rh = document.getElementById("resize-handle");
-rh.addEventListener("mousedown", e => {
-    e.preventDefault(); e.stopPropagation();
-    window.addEventListener("mousemove", resizeMove);
-    window.addEventListener("mouseup", resizeEnd);
-});
-
-function resizeMove(e) {
-    if(elm.classList.contains("mini-mode")) return;
-    elm.style.width = Math.max(300, e.clientX - elm.getBoundingClientRect().left) + "px";
-    elm.style.height = Math.max(300, e.clientY - elm.getBoundingClientRect().top) + "px";
-}
-
-function resizeEnd() {
-    window.removeEventListener("mousemove", resizeMove);
-    window.removeEventListener("mouseup", resizeEnd);
-}
-
 </script>
 </body>
 </html>
