@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v9</title>
+    <title>TT Chat Assistant v10</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
@@ -10,8 +10,8 @@
             --bg-body: #141416;
             --bg-header: #1f1f23;
             --bg-panel: #2b2b30;
+            --bg-modal: rgba(0, 0, 0, 0.9);
             --primary: #00e676;
-            --primary-hover: #00c853;
             --secondary: #3a3a40;
             --text-main: #ffffff;
             --text-dim: #a0a0a0;
@@ -29,7 +29,7 @@
             user-select: none;
         }
 
-        #app-container {
+        #tracker-app {
             position: absolute;
             top: 50px; left: 50px;
             width: 600px;
@@ -45,7 +45,7 @@
         }
 
         /* --- MINI MODE --- */
-        #app-container.mini-mode {
+        #tracker-app.mini-mode {
             position: fixed !important;
             bottom: 20px !important; right: 20px !important;
             top: auto !important; left: auto !important;
@@ -57,16 +57,19 @@
             border-radius: 6px;
         }
 
-        #app-container.mini-mode header, 
-        #app-container.mini-mode #content,
-        #app-container.mini-mode #resize-handle { display: none !important; }
+        /* Hide EVERYTHING in main mode when mini */
+        #tracker-app.mini-mode header, 
+        #tracker-app.mini-mode #content,
+        #tracker-app.mini-mode #modal-overlay,
+        #tracker-app.mini-mode #resize-handle { display: none !important; }
 
+        /* Show Micro View ONLY in mini mode */
         #micro-view {
             display: none; width: 100%; height: 100%;
             align-items: center; justify-content: center;
             cursor: move; gap: 10px;
         }
-        #app-container.mini-mode #micro-view { display: flex; }
+        #tracker-app.mini-mode #micro-view { display: flex; }
 
         .micro-btn {
             background: var(--primary); color: #000; border: none;
@@ -96,8 +99,8 @@
         .win-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .win-btn.close:hover { background: var(--red); }
 
-        /* --- CONTENT --- */
-        #content { display: flex; flex: 1; overflow: hidden; }
+        /* --- LAYOUT --- */
+        #content { display: flex; flex: 1; overflow: hidden; position: relative; }
 
         .col-left {
             flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px;
@@ -110,6 +113,7 @@
             overflow-y: auto; scrollbar-width: thin;
         }
 
+        /* INPUT AREA */
         .input-wrapper { position: relative; display: flex; width: 100%; }
         
         #msg-input {
@@ -198,6 +202,29 @@
         .icon-btn.del:hover { background: var(--red); border-color: var(--red); }
         .icon-btn.bind.active { color: #000; background: var(--primary); border-color: var(--primary); font-weight: bold; }
 
+        /* --- BIND MODAL (Safe for FiveM) --- */
+        #modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-modal); display: none;
+            align-items: center; justify-content: center; z-index: 50;
+        }
+        #modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: var(--bg-header); border: 1px solid var(--primary);
+            padding: 20px; border-radius: 8px; width: 300px; text-align: center;
+            box-shadow: 0 0 20px rgba(0,230,118,0.2);
+        }
+        .modal-title { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.2em; color: var(--primary); margin-bottom: 10px; }
+        .modal-desc { font-size: 0.8em; color: var(--text-dim); margin-bottom: 15px; }
+        #bind-input {
+            width: 100%; padding: 10px; text-align: center; font-weight: bold;
+            background: #111; border: 1px solid #444; color: #fff; border-radius: 4px;
+            margin-bottom: 15px; outline: none; font-size: 1.1em;
+        }
+        #bind-input:focus { border-color: var(--primary); }
+        .modal-btns { display: flex; gap: 10px; }
+
         /* TOAST */
         #toast {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -215,7 +242,7 @@
 </head>
 <body>
 
-<div id="app-container">
+<div id="tracker-app">
     <div id="micro-view" onmousedown="dragStart(event)">
         <span class="micro-icon">💬</span>
         <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
@@ -260,6 +287,18 @@
             </div>
             <div id="preset-list"></div>
         </div>
+        
+        <div id="modal-overlay">
+            <div class="modal-box">
+                <div class="modal-title">SET KEYBIND</div>
+                <div class="modal-desc">Press keys (e.g. Ctrl+L).<br>Then go to <b>FiveM Settings > Keybinds</b> to map this action.</div>
+                <input type="text" id="bind-input" placeholder="Press key..." readonly>
+                <div class="modal-btns">
+                    <button class="btn btn-sec" onclick="window.closeModal()">CANCEL</button>
+                    <button class="btn btn-copy" onclick="window.saveBind()">SAVE</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="toast">COPIED!</div>
@@ -267,8 +306,9 @@
 </div>
 
 <script>
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v9";
-const STORAGE_KEY_MINI = "tt_chat_mini_v9";
+// --- CONFIGURATION ---
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v10";
+const STORAGE_KEY_MINI = "tt_chat_mini_v10";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
 
 const EMOJI_DB = {
@@ -366,6 +406,7 @@ const EMOJI_DB = {
 // --- STATE ---
 let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
 let keybindMap = {};
+let targetPresetId = null;
 
 // --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -374,12 +415,28 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Restore Mini
     if (localStorage.getItem(STORAGE_KEY_MINI) === "true") {
-        document.getElementById("app-container").classList.add("mini-mode");
+        document.getElementById("tracker-app").classList.add("mini-mode");
     }
 
     // Escape listener
     document.addEventListener('keydown', (e) => {
         if (e.key === "Escape") window.closeApp();
+    });
+    
+    // Bind modal listener (Captures Modifiers)
+    const bindInp = document.getElementById('bind-input');
+    bindInp.addEventListener('keydown', (e) => {
+        e.preventDefault();
+        let keys = [];
+        if (e.ctrlKey) keys.push('Ctrl');
+        if (e.altKey) keys.push('Alt');
+        if (e.shiftKey) keys.push('Shift');
+        if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+            let k = e.key.toUpperCase();
+            if(k === " ") k = "SPACE";
+            keys.push(k);
+        }
+        if(keys.length > 0) bindInp.value = keys.join('+');
     });
 });
 
@@ -438,31 +495,43 @@ window.deletePreset = function(id) {
     renderPresets();
 };
 
-window.bindPreset = function(id) {
+// --- MODAL LOGIC ---
+window.openBindModal = function(id) {
+    targetPresetId = id;
     const p = presets.find(x => x.id === id);
-    if (!p) return;
-    
-    const k = prompt(`Enter key for "${p.text}" (e.g. F5, NUMPAD1):`, p.bind || "");
-    if (k === null) return;
-    
-    p.bind = k.toUpperCase().trim();
-    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
-    renderPresets();
-    registerBinding(p);
+    document.getElementById('bind-input').value = p.bind || "";
+    document.getElementById('modal-overlay').classList.add('active');
+    document.getElementById('bind-input').focus();
+};
+
+window.closeModal = function() {
+    document.getElementById('modal-overlay').classList.remove('active');
+    targetPresetId = null;
+};
+
+window.saveBind = function() {
+    if (!targetPresetId) return;
+    const k = document.getElementById('bind-input').value;
+    const p = presets.find(x => x.id === targetPresetId);
+    if(p) {
+        p.bind = k;
+        localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
+        renderPresets();
+        registerBinding(p);
+    }
+    window.closeModal();
 };
 
 function renderPresets() {
     const list = document.getElementById("preset-list");
     list.innerHTML = "";
-    
     presets.forEach(p => {
         if(p.bind) registerBinding(p);
-
         const card = document.createElement("div");
         card.className = "preset-card";
         card.innerHTML = `
             <div class="preset-text" onclick="window.loadAndCopy('${p.text.replace(/'/g, "\\'")}')">${p.text}</div>
-            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="window.bindPreset(${p.id})" title="Bind Key">
+            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="window.openBindModal(${p.id})" title="Bind Key">
                 ${p.bind || '⌨'}
             </button>
             <button class="icon-btn del" onclick="window.deletePreset(${p.id})" title="Delete">✕</button>
@@ -471,7 +540,7 @@ function renderPresets() {
     });
 }
 
-// --- KEYBIND LISTENER ---
+// --- TRIGGER LISTENER ---
 function registerBinding(preset) {
     if (!window.parent || !preset.bind) return;
     const triggerName = `userapp_trigger_${preset.id}`;
@@ -494,12 +563,11 @@ window.addEventListener('message', (e) => {
     }
 });
 
-// --- CORE ACTIONS ---
+// --- COPY ---
 window.doCopy = function(text = null) {
     const inp = document.getElementById("msg-input");
     const msg = text !== null ? text : inp.value;
     if (!msg.trim()) return;
-
     const ta = document.createElement('textarea');
     ta.value = msg;
     document.body.appendChild(ta);
@@ -508,7 +576,7 @@ window.doCopy = function(text = null) {
         document.execCommand('copy');
         showToast();
         if (window.parent) window.parent.postMessage({ type: "sfx", sfx: 13 }, "*");
-    } catch (err) { console.error('Copy failed', err); }
+    } catch (err) {}
     document.body.removeChild(ta);
 };
 
@@ -523,9 +591,9 @@ function showToast() {
     setTimeout(() => t.classList.remove("show"), 2000);
 }
 
-// --- WINDOW MANAGEMENT ---
+// --- WINDOW ---
 window.toggleMini = function() {
-    const app = document.getElementById("app-container");
+    const app = document.getElementById("tracker-app");
     app.classList.toggle("mini-mode");
     const isMini = app.classList.contains("mini-mode");
     localStorage.setItem(STORAGE_KEY_MINI, isMini);
@@ -536,7 +604,7 @@ window.closeApp = function() {
 };
 
 // --- DRAG ---
-const elm = document.getElementById("app-container");
+const elm = document.getElementById("tracker-app");
 const head = document.getElementById("drag-handle");
 const microView = document.getElementById("micro-view");
 let isDragging = false, startX, startY, initLeft, initTop;
