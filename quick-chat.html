@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant</title>
+    <title>TT Chat Assistant v6</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
@@ -10,7 +10,7 @@
             --bg-body: #141416;
             --bg-header: #1f1f23;
             --bg-panel: #2b2b30;
-            --primary: #00e676; /* Bright Green for "Go" */
+            --primary: #00e676;
             --primary-hover: #00c853;
             --secondary: #3a3a40;
             --text-main: #ffffff;
@@ -32,28 +32,36 @@
         #app-container {
             position: absolute;
             top: 50px; left: 50px;
-            width: 380px;
+            width: 600px;
+            height: 450px;
             background: var(--bg-body);
             border-radius: 8px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             border: var(--border);
-            min-height: 350px;
-            max-height: 800px;
             overflow: hidden;
             resize: both;
-            transition: height 0.2s, opacity 0.2s;
+            min-width: 500px; min-height: 300px;
+            transition: opacity 0.2s;
         }
 
         /* --- MINI MODE --- */
         #app-container.mini-mode {
-            width: 60px !important; height: 60px !important;
-            min-height: 0; min-width: 0; resize: none;
-            border-radius: 50%; border: 2px solid var(--text-main);
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            top: auto !important;
+            left: auto !important;
+            width: 60px !important;
+            height: 60px !important;
+            min-width: 0 !important; min-height: 0 !important;
+            border-radius: 50%;
             background: var(--primary);
+            border: 2px solid #fff;
             cursor: pointer;
             box-shadow: 0 0 15px var(--primary);
-            overflow: hidden;
+            resize: none;
+            z-index: 9999;
         }
 
         #app-container.mini-mode > * { display: none !important; }
@@ -89,17 +97,25 @@
         .win-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .win-btn.close:hover { background: var(--red); }
 
-        /* --- CONTENT --- */
+        /* --- LAYOUT --- */
         #content {
-            padding: 12px; display: flex; flex-direction: column; gap: 10px;
-            flex: 1; overflow-y: auto; scrollbar-width: thin;
+            display: flex; flex: 1; overflow: hidden;
+        }
+
+        .col-left {
+            flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+            border-right: var(--border); overflow-y: auto;
+        }
+
+        .col-right {
+            width: 240px; background: rgba(0,0,0,0.2);
+            padding: 12px; display: flex; flex-direction: column; gap: 8px;
+            overflow-y: auto; scrollbar-width: thin;
         }
 
         /* INPUT AREA */
-        .input-row { display: flex; gap: 8px; }
-        
         .input-wrapper {
-            position: relative; flex: 1; display: flex;
+            position: relative; display: flex; width: 100%;
         }
         
         #msg-input {
@@ -116,7 +132,6 @@
         }
         .emoji-toggle:hover { opacity: 1; transform: translateY(-50%) scale(1.1); }
 
-        /* BUTTONS */
         .action-row { display: flex; gap: 8px; }
         
         .btn {
@@ -132,26 +147,26 @@
         /* EMOJI DRAWER */
         #emoji-drawer {
             background: var(--bg-panel); border: var(--border); border-radius: 6px;
-            overflow: hidden; display: none; flex-direction: column; margin-bottom: 5px;
-            animation: slide 0.2s ease; flex-shrink: 0;
+            overflow: hidden; display: none; flex-direction: column; flex: 1;
+            animation: slide 0.2s ease; min-height: 200px;
         }
         #emoji-drawer.visible { display: flex; }
         @keyframes slide { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .tabs { display: flex; background: rgba(0,0,0,0.3); overflow-x: auto; }
         .tab {
-            padding: 8px 12px; cursor: pointer; font-size: 0.75em; font-weight: bold;
+            padding: 8px 10px; cursor: pointer; font-size: 0.75em; font-weight: bold;
             color: var(--text-dim); text-transform: uppercase; white-space: nowrap;
             border-bottom: 2px solid transparent; flex: 1; text-align: center;
         }
         .tab.active { color: #fff; border-bottom-color: var(--primary); background: rgba(255,255,255,0.05); }
 
         .emoji-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
-            gap: 4px; padding: 8px; max-height: 160px; overflow-y: auto;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 4px; padding: 8px; overflow-y: auto; flex: 1;
         }
         .emoji-item {
-            width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
             border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.03);
             font-size: 1.2em;
         }
@@ -160,9 +175,10 @@
 
         /* PRESETS */
         .section-header {
-            font-size: 0.75em; text-transform: uppercase; color: var(--text-dim);
-            font-weight: 800; letter-spacing: 1px; margin: 5px 0;
-            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.8em; text-transform: uppercase; color: var(--text-dim);
+            font-weight: 800; letter-spacing: 1px; padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 5px;
+            display: flex; justify-content: space-between;
         }
 
         #preset-list { display: flex; flex-direction: column; gap: 6px; }
@@ -186,15 +202,16 @@
         }
         .icon-btn:hover { color: #fff; border-color: #fff; }
         .icon-btn.del:hover { background: var(--red); border-color: var(--red); }
+        .icon-btn.bind.active { color: #000; background: var(--primary); border-color: var(--primary); font-weight: bold; }
 
-        /* COMMAND BAR (Hidden by default, optional) */
+        /* CMD PREFIX */
         #cmd-bar {
             display: flex; gap: 5px; margin-bottom: 5px; padding: 5px; 
             background: #000; border-radius: 4px; border: 1px dashed #444;
         }
         #cmd-prefix {
             background: transparent; border: none; color: #fff; font-family: monospace; 
-            width: 50px; text-align: center; border-right: 1px solid #444;
+            width: 50px; text-align: center; border-right: 1px solid #444; outline: none;
         }
 
         /* TOAST */
@@ -224,40 +241,41 @@
     </header>
 
     <div id="content">
-        <div id="cmd-bar" title="Optional: Set a command if you find one that works (e.g. 'me'). Leave blank for raw text.">
-            <input type="text" id="cmd-prefix" placeholder="Cmd" value="">
-            <span style="font-size:0.7em; color:#666; align-self:center; flex:1; padding-left:5px;">Prefix (Optional)</span>
-        </div>
+        <div class="col-left">
+            <div id="cmd-bar" title="Optional: Command prefix (e.g. 'me'). Leave blank for raw text.">
+                <input type="text" id="cmd-prefix" placeholder="Cmd" value="">
+                <span style="font-size:0.7em; color:#666; align-self:center; flex:1; padding-left:5px;">Prefix (Optional)</span>
+            </div>
 
-        <div class="input-row">
             <div class="input-wrapper">
                 <input type="text" id="msg-input" placeholder="Type message here...">
-                <button class="emoji-toggle" onclick="window.toggleEmojiDrawer()">😊</button>
+                <button class="emoji-toggle" onclick="window.toggleEmojiDrawer()" title="Open Emojis">😊</button>
+            </div>
+
+            <div class="action-row">
+                <button class="btn btn-sec" onclick="window.savePreset()">Save</button>
+                <button class="btn btn-sec" onclick="window.trySendCommand()" title="Try to send directly">Try Send</button>
+                <button class="btn btn-copy" onclick="window.doCopy()">COPY TO CLIPBOARD</button>
+            </div>
+
+            <div id="emoji-drawer" class="visible">
+                <div class="tabs">
+                    <div class="tab active" onclick="window.switchTab('Map')">Map</div>
+                    <div class="tab" onclick="window.switchTab('Companies')">Corp</div>
+                    <div class="tab" onclick="window.switchTab('Fun')">Fun</div>
+                    <div class="tab" onclick="window.switchTab('Animated')">Anim</div>
+                    <div class="tab" onclick="window.switchTab('Other')">Other</div>
+                </div>
+                <div id="emoji-grid" class="emoji-grid"></div>
             </div>
         </div>
 
-        <div class="action-row">
-            <button class="btn btn-sec" onclick="window.savePreset()">Save</button>
-            <button class="btn btn-sec" onclick="window.trySendCommand()" title="Try to send directly">Try Send</button>
-            <button class="btn btn-copy" onclick="window.doCopy()">COPY TO CLIPBOARD</button>
-        </div>
-
-        <div id="emoji-drawer">
-            <div class="tabs">
-                <div class="tab active" onclick="window.switchTab('Map')">Map</div>
-                <div class="tab" onclick="window.switchTab('Companies')">Corp</div>
-                <div class="tab" onclick="window.switchTab('Fun')">Fun</div>
-                <div class="tab" onclick="window.switchTab('Animated')">Anim</div>
-                <div class="tab" onclick="window.switchTab('Other')">Other</div>
-            </div>
-            <div id="emoji-grid" class="emoji-grid"></div>
-        </div>
-
-        <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+        <div class="col-right">
             <div class="section-header">
                 <span>Saved Messages</span>
+                <span style="font-size:0.7em; opacity:0.5;">Click ⌨ to bind</span>
             </div>
-            <div id="preset-list" style="overflow-y:auto; padding-right:2px;"></div>
+            <div id="preset-list"></div>
         </div>
     </div>
 
@@ -267,11 +285,11 @@
 
 <script>
 // --- CONFIGURATION ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v4";
-const STORAGE_KEY_MINI = "tt_chat_mini_v4";
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v6";
+const STORAGE_KEY_MINI = "tt_chat_mini_v6";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
 
-// --- FULL EMOJI DB ---
+// --- EMOJI DB ---
 const EMOJI_DB = {
     "Map": [
         { c: ":aircraftdealer:", f: "4/42/Aircraft_Dealer.png" }, { c: ":atm:", f: "0/0d/ATM.png" },
@@ -366,6 +384,7 @@ const EMOJI_DB = {
 
 // --- STATE ---
 let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
+let keybindMap = {};
 
 // --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -427,7 +446,7 @@ window.insertEmoji = function(code) {
 window.savePreset = function() {
     const txt = document.getElementById("msg-input").value.trim();
     if (!txt) return;
-    presets.push({ id: Date.now(), text: txt });
+    presets.push({ id: Date.now(), text: txt, bind: null });
     localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
     renderPresets();
 };
@@ -438,30 +457,85 @@ window.deletePreset = function(id) {
     renderPresets();
 };
 
+window.bindPreset = function(id) {
+    const p = presets.find(x => x.id === id);
+    if (!p) return;
+    
+    const k = prompt(`Enter key for "${p.text}" (e.g. F5, NUMPAD1):`, p.bind || "");
+    if (k === null) return;
+    
+    p.bind = k.toUpperCase().trim();
+    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    renderPresets();
+    registerBinding(p);
+};
+
 function renderPresets() {
     const list = document.getElementById("preset-list");
     list.innerHTML = "";
     
     presets.forEach(p => {
+        if(p.bind) registerBinding(p);
+
         const card = document.createElement("div");
         card.className = "preset-card";
         card.innerHTML = `
             <div class="preset-text" onclick="window.loadAndCopy('${p.text.replace(/'/g, "\\'")}')">${p.text}</div>
+            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="window.bindPreset(${p.id})" title="Bind Key">
+                ${p.bind || '⌨'}
+            </button>
             <button class="icon-btn del" onclick="window.deletePreset(${p.id})" title="Delete">✕</button>
         `;
         list.appendChild(card);
     });
 }
 
-// --- CORE ACTIONS ---
+// --- KEYBIND LISTENER ---
+function registerBinding(preset) {
+    if (!window.parent || !preset.bind) return;
+    
+    const triggerName = `userapp_trigger_${preset.id}`;
+    keybindMap[triggerName] = preset.id;
 
-// 1. CLIPBOARD COPY (Robust Method)
+    window.parent.postMessage({
+        type: "registerTrigger",
+        trigger: triggerName,
+        name: `Chat: ${preset.text.substring(0, 10)}` 
+    }, "*");
+}
+
+window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    const payload = e.data.data || e.data;
+    
+    for (const key in payload) {
+        if (key.startsWith("trigger_userapp_trigger_")) {
+            const trigKey = key.replace("trigger_", "");
+            const presetId = keybindMap[trigKey];
+            
+            if (presetId) {
+                const p = presets.find(x => x.id === presetId);
+                if (p) {
+                    window.loadAndCopy(p.text);
+                    // Visual Flash
+                    const btn = document.querySelector(`button[onclick="window.bindPreset(${p.id})"]`);
+                    if(btn) {
+                        const oldColor = btn.style.backgroundColor;
+                        btn.style.backgroundColor = "white";
+                        setTimeout(() => btn.style.backgroundColor = oldColor, 200);
+                    }
+                }
+            }
+        }
+    }
+});
+
+// --- CORE ACTIONS ---
 window.doCopy = function(text = null) {
     const inp = document.getElementById("msg-input");
     const msg = text !== null ? text : inp.value;
     if (!msg.trim()) return;
 
-    // Use textarea method for max compatibility
     const ta = document.createElement('textarea');
     ta.value = msg;
     document.body.appendChild(ta);
@@ -469,13 +543,12 @@ window.doCopy = function(text = null) {
     try {
         document.execCommand('copy');
         showToast();
+        // Play success sound
+        if (window.parent) window.parent.postMessage({ type: "sfx", sfx: 13 }, "*");
     } catch (err) {
         console.error('Copy failed', err);
     }
     document.body.removeChild(ta);
-    
-    // Optional: Clear input
-    // inp.value = "";
 };
 
 window.loadAndCopy = function(text) {
@@ -483,19 +556,13 @@ window.loadAndCopy = function(text) {
     window.doCopy(text);
 };
 
-// 2. SEND COMMAND (Backup Method)
+// Also keep the command method just in case
 window.trySendCommand = function() {
     const msg = document.getElementById("msg-input").value.trim();
     const prefix = document.getElementById("cmd-prefix").value.trim();
-    
     if(!msg) return;
-    
-    // If prefix exists, use it (e.g. "me Hello"). If not, send raw "Hello"
     const finalCmd = prefix ? `${prefix} ${msg}` : msg;
-    
-    if(window.parent) {
-        window.parent.postMessage({ type: "sendCommand", command: finalCmd }, "*");
-    }
+    if(window.parent) window.parent.postMessage({ type: "sendCommand", command: finalCmd }, "*");
 };
 
 function showToast() {
@@ -504,20 +571,15 @@ function showToast() {
     setTimeout(() => t.classList.remove("show"), 2000);
 }
 
-// --- WINDOW MANAGEMENT ---
+// --- WINDOW ---
 window.toggleMini = function() {
     const app = document.getElementById("app-container");
     app.classList.toggle("mini-mode");
     const isMini = app.classList.contains("mini-mode");
     localStorage.setItem(STORAGE_KEY_MINI, isMini);
     
-    if(isMini) {
-        app.onclick = window.toggleMini;
-        app.style.height = "60px"; // Force height
-    } else {
-        app.onclick = null;
-        app.style.height = ""; // Restore
-    }
+    if(isMini) app.onclick = window.toggleMini;
+    else app.onclick = null;
 };
 
 window.closeApp = function() {
@@ -564,8 +626,8 @@ rh.addEventListener("mousedown", e => {
 
 function resizeMove(e) {
     if(elm.classList.contains("mini-mode")) return;
-    elm.style.width = Math.max(300, e.clientX - elm.getBoundingClientRect().left) + "px";
-    elm.style.height = Math.max(350, e.clientY - elm.getBoundingClientRect().top) + "px";
+    elm.style.width = Math.max(500, e.clientX - elm.getBoundingClientRect().left) + "px";
+    elm.style.height = Math.max(300, e.clientY - elm.getBoundingClientRect().top) + "px";
 }
 
 function resizeEnd() {
