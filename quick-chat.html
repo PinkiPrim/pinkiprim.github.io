@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v6</title>
+    <title>TT Chat Assistant v7</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
@@ -45,26 +45,28 @@
             transition: opacity 0.2s;
         }
 
-        /* --- MINI MODE --- */
+        /* --- MINI MODE (FIXED BOTTOM RIGHT) --- */
         #app-container.mini-mode {
-            position: fixed !important;
-            bottom: 20px !important;
-            right: 20px !important;
+            position: absolute !important; /* Force absolute to stick to body */
             top: auto !important;
             left: auto !important;
+            bottom: 20px !important;
+            right: 20px !important;
             width: 60px !important;
             height: 60px !important;
             min-width: 0 !important; min-height: 0 !important;
             border-radius: 50%;
             background: var(--primary);
-            border: 2px solid #fff;
+            border: 3px solid #fff;
             cursor: pointer;
-            box-shadow: 0 0 15px var(--primary);
+            box-shadow: 0 0 20px var(--primary);
             resize: none;
-            z-index: 9999;
+            z-index: 99999;
+            transform: none !important; /* Reset any drag transforms */
         }
 
         #app-container.mini-mode > * { display: none !important; }
+        
         #app-container.mini-mode::after {
             content: "📋";
             display: flex; width: 100%; height: 100%;
@@ -204,16 +206,6 @@
         .icon-btn.del:hover { background: var(--red); border-color: var(--red); }
         .icon-btn.bind.active { color: #000; background: var(--primary); border-color: var(--primary); font-weight: bold; }
 
-        /* CMD PREFIX */
-        #cmd-bar {
-            display: flex; gap: 5px; margin-bottom: 5px; padding: 5px; 
-            background: #000; border-radius: 4px; border: 1px dashed #444;
-        }
-        #cmd-prefix {
-            background: transparent; border: none; color: #fff; font-family: monospace; 
-            width: 50px; text-align: center; border-right: 1px solid #444; outline: none;
-        }
-
         /* TOAST */
         #toast {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -233,7 +225,7 @@
 
 <div id="app-container">
     <header id="drag-handle">
-        <div class="title"><span>📋</span> Chat Assistant</div>
+        <div class="title"><span>💬</span> Chat Assistant</div>
         <div style="display:flex; gap:5px;">
             <button class="win-btn" onclick="window.toggleMini()">MINI</button>
             <button class="win-btn close" onclick="window.closeApp()">✕</button>
@@ -242,11 +234,6 @@
 
     <div id="content">
         <div class="col-left">
-            <div id="cmd-bar" title="Optional: Command prefix (e.g. 'me'). Leave blank for raw text.">
-                <input type="text" id="cmd-prefix" placeholder="Cmd" value="">
-                <span style="font-size:0.7em; color:#666; align-self:center; flex:1; padding-left:5px;">Prefix (Optional)</span>
-            </div>
-
             <div class="input-wrapper">
                 <input type="text" id="msg-input" placeholder="Type message here...">
                 <button class="emoji-toggle" onclick="window.toggleEmojiDrawer()" title="Open Emojis">😊</button>
@@ -254,8 +241,7 @@
 
             <div class="action-row">
                 <button class="btn btn-sec" onclick="window.savePreset()">Save</button>
-                <button class="btn btn-sec" onclick="window.trySendCommand()" title="Try to send directly">Try Send</button>
-                <button class="btn btn-copy" onclick="window.doCopy()">COPY TO CLIPBOARD</button>
+                <button class="btn btn-copy" onclick="window.doCopy()">COPY</button>
             </div>
 
             <div id="emoji-drawer" class="visible">
@@ -285,8 +271,8 @@
 
 <script>
 // --- CONFIGURATION ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v6";
-const STORAGE_KEY_MINI = "tt_chat_mini_v6";
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v7";
+const STORAGE_KEY_MINI = "tt_chat_mini_v7";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
 
 // --- EMOJI DB ---
@@ -554,15 +540,6 @@ window.doCopy = function(text = null) {
 window.loadAndCopy = function(text) {
     document.getElementById("msg-input").value = text;
     window.doCopy(text);
-};
-
-// Also keep the command method just in case
-window.trySendCommand = function() {
-    const msg = document.getElementById("msg-input").value.trim();
-    const prefix = document.getElementById("cmd-prefix").value.trim();
-    if(!msg) return;
-    const finalCmd = prefix ? `${prefix} ${msg}` : msg;
-    if(window.parent) window.parent.postMessage({ type: "sendCommand", command: finalCmd }, "*");
 };
 
 function showToast() {
