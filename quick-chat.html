@@ -4,381 +4,515 @@
     <meta charset="UTF-8">
     <title>TT Chat Macro</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
         :root {
-            --primary: #7289da; /* Blurple */
-            --primary-dim: #5865f2;
-            --bg-glass: rgba(20, 20, 25, 0.98);
-            --text-main: #ffffff;
-            --text-dim: #bbbbbb;
-            --border: 1px solid rgba(114, 137, 218, 0.4);
-            --green: #43b581;
-            --red: #f04747;
+            --bg-body: rgba(18, 18, 20, 0.98);
+            --bg-header: #1e1f22;
+            --bg-panel: rgba(43, 45, 49, 0.5);
+            --primary: #5865F2;
+            --primary-hover: #4752C4;
+            --text-main: #dbdee1;
+            --text-dim: #949ba4;
+            --border: 1px solid rgba(255,255,255,0.08);
+            --green: #23a559;
+            --red: #da373c;
+            --amber: #f0b232;
         }
 
         body {
             margin: 0; padding: 0;
             font-family: 'Roboto', sans-serif;
-            background-color: transparent;
+            background: transparent;
             color: var(--text-main);
             overflow: hidden;
             height: 100vh; width: 100vw;
             user-select: none;
         }
 
-        #app-container {
+        #tracker-app {
             position: absolute;
             top: 50px; left: 50px;
-            width: 340px;
-            background: var(--bg-glass);
-            border: var(--border);
+            width: 360px;
+            background: var(--bg-body);
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.8);
             display: flex; flex-direction: column;
-            resize: both; overflow: hidden;
-            min-height: 250px;
-            min-width: 300px;
-            transition: opacity 0.2s;
-        }
-
-        /* --- MINI MODE --- */
-        #app-container.mini-mode {
-            width: 60px !important;
-            height: 60px !important;
-            resize: none;
-            border-radius: 50%;
-            background: var(--primary);
-            border: 2px solid #fff;
-            cursor: pointer;
-            overflow: visible; /* To show tooltip if needed */
-        }
-        
-        #app-container.mini-mode * { display: none !important; }
-        #app-container.mini-mode::after {
-            content: "💬";
-            display: block !important;
-            font-size: 30px;
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
+            border: var(--border);
+            min-height: 400px;
+            max-height: 800px;
+            overflow: hidden;
+            resize: both;
         }
 
         /* --- HEADER --- */
         header {
-            background: linear-gradient(90deg, #2c2f33, #23272a);
+            background: var(--bg-header);
             padding: 8px 12px;
-            cursor: move;
             display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            height: 40px;
+            cursor: move;
+            border-bottom: var(--border);
+            height: 32px;
         }
 
         .title {
-            font-family: 'Rajdhani', sans-serif; font-weight: 800;
-            font-size: 1.1em; letter-spacing: 1px; color: #fff;
-            pointer-events: none;
+            font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.1em;
+            letter-spacing: 1px; color: #fff; text-transform: uppercase;
+            display: flex; align-items: center; gap: 8px;
         }
 
-        .header-btns { display: flex; gap: 6px; }
         .win-btn {
-            background: rgba(255,255,255,0.1); border: none; color: #ccc;
-            width: 24px; height: 24px; border-radius: 4px; cursor: pointer;
-            font-size: 0.8em; display: flex; align-items: center; justify-content: center;
+            background: transparent; border: none; color: var(--text-dim);
+            cursor: pointer; padding: 4px 8px; border-radius: 4px; font-weight: bold;
         }
-        .win-btn:hover { background: var(--primary); color: white; }
+        .win-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .win-btn.close:hover { background: var(--red); }
 
         /* --- CONTENT --- */
         #content {
-            padding: 10px; display: flex; flex-direction: column; gap: 10px;
+            padding: 12px; display: flex; flex-direction: column; gap: 12px;
             flex: 1; overflow-y: auto; scrollbar-width: thin;
         }
 
-        /* Input Area */
-        .input-group { display: flex; gap: 5px; }
+        /* Channel & Input */
+        .control-row { display: flex; gap: 8px; }
+        
+        select {
+            background: var(--bg-panel); color: #fff; border: var(--border);
+            padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif;
+            font-weight: bold; cursor: pointer; outline: none; width: 100px;
+        }
+        select:hover { border-color: var(--text-dim); }
+
+        .input-wrapper {
+            position: relative; flex: 1; display: flex;
+        }
+        
         #msg-input {
-            flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #444;
-            color: white; padding: 8px; border-radius: 4px; font-family: inherit;
+            width: 100%; background: #383a40; border: none; color: #fff;
+            padding: 10px 36px 10px 10px; border-radius: 4px; font-family: inherit;
+            outline: none; font-size: 0.95em;
         }
-        #msg-input:focus { outline: 1px solid var(--primary); }
-        
-        #send-btn {
-            background: var(--green); border: none; color: white;
-            font-weight: bold; padding: 0 15px; border-radius: 4px; cursor: pointer;
-            font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
-        }
-        #send-btn:hover { filter: brightness(1.2); }
+        #msg-input:focus { box-shadow: 0 0 0 2px var(--primary); }
 
-        /* Emoji Grid */
-        .section-label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; font-weight: bold; }
-        
-        #emoji-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-            gap: 4px; max-height: 120px; overflow-y: auto;
-            background: rgba(0,0,0,0.2); padding: 5px; border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.05);
+        .emoji-toggle-btn {
+            position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+            background: transparent; border: none; font-size: 1.2em; cursor: pointer;
+            filter: grayscale(1); transition: 0.2s;
         }
-        
-        .emoji-btn {
-            width: 36px; height: 36px; background: rgba(255,255,255,0.05);
-            border: 1px solid transparent; border-radius: 4px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            position: relative;
-        }
-        .emoji-btn:hover { border-color: var(--primary); background: rgba(255,255,255,0.1); }
-        .emoji-btn img { max-width: 28px; max-height: 28px; pointer-events: none; }
+        .emoji-toggle-btn:hover { filter: grayscale(0); transform: translateY(-50%) scale(1.1); }
 
-        /* Presets */
-        #preset-list { display: flex; flex-direction: column; gap: 4px; }
+        .action-row { display: flex; gap: 8px; justify-content: flex-end; }
         
-        .preset-row {
-            display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 4px; align-items: center;
+        .btn {
+            padding: 6px 16px; border-radius: 4px; border: none; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff;
+            text-transform: uppercase; font-size: 0.85em; transition: 0.2s;
+        }
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: #4e5058; }
+        .btn-secondary:hover { background: #6d6f78; }
+
+        /* Emoji Drawer */
+        #emoji-drawer {
+            background: var(--bg-panel); border: var(--border); border-radius: 6px;
+            overflow: hidden; display: none; flex-direction: column;
+            animation: slideDown 0.2s ease;
+        }
+        #emoji-drawer.visible { display: flex; }
+
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .tabs { display: flex; background: rgba(0,0,0,0.2); overflow-x: auto; scrollbar-width: none; }
+        .tab {
+            padding: 8px 12px; cursor: pointer; font-size: 0.75em; font-weight: bold;
+            color: var(--text-dim); text-transform: uppercase; white-space: nowrap;
+            border-bottom: 2px solid transparent;
+        }
+        .tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .tab.active { color: #fff; border-bottom-color: var(--primary); }
+
+        .emoji-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 4px; padding: 8px; max-height: 150px; overflow-y: auto;
         }
         
-        .preset-send {
-            flex: 1; background: transparent; border: none; color: white;
-            text-align: left; cursor: pointer; font-size: 0.9em;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            padding: 4px;
+        .emoji-item {
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.03);
         }
-        .preset-send:hover { color: var(--primary); }
+        .emoji-item:hover { background: var(--primary); }
+        .emoji-item img { max-width: 32px; max-height: 32px; pointer-events: none; }
+
+        /* Presets List */
+        .section-header {
+            font-size: 0.75em; text-transform: uppercase; color: var(--text-dim);
+            font-weight: 800; letter-spacing: 1px; margin-top: 5px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        #preset-list { display: flex; flex-direction: column; gap: 6px; }
+
+        .preset-card {
+            background: var(--bg-panel); padding: 8px; border-radius: 4px;
+            display: flex; align-items: center; gap: 8px; border: 1px solid transparent;
+        }
+        .preset-card:hover { border-color: var(--text-dim); background: rgba(255,255,255,0.05); }
+
+        .preset-text {
+            flex: 1; font-size: 0.9em; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; cursor: pointer; color: #fff;
+        }
+        .preset-text:hover { color: var(--primary-hover); text-decoration: underline; }
 
         .icon-btn {
-            background: transparent; border: 1px solid rgba(255,255,255,0.1);
-            color: #aaa; width: 24px; height: 24px; border-radius: 3px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 0.8em;
+            width: 26px; height: 26px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);
+            background: transparent; color: var(--text-dim); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 0.85em;
         }
-        .icon-btn:hover { border-color: var(--text-dim); color: white; }
-        .icon-btn.del:hover { border-color: var(--red); color: var(--red); }
-        .icon-btn.bind.active { color: var(--green); border-color: var(--green); }
+        .icon-btn:hover { color: #fff; border-color: #fff; }
+        .icon-btn.del:hover { background: var(--red); border-color: var(--red); }
+        .icon-btn.bind.active { color: var(--green); border-color: var(--green); background: rgba(35, 165, 89, 0.1); }
 
-        /* Footer */
-        .controls { display: flex; justify-content: space-between; margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .ctrl-btn {
-            background: rgba(255,255,255,0.1); border: none; color: #ccc;
-            padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 0.75em; text-transform: uppercase; font-weight: bold;
+        /* --- MINI MODE --- */
+        #tracker-app.mini-mode {
+            width: 60px !important; height: 60px !important;
+            min-height: 0; min-width: 0; resize: none;
+            border-radius: 50%; border: 2px solid #fff;
+            background: var(--primary);
+            cursor: pointer;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .ctrl-btn:hover { background: var(--primary); color: white; }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+        #tracker-app.mini-mode > * { display: none !important; }
+        #tracker-app.mini-mode::after {
+            content: "💬";
+            display: flex; width: 100%; height: 100%;
+            align-items: center; justify-content: center;
+            font-size: 28px;
+        }
+
+        #resize-handle {
+            position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize;
+        }
+        #tracker-app.mini-mode #resize-handle { display: none; }
 
     </style>
 </head>
 <body>
 
-<div id="app-container">
+<div id="tracker-app">
     <header id="drag-handle">
-        <div class="title">💬 TT Chat Macro</div>
-        <div class="header-btns">
-            <button class="win-btn" onclick="toggleMini()">_</button>
-            <button class="win-btn close" onclick="closeApp()">X</button>
+        <div class="title"><span>💬</span> Quick Chat</div>
+        <div style="display:flex; gap:5px;">
+            <button class="win-btn" onclick="toggleMini()">MINI</button>
+            <button class="win-btn close" onclick="closeApp()">✕</button>
         </div>
     </header>
 
     <div id="content">
-        <div>
-            <div class="section-label">Compose Message</div>
-            <div class="input-group">
-                <input type="text" id="msg-input" placeholder="Type or click emojis...">
-                <button id="send-btn" onclick="sendMessage()">SEND</button>
+        <div class="control-row">
+            <select id="channel-select" title="Select Chat Channel">
+                <option value="say">Chat (say)</option>
+                <option value="ooc">OOC</option>
+                <option value="me">Action (me)</option>
+                <option value="do">Do</option>
+                <option value="f">Faction</option>
+                <option value="c">Company</option>
+                <option value="g">Global</option>
+            </select>
+            <div class="input-wrapper">
+                <input type="text" id="msg-input" placeholder="Type message here...">
+                <button class="emoji-toggle-btn" onclick="toggleEmojiDrawer()">😊</button>
             </div>
         </div>
 
-        <div>
-            <div class="section-label">Tycoon Emojis</div>
-            <div id="emoji-grid">
+        <div class="action-row">
+            <button class="btn btn-secondary" onclick="savePreset()">Save Preset</button>
+            <button class="btn btn-primary" onclick="sendMessage()">SEND</button>
+        </div>
+
+        <div id="emoji-drawer">
+            <div class="tabs" id="emoji-tabs">
+                <div class="tab active" onclick="switchTab('Map')">Map</div>
+                <div class="tab" onclick="switchTab('Companies')">Corp</div>
+                <div class="tab" onclick="switchTab('Fun')">Fun</div>
+                <div class="tab" onclick="switchTab('Animated')">Anim</div>
+                <div class="tab" onclick="switchTab('Other')">Other</div>
+            </div>
+            <div id="emoji-grid" class="emoji-grid">
                 </div>
         </div>
 
-        <div style="flex:1; overflow-y:auto; min-height:80px;">
-            <div class="section-label" style="display:flex; justify-content:space-between;">
+        <div style="flex: 1; display:flex; flex-direction:column; min-height: 100px;">
+            <div class="section-header">
                 <span>Saved Messages</span>
-                <span style="font-size:0.8em; color:var(--green); cursor:pointer;" onclick="savePreset()">+ SAVE CURRENT</span>
+                <span id="bind-hint" style="font-size:0.8em; font-weight:normal; opacity:0.6;">Click ⌨ to bind key</span>
             </div>
             <div id="preset-list">
                 </div>
         </div>
     </div>
+    
+    <div id="resize-handle"></div>
 </div>
 
-<div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
-
 <script>
-// --- CONFIG & DATA ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets";
-const STORAGE_KEY_MINI = "tt_chat_mini";
+// --- CONFIGURATION ---
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v2";
+const STORAGE_KEY_MINI = "tt_chat_mini_v2";
+const BASE_URL = "https://dash.tycoon.community/wiki/images";
 
-// Extracted from your provided HTML source
-const EMOJIS = [
-    { code: ":heh:", url: "https://dash.tycoon.community/wiki/images/0/01/Heh.png" },
-    { code: ":pepebruh:", url: "https://dash.tycoon.community/wiki/images/thumb/7/76/Pepebruh.png/64px-Pepebruh.png" },
-    { code: ":pepecry:", url: "https://dash.tycoon.community/wiki/images/thumb/5/5a/Pepecry.png/64px-Pepecry.png" },
-    { code: ":pog:", url: "https://dash.tycoon.community/wiki/images/thumb/d/d7/Pog2.png/64px-Pog2.png" },
-    { code: ":lul:", url: "https://dash.tycoon.community/wiki/images/thumb/6/6b/Lul.png/64px-Lul.png" },
-    { code: ":monkat:", url: "https://dash.tycoon.community/wiki/images/a/a0/MonkaT.png" },
-    { code: ":coolcry:", url: "https://dash.tycoon.community/wiki/images/thumb/b/b9/Coolcry.png/64px-Coolcry.png" },
-    { code: ":tycoon:", url: "https://dash.tycoon.community/wiki/images/thumb/b/bf/Tycoon.png/64px-Tycoon.png" },
-    { code: ":business:", url: "https://dash.tycoon.community/wiki/images/5/54/Business2.png" },
-    { code: ":transport:", url: "https://dash.tycoon.community/wiki/images/thumb/f/fa/TTycoon.png/64px-TTycoon.png" },
-    { code: ":glitch:", url: "https://dash.tycoon.community/wiki/images/thumb/0/01/Glitch.png/64px-Glitch.png" },
-    { code: ":think:", url: "https://dash.tycoon.community/wiki/images/thumb/2/29/Thinking.png/64px-Thinking.png" },
-    { code: ":wave:", url: "https://dash.tycoon.community/wiki/images/thumb/e/e9/Wave.png/64px-Wave.png" },
-    { code: ":gg:", url: "https://dash.tycoon.community/wiki/images/thumb/9/9d/GG2.png/64px-GG2.png" },
-    { code: ":joy:", url: "https://dash.tycoon.community/wiki/images/thumb/6/6b/Lul.png/64px-Lul.png" }, // Fallback icon
-    { code: ":100:", url: "https://dash.tycoon.community/wiki/images/thumb/f/fa/TTycoon.png/64px-TTycoon.png" } // Fallback
-];
+// --- DATABASE: EXTRACTED FROM SOURCE ---
+const EMOJI_DB = {
+    "Map": [
+        { c: ":aircraftdealer:", f: "4/42/Aircraft_Dealer.png" }, { c: ":atm:", f: "0/0d/ATM.png" },
+        { c: ":boatdealer:", f: "a/af/Watercraft_Dealership.png" }, { c: ":boatgarage:", f: "d/dc/Boat_Garage.png" },
+        { c: ":business:", f: "5/54/Business2.png" }, { c: ":businessbonus:", f: "c/cf/Business_Bonus.png" },
+        { c: ":businessbonusmax:", f: "1/18/Business_Full.png" }, { c: ":businessowned:", f: "6/68/Business_Owned.png" },
+        { c: ":cablecar:", f: "c/c5/Cable_Car.png" }, { c: ":carwash:", f: "d/d8/CarWash.png" },
+        { c: ":clothingstore:", f: "e/ec/Clothing_store.png" }, { c: ":dealership:", f: "d/de/Car_Dealer.png" },
+        { c: ":emscallout:", f: "6/6c/EMS_Friend.png" }, { c: ":fishimporter:", f: "1/1e/Fish_Importer.png" },
+        { c: ":fishingzone:", f: "3/3f/Fish_Zone.png" }, { c: ":fuel:", f: "4/44/Fuel.png" },
+        { c: ":garage:", f: "8/88/Garage.png" }, { c: ":garbageoffice:", f: "e/e2/Garbage_Center.png" },
+        { c: ":grandexchange:", f: "6/60/Grand_Exchange.png" }, { c: ":helifuel:", f: "1/12/HeliFuel.png" },
+        { c: ":heligarage:", f: "c/c8/Helicopter_Garage.png" }, { c: ":hospital:", f: "6/66/Hospital.png" },
+        { c: ":huntingoffice:", f: "0/02/Hunter_Office.png" }, { c: ":jobcenter:", f: "a/ad/JobCenter.png" },
+        { c: ":loanoffice:", f: "9/9b/Loan_Office.png" }, { c: ":lscustoms:", f: "0/06/LS_Customs.png" },
+        { c: ":market:", f: "2/22/Generic_Shop.png" }, { c: ":marketfish:", f: "d/d4/Diving_Market.png" },
+        { c: ":marketmechanic:", f: "0/0a/Mechanic_market.png" }, { c: ":marketmedical:", f: "7/7d/Med_Market.png" },
+        { c: ":marketplace:", f: "c/c1/Marketplace.png" }, { c: ":marketpremium:", f: "6/66/VIP_Market.png" },
+        { c: ":ownedsemi:", f: "8/87/Owned_Semi.png" }, { c: ":ownedtrailer:", f: "c/c0/Owned_Trailer.png" },
+        { c: ":plane:", f: "0/0c/Plane.png" }, { c: ":planefuel:", f: "7/7a/Plane_Fuel.png" },
+        { c: ":planegarage:", f: "d/d4/Aircraft_Garage.png" }, { c: ":planeterminal:", f: "9/9c/Terminal.png" },
+        { c: ":properties:", f: "0/0c/House.png" }, { c: ":raceboat:", f: "5/56/Boat_Race.png" },
+        { c: ":racecar:", f: "3/33/Street_Race.png" }, { c: ":raceplane:", f: "4/40/Aerial_Race.png" },
+        { c: ":repair:", f: "4/46/Repair_point.png" }, { c: ":selfstorage:", f: "thumb/3/3c/Self_Storage.png/64px-Self_Storage.png" },
+        { c: ":trainmetro:", f: "a/a4/Metro_Train.png" }, { c: ":trainpassenger:", f: "a/a5/Passenger_Train.png" },
+        { c: ":truckingbuyer:", f: "a/a3/Trucking_Buyer.png" }, { c: ":truckingseller:", f: "7/7b/Trucking_Seller.png" }
+    ],
+    "Companies": [
+        { c: ":bat:", f: "thumb/6/6e/Bat-1.png/64px-Bat-1.png" }, { c: ":collins:", f: "thumb/0/0c/Collins.png/64px-Collins.png" },
+        { c: ":empire:", f: "thumb/2/2e/IA.png/64px-IA.png" }, { c: ":frllc:", f: "thumb/9/94/FRLLC.png/64px-FRLLC.png" },
+        { c: ":pigs:", f: "thumb/d/da/PIGS.png/67px-PIGS.png" }, { c: ":rts:", f: "thumb/f/f2/RTS2.png/57px-RTS2.png" }
+    ],
+    "Fun": [
+        { c: ":amogus:", f: "thumb/2/2a/Amogus.png/64px-Amogus.png" }, { c: ":anhero:", f: "thumb/2/2e/Anhero.png/64px-Anhero.png" },
+        { c: ":captainmlady:", f: "thumb/c/cc/Captainmlady.png/64px-Captainmlady.png" }, { c: ":catlul:", f: "thumb/d/df/Catlul.png/64px-Catlul.png" },
+        { c: ":cls:", f: "thumb/9/9d/Cls.png/64px-Cls.png" }, { c: ":coolcry:", f: "thumb/b/b9/Coolcry.png/64px-Coolcry.png" },
+        { c: ":flippyboi:", f: "thumb/7/78/Flippyboi.png/64px-Flippyboi.png" }, { c: ":gg:", f: "thumb/9/9d/GG2.png/64px-GG2.png" },
+        { c: ":glitch:", f: "thumb/0/01/Glitch.png/64px-Glitch.png" }, { c: ":goodjob:", f: "thumb/5/5b/Goodjob.png/64px-Goodjob.png" },
+        { c: ":goose:", f: "thumb/d/dd/Goose.png/64px-Goose.png" }, { c: ":heh:", f: "0/01/Heh.png" },
+        { c: ":iaeyes:", f: "thumb/1/1c/IAEyes.png/64px-IAEyes.png" }, { c: ":joedoubt:", f: "thumb/5/55/Joedoubt.png/64px-Joedoubt.png" },
+        { c: ":lul:", f: "thumb/6/6b/Lul.png/64px-Lul.png" }, { c: ":mariothink:", f: "thumb/9/9d/Mariothink.png/64px-Mariothink.png" },
+        { c: ":mek:", f: "thumb/7/74/Mek.png/64px-Mek.png" }, { c: ":meklove:", f: "thumb/5/5a/Meklove.png/64px-Meklove.png" },
+        { c: ":monkat:", f: "a/a0/MonkaT.png" }, { c: ":niv:", f: "thumb/a/a2/Niv.png/64px-Niv.png" },
+        { c: ":nou:", f: "thumb/c/cf/Nou.png/64px-Nou.png" }, { c: ":ohdear:", f: "thumb/1/13/Ohdear.png/64px-Ohdear.png" },
+        { c: ":ok_hand:", f: "thumb/2/25/Okhand.png/64px-Okhand.png" }, { c: ":oof:", f: "thumb/2/2c/Oof.png/64px-Oof.png" },
+        { c: ":plp:", f: "thumb/e/e2/Pepelaughpoint.png/64px-Pepelaughpoint.png" }, { c: ":pepebruh:", f: "thumb/7/76/Pepebruh.png/64px-Pepebruh.png" },
+        { c: ":pepecry:", f: "thumb/5/5a/Pepecry.png/64px-Pepecry.png" }, { c: ":pepeyikes:", f: "c/c1/Pepeyikes.png" },
+        { c: ":pog:", f: "thumb/d/d7/Pog2.png/64px-Pog2.png" }, { c: ":poggers:", f: "thumb/1/14/Poggers.png/64px-Poggers.png" },
+        { c: ":popcornRoo:", f: "thumb/5/5c/Popcornroo.png/64px-Popcornroo.png" }, { c: ":rainbowheart:", f: "thumb/1/12/Rainbowheart.png/64px-Rainbowheart.png" },
+        { c: ":scottishlove:", f: "thumb/4/41/Scottishlove.png/64px-Scottishlove.png" }, { c: ":sinkyboi:", f: "thumb/2/27/Sinkyboi.png/64px-Sinkyboi.png" },
+        { c: ":smart:", f: "thumb/0/02/Smart.png/64px-Smart.png" }, { c: ":streamlurk:", f: "thumb/c/c6/StreamLurk.png/64px-StreamLurk.png" },
+        { c: ":theharv:", f: "thumb/0/0e/Theharv.png/64px-Theharv.png" }, { c: ":thenking:", f: "thumb/4/4a/Thenking.png/64px-Thenking.png" },
+        { c: ":thinking:", f: "thumb/2/29/Thinking.png/64px-Thinking.png" }, { c: ":this:", f: "thumb/d/da/This.png/64px-This.png" },
+        { c: ":wave:", f: "thumb/e/e9/Wave.png/64px-Wave.png" }, { c: ":zabivakafish:", f: "thumb/2/20/Zabivakafish.png/64px-Zabivakafish.png" },
+        { c: ":zabivaka:", f: "thumb/2/2b/Zabivaka.png/64px-Zabivaka.png" }
+    ],
+    "Animated": [
+        { c: ":ayoutried:", f: "d/d4/AYouTried.gif" }, { c: ":angryglitch:", f: "3/37/AngryGlitch.gif" },
+        { c: ":banned:", f: "2/2a/Banned.gif" }, { c: ":bluefirework:", f: "d/de/BlueFirework.gif" },
+        { c: ":bunnyrun:", f: "6/69/BunnyRun.gif" }, { c: ":bunnystand:", f: "6/65/BunnyStand.gif" },
+        { c: ":catscream:", f: "c/c1/Catscream.gif" }, { c: ":catwave:", f: "8/8c/Cat_Wave.gif" },
+        { c: ":chaos:", f: "1/13/Chaos.gif" }, { c: ":dogrun:", f: "2/26/DogRun.gif" },
+        { c: ":dogstand:", f: "d/dc/DogStand.gif" }, { c: ":discodance:", f: "d/d6/DiscoDance.gif" },
+        { c: ":eatingpopcorn:", f: "8/84/EatingPopcorn.gif" }, { c: ":facepalmz:", f: "0/07/FacePalmz.gif" },
+        { c: ":fedora:", f: "a/a0/Fedora.gif" }, { c: ":greenfirework:", f: "f/f8/GreenFirework.gif" },
+        { c: ":homerhide:", f: "b/bf/Homerhide.gif" }, { c: ":2stagefirework:", f: "8/8c/2StageFirework.gif" },
+        { c: ":loading:", f: "2/2f/Loading3.gif" }, { c: ":meltdown:", f: "9/99/Meltdown.gif" },
+        { c: ":meow:", f: "1/1a/Meow.gif" }, { c: ":morshu:", f: "e/ec/Morshu.gif" },
+        { c: ":muppetno:", f: "e/e2/Muppetno.gif" }, { c: ":norpanimated:", f: "5/5e/NoRPAnimated.gif" },
+        { c: ":ok_fidget:", f: "f/f1/OkFidget.gif" }, { c: ":overpriced:", f: "d/da/Overpriced.gif" },
+        { c: ":pbbt:", f: "0/02/Pbbt.gif" }, { c: ":pear7:", f: "7/75/Pear7.gif" },
+        { c: ":pepelaughexp:", f: "a/a4/Pepelaughexp.gif" }, { c: ":pinkfirework:", f: "c/ca/PinkFirework.gif" },
+        { c: ":planetakeoffblink:", f: "e/e2/TakeOffBlink.gif" }, { c: ":planelandingblink:", f: "4/45/LandingBlink.gif" },
+        { c: ":pandapingree:", f: "7/79/PandaPingRee.gif" }, { c: ":wesley:", f: "7/74/Wesley.gif" }
+    ],
+    "Other": [
+        { c: ":boost:", f: "thumb/c/cd/Boost.png/64px-Boost.png" }, { c: ":buy:", f: "thumb/f/f7/Buy.png/64px-Buy.png" },
+        { c: ":f7:", f: "thumb/6/60/F7.png/64px-F7.png" }, { c: ":fedex:", f: "thumb/a/a6/FedEx.png/64px-FedEx.png" },
+        { c: ":fedex-1:", f: "thumb/9/98/FedEx1.png/64px-FedEx1.png" }, { c: ":mountaincatviolet:", f: "thumb/c/c6/MountainCatViolet.png/64px-MountainCatViolet.png" },
+        { c: ":norp:", f: "thumb/c/cc/NoRP.png/64px-NoRP.png" }, { c: ":notification:", f: "thumb/f/f1/Notification.png/64px-Notification.png" },
+        { c: ":planelanding:", f: "9/9c/PlaneLanding.png" }, { c: ":planetakeoff:", f: "f/f0/PlaneTakeoff.png" },
+        { c: ":sell:", f: "thumb/f/fb/Sell.png/64px-Sell.png" }, { c: ":snailtycoon:", f: "thumb/3/33/SnailTycoon.png/64px-SnailTycoon.png" },
+        { c: ":sold:", f: "thumb/c/c1/Sold.png/64px-Sold.png" }, { c: ":trade:", f: "thumb/d/d5/Trade.png/64px-Trade.png" },
+        { c: ":ttycoon:", f: "thumb/f/fa/TTycoon.png/64px-TTycoon.png" }, { c: ":tycoon:", f: "thumb/b/bf/Tycoon.png/64px-Tycoon.png" },
+        { c: ":tycoonheart:", f: "thumb/1/17/TycoonHeart.png/64px-TycoonHeart.png" }, { c: ":tycoonpx:", f: "0/01/Tycoonpx.png" }
+    ]
+};
 
+// --- STATE ---
 let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
-let keybinds = {}; // Runtime store for active keybinds
+let keybindMap = {};
 
 // --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
-    // Render Emojis
-    const grid = document.getElementById("emoji-grid");
-    EMOJIS.forEach(emo => {
-        const btn = document.createElement("div");
-        btn.className = "emoji-btn";
-        btn.innerHTML = `<img src="${emo.url}" title="${emo.code}">`;
-        btn.onclick = () => insertEmoji(emo.code);
-        grid.appendChild(btn);
-    });
-
+    switchTab("Map");
     renderPresets();
     
     // Restore Mini
     if (localStorage.getItem(STORAGE_KEY_MINI) === "true") {
-        document.getElementById("app-container").classList.add("mini-mode");
+        document.getElementById("tracker-app").classList.add("mini-mode");
     }
 
-    // Keydown listener for ESC to hide
+    // Keyboard Input listener for ESC
     document.addEventListener('keydown', (e) => {
-        if (e.key === "Escape") {
-            // We use the 'hide' command or pin logic. Since we want it accessible again via F1,
-            // we usually just let the game handle ESC to lose focus.
-            // But if we want to explicitly hide:
-            if(window.parent) window.parent.postMessage({ type: "close" }, "*");
-        }
+        if (e.key === "Escape") closeApp();
     });
 });
 
-// --- CORE FUNCTIONS ---
-
-function insertEmoji(code) {
-    const input = document.getElementById("msg-input");
-    input.value += (input.value.length > 0 ? " " : "") + code;
-    input.focus();
+// --- UI LOGIC ---
+function switchTab(cat) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll(`.tab[onclick="switchTab('${cat}')"]`).forEach(t => t.classList.add('active'));
+    
+    const grid = document.getElementById("emoji-grid");
+    grid.innerHTML = "";
+    
+    if (EMOJI_DB[cat]) {
+        EMOJI_DB[cat].forEach(emo => {
+            const el = document.createElement("div");
+            el.className = "emoji-item";
+            el.innerHTML = `<img src="${BASE_URL}/${emo.f}" title="${emo.c}">`;
+            el.onclick = () => insertEmoji(emo.c);
+            grid.appendChild(el);
+        });
+    }
 }
 
-function sendMessage(text = null) {
-    const input = document.getElementById("msg-input");
-    const msg = text !== null ? text : input.value;
-    
-    if (!msg.trim()) return;
+function toggleEmojiDrawer() {
+    const d = document.getElementById("emoji-drawer");
+    d.classList.toggle("visible");
+}
 
-    if (window.parent) {
-        window.parent.postMessage({
-            type: "sendCommand",
-            command: `say ${msg}`
-        }, "*");
-    } else {
-        console.log("Mock Send:", `say ${msg}`);
-    }
-
-    if (text === null) input.value = ""; // Clear input if sent manually
+function insertEmoji(code) {
+    const inp = document.getElementById("msg-input");
+    const start = inp.selectionStart;
+    const end = inp.selectionEnd;
+    const text = inp.value;
+    const before = text.substring(0, start);
+    const after  = text.substring(end, text.length);
+    inp.value = before + (before.length > 0 && !before.endsWith(' ') ? ' ' : '') + code + (after.length > 0 && !after.startsWith(' ') ? ' ' : '') + after;
+    inp.focus();
 }
 
 function savePreset() {
-    const input = document.getElementById("msg-input");
-    const msg = input.value.trim();
-    if (!msg) return;
-
-    presets.push({ id: Date.now(), text: msg, bind: null });
-    savePresets();
+    const txt = document.getElementById("msg-input").value.trim();
+    if (!txt) return;
+    presets.push({ id: Date.now(), text: txt, bind: null });
+    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
     renderPresets();
 }
 
 function deletePreset(id) {
     presets = presets.filter(p => p.id !== id);
-    savePresets();
+    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
     renderPresets();
 }
 
 function bindPreset(id) {
-    const preset = presets.find(p => p.id === id);
-    if (!preset) return;
-
-    const key = prompt("Enter a key for this message (e.g., F5, O, P):", preset.bind || "");
-    if (key === null) return; // Cancelled
-
-    preset.bind = key.toUpperCase();
-    savePresets();
-    renderPresets();
-    registerKey(preset.bind, id);
-}
-
-function savePresets() {
+    const p = presets.find(x => x.id === id);
+    if (!p) return;
+    
+    const k = prompt(`Enter key for "${p.text}" (e.g. F5, NUMPAD1):`, p.bind || "");
+    if (k === null) return;
+    
+    p.bind = k.toUpperCase().trim();
     localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    renderPresets();
+    registerBinding(p);
 }
 
 function renderPresets() {
     const list = document.getElementById("preset-list");
     list.innerHTML = "";
-
+    
     presets.forEach(p => {
-        const row = document.createElement("div");
-        row.className = "preset-row";
-        
-        row.innerHTML = `
-            <button class="preset-send" onclick="sendMessage('${p.text.replace(/'/g, "\\'")}')">${p.text}</button>
-            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="bindPreset(${p.id})">
+        // Register bind on load
+        if(p.bind) registerBinding(p);
+
+        const card = document.createElement("div");
+        card.className = "preset-card";
+        card.innerHTML = `
+            <div class="preset-text" onclick="sendMessage('${p.text.replace(/'/g, "\\'")}')">${p.text}</div>
+            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="bindPreset(${p.id})" title="Bind Key">
                 ${p.bind || '⌨'}
             </button>
-            <button class="icon-btn del" onclick="deletePreset(${p.id})">🗑</button>
+            <button class="icon-btn del" onclick="deletePreset(${p.id})" title="Delete">✕</button>
         `;
-        list.appendChild(row);
-
-        // Re-register binding if exists
-        if(p.bind) registerKey(p.bind, p.id);
+        list.appendChild(card);
     });
 }
 
-// --- KEYBIND LOGIC ---
-function registerKey(key, id) {
-    if (!window.parent) return;
+// --- CORE COMMUNICATION ---
+function sendMessage(text = null) {
+    const inp = document.getElementById("msg-input");
+    const msg = text !== null ? text : inp.value;
+    if (!msg.trim()) return;
+
+    // FIX: Use the selected channel prefix!
+    const channel = document.getElementById("channel-select").value; // say, ooc, me, etc
+    const finalCommand = `${channel} ${msg}`;
+
+    if (window.parent) {
+        window.parent.postMessage({
+            type: "sendCommand",
+            command: finalCommand
+        }, "*");
+    } else {
+        console.log("Mock Command:", finalCommand);
+    }
+
+    if (text === null) inp.value = ""; 
+}
+
+function registerBinding(preset) {
+    if (!window.parent || !preset.bind) return;
     
-    // We use a unique trigger name for each preset ID
-    const triggerName = `userapp_chat_${id}`;
-    
-    // Register the trigger with the game
+    const triggerName = `userapp_trigger_${preset.id}`;
+    keybindMap[triggerName] = preset.id;
+
     window.parent.postMessage({
         type: "registerTrigger",
         trigger: triggerName,
-        name: `Chat Macro: ${key}` 
+        name: `Chat: ${preset.text.substring(0, 10)}` // Label in keybind menu
     }, "*");
-
-    // Map the trigger name to the action
-    keybinds[triggerName] = id;
 }
 
-// Listen for the trigger event from the game
-window.addEventListener('message', (event) => {
-    const data = event.data;
-    // The game sends triggers as data keys prefixed with "trigger_"
-    // We scan keys to see if one matches our format
-    if (data.type === 'data' || !data.type) {
-        const payload = data.data || data;
-        
-        for (let key in payload) {
-            if (key.startsWith("trigger_userapp_chat_")) {
-                const triggerId = key.replace("trigger_", "");
-                const presetId = keybinds[triggerId];
-                
-                if (presetId) {
-                    const preset = presets.find(p => p.id === presetId);
-                    if (preset) {
-                        // Send the message!
-                        sendMessage(preset.text);
-                        // Play a sound to confirm
-                        window.parent.postMessage({ type: "sfx", sfx: 13 }, "*"); // Golf New Record sound (pleasant ding)
+// Listen for keybind triggers
+window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    // Data might be wrapped
+    const payload = e.data.data || e.data;
+    
+    // Scan keys for triggers
+    for (const key in payload) {
+        if (key.startsWith("trigger_userapp_trigger_")) {
+            const trigKey = key.replace("trigger_", ""); // e.g. userapp_trigger_12345
+            const presetId = keybindMap[trigKey];
+            
+            if (presetId) {
+                const p = presets.find(x => x.id === presetId);
+                if (p) {
+                    sendMessage(p.text);
+                    // Visual feedback
+                    const btn = document.querySelector(`button[onclick="bindPreset(${p.id})"]`);
+                    if(btn) {
+                        btn.style.borderColor = "#fff";
+                        setTimeout(() => btn.style.borderColor = "", 200);
                     }
                 }
             }
@@ -386,21 +520,16 @@ window.addEventListener('message', (event) => {
     }
 });
 
-
-// --- WINDOW CONTROLS ---
-function toggleMini() {
-    const app = document.getElementById("app-container");
+// --- WINDOW MANAGEMENT ---
+window.toggleMini = function() {
+    const app = document.getElementById("tracker-app");
     app.classList.toggle("mini-mode");
     const isMini = app.classList.contains("mini-mode");
     localStorage.setItem(STORAGE_KEY_MINI, isMini);
     
-    // Allow clicking the mini circle to expand
-    if (isMini) {
-        app.onclick = toggleMini;
-    } else {
-        app.onclick = null;
-    }
-}
+    // Enable clicking the circle to expand
+    app.onclick = isMini ? window.toggleMini : null;
+};
 
 function closeApp() {
     if (window.parent) {
@@ -408,32 +537,28 @@ function closeApp() {
     }
 }
 
-// --- DRAG HANDLER ---
-const elmnt = document.getElementById("app-container");
-const header = document.getElementById("drag-handle");
+// --- DRAG ---
+const elm = document.getElementById("tracker-app");
+const head = document.getElementById("drag-handle");
+let isDragging = false, startX, startY, initLeft, initTop;
 
-let isDragging = false, startX, startY, initialLeft, initialTop;
-
-header.addEventListener("mousedown", (e) => {
-    if(e.target.tagName === 'BUTTON') return;
+head.addEventListener("mousedown", e => {
+    if(e.target.tagName === 'BUTTON' || e.target.closest('.win-btn')) return;
     e.preventDefault();
     isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    const rect = elmnt.getBoundingClientRect();
-    initialLeft = rect.left;
-    initialTop = rect.top;
+    startX = e.clientX; startY = e.clientY;
+    const r = elm.getBoundingClientRect();
+    initLeft = r.left; initTop = r.top;
     document.addEventListener("mousemove", dragMove);
     document.addEventListener("mouseup", dragEnd);
 });
 
 function dragMove(e) {
-    if (!isDragging) return;
-    e.preventDefault();
+    if(!isDragging) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    elmnt.style.left = `${initialLeft + dx}px`;
-    elmnt.style.top = `${initialTop + dy}px`;
+    elm.style.left = (initLeft + dx) + "px";
+    elm.style.top = (initTop + dy) + "px";
 }
 
 function dragEnd() {
@@ -442,22 +567,23 @@ function dragEnd() {
     document.removeEventListener("mouseup", dragEnd);
 }
 
-// Resize logic
-const rh = document.getElementById('resize-handle');
-rh.addEventListener('mousedown', (e) => {
+// --- RESIZE ---
+const rh = document.getElementById("resize-handle");
+rh.addEventListener("mousedown", e => {
     e.preventDefault(); e.stopPropagation();
-    window.addEventListener('mousemove', resize);
-    window.addEventListener('mouseup', stopResize);
+    window.addEventListener("mousemove", resizeMove);
+    window.addEventListener("mouseup", resizeEnd);
 });
 
-function resize(e) {
-    if(elmnt.classList.contains('mini-mode')) return;
-    elmnt.style.width = Math.max(300, e.clientX - elmnt.getBoundingClientRect().left) + 'px';
-    elmnt.style.height = Math.max(200, e.clientY - elmnt.getBoundingClientRect().top) + 'px';
+function resizeMove(e) {
+    if(elm.classList.contains("mini-mode")) return;
+    elm.style.width = Math.max(300, e.clientX - elm.getBoundingClientRect().left) + "px";
+    elm.style.height = Math.max(300, e.clientY - elm.getBoundingClientRect().top) + "px";
 }
-function stopResize() {
-    window.removeEventListener('mousemove', resize);
-    window.removeEventListener('mouseup', stopResize);
+
+function resizeEnd() {
+    window.removeEventListener("mousemove", resizeMove);
+    window.removeEventListener("mouseup", resizeEnd);
 }
 
 </script>
