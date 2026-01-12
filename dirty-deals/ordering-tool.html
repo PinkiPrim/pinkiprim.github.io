@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Customer Fix v9.9</title>
+    <title>Dirty Deals - Commission v10.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -288,7 +288,7 @@
 
             <div id="admin-view-orders" style="display:none; flex:1; overflow-y:auto;">
                 <table class="order-table">
-                    <thead><tr><th>Item</th><th>Customer</th><th>Status</th><th>Grinder</th><th>Edit</th></tr></thead>
+                    <thead><tr><th>Item</th><th>Customer</th><th>Status</th><th>Grinder</th><th>5% Cut</th><th>Edit</th></tr></thead>
                     <tbody id="hk-order-list"></tbody>
                 </table>
             </div>
@@ -510,6 +510,7 @@
                     <td>${o.item}</td><td>${o.username}</td>
                     <td class="st-${o.status}">${o.status}</td>
                     <td>${o.grinder || '-'}</td>
+                    <td style="color:#2ecc71; font-weight:bold;">${o.commission}</td>
                     <td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}')">EDIT</button></td>
                 </tr>`;
             });
@@ -550,8 +551,10 @@
         let status = document.getElementById('ue-status').value;
         let staff = document.getElementById('ue-staff').value;
         
-        // REMOVED THE LINE THAT WAS CLEARING CUSTOMER ROLE
-        // The value "Customer" is now sent directly to the sheet.
+        // FIX: Only convert to empty if you specifically want to clear it, 
+        // BUT since we are using a dropdown in the sheet now, sending "Customer" is perfectly fine and safer.
+        // I have commented out this line to ensure the dropdown value is sent as-is.
+        // if (role === "Customer") role = ""; 
 
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
@@ -676,7 +679,11 @@
         }
         var btns = document.querySelectorAll('.header-btn'); for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
         document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view)).classList.add('active');
-        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); if(view === 'housekeeping') switchAdminTab('users');
+        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); 
+        if(view === 'housekeeping') {
+            fetchAdminUsers(true); // Pre-fetch grinders for dropdown
+            switchAdminTab('users');
+        }
     }
 
     function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
