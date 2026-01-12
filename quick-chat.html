@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v7</title>
+    <title>TT Chat Assistant</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
@@ -42,39 +42,46 @@
             overflow: hidden;
             resize: both;
             min-width: 500px; min-height: 300px;
-            transition: opacity 0.2s;
         }
 
-        /* --- MINI MODE (FIXED BOTTOM RIGHT) --- */
+        /* --- MINI MODE (The "Airline" Method) --- */
         #app-container.mini-mode {
-            position: absolute !important; /* Force absolute to stick to body */
-            top: auto !important;
-            left: auto !important;
-            bottom: 20px !important;
-            right: 20px !important;
-            width: 60px !important;
-            height: 60px !important;
+            /* Force to bottom right by default, but allow drag */
+            width: 140px !important;
+            height: 50px !important;
             min-width: 0 !important; min-height: 0 !important;
-            border-radius: 50%;
-            background: var(--primary);
-            border: 3px solid #fff;
-            cursor: pointer;
-            box-shadow: 0 0 20px var(--primary);
             resize: none;
-            z-index: 99999;
-            transform: none !important; /* Reset any drag transforms */
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid var(--primary);
+            border-radius: 6px;
         }
 
-        #app-container.mini-mode > * { display: none !important; }
-        
-        #app-container.mini-mode::after {
-            content: "📋";
-            display: flex; width: 100%; height: 100%;
-            align-items: center; justify-content: center;
-            font-size: 28px;
+        /* Hide Main Elements in Mini Mode */
+        #app-container.mini-mode header, 
+        #app-container.mini-mode #content,
+        #app-container.mini-mode #resize-handle { 
+            display: none !important; 
         }
-        
-        #app-container.mini-mode + #resize-handle { display: none; }
+
+        /* Show Micro View in Mini Mode */
+        #micro-view {
+            display: none;
+            width: 100%; height: 100%;
+            align-items: center; justify-content: center;
+            cursor: move;
+            gap: 10px;
+        }
+        #app-container.mini-mode #micro-view { display: flex; }
+
+        .micro-btn {
+            background: var(--primary); color: #000; border: none;
+            padding: 4px 10px; border-radius: 4px; font-weight: bold;
+            font-family: 'Rajdhani', sans-serif; cursor: pointer;
+            font-size: 0.9em;
+        }
+        .micro-btn:hover { filter: brightness(1.1); }
+
+        .micro-icon { font-size: 1.5em; }
 
         /* --- HEADER --- */
         header {
@@ -224,8 +231,13 @@
 <body>
 
 <div id="app-container">
+    <div id="micro-view" onmousedown="dragStart(event)">
+        <span class="micro-icon">💬</span>
+        <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
+    </div>
+
     <header id="drag-handle">
-        <div class="title"><span>💬</span> Chat Assistant</div>
+        <div class="title"><span>📋</span> Chat Assistant</div>
         <div style="display:flex; gap:5px;">
             <button class="win-btn" onclick="window.toggleMini()">MINI</button>
             <button class="win-btn close" onclick="window.closeApp()">✕</button>
@@ -241,7 +253,7 @@
 
             <div class="action-row">
                 <button class="btn btn-sec" onclick="window.savePreset()">Save</button>
-                <button class="btn btn-copy" onclick="window.doCopy()">COPY</button>
+                <button class="btn btn-copy" onclick="window.doCopy()">COPY TO CLIPBOARD</button>
             </div>
 
             <div id="emoji-drawer" class="visible">
@@ -271,8 +283,8 @@
 
 <script>
 // --- CONFIGURATION ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v7";
-const STORAGE_KEY_MINI = "tt_chat_mini_v7";
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v8";
+const STORAGE_KEY_MINI = "tt_chat_mini_v8";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
 
 // --- EMOJI DB ---
@@ -331,6 +343,7 @@ const EMOJI_DB = {
         { c: ":thinking:", f: "thumb/2/29/Thinking.png/64px-Thinking.png" }, { c: ":this:", f: "thumb/d/da/This.png/64px-This.png" },
         { c: ":wave:", f: "thumb/e/e9/Wave.png/64px-Wave.png" }, { c: ":zabivakafish:", f: "thumb/2/20/Zabivakafish.png/64px-Zabivakafish.png" },
         { c: ":zabivaka:", f: "thumb/2/2b/Zabivaka.png/64px-Zabivaka.png" },
+        // Text based
         { c: "(˵ ͡° ͜ʖ ͡°˵)", t: true }, { c: "( ͡° ᴥ  ͡° )", t: true }, { c: "ヽ(•_)ᕗ", t: true },
         { c: "༼ つ ◕_◕ ༽つ", t: true }, { c: "( ⌐■ _■ )", t: true }, { c: "ᕕ( ᐛ )ᕗ", t: true },
         { c: "(∩_∩)", t: true }, { c: "ಠ_ಠ", t: true }, { c: "ಥ_ಥ", t: true }, { c: "¯\\_(ツ)_/¯", t: true },
@@ -548,15 +561,26 @@ function showToast() {
     setTimeout(() => t.classList.remove("show"), 2000);
 }
 
-// --- WINDOW ---
+// --- WINDOW MANAGEMENT ---
 window.toggleMini = function() {
     const app = document.getElementById("app-container");
-    app.classList.toggle("mini-mode");
-    const isMini = app.classList.contains("mini-mode");
-    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+    const isMini = !app.classList.contains("mini-mode"); // Toggle state
     
-    if(isMini) app.onclick = window.toggleMini;
-    else app.onclick = null;
+    if (isMini) {
+        // STORE CURRENT POS before minimizing
+        app.dataset.prevTop = app.style.top;
+        app.dataset.prevLeft = app.style.left;
+        app.classList.add("mini-mode");
+    } else {
+        // RESTORE POS
+        app.classList.remove("mini-mode");
+        if(app.dataset.prevTop) {
+            app.style.top = app.dataset.prevTop;
+            app.style.left = app.dataset.prevLeft;
+        }
+    }
+    
+    localStorage.setItem(STORAGE_KEY_MINI, isMini);
 };
 
 window.closeApp = function() {
@@ -566,9 +590,11 @@ window.closeApp = function() {
 // --- DRAG ---
 const elm = document.getElementById("app-container");
 const head = document.getElementById("drag-handle");
+const microView = document.getElementById("micro-view"); // Added for mini mode drag
+
 let isDragging = false, startX, startY, initLeft, initTop;
 
-head.addEventListener("mousedown", e => {
+const startDrag = (e) => {
     if(e.target.tagName === 'BUTTON' || e.target.closest('.win-btn')) return;
     e.preventDefault();
     isDragging = true;
@@ -577,7 +603,11 @@ head.addEventListener("mousedown", e => {
     initLeft = r.left; initTop = r.top;
     document.addEventListener("mousemove", dragMove);
     document.addEventListener("mouseup", dragEnd);
-});
+};
+
+// Attach to both header and micro-view
+head.addEventListener("mousedown", startDrag);
+microView.addEventListener("mousedown", startDrag);
 
 function dragMove(e) {
     if(!isDragging) return;
