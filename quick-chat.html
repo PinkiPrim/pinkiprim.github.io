@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v14</title>
+    <title>TT Chat Assistant v15</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
@@ -43,12 +45,10 @@
             overflow: hidden;
             resize: both;
             min-width: 500px; min-height: 300px;
-            /* Smooth movement for toggle, instant for drag */
             transition: width 0.2s, height 0.2s, background-color 0.2s; 
         }
 
         /* --- MINI MODE --- */
-        /* Removed Fixed Positioning so JS can drag it */
         #app-container.mini-mode {
             width: 140px !important; height: 50px !important;
             min-width: 0 !important; min-height: 0 !important;
@@ -316,25 +316,22 @@
 
 <script>
 // --- CONFIGURATION ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v14";
-const STORAGE_KEY_MINI = "tt_chat_mini_v14";
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v15";
+const STORAGE_KEY_MINI = "tt_chat_mini_v15";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
-const CHAT_CHANNEL = "Chat"; 
 
 // --- STATE ---
 let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
 let keybindMap = {};
 let targetPresetId = null;
-let savedPos = { top: "50px", left: "50px" }; // Stores position of full window
+let savedPos = { top: "50px", left: "50px" }; 
 
 // --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
     window.switchTab("Map");
     renderPresets();
     
-    // Restore Mini state if saved
     if (localStorage.getItem(STORAGE_KEY_MINI) === "true") {
-        // Set default mini pos (Bottom Right)
         const app = document.getElementById("app-container");
         app.style.top = (window.innerHeight - 80) + "px";
         app.style.left = (window.innerWidth - 170) + "px";
@@ -345,7 +342,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === "Escape") window.closeApp();
     });
     
-    // Modal Input Logic
     const bindInp = document.getElementById('bind-input');
     bindInp.addEventListener('keydown', (e) => {
         e.preventDefault();
@@ -368,31 +364,18 @@ window.toggleMini = function() {
     const isMini = app.classList.contains("mini-mode");
 
     if (!isMini) {
-        // GOING TO MINI
-        // 1. Save current "Full" position
         savedPos.top = app.style.top;
         savedPos.left = app.style.left;
-
-        // 2. Add class
         app.classList.add("mini-mode");
-
-        // 3. Jump to corner (or wherever you want default mini to appear)
         app.style.top = (window.innerHeight - 80) + "px";
         app.style.left = (window.innerWidth - 170) + "px";
     } else {
-        // EXPANDING
-        // 1. Remove class
         app.classList.remove("mini-mode");
-
-        // 2. Restore "Full" position
         app.style.top = savedPos.top;
         app.style.left = savedPos.left;
-        
-        // 3. Reset sizing style just in case resizing messed it up
         app.style.width = "600px";
         app.style.height = "450px";
     }
-    
     localStorage.setItem(STORAGE_KEY_MINI, !isMini);
 };
 
@@ -500,20 +483,13 @@ window.directSend = function(text = null) {
     
     if(!msg.trim()) return;
 
-    try {
-        fetch('http://chat/chatResult', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: msg,
-                channel: CHAT_CHANNEL
-            })
-        });
-        showToast("SENT! 🚀");
-    } catch(e) {
-        console.error("Chat send failed", e);
-        showToast("ERROR SENDING");
-    }
+    // Use OWNER'S EXACT JQUERY POST
+    $.post('http://chat/chatResult', JSON.stringify({
+        message: msg,
+        channel: "Chat",
+    }));
+    
+    showToast("SENT! 🚀");
 };
 
 window.doCopy = function(text = null) {
