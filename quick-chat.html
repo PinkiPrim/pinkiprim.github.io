@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v10</title>
+    <title>TT Chat Assistant v12</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
@@ -12,11 +14,13 @@
             --bg-panel: #2b2b30;
             --bg-modal: rgba(0, 0, 0, 0.9);
             --primary: #00e676;
+            --primary-hover: #00c853;
             --secondary: #3a3a40;
             --text-main: #ffffff;
             --text-dim: #a0a0a0;
             --border: 1px solid rgba(255,255,255,0.1);
             --red: #ff5252;
+            --blue: #2979ff;
         }
 
         body {
@@ -29,7 +33,7 @@
             user-select: none;
         }
 
-        #tracker-app {
+        #app-container {
             position: absolute;
             top: 50px; left: 50px;
             width: 600px;
@@ -45,7 +49,7 @@
         }
 
         /* --- MINI MODE --- */
-        #tracker-app.mini-mode {
+        #app-container.mini-mode {
             position: fixed !important;
             bottom: 20px !important; right: 20px !important;
             top: auto !important; left: auto !important;
@@ -57,19 +61,17 @@
             border-radius: 6px;
         }
 
-        /* Hide EVERYTHING in main mode when mini */
-        #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #content,
-        #tracker-app.mini-mode #modal-overlay,
-        #tracker-app.mini-mode #resize-handle { display: none !important; }
+        #app-container.mini-mode header, 
+        #app-container.mini-mode #content,
+        #app-container.mini-mode #modal-overlay,
+        #app-container.mini-mode #resize-handle { display: none !important; }
 
-        /* Show Micro View ONLY in mini mode */
         #micro-view {
             display: none; width: 100%; height: 100%;
             align-items: center; justify-content: center;
             cursor: move; gap: 10px;
         }
-        #tracker-app.mini-mode #micro-view { display: flex; }
+        #app-container.mini-mode #micro-view { display: flex; }
 
         .micro-btn {
             background: var(--primary); color: #000; border: none;
@@ -99,7 +101,7 @@
         .win-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .win-btn.close:hover { background: var(--red); }
 
-        /* --- LAYOUT --- */
+        /* --- CONTENT --- */
         #content { display: flex; flex: 1; overflow: hidden; position: relative; }
 
         .col-left {
@@ -113,7 +115,6 @@
             overflow-y: auto; scrollbar-width: thin;
         }
 
-        /* INPUT AREA */
         .input-wrapper { position: relative; display: flex; width: 100%; }
         
         #msg-input {
@@ -137,9 +138,14 @@
             font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff;
             text-transform: uppercase; font-size: 0.9em; flex: 1; transition: 0.2s;
         }
-        .btn-copy { background: var(--primary); color: #000; font-size: 1em; letter-spacing: 1px; }
+        
+        .btn-send { background: var(--blue); color: #fff; font-size: 1em; letter-spacing: 1px; flex: 1.5; }
+        .btn-send:hover { filter: brightness(1.2); box-shadow: 0 0 10px var(--blue); }
+        
+        .btn-copy { background: var(--primary); color: #000; }
         .btn-copy:hover { filter: brightness(1.1); }
-        .btn-sec { background: var(--secondary); flex: 0.4; }
+        
+        .btn-sec { background: var(--secondary); flex: 0.5; }
         .btn-sec:hover { background: #4a4a50; }
 
         /* EMOJI DRAWER */
@@ -183,7 +189,7 @@
 
         .preset-card {
             background: var(--bg-panel); padding: 8px; border-radius: 4px;
-            display: flex; align-items: center; gap: 8px; border: 1px solid transparent;
+            display: flex; align-items: center; gap: 5px; border: 1px solid transparent;
         }
         .preset-card:hover { border-color: var(--text-dim); background: rgba(255,255,255,0.05); }
 
@@ -199,10 +205,14 @@
             display: flex; align-items: center; justify-content: center; font-size: 0.8em;
         }
         .icon-btn:hover { color: #fff; border-color: #fff; }
+        
+        .icon-btn.send { color: #fff; background: rgba(41, 121, 255, 0.2); border-color: var(--blue); }
+        .icon-btn.send:hover { background: var(--blue); }
+
         .icon-btn.del:hover { background: var(--red); border-color: var(--red); }
         .icon-btn.bind.active { color: #000; background: var(--primary); border-color: var(--primary); font-weight: bold; }
 
-        /* --- BIND MODAL (Safe for FiveM) --- */
+        /* MODAL */
         #modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-modal); display: none;
@@ -242,14 +252,26 @@
 </head>
 <body>
 
-<div id="tracker-app">
+<div id="app-container">
     <div id="micro-view" onmousedown="dragStart(event)">
         <span class="micro-icon">💬</span>
         <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
     </div>
 
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">SET KEYBIND</div>
+            <div class="modal-desc">Press keys (e.g. Ctrl+L).<br>Map this in FiveM Settings.</div>
+            <input type="text" id="bind-input" placeholder="Press key..." readonly>
+            <div class="modal-btns">
+                <button class="btn btn-sec" onclick="window.closeModal()">CANCEL</button>
+                <button class="btn btn-copy" onclick="window.saveBind()">SAVE</button>
+            </div>
+        </div>
+    </div>
+
     <header id="drag-handle">
-        <div class="title"><span>📋</span> Chat Assistant</div>
+        <div class="title"><span>💬</span> Chat Assistant</div>
         <div style="display:flex; gap:5px;">
             <button class="win-btn" onclick="window.toggleMini()">MINI</button>
             <button class="win-btn close" onclick="window.closeApp()">✕</button>
@@ -259,13 +281,14 @@
     <div id="content">
         <div class="col-left">
             <div class="input-wrapper">
-                <input type="text" id="msg-input" placeholder="Type message here...">
+                <input type="text" id="msg-input" placeholder="Type message or command...">
                 <button class="emoji-toggle" onclick="window.toggleEmojiDrawer()" title="Open Emojis">😊</button>
             </div>
 
             <div class="action-row">
                 <button class="btn btn-sec" onclick="window.savePreset()">Save</button>
-                <button class="btn btn-copy" onclick="window.doCopy()">COPY TO CLIPBOARD</button>
+                <button class="btn btn-send" onclick="window.directSend()">SEND 🚀</button>
+                <button class="btn btn-copy" onclick="window.doCopy()">Copy</button>
             </div>
 
             <div id="emoji-drawer" class="visible">
@@ -287,18 +310,6 @@
             </div>
             <div id="preset-list"></div>
         </div>
-        
-        <div id="modal-overlay">
-            <div class="modal-box">
-                <div class="modal-title">SET KEYBIND</div>
-                <div class="modal-desc">Press keys (e.g. Ctrl+L).<br>Then go to <b>FiveM Settings > Keybinds</b> to map this action.</div>
-                <input type="text" id="bind-input" placeholder="Press key..." readonly>
-                <div class="modal-btns">
-                    <button class="btn btn-sec" onclick="window.closeModal()">CANCEL</button>
-                    <button class="btn btn-copy" onclick="window.saveBind()">SAVE</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div id="toast">COPIED!</div>
@@ -307,10 +318,12 @@
 
 <script>
 // --- CONFIGURATION ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v10";
-const STORAGE_KEY_MINI = "tt_chat_mini_v10";
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v11";
+const STORAGE_KEY_MINI = "tt_chat_mini_v11";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
+const CHAT_CHANNEL = "Chat"; 
 
+// --- EMOJI DB ---
 const EMOJI_DB = {
     "Map": [
         { c: ":aircraftdealer:", f: "4/42/Aircraft_Dealer.png" }, { c: ":atm:", f: "0/0d/ATM.png" },
@@ -413,17 +426,14 @@ document.addEventListener("DOMContentLoaded", () => {
     window.switchTab("Map");
     renderPresets();
     
-    // Restore Mini
     if (localStorage.getItem(STORAGE_KEY_MINI) === "true") {
-        document.getElementById("tracker-app").classList.add("mini-mode");
+        document.getElementById("app-container").classList.add("mini-mode");
     }
 
-    // Escape listener
     document.addEventListener('keydown', (e) => {
         if (e.key === "Escape") window.closeApp();
     });
     
-    // Bind modal listener (Captures Modifiers)
     const bindInp = document.getElementById('bind-input');
     bindInp.addEventListener('keydown', (e) => {
         e.preventDefault();
@@ -440,14 +450,59 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+// --- CORE ACTIONS ---
+
+// 1. DIRECT SEND (The "Golden Key")
+window.directSend = function(text = null) {
+    const inp = document.getElementById("msg-input");
+    const msg = text !== null ? text : inp.value;
+    
+    if(!msg.trim()) return;
+
+    // Use JQUERY POST as provided by owner
+    $.post('http://chat/chatResult', JSON.stringify({
+        message: msg,
+        channel: CHAT_CHANNEL,
+    }));
+    
+    showToast("MESSAGE SENT! 🚀");
+};
+
+// 2. COPY TO CLIPBOARD (Backup)
+window.doCopy = function(text = null) {
+    const inp = document.getElementById("msg-input");
+    const msg = text !== null ? text : inp.value;
+    if (!msg.trim()) return;
+
+    const ta = document.createElement('textarea');
+    ta.value = msg;
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        showToast("COPIED TO CLIPBOARD");
+    } catch (err) {}
+    document.body.removeChild(ta);
+};
+
+window.loadAndCopy = function(text) {
+    document.getElementById("msg-input").value = text;
+    window.doCopy(text);
+};
+
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.innerText = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2000);
+}
+
 // --- UI LOGIC ---
 window.switchTab = function(cat) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll(`.tab[onclick="window.switchTab('${cat}')"]`).forEach(t => t.classList.add('active'));
-    
     const grid = document.getElementById("emoji-grid");
     grid.innerHTML = "";
-    
     if (EMOJI_DB[cat]) {
         EMOJI_DB[cat].forEach(emo => {
             const el = document.createElement("div");
@@ -495,7 +550,24 @@ window.deletePreset = function(id) {
     renderPresets();
 };
 
-// --- MODAL LOGIC ---
+function renderPresets() {
+    const list = document.getElementById("preset-list");
+    list.innerHTML = "";
+    presets.forEach(p => {
+        if(p.bind) registerBinding(p);
+        const card = document.createElement("div");
+        card.className = "preset-card";
+        card.innerHTML = `
+            <div class="preset-text" onclick="window.loadAndCopy('${p.text.replace(/'/g, "\\'")}')">${p.text}</div>
+            <button class="icon-btn send" onclick="window.directSend('${p.text.replace(/'/g, "\\'")}')" title="Send Immediately">🚀</button>
+            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="window.openBindModal(${p.id})" title="Bind Key">${p.bind || '⌨'}</button>
+            <button class="icon-btn del" onclick="window.deletePreset(${p.id})" title="Delete">✕</button>
+        `;
+        list.appendChild(card);
+    });
+}
+
+// --- BINDING MODAL ---
 window.openBindModal = function(id) {
     targetPresetId = id;
     const p = presets.find(x => x.id === id);
@@ -522,25 +594,6 @@ window.saveBind = function() {
     window.closeModal();
 };
 
-function renderPresets() {
-    const list = document.getElementById("preset-list");
-    list.innerHTML = "";
-    presets.forEach(p => {
-        if(p.bind) registerBinding(p);
-        const card = document.createElement("div");
-        card.className = "preset-card";
-        card.innerHTML = `
-            <div class="preset-text" onclick="window.loadAndCopy('${p.text.replace(/'/g, "\\'")}')">${p.text}</div>
-            <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="window.openBindModal(${p.id})" title="Bind Key">
-                ${p.bind || '⌨'}
-            </button>
-            <button class="icon-btn del" onclick="window.deletePreset(${p.id})" title="Delete">✕</button>
-        `;
-        list.appendChild(card);
-    });
-}
-
-// --- TRIGGER LISTENER ---
 function registerBinding(preset) {
     if (!window.parent || !preset.bind) return;
     const triggerName = `userapp_trigger_${preset.id}`;
@@ -557,43 +610,26 @@ window.addEventListener('message', (e) => {
             const presetId = keybindMap[trigKey];
             if (presetId) {
                 const p = presets.find(x => x.id === presetId);
-                if (p) window.loadAndCopy(p.text);
+                // KEY CHANGE: DIRECT SEND ON BIND TRIGGER
+                if (p) {
+                    // Flash the bind button
+                    const btn = document.querySelector(`button[onclick="window.openBindModal(${p.id})"]`);
+                    if(btn) {
+                        const oldColor = btn.style.backgroundColor;
+                        btn.style.backgroundColor = "white";
+                        setTimeout(() => btn.style.backgroundColor = oldColor, 200);
+                    }
+                    // SEND!
+                    window.directSend(p.text);
+                }
             }
         }
     }
 });
 
-// --- COPY ---
-window.doCopy = function(text = null) {
-    const inp = document.getElementById("msg-input");
-    const msg = text !== null ? text : inp.value;
-    if (!msg.trim()) return;
-    const ta = document.createElement('textarea');
-    ta.value = msg;
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-        document.execCommand('copy');
-        showToast();
-        if (window.parent) window.parent.postMessage({ type: "sfx", sfx: 13 }, "*");
-    } catch (err) {}
-    document.body.removeChild(ta);
-};
-
-window.loadAndCopy = function(text) {
-    document.getElementById("msg-input").value = text;
-    window.doCopy(text);
-};
-
-function showToast() {
-    const t = document.getElementById("toast");
-    t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 2000);
-}
-
 // --- WINDOW ---
 window.toggleMini = function() {
-    const app = document.getElementById("tracker-app");
+    const app = document.getElementById("app-container");
     app.classList.toggle("mini-mode");
     const isMini = app.classList.contains("mini-mode");
     localStorage.setItem(STORAGE_KEY_MINI, isMini);
@@ -603,14 +639,14 @@ window.closeApp = function() {
     if (window.parent) window.parent.postMessage({ type: "close" }, "*");
 };
 
-// --- DRAG ---
-const elm = document.getElementById("tracker-app");
+// --- DRAG & RESIZE ---
+const elm = document.getElementById("app-container");
 const head = document.getElementById("drag-handle");
 const microView = document.getElementById("micro-view");
 let isDragging = false, startX, startY, initLeft, initTop;
 
 const startDrag = (e) => {
-    if(e.target.tagName === 'BUTTON' || e.target.closest('.win-btn')) return;
+    if(e.target.closest('button') || e.target.closest('input')) return;
     e.preventDefault();
     isDragging = true;
     startX = e.clientX; startY = e.clientY;
@@ -637,7 +673,6 @@ function dragEnd() {
     document.removeEventListener("mouseup", dragEnd);
 }
 
-// --- RESIZE ---
 const rh = document.getElementById("resize-handle");
 rh.addEventListener("mousedown", e => {
     e.preventDefault(); e.stopPropagation();
