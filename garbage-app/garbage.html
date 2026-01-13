@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Garbage Ops</title>
+    <title>TT Garbage Ops v2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -316,7 +316,7 @@
             </div>
 
             <div class="stat-grid">
-                <div class="stat-box"><div class="label">BXP Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Garbage Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
                 <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
                 <div class="stat-box"><div class="label">Routes</div><div class="value" id="disp-routes">0</div></div>
             </div>
@@ -343,9 +343,9 @@
 <script>
 // --- STATE ---
 const JOB_EXP_KEY = "exp_trucking_garbage";
-// Fallback logic for tokens since it wasn't explicit in dump
-const JOB_BXP_KEY = "exp_token_a|trucking|trucking"; // Generic trucking often used
-const JOB_BXP_KEY_ALT = "exp_token_a|trucking|garbage";
+// Explicit Garbage Token Key
+const TOKEN_KEY_GARBAGE = "exp_token_a|trucking|garbage"; 
+const TOKEN_KEY_FALLBACK = "exp_token_a|trucking|trucking";
 
 const STORAGE_KEY_CALC = "target_xp_garbage";
 const STORAGE_KEY_MINI = "mini_mode_garbage";
@@ -353,7 +353,8 @@ const STORAGE_KEY_MINI = "mini_mode_garbage";
 const STATE = {
     currentXP: 0, startXP: null,
     routes: 0, avgXP: 0, sessionXP: 0,
-    lastKnownXP: -1
+    lastKnownXP: -1,
+    lastStop: -1, lastCapacity: -1 // For route detection
 };
 
 // --- INIT ---
@@ -389,7 +390,7 @@ function requestData() {
     if(window.parent) {
         try { 
             let keys = [
-                JOB_EXP_KEY, JOB_BXP_KEY, JOB_BXP_KEY_ALT,
+                JOB_EXP_KEY, TOKEN_KEY_GARBAGE, TOKEN_KEY_FALLBACK,
                 "status", "inventory"
             ];
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
@@ -408,7 +409,7 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 1. STATUS PARSING
+    // 1. STATUS PARSING & ROUTE COUNTING
     if (data.status) {
         try {
             let statusData = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
@@ -419,6 +420,15 @@ function processPayload(data) {
                 if(lines[1]) {
                     let routeMatch = cleanString(lines[1]).match(/(\d+)\s*\/\s*(\d+)/);
                     if(routeMatch) {
+                        let currentStop = parseInt(routeMatch[1]);
+                        
+                        // SMART ROUTE DETECTION: If stop count drops (e.g. 19 -> 0), route finished
+                        if (STATE.lastStop > -1 && currentStop < STATE.lastStop) {
+                            STATE.routes++;
+                            renderStats(); // Force refresh stats
+                        }
+                        STATE.lastStop = currentStop;
+
                         let txt = `Stop: ${routeMatch[1]} / ${routeMatch[2]}`;
                         document.getElementById('disp-progress').innerText = txt;
                         document.getElementById('micro-stops').innerText = `${routeMatch[1]}/${routeMatch[2]}`;
@@ -429,13 +439,21 @@ function processPayload(data) {
                 if(lines[2]) {
                     let capMatch = cleanString(lines[2]).match(/(\d+)\s*\/\s*(\d+)/);
                     if(capMatch) {
-                        let txt = `${capMatch[1]} / ${capMatch[2]} kg`;
+                        let currentCap = parseInt(capMatch[1]);
+                        let maxCap = parseInt(capMatch[2]);
+
+                        // CAPACITY RESET DETECTION: If capacity drops drastically, they dumped trash
+                        if (STATE.lastCapacity > 500 && currentCap < 100) {
+                            // This might also indicate a run completion if stops didn't reset
+                            // But usually stops reset too. We'll rely on stops primarily.
+                        }
+                        STATE.lastCapacity = currentCap;
+
+                        let txt = `${currentCap} / ${maxCap} kg`;
                         document.getElementById('disp-capacity').innerText = "Capacity: " + txt;
                         document.getElementById('micro-cap').innerText = txt;
                         
-                        let curr = parseInt(capMatch[1]);
-                        let max = parseInt(capMatch[2]);
-                        if(curr >= max) document.getElementById('micro-cap').className = "micro-val active";
+                        if(currentCap >= maxCap) document.getElementById('micro-cap').className = "micro-val active";
                         else document.getElementById('micro-cap').className = "micro-val";
                     }
                 }
@@ -458,28 +476,35 @@ function processPayload(data) {
         } 
         
         if (currentXP > STATE.lastKnownXP) {
-            // XP increased
             const diff = currentXP - STATE.lastKnownXP;
             STATE.sessionXP += diff;
             STATE.lastKnownXP = currentXP;
-            // Crude route counter (assuming ~100xp per bag/action, difficult to count exactly per route without resetting)
-            // We'll update stats on every tick
         }
         
         STATE.currentXP = currentXP;
         renderStats();
     }
 
-    // 3. BXP LOGIC
-    let bxp = data[JOB_BXP_KEY_ALT] || data[JOB_BXP_KEY];
-    if(!bxp && data.inventory) {
+    // 3. TOKEN LOGIC (STRICT)
+    // Priority 1: Direct Garbage Token
+    let bxp = data[TOKEN_KEY_GARBAGE];
+    
+    // Priority 2: Check Inventory for it
+    if (!bxp && data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
-            bxp = inv[JOB_BXP_KEY_ALT] || inv[JOB_BXP_KEY];
+            bxp = inv[TOKEN_KEY_GARBAGE];
         } catch(e){}
     }
+
+    // Priority 3: Fallback ONLY if it's explicitly generic trucking but user has 0 garbage ones
+    if (!bxp && !data[TOKEN_KEY_GARBAGE]) {
+         // Some jobs share tokens, but you requested strict separation.
+         // If we find NOTHING, show 0.
+         bxp = 0;
+    }
     
-    if (bxp) {
+    if (bxp !== undefined) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         let txt = formatNumber(val);
         document.getElementById('disp-bxp').innerText = txt;
@@ -507,12 +532,8 @@ function renderStats() {
     document.getElementById('level-text').innerText = pct + "%";
     document.getElementById('micro-bar').style.width = pct + "%";
 
-    // Since we don't have a clear "Route Completed" event in data, we can just show session XP
-    // Or we can try to guess routes based on capacity resets.
-    // For now, let's track "Session Gains"
-    
     document.getElementById('disp-avg').innerText = formatNumber(STATE.sessionXP);
-    // Note: Avg Label changed to "Session XP" implicitly if routes = 0
+    document.getElementById('disp-routes').innerText = STATE.routes; // Shows manual count
     
     runCalculator();
 }
@@ -546,12 +567,12 @@ function runCalculator() {
 
     if (STATE.sessionXP === 0) { 
         el.innerHTML = "<i>Collect trash to enable calc...</i>"; 
-        microEl.innerText = "Wait..";
+        if(microEl) microEl.innerText = "Wait..";
         return; 
     }
     if (!val) { 
         el.innerText = "Enter target above."; 
-        microEl.innerText = "Set..";
+        if(microEl) microEl.innerText = "Set..";
         return; 
     }
 
@@ -566,13 +587,11 @@ function runCalculator() {
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
-        // Estimate based on current session rate
-        // We don't have a specific "per bag" metric, so we just show raw XP needed
         el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b>`;
-        microEl.innerText = formatNumber(diff);
+        if(microEl) microEl.innerText = formatNumber(diff);
     } else {
         el.innerHTML = `Target reached.`;
-        microEl.innerText = "Done";
+        if(microEl) microEl.innerText = "Done";
     }
 }
 
