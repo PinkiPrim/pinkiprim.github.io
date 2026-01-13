@@ -2,9 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v12</title>
-    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
-    
+    <title>TT Chat Assistant v14</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap');
 
@@ -14,7 +12,6 @@
             --bg-panel: #2b2b30;
             --bg-modal: rgba(0, 0, 0, 0.9);
             --primary: #00e676;
-            --primary-hover: #00c853;
             --secondary: #3a3a40;
             --text-main: #ffffff;
             --text-dim: #a0a0a0;
@@ -46,13 +43,13 @@
             overflow: hidden;
             resize: both;
             min-width: 500px; min-height: 300px;
+            /* Smooth movement for toggle, instant for drag */
+            transition: width 0.2s, height 0.2s, background-color 0.2s; 
         }
 
         /* --- MINI MODE --- */
+        /* Removed Fixed Positioning so JS can drag it */
         #app-container.mini-mode {
-            position: fixed !important;
-            bottom: 20px !important; right: 20px !important;
-            top: auto !important; left: auto !important;
             width: 140px !important; height: 50px !important;
             min-width: 0 !important; min-height: 0 !important;
             resize: none;
@@ -78,7 +75,7 @@
             padding: 4px 10px; border-radius: 4px; font-weight: bold;
             font-family: 'Rajdhani', sans-serif; cursor: pointer; font-size: 0.9em;
         }
-        .micro-icon { font-size: 1.5em; }
+        .micro-icon { font-size: 1.5em; cursor: move; }
 
         /* --- HEADER --- */
         header {
@@ -141,6 +138,7 @@
         
         .btn-send { background: var(--blue); color: #fff; font-size: 1em; letter-spacing: 1px; flex: 1.5; }
         .btn-send:hover { filter: brightness(1.2); box-shadow: 0 0 10px var(--blue); }
+        .btn-send:active { transform: scale(0.98); }
         
         .btn-copy { background: var(--primary); color: #000; }
         .btn-copy:hover { filter: brightness(1.1); }
@@ -318,10 +316,89 @@
 
 <script>
 // --- CONFIGURATION ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v11";
-const STORAGE_KEY_MINI = "tt_chat_mini_v11";
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v14";
+const STORAGE_KEY_MINI = "tt_chat_mini_v14";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
 const CHAT_CHANNEL = "Chat"; 
+
+// --- STATE ---
+let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
+let keybindMap = {};
+let targetPresetId = null;
+let savedPos = { top: "50px", left: "50px" }; // Stores position of full window
+
+// --- INIT ---
+document.addEventListener("DOMContentLoaded", () => {
+    window.switchTab("Map");
+    renderPresets();
+    
+    // Restore Mini state if saved
+    if (localStorage.getItem(STORAGE_KEY_MINI) === "true") {
+        // Set default mini pos (Bottom Right)
+        const app = document.getElementById("app-container");
+        app.style.top = (window.innerHeight - 80) + "px";
+        app.style.left = (window.innerWidth - 170) + "px";
+        app.classList.add("mini-mode");
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") window.closeApp();
+    });
+    
+    // Modal Input Logic
+    const bindInp = document.getElementById('bind-input');
+    bindInp.addEventListener('keydown', (e) => {
+        e.preventDefault();
+        let keys = [];
+        if (e.ctrlKey) keys.push('Ctrl');
+        if (e.altKey) keys.push('Alt');
+        if (e.shiftKey) keys.push('Shift');
+        if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+            let k = e.key.toUpperCase();
+            if(k === " ") k = "SPACE";
+            keys.push(k);
+        }
+        if(keys.length > 0) bindInp.value = keys.join('+');
+    });
+});
+
+// --- WINDOW MANAGEMENT ---
+window.toggleMini = function() {
+    const app = document.getElementById("app-container");
+    const isMini = app.classList.contains("mini-mode");
+
+    if (!isMini) {
+        // GOING TO MINI
+        // 1. Save current "Full" position
+        savedPos.top = app.style.top;
+        savedPos.left = app.style.left;
+
+        // 2. Add class
+        app.classList.add("mini-mode");
+
+        // 3. Jump to corner (or wherever you want default mini to appear)
+        app.style.top = (window.innerHeight - 80) + "px";
+        app.style.left = (window.innerWidth - 170) + "px";
+    } else {
+        // EXPANDING
+        // 1. Remove class
+        app.classList.remove("mini-mode");
+
+        // 2. Restore "Full" position
+        app.style.top = savedPos.top;
+        app.style.left = savedPos.left;
+        
+        // 3. Reset sizing style just in case resizing messed it up
+        app.style.width = "600px";
+        app.style.height = "450px";
+    }
+    
+    localStorage.setItem(STORAGE_KEY_MINI, !isMini);
+};
+
+window.closeApp = function() {
+    if (window.parent) window.parent.postMessage({ type: "close" }, "*");
+};
 
 // --- EMOJI DB ---
 const EMOJI_DB = {
@@ -416,59 +493,29 @@ const EMOJI_DB = {
     ]
 };
 
-// --- STATE ---
-let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
-let keybindMap = {};
-let targetPresetId = null;
-
-// --- INIT ---
-document.addEventListener("DOMContentLoaded", () => {
-    window.switchTab("Map");
-    renderPresets();
-    
-    if (localStorage.getItem(STORAGE_KEY_MINI) === "true") {
-        document.getElementById("app-container").classList.add("mini-mode");
-    }
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === "Escape") window.closeApp();
-    });
-    
-    const bindInp = document.getElementById('bind-input');
-    bindInp.addEventListener('keydown', (e) => {
-        e.preventDefault();
-        let keys = [];
-        if (e.ctrlKey) keys.push('Ctrl');
-        if (e.altKey) keys.push('Alt');
-        if (e.shiftKey) keys.push('Shift');
-        if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
-            let k = e.key.toUpperCase();
-            if(k === " ") k = "SPACE";
-            keys.push(k);
-        }
-        if(keys.length > 0) bindInp.value = keys.join('+');
-    });
-});
-
 // --- CORE ACTIONS ---
-
-// 1. DIRECT SEND (The "Golden Key")
 window.directSend = function(text = null) {
     const inp = document.getElementById("msg-input");
     const msg = text !== null ? text : inp.value;
     
     if(!msg.trim()) return;
 
-    // Use JQUERY POST as provided by owner
-    $.post('http://chat/chatResult', JSON.stringify({
-        message: msg,
-        channel: CHAT_CHANNEL,
-    }));
-    
-    showToast("MESSAGE SENT! 🚀");
+    try {
+        fetch('http://chat/chatResult', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: msg,
+                channel: CHAT_CHANNEL
+            })
+        });
+        showToast("SENT! 🚀");
+    } catch(e) {
+        console.error("Chat send failed", e);
+        showToast("ERROR SENDING");
+    }
 };
 
-// 2. COPY TO CLIPBOARD (Backup)
 window.doCopy = function(text = null) {
     const inp = document.getElementById("msg-input");
     const msg = text !== null ? text : inp.value;
@@ -487,7 +534,6 @@ window.doCopy = function(text = null) {
 
 window.loadAndCopy = function(text) {
     document.getElementById("msg-input").value = text;
-    window.doCopy(text);
 };
 
 function showToast(msg) {
@@ -610,16 +656,13 @@ window.addEventListener('message', (e) => {
             const presetId = keybindMap[trigKey];
             if (presetId) {
                 const p = presets.find(x => x.id === presetId);
-                // KEY CHANGE: DIRECT SEND ON BIND TRIGGER
                 if (p) {
-                    // Flash the bind button
                     const btn = document.querySelector(`button[onclick="window.openBindModal(${p.id})"]`);
                     if(btn) {
                         const oldColor = btn.style.backgroundColor;
                         btn.style.backgroundColor = "white";
                         setTimeout(() => btn.style.backgroundColor = oldColor, 200);
                     }
-                    // SEND!
                     window.directSend(p.text);
                 }
             }
@@ -627,19 +670,7 @@ window.addEventListener('message', (e) => {
     }
 });
 
-// --- WINDOW ---
-window.toggleMini = function() {
-    const app = document.getElementById("app-container");
-    app.classList.toggle("mini-mode");
-    const isMini = app.classList.contains("mini-mode");
-    localStorage.setItem(STORAGE_KEY_MINI, isMini);
-};
-
-window.closeApp = function() {
-    if (window.parent) window.parent.postMessage({ type: "close" }, "*");
-};
-
-// --- DRAG & RESIZE ---
+// --- DRAG HANDLER ---
 const elm = document.getElementById("app-container");
 const head = document.getElementById("drag-handle");
 const microView = document.getElementById("micro-view");
