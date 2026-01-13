@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v17 (HTTPS)</title>
+    <title>TT Chat Assistant v19 (Restored)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     
     <style>
@@ -189,7 +189,7 @@
             display: flex; align-items: stretch; gap: 0; border: 1px solid transparent;
             overflow: hidden; cursor: pointer; transition: 0.1s;
         }
-        .preset-card:hover { border-color: var(--blue); } /* Blue highlight for SEND */
+        .preset-card:hover { border-color: var(--blue); } 
 
         .preset-text {
             flex: 1; font-size: 0.95em; white-space: nowrap; overflow: hidden;
@@ -208,7 +208,6 @@
         }
         .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
         
-        /* Specific action colors */
         .icon-btn.send { color: var(--blue); }
         .icon-btn.send:hover { background: var(--blue); color: white; }
         
@@ -321,10 +320,11 @@
 
 <script>
 // --- CONFIGURATION ---
-// !!! KEY CHANGE: HTTPS !!!
 const CHAT_ENDPOINT = 'https://chat/chatResult'; 
 const CHAT_CHANNEL = "Chat"; 
 
+// --- RESTORED STORAGE KEYS ---
+// Reverted to v17 so your old messages load again
 const STORAGE_KEY_PRESETS = "tt_chat_presets_v17";
 const STORAGE_KEY_MINI = "tt_chat_mini_v17";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
@@ -334,6 +334,7 @@ let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
 let keybindMap = {};
 let targetPresetId = null;
 let savedPos = { top: "50px", left: "50px" }; 
+let lastTriggerValues = {}; // ANTI-SPAM MEMORY
 
 // --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -485,7 +486,7 @@ const EMOJI_DB = {
     ]
 };
 
-// --- CORE ACTIONS (DIRECT SEND HTTPS) ---
+// --- CORE ACTIONS ---
 window.directSend = function(text = null) {
     const inp = document.getElementById("msg-input");
     const msg = text !== null ? text : inp.value;
@@ -670,20 +671,29 @@ window.addEventListener('message', (e) => {
     const payload = e.data.data || e.data;
     for (const key in payload) {
         if (key.startsWith("trigger_userapp_trigger_")) {
-            const trigKey = key.replace("trigger_", "");
-            const presetId = keybindMap[trigKey];
-            if (presetId) {
-                const p = presets.find(x => x.id === presetId);
-                if (p) {
-                    // Flash Bind Button Visual
-                    const btn = document.querySelector(`button[onclick="window.openBindModal(${p.id})"]`);
-                    if(btn) {
-                        const oldColor = btn.style.backgroundColor;
-                        btn.style.backgroundColor = "white";
-                        setTimeout(() => btn.style.backgroundColor = oldColor, 200);
+            const newValue = payload[key]; // The value is usually a timestamp or toggle
+            
+            // ANTI-SPAM CHECK
+            // Only fire if the value is DIFFERENT from the last time we saw this key
+            if (lastTriggerValues[key] !== newValue) {
+                lastTriggerValues[key] = newValue; // Update memory
+                
+                const trigKey = key.replace("trigger_", "");
+                const presetId = keybindMap[trigKey];
+                
+                if (presetId) {
+                    const p = presets.find(x => x.id === presetId);
+                    if (p) {
+                        // Visual Feedback
+                        const btn = document.querySelector(`button[onclick="window.openBindModal(${p.id})"]`);
+                        if(btn) {
+                            const oldColor = btn.style.backgroundColor;
+                            btn.style.backgroundColor = "white";
+                            setTimeout(() => btn.style.backgroundColor = oldColor, 200);
+                        }
+                        // Instant Send
+                        window.directSend(p.text);
                     }
-                    // Instant Send
-                    window.directSend(p.text);
                 }
             }
         }
