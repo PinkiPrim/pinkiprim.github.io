@@ -32,24 +32,15 @@
             transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s ease;
         }
 
-        /* --- TRANSITION CLASSES --- */
-        .slide-in-setup {
-            transform: translateX(-100%); /* Start off-screen left */
-            opacity: 0;
-        }
-        .slide-in-active {
-            transform: translateX(0); /* Move to center */
-            opacity: 1;
-        }
-        .slide-out-active {
-            transform: translateX(100%); /* Move off-screen right */
-            opacity: 0;
-        }
+        /* --- TRANSITION ANIMATIONS --- */
+        .slide-in-setup { transform: translateX(-50px); opacity: 0; }
+        .slide-in-active { transform: translateX(0); opacity: 1; }
+        .slide-out-active { transform: translateX(50px); opacity: 0; }
 
         /* --- UNKNOWN JOB OVERLAY --- */
         #unknown-overlay {
             position: absolute; top: 50px; left: 50px;
-            width: 600px; height: 40px;
+            width: 550px; height: 40px;
             background: rgba(10, 10, 10, 0.95);
             border: 1px solid #444;
             border-radius: 20px;
@@ -58,10 +49,11 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
             font-family: 'Rajdhani', sans-serif;
             pointer-events: auto;
-            cursor: default;
+            cursor: move;
             transition: opacity 0.3s ease;
             opacity: 0;
             pointer-events: none;
+            z-index: 9999;
         }
 
         #unknown-overlay.visible {
@@ -105,7 +97,7 @@
 
 <div id="app-viewport"></div>
 
-<div id="unknown-overlay">
+<div id="unknown-overlay" onmousedown="dragStart(event)">
     <div class="marquee-container">
         <div class="marquee-content">
             <span class="mq-text">Unknown Job. Please start:</span>
@@ -142,22 +134,9 @@
     let activeIframe = null;
     let isTransitioning = false;
 
-    // --- JOB DETECTION MAP ---
-    // Maps internal game strings to our keys in TOOLS
-    const JOB_MAP = {
-        "pilot_airline": "airline",
-        "firefighter": "fire",
-        "mechanic": "mechanic",
-        "paramedic": "ems",
-        "pilot_cargo": "cargo",
-        "pilot_heli": "heli",
-        "train_conductor": "train", // Default, will check for bus overlap
-        "bus_driver": "bus"
-    };
-
     // --- MAIN LOOP ---
     window.addEventListener('message', (e) => {
-        // 1. DATA BRIDGE: Relaying
+        // 1. DATA BRIDGE: RELAY (Game <-> App)
         // If message is from our active iframe -> Send UP to Game
         if (activeIframe && e.source === activeIframe.contentWindow) {
             window.parent.postMessage(e.data, '*');
@@ -169,8 +148,7 @@
             activeIframe.contentWindow.postMessage(e.data, '*');
         }
 
-        // 2. LOGIC: Job Detection
-        // Only process 'data' packets for switching
+        // 2. DETECTION LOGIC
         let data = e.data;
         if (data.type === 'data' && data.data) data = data.data;
         if (!data) return;
@@ -181,38 +159,40 @@
     function detectAndSwitch(d) {
         let rawJob = d.job;
         
-        // Anti-Flicker: Ignore if job data is missing entirely
+        // Anti-Flicker: If the game sends a packet WITHOUT job data (e.g. just inventory update),
+        // IGNORE IT. Do not switch to unknown.
         if (rawJob === undefined) return;
 
-        // Smart Detection Logic (for Unemployed/Overlapping jobs)
         let detectedKey = null;
 
-        // 1. Check Explicit Job Name
-        if (JOB_MAP[rawJob]) {
-            detectedKey = JOB_MAP[rawJob];
-        }
-
-        // 2. Special Case: Train vs Bus (Both can be "train_conductor")
-        if (rawJob === "train_conductor") {
-            // Compare XP to guess which one is active
-            const busXP = d.exp_train_bus || 0;
-            const trainXP = d.exp_train_train || 0;
-            // If recently gained bus XP or bus is higher significantly? 
-            // Simple heuristic: If rawJob is conductor, default train, but if explicit bus data implies active...
-            // Actually, usually users switch job at center. Let's trust the map unless:
-            if (d.job_name && d.job_name.toLowerCase().includes("bus")) detectedKey = "bus";
-        }
-
-        // 3. Fallback: "Unemployed" but active skill
-        if (!rawJob || rawJob === "unemployed" || rawJob === "none") {
-            if (d.exp_trucking_mechanic > 0 && d.status && d.status.includes("Mechanic")) detectedKey = "mechanic";
-            else if (d.exp_hunting_skill > 0 && d.inventory && d.inventory.includes("weapon")) detectedKey = "hunter";
-        }
+        // --- MAP JOBS ---
+        if (rawJob === "pilot_airline") detectedKey = "airline";
+        else if (rawJob === "firefighter") detectedKey = "fire";
+        else if (rawJob === "mechanic") detectedKey = "mechanic";
+        else if (rawJob === "paramedic") detectedKey = "ems";
+        else if (rawJob === "pilot_cargo") detectedKey = "cargo";
+        else if (rawJob === "pilot_heli") detectedKey = "heli";
+        else if (rawJob === "bus_driver") detectedKey = "bus";
         
-        // 4. Manual Fallback triggers (keys specific to jobs)
-        if (!detectedKey) {
-            if (d.exp_hunting_skill) detectedKey = "hunter";
-            // Add more specific overrides if needed
+        // --- SPECIAL CASES ---
+        
+        // 1. Train vs Bus (Both can appear as "train_conductor" in some frameworks)
+        else if (rawJob === "train_conductor") {
+            if (d.job_name && d.job_name.toLowerCase().includes("bus")) detectedKey = "bus";
+            else detectedKey = "train";
+        }
+
+        // 2. Hunter Fallback (Only if explicitly holding hunter weapon or if job is missing but skill active)
+        // Removed loose XP check. Now requires 'unemployed' state + specific condition if needed.
+        // For now, Hunter often doesn't have a specific 'job' key.
+        // If user is unemployed, we check if they are likely hunting.
+        if ((!rawJob || rawJob === "unemployed" || rawJob === "none") && !detectedKey) {
+            // Check inventory for hunting weapon to confirm intent
+            // (Requires inventory data)
+            let invStr = JSON.stringify(d.inventory || "");
+            if (invStr.includes("weapon_musket") || invStr.includes("weapon_knife")) {
+                detectedKey = "hunter";
+            }
         }
 
         // EXECUTE SWITCH
@@ -222,15 +202,14 @@
     }
 
     function loadTool(jobKey) {
-        if (isTransitioning) return; // Prevent spam switching
+        if (isTransitioning) return;
         currentJobKey = jobKey;
 
         const viewport = document.getElementById('app-viewport');
         const overlay = document.getElementById('unknown-overlay');
 
-        // CASE 1: UNKNOWN JOB
+        // CASE 1: UNKNOWN JOB (Show Marquee)
         if (!jobKey || !TOOLS[jobKey]) {
-            // Slide out existing app
             if (activeIframe) {
                 activeIframe.classList.add('slide-out-active');
                 setTimeout(() => { 
@@ -238,16 +217,14 @@
                     activeIframe = null; 
                 }, 500);
             }
-            // Show overlay
             overlay.classList.add('visible');
             return;
         }
 
-        // CASE 2: VALID JOB
+        // CASE 2: LOAD NEW TOOL
         isTransitioning = true;
         overlay.classList.remove('visible');
 
-        // Create New Iframe
         const newFrame = document.createElement('iframe');
         newFrame.src = TOOLS[jobKey];
         newFrame.classList.add('slide-in-setup');
@@ -265,29 +242,53 @@
             const oldFrame = activeIframe;
             oldFrame.classList.remove('slide-in-active');
             oldFrame.classList.add('slide-out-active');
-            
-            setTimeout(() => {
-                oldFrame.remove();
-            }, 500);
+            setTimeout(() => { oldFrame.remove(); }, 500);
         }
 
         activeIframe = newFrame;
 
-        // Reset Lock
-        setTimeout(() => {
-            isTransitioning = false;
-        }, 500);
+        // Unlock
+        setTimeout(() => { isTransitioning = false; }, 500);
     }
 
-    // --- INITIAL POLLING ---
-    // The hub needs to ask for data to trigger the first detection
+    // --- DRAG LOGIC FOR OVERLAY ---
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+    const overlay = document.getElementById('unknown-overlay');
+
+    function dragStart(e) {
+        e.preventDefault();
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = overlay.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', dragEnd);
+    }
+
+    function dragMove(e) {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        overlay.style.left = (initialLeft + dx) + 'px';
+        overlay.style.top = (initialTop + dy) + 'px';
+    }
+
+    function dragEnd() {
+        isDragging = false;
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('mouseup', dragEnd);
+    }
+
+    // --- INITIAL DATA REQUEST ---
     setInterval(() => {
         if (window.parent) {
-            // Request broad set of keys to ensure we catch any job indicators
+            // Request everything to ensure detection works
             const keys = [
-                "job", "job_name", "status", "inventory", "chest", 
-                "exp_trucking_mechanic", "exp_hunting_skill", 
-                "exp_train_bus", "exp_train_train"
+                "job", "job_name", "status", "inventory", 
+                "exp_hunting_skill" // Only needed for hunter fallback
             ];
             try {
                 window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
