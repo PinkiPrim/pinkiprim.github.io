@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v20 (Safety Catch)</title>
+    <title>TT Chat Assistant v21 (Hard Silence)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     
     <style>
@@ -324,7 +324,7 @@ const CHAT_ENDPOINT = 'https://chat/chatResult';
 const CHAT_CHANNEL = "Chat"; 
 
 // --- RESTORED STORAGE KEYS ---
-const STORAGE_KEY_PRESETS = "tt_chat_presets_v17"; // Keeping v17 so data isn't lost
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v17"; 
 const STORAGE_KEY_MINI = "tt_chat_mini_v17";
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
 
@@ -336,7 +336,7 @@ let savedPos = { top: "50px", left: "50px" };
 
 // SAFETY LOGIC VARS
 let lastTriggerValues = {}; 
-let isInitialized = false; // Prevents "Load Spam"
+let loadTime = Date.now(); // RECORD WHEN WE STARTED
 
 // --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -543,6 +543,7 @@ window.doCopy = function(text = null) {
 
 window.loadAndCopy = function(text) {
     // Single Click: Sends immediately
+    // If you want to copy instead, change this to doCopy(text)
     window.directSend(text);
 };
 
@@ -667,24 +668,23 @@ function registerBinding(preset) {
     window.parent.postMessage({ type: "registerTrigger", trigger: triggerName, name: `Chat: ${preset.text.substring(0, 10)}` }, "*");
 }
 
-// --- SAFETY TRIGGER LOGIC ---
+// --- SAFETY TRIGGER LOGIC (3s Silence) ---
 window.addEventListener('message', (e) => {
     if (!e.data) return;
     const payload = e.data.data || e.data;
     
-    // --- 1. INITIAL LOAD SAFETY ---
-    if (!isInitialized) {
-        // Memorize current state WITHOUT firing
+    // 3 SECOND SILENCE RULE
+    // During this time, we only LISTEN and MEMORIZE. We never Fire.
+    if (Date.now() - loadTime < 3000) {
         for (const key in payload) {
             if (key.startsWith("trigger_userapp_trigger_")) {
                 lastTriggerValues[key] = payload[key];
             }
         }
-        isInitialized = true;
-        return; // STOP HERE. Do not process anything else on load.
+        return; // EXIT. Do not process triggers.
     }
 
-    // --- 2. CHANGE DETECTION ---
+    // --- NORMAL OPERATION ---
     for (const key in payload) {
         if (key.startsWith("trigger_userapp_trigger_")) {
             const newValue = payload[key]; 
