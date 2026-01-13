@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Garbage Ops v4</title>
+    <title>TT Garbage Ops v5</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -353,7 +353,6 @@
 // --- STATE ---
 const JOB_EXP_KEY = "exp_trucking_garbage";
 const TOKEN_KEY_GARBAGE = "exp_token_a|trucking|garbage"; 
-// REMOVED TRUCKING FALLBACK TO ENSURE STRICT GARBAGE DATA ONLY
 
 const STORAGE_KEY_CALC = "target_xp_garbage";
 const STORAGE_KEY_MINI = "mini_mode_garbage";
@@ -362,7 +361,8 @@ const STATE = {
     currentXP: 0, startXP: null,
     routes: 0, avgXP: 0, sessionXP: 0,
     lastKnownXP: -1,
-    lastStop: -1, lastCapacity: -1 
+    lastStop: -1, lastCapacity: -1,
+    tokenCache: 0 // MEMORY for tokens to prevent flicker
 };
 
 // --- INIT ---
@@ -424,13 +424,12 @@ function processPayload(data) {
             if (statusData && statusData.lines) {
                 let lines = statusData.lines;
                 
-                // Line 1: Garbage Route: 0 / 26
+                // Line 1: Garbage Route
                 if(lines[1]) {
                     let routeMatch = cleanString(lines[1]).match(/(\d+)\s*\/\s*(\d+)/);
                     if(routeMatch) {
                         let currentStop = parseInt(routeMatch[1]);
-                        
-                        // DETECTION A: Stop counter reset (Normal behavior)
+                        // DETECTION A: Stop counter reset
                         if (STATE.lastStop > -1 && currentStop < STATE.lastStop) {
                             STATE.routes++;
                             renderStats(); 
@@ -450,13 +449,9 @@ function processPayload(data) {
                         let currentCap = parseInt(capMatch[1]);
                         let maxCap = parseInt(capMatch[2]);
 
-                        // DETECTION B: Dump Run (Fix for Stuck UI)
-                        // If capacity was >500kg and drops to <100kg, user dumped.
+                        // DETECTION B: Dump Run
                         if (STATE.lastCapacity > 500 && currentCap < 100) {
-                            // Only count if Detection A didn't just fire (prevent double count)
-                            // We use a small threshold logic or just accept it might be a split second off
-                            // For simplicity, we assume if stops didn't reset, this catches it.
-                            if (STATE.lastStop > 0) { // If stops are still high (stuck UI), count it!
+                            if (STATE.lastStop > 0) { 
                                 STATE.routes++;
                                 renderStats();
                             }
@@ -499,7 +494,7 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 3. TOKEN LOGIC (STRICT)
+    // 3. TOKEN LOGIC (ANTI-FLICKER)
     let bxp = data[TOKEN_KEY_GARBAGE];
     
     if (!bxp && data.inventory) {
@@ -509,11 +504,14 @@ function processPayload(data) {
         } catch(e){}
     }
 
-    // If strictly no garbage token found, default to 0
-    if (!bxp) bxp = 0;
+    // Only update cache if we found a valid positive number
+    if (bxp) {
+        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
+        if(val > 0) STATE.tokenCache = val;
+    }
     
-    let val = (typeof bxp === 'object') ? bxp.amount : bxp;
-    let txt = formatNumber(val);
+    // Display from cache (prevents 0-flicker)
+    let txt = formatNumber(STATE.tokenCache);
     document.getElementById('disp-bxp').innerText = txt;
     document.getElementById('micro-tokens').innerText = txt;
 }
