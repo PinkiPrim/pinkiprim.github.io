@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Garbage Ops</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --primary: #76ff03; /* High-Vis Green */
+            --primary-dim: #33691e;
+            --bg-glass: rgba(10, 20, 10, 0.95);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(118, 255, 3, 0.3);
+            --orange: #ff9800; /* Safety Orange */
+            --trash: #424242;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        #tracker-app {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
+            min-height: 200px;
+            transition: width 0.2s ease, height 0.2s ease;
+        }
+
+        /* --- MINI MODE --- */
+        #tracker-app.mini-mode {
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: rgba(5, 15, 5, 0.98);
+            border: 1px solid var(--primary);
+            resize: none;
+        }
+
+        #tracker-app.mini-mode header, 
+        #tracker-app.mini-mode #street-scene,
+        #tracker-app.mini-mode #content { display: none !important; }
+
+        #micro-view {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
+        }
+        #tracker-app.mini-mode #micro-view { display: flex; }
+
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
+        .micro-group { display: flex; align-items: center; gap: 8px; }
+        .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
+        .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
+        .micro-val.highlight { color: var(--primary); }
+        .micro-val.active { color: var(--orange); }
+        
+        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
+
+        .micro-btn {
+            position: absolute; top: 4px; right: 4px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa; padding: 0px 4px; border-radius: 3px; font-size: 0.6em; cursor: pointer;
+        }
+        .micro-btn:hover { background: var(--primary); color: black; }
+
+        /* --- HEADER & ANIMATION --- */
+        header {
+            background: linear-gradient(180deg, #1b5e20, #000000);
+            height: 70px;
+            padding: 0 10px;
+            cursor: move;
+            position: relative;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            border-bottom: 1px solid rgba(118, 255, 3, 0.3);
+            overflow: hidden;
+            padding-top: 5px;
+        }
+
+        .header-title {
+            position: absolute; left: 50%; top: 20%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: var(--primary); pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            z-index: 15;
+        }
+
+        /* --- COMPLEX SCENE ANIMATION --- */
+        #street-scene {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; overflow: hidden;
+            z-index: 1;
+        }
+
+        /* The Road */
+        .road {
+            position: absolute; bottom: 0; width: 100%; height: 10px;
+            background: #333; border-top: 2px solid #555;
+            z-index: 2;
+        }
+
+        /* Buildings (Background) */
+        .building {
+            position: absolute; bottom: 10px; font-size: 2.5em; filter: brightness(0.4);
+            z-index: 1;
+        }
+        .b1 { left: 10%; } .b2 { left: 40%; } .b3 { left: 80%; }
+
+        /* The Trash Bag (Pile) */
+        .trash-pile {
+            position: absolute; bottom: 12px; left: 60%;
+            font-size: 1.2em;
+            z-index: 3;
+        }
+
+        /* The Worker */
+        #worker {
+            position: absolute; bottom: 12px; left: 65%;
+            font-size: 1.5em; 
+            z-index: 4;
+            opacity: 0;
+            transform: scaleX(-1); /* Face left towards truck */
+            animation: workerAction 10s linear infinite;
+        }
+
+        /* The Truck */
+        #truck-anim {
+            position: absolute; bottom: 5px; left: -100px;
+            font-size: 2.2em;
+            z-index: 5;
+            transform: scaleX(-1); /* Emoji faces left, flip to face right */
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            animation: truckRoute 10s linear infinite;
+        }
+
+        /* Flying Trash Bag */
+        #flying-bag {
+            position: absolute; bottom: 15px; left: 65%;
+            font-size: 1em; opacity: 0; z-index: 6;
+            animation: bagToss 10s linear infinite;
+        }
+
+        /* ANIMATION KEYFRAMES */
+        /* Truck: Drive -> Stop (Wait for toss) -> Drive */
+        @keyframes truckRoute {
+            0% { left: -80px; }
+            30% { left: 45%; } /* Arrive at pickup */
+            70% { left: 45%; } /* Wait */
+            100% { left: 120%; } /* Leave */
+        }
+
+        /* Worker: Appear -> Throw motion -> Disappear */
+        @keyframes workerAction {
+            0%, 30% { opacity: 0; transform: scaleX(-1) translateX(0); }
+            35% { opacity: 1; transform: scaleX(-1) translateX(-10px); } /* Walk out */
+            45% { transform: scaleX(-1) translateX(-10px) rotate(-10deg); } /* Wind up */
+            50% { transform: scaleX(-1) translateX(-5px) rotate(20deg); } /* Throw */
+            65% { opacity: 1; transform: scaleX(-1) translateX(0); } /* Walk back */
+            70%, 100% { opacity: 0; }
+        }
+
+        /* Bag: Hidden -> Arc into truck -> Hidden */
+        @keyframes bagToss {
+            0%, 48% { opacity: 0; transform: translate(0,0); }
+            50% { opacity: 1; transform: translate(0,0) rotate(0deg); } /* Release */
+            60% { opacity: 1; transform: translate(-40px, -20px) rotate(-180deg); } /* Into truck */
+            61%, 100% { opacity: 0; } /* Gone */
+        }
+
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
+        
+        #mini-btn { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+        #mini-btn:hover { background: var(--primary); color: black; border-color: var(--primary); }
+        
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
+
+        /* --- CONTENT --- */
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+
+        .info-box { background: rgba(118, 255, 3, 0.1); border: 1px dashed var(--primary); border-radius: 6px; padding: 8px; margin-bottom: 10px; text-align: center; }
+        .info-label { font-size: 0.7em; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        .info-val { font-family: 'Rajdhani', sans-serif; font-size: 1.4em; font-weight: 700; color: #fff; }
+        .info-sub { font-size: 0.8em; color: #ccc; margin-top: 2px; }
+
+        .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .section:last-child { border-bottom: none; }
+
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value.highlight { color: var(--primary); }
+        .value.bxp { color: var(--orange); }
+
+        .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 10px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; color: white; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
+
+        .region-tag { display: inline-block; background: #333; color: var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 5px; }
+
+        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: inherit; }
+        input:focus { outline: 1px solid var(--primary); }
+        .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
+        
+        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
+        .quick-btn:hover { background: var(--primary); color: black; border-color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div id="tracker-app">
+    <div id="micro-view" onmousedown="dragMouseDown(event)">
+        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+        
+        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div class="micro-group">
+                <span style="font-size:1.2em">🚛</span>
+                <span class="micro-val highlight">GARBAGE</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Cap:</span>
+                <span class="micro-val active" id="micro-cap">0/0</span>
+            </div>
+        </div>
+
+        <div class="micro-row">
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Lvl</span>
+                <span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-bar"></div>
+                </div>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">XP:</span>
+                <span class="micro-val" id="micro-xp">0</span>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group">
+                <span class="micro-label">Stops:</span>
+                <span class="micro-val active" id="micro-stops">0/0</span>
+            </div>
+        </div>
+    </div>
+
+    <header id="drag-handle">
+        <div class="header-controls">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
+        </div>
+        
+        <div class="header-title">GARBAGE OPS</div>
+        
+        <div id="street-scene">
+            <div class="building b1">🏢</div>
+            <div class="building b2">🏠</div>
+            <div class="building b3">🏭</div>
+            <div class="road"></div>
+            
+            <div class="trash-pile">🗑️</div>
+            <div id="worker">👷</div>
+            <div id="flying-bag">💰</div> <div id="truck-anim">🚛</div>
+        </div>
+
+        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <button id="mini-btn" onclick="toggleMini()">MINI</button>
+            <span id="clock">00:00</span>
+        </div>
+    </header>
+
+    <div id="content">
+        
+        <div class="info-box">
+            <div class="info-label">Current Route <span id="disp-region" class="region-tag">--</span></div>
+            <div class="info-val" id="disp-progress">Stop: -- / --</div>
+            <div class="info-sub" id="disp-capacity">Capacity: 0 / 0</div>
+        </div>
+
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div><div class="label">Garbage Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="level-bar"></div>
+                <div class="progress-text" id="level-text">Waiting for data...</div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-box"><div class="label">BXP Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
+                <div class="stat-box"><div class="label">Routes</div><div class="value" id="disp-routes">0</div></div>
+            </div>
+        </div>
+
+        <div class="section" style="border:none;">
+            <div class="label">XP Calculator</div>
+            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b>:</div>
+            <input type="number" id="target-input" placeholder="e.g. 500000">
+            
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+
+            <div class="calc-output" id="calc-result">Start collecting to enable calculator...</div>
+        </div>
+
+    </div>
+    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
+</div>
+
+<script>
+// --- STATE ---
+const JOB_EXP_KEY = "exp_trucking_garbage";
+// Fallback logic for tokens since it wasn't explicit in dump
+const JOB_BXP_KEY = "exp_token_a|trucking|trucking"; // Generic trucking often used
+const JOB_BXP_KEY_ALT = "exp_token_a|trucking|garbage";
+
+const STORAGE_KEY_CALC = "target_xp_garbage";
+const STORAGE_KEY_MINI = "mini_mode_garbage";
+
+const STATE = {
+    currentXP: 0, startXP: null,
+    routes: 0, avgXP: 0, sessionXP: 0,
+    lastKnownXP: -1
+};
+
+// --- INIT ---
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) document.getElementById('target-input').value = savedTarget;
+
+const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
+if (savedMini === "true") {
+    document.getElementById('tracker-app').classList.add('mini-mode');
+    document.getElementById('mini-btn').innerText = "FULL";
+}
+
+function toggleMini() {
+    const app = document.getElementById('tracker-app');
+    app.classList.toggle('mini-mode');
+    const isMini = app.classList.contains('mini-mode');
+    document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
+    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+}
+
+window.setCalc = function(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator();
+};
+
+// --- CLOCK ---
+setInterval(() => {
+    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}, 1000);
+
+// --- ENGINE ---
+function requestData() {
+    if(window.parent) {
+        try { 
+            let keys = [
+                JOB_EXP_KEY, JOB_BXP_KEY, JOB_BXP_KEY_ALT,
+                "status", "inventory"
+            ];
+            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+            window.parent.postMessage({ type: "getData" }, "*"); 
+        } catch(e) {}
+    }
+}
+setInterval(requestData, 1000); 
+
+window.addEventListener('message', (event) => {
+    let payload = event.data;
+    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+    if (!payload) return;
+
+    processPayload(payload);
+});
+
+function processPayload(data) {
+    // 1. STATUS PARSING
+    if (data.status) {
+        try {
+            let statusData = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
+            if (statusData && statusData.lines) {
+                let lines = statusData.lines;
+                
+                // Line 1: Garbage Route: 0 / 26
+                if(lines[1]) {
+                    let routeMatch = cleanString(lines[1]).match(/(\d+)\s*\/\s*(\d+)/);
+                    if(routeMatch) {
+                        let txt = `Stop: ${routeMatch[1]} / ${routeMatch[2]}`;
+                        document.getElementById('disp-progress').innerText = txt;
+                        document.getElementById('micro-stops').innerText = `${routeMatch[1]}/${routeMatch[2]}`;
+                    }
+                }
+
+                // Line 2: Truck Capacity: 0 / 172
+                if(lines[2]) {
+                    let capMatch = cleanString(lines[2]).match(/(\d+)\s*\/\s*(\d+)/);
+                    if(capMatch) {
+                        let txt = `${capMatch[1]} / ${capMatch[2]} kg`;
+                        document.getElementById('disp-capacity').innerText = "Capacity: " + txt;
+                        document.getElementById('micro-cap').innerText = txt;
+                        
+                        let curr = parseInt(capMatch[1]);
+                        let max = parseInt(capMatch[2]);
+                        if(curr >= max) document.getElementById('micro-cap').className = "micro-val active";
+                        else document.getElementById('micro-cap').className = "micro-val";
+                    }
+                }
+
+                // Line 3: Region
+                if(lines[3]) {
+                    let region = cleanString(lines[3]).replace("Region:", "").trim();
+                    document.getElementById('disp-region').innerText = region;
+                }
+            }
+        } catch(e) {}
+    }
+
+    // 2. XP LOGIC
+    let currentXP = data[JOB_EXP_KEY];
+    if (typeof currentXP === 'number') {
+        if (STATE.startXP === null) {
+            STATE.startXP = currentXP;
+            STATE.lastKnownXP = currentXP;
+        } 
+        
+        if (currentXP > STATE.lastKnownXP) {
+            // XP increased
+            const diff = currentXP - STATE.lastKnownXP;
+            STATE.sessionXP += diff;
+            STATE.lastKnownXP = currentXP;
+            // Crude route counter (assuming ~100xp per bag/action, difficult to count exactly per route without resetting)
+            // We'll update stats on every tick
+        }
+        
+        STATE.currentXP = currentXP;
+        renderStats();
+    }
+
+    // 3. BXP LOGIC
+    let bxp = data[JOB_BXP_KEY_ALT] || data[JOB_BXP_KEY];
+    if(!bxp && data.inventory) {
+        try {
+            let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
+            bxp = inv[JOB_BXP_KEY_ALT] || inv[JOB_BXP_KEY];
+        } catch(e){}
+    }
+    
+    if (bxp) {
+        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
+        let txt = formatNumber(val);
+        document.getElementById('disp-bxp').innerText = txt;
+        document.getElementById('micro-tokens').innerText = txt;
+    }
+}
+
+function cleanString(str) {
+    if (!str) return "";
+    return str.replace(/~[a-z]~/g, "").trim();
+}
+
+function renderStats() {
+    const lvl = getLevelInfo(STATE.currentXP);
+    const xpTxt = formatNumber(STATE.currentXP);
+    
+    document.getElementById('disp-xp').innerText = xpTxt;
+    document.getElementById('micro-xp').innerText = xpTxt;
+    
+    document.getElementById('disp-level').innerText = lvl.level;
+    document.getElementById('micro-level').innerText = lvl.level;
+    
+    const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
+    document.getElementById('level-bar').style.width = pct + "%";
+    document.getElementById('level-text').innerText = pct + "%";
+    document.getElementById('micro-bar').style.width = pct + "%";
+
+    // Since we don't have a clear "Route Completed" event in data, we can just show session XP
+    // Or we can try to guess routes based on capacity resets.
+    // For now, let's track "Session Gains"
+    
+    document.getElementById('disp-avg').innerText = formatNumber(STATE.sessionXP);
+    // Note: Avg Label changed to "Session XP" implicitly if routes = 0
+    
+    runCalculator();
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toLocaleString();
+}
+
+function getLevelInfo(exp) {
+    let level = 0, xpCap = 5;
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    return { level, expInLevel: exp, expForNext: xpCap };
+}
+
+function getPercentValue(exp, cap) {
+    return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
+}
+
+// --- CALCULATOR ---
+const calcInput = document.getElementById('target-input');
+if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+function runCalculator() {
+    const val = document.getElementById('target-input').value;
+    const el = document.getElementById('calc-result');
+    const microEl = document.getElementById('micro-calc');
+    
+    localStorage.setItem(STORAGE_KEY_CALC, val);
+
+    if (STATE.sessionXP === 0) { 
+        el.innerHTML = "<i>Collect trash to enable calc...</i>"; 
+        microEl.innerText = "Wait..";
+        return; 
+    }
+    if (!val) { 
+        el.innerText = "Enter target above."; 
+        microEl.innerText = "Set..";
+        return; 
+    }
+
+    let inputVal = parseInt(val.replace(/,/g, ''));
+    let targetXP = inputVal;
+    
+    if (inputVal < 200) { 
+         let lvlXP = 0; 
+         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
+         targetXP = (5 * inputVal * (inputVal + 1)) / 2;
+    }
+
+    if (targetXP > STATE.currentXP) {
+        const diff = targetXP - STATE.currentXP;
+        // Estimate based on current session rate
+        // We don't have a specific "per bag" metric, so we just show raw XP needed
+        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b>`;
+        microEl.innerText = formatNumber(diff);
+    } else {
+        el.innerHTML = `Target reached.`;
+        microEl.innerText = "Done";
+    }
+}
+
+// --- DRAG HANDLER ---
+const elmnt = document.getElementById("tracker-app");
+const header = document.getElementById("drag-handle");
+const microView = document.getElementById("micro-view");
+
+let isDragging = false, startX, startY, initialLeft, initialTop;
+
+header.addEventListener("mousedown", dragStart);
+microView.addEventListener("mousedown", dragStart);
+
+function dragStart(e) {
+    if(e.target.closest('button') || e.target.closest('input')) return;
+    
+    e.preventDefault();
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    
+    const rect = elmnt.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+    
+    document.addEventListener("mousemove", dragMove);
+    document.addEventListener("mouseup", dragEnd);
+}
+
+function dragMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    elmnt.style.left = (initialLeft + dx) + "px";
+    elmnt.style.top = (initialTop + dy) + "px";
+}
+
+function dragEnd() {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragMove);
+    document.removeEventListener("mouseup", dragEnd);
+}
+
+const rh = document.getElementById('resize-handle');
+if (rh) {
+    rh.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResize);
+    });
+}
+function resize(e) {
+    if(elmnt.classList.contains('mini-mode')) return;
+    elmnt.style.width = Math.max(280, e.clientX - elmnt.getBoundingClientRect().left) + 'px';
+    elmnt.style.height = Math.max(200, e.clientY - elmnt.getBoundingClientRect().top) + 'px';
+}
+function stopResize() {
+    window.removeEventListener('mousemove', resize);
+    window.removeEventListener('mouseup', stopResize);
+}
+</script>
+</body>
+</html>
