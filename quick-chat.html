@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v21 (Hard Silence)</title>
+    <title>TT Chat Assistant v22 (Favorites)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     
     <style>
@@ -20,6 +20,7 @@
             --border: 1px solid rgba(255,255,255,0.1);
             --red: #ff5252;
             --blue: #2979ff;
+            --gold: #ffd700;
         }
 
         body {
@@ -161,18 +162,31 @@
             border-bottom: 2px solid transparent; flex: 1; text-align: center;
         }
         .tab.active { color: #fff; border-bottom-color: var(--primary); background: rgba(255,255,255,0.05); }
+        .tab.fav-tab { color: var(--gold); }
+        .tab.fav-tab.active { border-bottom-color: var(--gold); }
 
         .emoji-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
             gap: 4px; padding: 8px; overflow-y: auto; flex: 1;
         }
         .emoji-item {
+            position: relative;
             width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
             border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.03);
             font-size: 1.2em;
         }
         .emoji-item:hover { background: var(--primary); transform: scale(1.05); }
         .emoji-item img { max-width: 32px; max-height: 32px; pointer-events: none; }
+
+        /* STAR OVERLAY */
+        .fav-star {
+            position: absolute; top: -2px; right: -2px;
+            font-size: 0.6em; color: rgba(255, 255, 255, 0.3);
+            cursor: pointer; z-index: 10;
+            text-shadow: 0 0 2px black;
+        }
+        .fav-star:hover { color: var(--gold); transform: scale(1.2); }
+        .fav-star.active { color: var(--gold); opacity: 1; }
 
         /* PRESETS */
         .section-header {
@@ -295,6 +309,7 @@
 
             <div id="emoji-drawer" class="visible">
                 <div class="tabs">
+                    <div class="tab fav-tab" onclick="window.switchTab('Fav')">★ Fav</div>
                     <div class="tab active" onclick="window.switchTab('Map')">Map</div>
                     <div class="tab" onclick="window.switchTab('Companies')">Corp</div>
                     <div class="tab" onclick="window.switchTab('Fun')">Fun</div>
@@ -323,20 +338,20 @@
 const CHAT_ENDPOINT = 'https://chat/chatResult'; 
 const CHAT_CHANNEL = "Chat"; 
 
-// --- RESTORED STORAGE KEYS ---
 const STORAGE_KEY_PRESETS = "tt_chat_presets_v17"; 
 const STORAGE_KEY_MINI = "tt_chat_mini_v17";
+const STORAGE_KEY_FAVS = "tt_chat_favs_v1"; // New storage for favorites
 const BASE_URL = "https://dash.tycoon.community/wiki/images";
 
 // --- STATE ---
 let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
+let favorites = JSON.parse(localStorage.getItem(STORAGE_KEY_FAVS) || "[]");
 let keybindMap = {};
 let targetPresetId = null;
 let savedPos = { top: "50px", left: "50px" }; 
-
-// SAFETY LOGIC VARS
 let lastTriggerValues = {}; 
-let loadTime = Date.now(); // RECORD WHEN WE STARTED
+let loadTime = Date.now(); 
+let currentTab = 'Map';
 
 // --- INIT ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -369,31 +384,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if(keys.length > 0) bindInp.value = keys.join('+');
     });
 });
-
-// --- WINDOW MANAGEMENT ---
-window.toggleMini = function() {
-    const app = document.getElementById("app-container");
-    const isMini = app.classList.contains("mini-mode");
-
-    if (!isMini) {
-        savedPos.top = app.style.top;
-        savedPos.left = app.style.left;
-        app.classList.add("mini-mode");
-        app.style.top = (window.innerHeight - 80) + "px";
-        app.style.left = (window.innerWidth - 170) + "px";
-    } else {
-        app.classList.remove("mini-mode");
-        app.style.top = savedPos.top;
-        app.style.left = savedPos.left;
-        app.style.width = "600px";
-        app.style.height = "450px";
-    }
-    localStorage.setItem(STORAGE_KEY_MINI, !isMini);
-};
-
-window.closeApp = function() {
-    if (window.parent) window.parent.postMessage({ type: "close" }, "*");
-};
 
 // --- EMOJI DB ---
 const EMOJI_DB = {
@@ -488,6 +478,19 @@ const EMOJI_DB = {
     ]
 };
 
+// --- FAVORITES LOGIC ---
+window.toggleFavorite = function(code, e) {
+    e.stopPropagation();
+    if(favorites.includes(code)) {
+        favorites = favorites.filter(f => f !== code);
+    } else {
+        favorites.push(code);
+    }
+    localStorage.setItem(STORAGE_KEY_FAVS, JSON.stringify(favorites));
+    if(currentTab === 'Fav') window.switchTab('Fav');
+    else window.switchTab(currentTab); // refresh stars
+};
+
 // --- CORE ACTIONS ---
 window.directSend = function(text = null) {
     const inp = document.getElementById("msg-input");
@@ -495,7 +498,6 @@ window.directSend = function(text = null) {
     
     if(!msg.trim()) return;
 
-    // Use JQUERY (if loaded) first for maximum compatibility
     if (typeof $ !== 'undefined') {
         $.post(CHAT_ENDPOINT, JSON.stringify({
             message: msg,
@@ -504,7 +506,6 @@ window.directSend = function(text = null) {
         showToast("SENT! 🚀");
         if(text === null) inp.value = "";
     } else {
-        // Fallback to Native Fetch with HTTPS
         try {
             fetch(CHAT_ENDPOINT, {
                 method: 'POST',
@@ -542,8 +543,6 @@ window.doCopy = function(text = null) {
 };
 
 window.loadAndCopy = function(text) {
-    // Single Click: Sends immediately
-    // If you want to copy instead, change this to doCopy(text)
     window.directSend(text);
 };
 
@@ -559,25 +558,50 @@ function showToast(msg) {
 
 // --- UI LOGIC ---
 window.switchTab = function(cat) {
+    currentTab = cat;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll(`.tab[onclick="window.switchTab('${cat}')"]`).forEach(t => t.classList.add('active'));
+    
     const grid = document.getElementById("emoji-grid");
     grid.innerHTML = "";
-    if (EMOJI_DB[cat]) {
-        EMOJI_DB[cat].forEach(emo => {
-            const el = document.createElement("div");
-            el.className = "emoji-item";
-            if (emo.t) {
-                el.innerText = emo.c;
-                el.style.fontSize = "0.7em";
-                el.style.whiteSpace = "nowrap";
-            } else {
-                el.innerHTML = `<img src="${BASE_URL}/${emo.f}" title="${emo.c}">`;
-            }
-            el.onclick = () => window.insertEmoji(emo.c);
-            grid.appendChild(el);
+    
+    let itemsToRender = [];
+    if (cat === 'Fav') {
+        // Collect all favorite items from DB
+        Object.values(EMOJI_DB).flat().forEach(item => {
+            if(favorites.includes(item.c)) itemsToRender.push(item);
         });
+    } else {
+        itemsToRender = EMOJI_DB[cat] || [];
     }
+
+    itemsToRender.forEach(emo => {
+        const el = document.createElement("div");
+        el.className = "emoji-item";
+        
+        // Star Icon
+        const isFav = favorites.includes(emo.c);
+        const star = document.createElement("div");
+        star.className = `fav-star ${isFav ? 'active' : ''}`;
+        star.innerText = "★";
+        star.onclick = (e) => window.toggleFavorite(emo.c, e);
+        el.appendChild(star);
+
+        if (emo.t) {
+            const txt = document.createElement("span");
+            txt.innerText = emo.c;
+            txt.style.fontSize = "0.7em";
+            txt.style.whiteSpace = "nowrap";
+            el.appendChild(txt);
+        } else {
+            const img = document.createElement("img");
+            img.src = `${BASE_URL}/${emo.f}`;
+            img.title = emo.c;
+            el.appendChild(img);
+        }
+        el.onclick = () => window.insertEmoji(emo.c);
+        grid.appendChild(el);
+    });
 };
 
 window.toggleEmojiDrawer = function() {
@@ -618,7 +642,6 @@ function renderPresets() {
         const card = document.createElement("div");
         card.className = "preset-card";
         
-        // CLICKING THE CARD TEXT SENDS IMMEDIATELY
         card.onclick = (e) => {
             if(!e.target.closest('button')) window.directSend(p.text);
         };
@@ -668,45 +691,38 @@ function registerBinding(preset) {
     window.parent.postMessage({ type: "registerTrigger", trigger: triggerName, name: `Chat: ${preset.text.substring(0, 10)}` }, "*");
 }
 
-// --- SAFETY TRIGGER LOGIC (3s Silence) ---
+// --- SAFETY TRIGGER LOGIC ---
 window.addEventListener('message', (e) => {
     if (!e.data) return;
     const payload = e.data.data || e.data;
     
-    // 3 SECOND SILENCE RULE
-    // During this time, we only LISTEN and MEMORIZE. We never Fire.
     if (Date.now() - loadTime < 3000) {
         for (const key in payload) {
             if (key.startsWith("trigger_userapp_trigger_")) {
                 lastTriggerValues[key] = payload[key];
             }
         }
-        return; // EXIT. Do not process triggers.
+        return; 
     }
 
-    // --- NORMAL OPERATION ---
     for (const key in payload) {
         if (key.startsWith("trigger_userapp_trigger_")) {
             const newValue = payload[key]; 
             
-            // Only fire if the value is DIFFERENT from the last time we saw this key
             if (lastTriggerValues[key] !== newValue) {
-                lastTriggerValues[key] = newValue; // Update memory
-                
+                lastTriggerValues[key] = newValue;
                 const trigKey = key.replace("trigger_", "");
                 const presetId = keybindMap[trigKey];
                 
                 if (presetId) {
                     const p = presets.find(x => x.id === presetId);
                     if (p) {
-                        // Visual Flash
                         const btn = document.querySelector(`button[onclick="window.openBindModal(${p.id})"]`);
                         if(btn) {
                             const oldColor = btn.style.backgroundColor;
                             btn.style.backgroundColor = "white";
                             setTimeout(() => btn.style.backgroundColor = oldColor, 200);
                         }
-                        // Fire
                         window.directSend(p.text);
                     }
                 }
@@ -766,6 +782,31 @@ function resizeEnd() {
     window.removeEventListener("mousemove", resizeMove);
     window.removeEventListener("mouseup", resizeEnd);
 }
+
+// --- WINDOW MANAGEMENT ---
+window.toggleMini = function() {
+    const app = document.getElementById("app-container");
+    const isMini = app.classList.contains("mini-mode");
+
+    if (!isMini) {
+        savedPos.top = app.style.top;
+        savedPos.left = app.style.left;
+        app.classList.add("mini-mode");
+        app.style.top = (window.innerHeight - 80) + "px";
+        app.style.left = (window.innerWidth - 170) + "px";
+    } else {
+        app.classList.remove("mini-mode");
+        app.style.top = savedPos.top;
+        app.style.left = savedPos.left;
+        app.style.width = "600px";
+        app.style.height = "450px";
+    }
+    localStorage.setItem(STORAGE_KEY_MINI, !isMini);
+};
+
+window.closeApp = function() {
+    if (window.parent) window.parent.postMessage({ type: "close" }, "*");
+};
 </script>
 </body>
 </html>
