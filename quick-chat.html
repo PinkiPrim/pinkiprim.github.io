@@ -1,57 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Chat Debugger</title>
+    <meta charset="UTF-8">
+    <title>Chat Network Tracker</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
-        body { background: #333; color: #fff; font-family: sans-serif; padding: 50px; }
-        input { padding: 10px; width: 300px; }
-        button { padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        body { background: #111; color: #fff; font-family: 'Courier New', monospace; padding: 20px; }
+        
+        .tracker-box { 
+            background: #000; border: 2px solid #333; 
+            padding: 15px; height: 400px; overflow-y: auto; 
+            white-space: pre-wrap; font-size: 0.9em; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        h2 { margin-top: 0; color: #00e676; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        
+        .row { margin-bottom: 5px; border-bottom: 1px solid #222; padding-bottom: 2px; }
+        .time { color: #555; margin-right: 10px; }
+        
+        .info { color: #29b6f6; }
+        .success { color: #00e676; font-weight: bold; }
+        .error { color: #ff5252; font-weight: bold; }
+        .warn { color: #ffab00; }
+        .payload { color: #ba68c8; }
+
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 10px; background: #222; border: 1px solid #444; color: #fff; font-family: inherit; }
+        button { padding: 10px 20px; background: #00e676; border: none; color: #000; font-weight: bold; cursor: pointer; }
+        button:hover { background: #00c853; }
+        button.clear { background: #444; color: #fff; }
     </style>
 </head>
 <body>
-    <h2>Chat Connectivity Test</h2>
-    <input type="text" id="debugMsg" value="Test Message from Tool" />
-    <button id="btnJquery">SEND (Owner's Method)</button>
-    <button id="btnFetch">SEND (Native Fetch)</button>
-    <p id="status">Waiting...</p>
+
+    <h2>📡 Signal Tracker: http://chat/chatResult</h2>
+    
+    <div class="controls">
+        <input type="text" id="msg" value="Test Signal" placeholder="Type message...">
+        <button onclick="fireProbe()">FIRE PROBE</button>
+        <button class="clear" onclick="clearLog()">CLEAR LOG</button>
+    </div>
+
+    <div id="logger" class="tracker-box">Ready for trace...</div>
 
     <script>
-        // 1. OWNER'S METHOD (jQuery)
-        document.getElementById('btnJquery').addEventListener('click', function() {
-            const msg = document.getElementById('debugMsg').value;
-            document.getElementById('status').innerText = "Attempting jQuery Send...";
-            
+        const LOGGER = document.getElementById('logger');
+        
+        function log(text, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = 'row';
+            div.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> <span class="${type}">${text}</span>`;
+            LOGGER.appendChild(div);
+            LOGGER.scrollTop = LOGGER.scrollHeight;
+        }
+
+        function clearLog() { LOGGER.innerHTML = "Ready for trace..."; }
+
+        function fireProbe() {
+            clearLog();
+            log("--- INITIATING NETWORK TRACE ---", "info");
+
+            // 1. CHECK JQUERY LIBRARY
             if (typeof $ === 'undefined') {
-                document.getElementById('status').innerText = "FAIL: jQuery not loaded.";
+                log("CRITICAL FAILURE: jQuery ($) is NOT defined.", "error");
+                log("The game file 'nui://game/ui/jquery.js' did not load.", "error");
+                log("ABORTING TRACE.", "error");
                 return;
             }
+            log("✓ jQuery Library (game/ui) Detected.", "success");
 
-            $.post('http://chat/chatResult', JSON.stringify({
-                message: msg,
-                channel: "Chat",
-            }));
-            document.getElementById('status').innerText = "jQuery Post Fired.";
-        });
+            // 2. DEFINE PACKET
+            const msgText = document.getElementById('msg').value;
+            const endpoint = "http://chat/chatResult";
+            const payloadData = {
+                message: msgText,
+                channel: "Chat" // Case sensitive as per owner
+            };
+            const payloadStr = JSON.stringify(payloadData);
 
-        // 2. ALTERNATIVE METHOD (Fetch)
-        document.getElementById('btnFetch').addEventListener('click', function() {
-            const msg = document.getElementById('debugMsg').value;
-            document.getElementById('status').innerText = "Attempting Fetch Send...";
+            log(`Target: ${endpoint}`, "info");
+            log(`Payload: ${payloadStr}`, "payload");
 
-            fetch('http://chat/chatResult', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: msg,
-                    channel: "Chat"
+            // 3. FIRE REQUEST WITH LISTENERS
+            log("Transmitting Packet...", "warn");
+
+            $.post(endpoint, payloadStr)
+                .done(function(data, status, xhr) {
+                    // SUCCESS - The server accepted it
+                    log(`✓ RESPONSE RECEIVED (Success)`, "success");
+                    log(`   > HTTP Code: ${xhr.status} ${xhr.statusText}`, "success");
+                    log(`   > Server Reply: ${JSON.stringify(data)}`, "success");
+                    log("CONCLUSION: The message hit the chat resource successfully.", "info");
                 })
-            }).then(() => {
-                document.getElementById('status').innerText = "Fetch Success (Sent)";
-            }).catch(err => {
-                document.getElementById('status').innerText = "Fetch Error: " + err;
-            });
-        });
+                .fail(function(xhr, status, error) {
+                    // FAILURE - Analyze the crash
+                    log(`X TRANSMISSION FAILED`, "error");
+                    log(`   > HTTP Code: ${xhr.status}`, "error");
+                    log(`   > Status Text: ${status}`, "error");
+                    log(`   > Error Detail: ${error}`, "error");
+                    
+                    // AUTO-DIAGNOSIS
+                    if (xhr.status === 404) {
+                        log("DIAGNOSIS: [404] The link is wrong. The resource is not named 'chat' or the callback is not 'chatResult'.", "warn");
+                    } else if (xhr.status === 0) {
+                        log("DIAGNOSIS: [0] The request was blocked (CORS) or the resource refused the connection.", "warn");
+                    } else if (xhr.status === 500) {
+                        log("DIAGNOSIS: [500] The chat resource crashed while processing the message.", "warn");
+                    }
+                })
+                .always(function() {
+                    log("--- TRACE COMPLETE ---", "info");
+                });
+        }
     </script>
 </body>
 </html>
