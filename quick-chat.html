@@ -2,117 +2,745 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chat Network Tracker</title>
+    <title>TT Chat Assistant v17 (HTTPS)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    
     <style>
-        body { background: #111; color: #fff; font-family: 'Courier New', monospace; padding: 20px; }
-        
-        .tracker-box { 
-            background: #000; border: 2px solid #333; 
-            padding: 15px; height: 400px; overflow-y: auto; 
-            white-space: pre-wrap; font-size: 0.9em; 
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            --bg-body: #141416;
+            --bg-header: #1f1f23;
+            --bg-panel: #2b2b30;
+            --bg-modal: rgba(0, 0, 0, 0.95);
+            --primary: #00e676;
+            --secondary: #3a3a40;
+            --text-main: #ffffff;
+            --text-dim: #a0a0a0;
+            --border: 1px solid rgba(255,255,255,0.1);
+            --red: #ff5252;
+            --blue: #2979ff;
         }
 
-        h2 { margin-top: 0; color: #00e676; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        
-        .row { margin-bottom: 5px; border-bottom: 1px solid #222; padding-bottom: 2px; }
-        .time { color: #555; margin-right: 10px; }
-        
-        .info { color: #29b6f6; }
-        .success { color: #00e676; font-weight: bold; }
-        .error { color: #ff5252; font-weight: bold; }
-        .warn { color: #ffab00; }
-        .payload { color: #ba68c8; }
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
 
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 10px; background: #222; border: 1px solid #444; color: #fff; font-family: inherit; }
-        button { padding: 10px 20px; background: #00e676; border: none; color: #000; font-weight: bold; cursor: pointer; }
-        button:hover { background: #00c853; }
-        button.clear { background: #444; color: #fff; }
+        #app-container {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 600px;
+            height: 450px;
+            background: var(--bg-body);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            display: flex; flex-direction: column;
+            border: var(--border);
+            overflow: hidden;
+            resize: both;
+            min-width: 500px; min-height: 300px;
+        }
+
+        /* --- MINI MODE --- */
+        #app-container.mini-mode {
+            width: 140px !important; height: 50px !important;
+            min-width: 0 !important; min-height: 0 !important;
+            resize: none;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid var(--primary);
+            border-radius: 6px;
+        }
+
+        #app-container.mini-mode header, 
+        #app-container.mini-mode #content,
+        #app-container.mini-mode #modal-overlay,
+        #app-container.mini-mode #resize-handle { display: none !important; }
+
+        #micro-view {
+            display: none; width: 100%; height: 100%;
+            align-items: center; justify-content: center;
+            cursor: move; gap: 10px;
+        }
+        #app-container.mini-mode #micro-view { display: flex; }
+
+        .micro-btn {
+            background: var(--primary); color: #000; border: none;
+            padding: 4px 10px; border-radius: 4px; font-weight: bold;
+            font-family: 'Rajdhani', sans-serif; cursor: pointer; font-size: 0.9em;
+        }
+        .micro-icon { font-size: 1.5em; cursor: move; }
+
+        /* --- HEADER --- */
+        header {
+            background: var(--bg-header); padding: 8px 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: move; border-bottom: var(--border);
+            height: 36px; flex-shrink: 0;
+        }
+
+        .title {
+            font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.2em;
+            letter-spacing: 1px; color: #fff; text-transform: uppercase;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .win-btn {
+            background: transparent; border: none; color: var(--text-dim);
+            cursor: pointer; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 1em;
+        }
+        .win-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .win-btn.close:hover { background: var(--red); }
+
+        /* --- CONTENT --- */
+        #content { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+        .col-left {
+            flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+            border-right: var(--border); overflow-y: auto;
+        }
+
+        .col-right {
+            width: 240px; background: rgba(0,0,0,0.2);
+            padding: 12px; display: flex; flex-direction: column; gap: 8px;
+            overflow-y: auto; scrollbar-width: thin;
+        }
+
+        .input-wrapper { position: relative; display: flex; width: 100%; }
+        
+        #msg-input {
+            width: 100%; background: #111; border: 1px solid var(--secondary);
+            color: #fff; padding: 15px 45px 15px 15px; border-radius: 4px;
+            font-family: inherit; outline: none; font-size: 1.1em;
+        }
+        #msg-input:focus { border-color: var(--primary); }
+
+        .emoji-toggle {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: transparent; border: none; font-size: 1.4em; cursor: pointer;
+            opacity: 0.6; transition: 0.2s;
+        }
+        .emoji-toggle:hover { opacity: 1; transform: translateY(-50%) scale(1.1); }
+
+        .action-row { display: flex; gap: 8px; }
+        
+        .btn {
+            padding: 12px; border-radius: 4px; border: none; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff;
+            text-transform: uppercase; font-size: 1em; flex: 1; transition: 0.2s;
+        }
+        
+        .btn-send { background: var(--blue); color: #fff; font-size: 1.2em; letter-spacing: 1px; flex: 2; }
+        .btn-send:hover { filter: brightness(1.2); box-shadow: 0 4px 10px rgba(41, 121, 255, 0.3); }
+        .btn-send:active { transform: translateY(1px); }
+        
+        .btn-copy { background: var(--primary); color: #000; }
+        .btn-copy:hover { filter: brightness(1.1); }
+        
+        .btn-sec { background: var(--secondary); flex: 0.5; }
+        .btn-sec:hover { background: #4a4a50; }
+
+        /* EMOJI DRAWER */
+        #emoji-drawer {
+            background: var(--bg-panel); border: var(--border); border-radius: 6px;
+            overflow: hidden; display: none; flex-direction: column; flex: 1;
+            animation: slide 0.2s ease; min-height: 200px;
+        }
+        #emoji-drawer.visible { display: flex; }
+        @keyframes slide { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .tabs { display: flex; background: rgba(0,0,0,0.3); overflow-x: auto; }
+        .tab {
+            padding: 8px 10px; cursor: pointer; font-size: 0.75em; font-weight: bold;
+            color: var(--text-dim); text-transform: uppercase; white-space: nowrap;
+            border-bottom: 2px solid transparent; flex: 1; text-align: center;
+        }
+        .tab.active { color: #fff; border-bottom-color: var(--primary); background: rgba(255,255,255,0.05); }
+
+        .emoji-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 4px; padding: 8px; overflow-y: auto; flex: 1;
+        }
+        .emoji-item {
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.03);
+            font-size: 1.2em;
+        }
+        .emoji-item:hover { background: var(--primary); transform: scale(1.05); }
+        .emoji-item img { max-width: 32px; max-height: 32px; pointer-events: none; }
+
+        /* PRESETS */
+        .section-header {
+            font-size: 0.8em; text-transform: uppercase; color: var(--text-dim);
+            font-weight: 800; letter-spacing: 1px; padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 5px;
+            display: flex; justify-content: space-between;
+        }
+
+        #preset-list { display: flex; flex-direction: column; gap: 6px; }
+
+        .preset-card {
+            background: var(--bg-panel); padding: 0; border-radius: 4px;
+            display: flex; align-items: stretch; gap: 0; border: 1px solid transparent;
+            overflow: hidden; cursor: pointer; transition: 0.1s;
+        }
+        .preset-card:hover { border-color: var(--blue); } /* Blue highlight for SEND */
+
+        .preset-text {
+            flex: 1; font-size: 0.95em; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; padding: 10px; color: #fff;
+        }
+        
+        .preset-actions {
+            display: flex; background: rgba(0,0,0,0.2);
+        }
+
+        .icon-btn {
+            width: 30px; border: none; padding: 0;
+            background: transparent; color: var(--text-dim); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 0.9em;
+            border-left: 1px solid rgba(255,255,255,0.05);
+        }
+        .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        
+        /* Specific action colors */
+        .icon-btn.send { color: var(--blue); }
+        .icon-btn.send:hover { background: var(--blue); color: white; }
+        
+        .icon-btn.del:hover { background: var(--red); color: white; }
+        .icon-btn.bind.active { color: #000; background: var(--primary); font-weight: bold; }
+
+        /* MODAL */
+        #modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-modal); display: none;
+            align-items: center; justify-content: center; z-index: 50;
+        }
+        #modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: var(--bg-header); border: 1px solid var(--primary);
+            padding: 20px; border-radius: 8px; width: 300px; text-align: center;
+            box-shadow: 0 0 20px rgba(0,230,118,0.2);
+        }
+        .modal-title { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.2em; color: var(--primary); margin-bottom: 10px; }
+        .modal-desc { font-size: 0.8em; color: var(--text-dim); margin-bottom: 15px; }
+        #bind-input {
+            width: 100%; padding: 10px; text-align: center; font-weight: bold;
+            background: #111; border: 1px solid #444; color: #fff; border-radius: 4px;
+            margin-bottom: 15px; outline: none; font-size: 1.1em;
+        }
+        #bind-input:focus { border-color: var(--primary); }
+        .modal-btns { display: flex; gap: 10px; }
+
+        /* TOAST */
+        #toast {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--blue); color: #fff; padding: 10px 25px; border-radius: 30px;
+            font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.2em;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 200;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+
+        #resize-handle {
+            position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize;
+        }
     </style>
 </head>
 <body>
 
-    <h2>📡 Signal Tracker: http://chat/chatResult</h2>
-    
-    <div class="controls">
-        <input type="text" id="msg" value="Test Signal" placeholder="Type message...">
-        <button onclick="fireProbe()">FIRE PROBE</button>
-        <button class="clear" onclick="clearLog()">CLEAR LOG</button>
+<div id="app-container">
+    <div id="micro-view" onmousedown="dragStart(event)">
+        <span class="micro-icon">💬</span>
+        <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
     </div>
 
-    <div id="logger" class="tracker-box">Ready for trace...</div>
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">SET KEYBIND</div>
+            <div class="modal-desc">Press keys (e.g. Ctrl+L).<br>Map this in FiveM Settings.</div>
+            <input type="text" id="bind-input" placeholder="Press key..." readonly>
+            <div class="modal-btns">
+                <button class="btn btn-sec" onclick="window.closeModal()">CANCEL</button>
+                <button class="btn btn-copy" onclick="window.saveBind()">SAVE</button>
+            </div>
+        </div>
+    </div>
 
-    <script>
-        const LOGGER = document.getElementById('logger');
-        
-        function log(text, type = 'normal') {
-            const div = document.createElement('div');
-            div.className = 'row';
-            div.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> <span class="${type}">${text}</span>`;
-            LOGGER.appendChild(div);
-            LOGGER.scrollTop = LOGGER.scrollHeight;
+    <header id="drag-handle">
+        <div class="title"><span>💬</span> Chat Assistant</div>
+        <div style="display:flex; gap:5px;">
+            <button class="win-btn" onclick="window.toggleMini()">MINI</button>
+            <button class="win-btn close" onclick="window.closeApp()">✕</button>
+        </div>
+    </header>
+
+    <div id="content">
+        <div class="col-left">
+            <div class="input-wrapper">
+                <input type="text" id="msg-input" placeholder="Type message... (Enter to Send)" onkeydown="if(event.key === 'Enter') window.directSend()">
+                <button class="emoji-toggle" onclick="window.toggleEmojiDrawer()" title="Open Emojis">😊</button>
+            </div>
+
+            <div class="action-row">
+                <button class="btn btn-sec" onclick="window.savePreset()">Save</button>
+                <button class="btn btn-send" onclick="window.directSend()">SEND 🚀</button>
+                <button class="btn btn-copy" onclick="window.doCopy()">Copy</button>
+            </div>
+
+            <div id="emoji-drawer" class="visible">
+                <div class="tabs">
+                    <div class="tab active" onclick="window.switchTab('Map')">Map</div>
+                    <div class="tab" onclick="window.switchTab('Companies')">Corp</div>
+                    <div class="tab" onclick="window.switchTab('Fun')">Fun</div>
+                    <div class="tab" onclick="window.switchTab('Animated')">Anim</div>
+                    <div class="tab" onclick="window.switchTab('Other')">Other</div>
+                </div>
+                <div id="emoji-grid" class="emoji-grid"></div>
+            </div>
+        </div>
+
+        <div class="col-right">
+            <div class="section-header">
+                <span>Saved Messages</span>
+                <span style="font-size:0.7em; opacity:0.5;">Click to Send</span>
+            </div>
+            <div id="preset-list"></div>
+        </div>
+    </div>
+
+    <div id="toast">MESSAGE SENT!</div>
+    <div id="resize-handle"></div>
+</div>
+
+<script>
+// --- CONFIGURATION ---
+// !!! KEY CHANGE: HTTPS !!!
+const CHAT_ENDPOINT = 'https://chat/chatResult'; 
+const CHAT_CHANNEL = "Chat"; 
+
+const STORAGE_KEY_PRESETS = "tt_chat_presets_v17";
+const STORAGE_KEY_MINI = "tt_chat_mini_v17";
+const BASE_URL = "https://dash.tycoon.community/wiki/images";
+
+// --- STATE ---
+let presets = JSON.parse(localStorage.getItem(STORAGE_KEY_PRESETS) || "[]");
+let keybindMap = {};
+let targetPresetId = null;
+let savedPos = { top: "50px", left: "50px" }; 
+
+// --- INIT ---
+document.addEventListener("DOMContentLoaded", () => {
+    window.switchTab("Map");
+    renderPresets();
+    
+    if (localStorage.getItem(STORAGE_KEY_MINI) === "true") {
+        const app = document.getElementById("app-container");
+        app.style.top = (window.innerHeight - 80) + "px";
+        app.style.left = (window.innerWidth - 170) + "px";
+        app.classList.add("mini-mode");
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") window.closeApp();
+    });
+    
+    const bindInp = document.getElementById('bind-input');
+    bindInp.addEventListener('keydown', (e) => {
+        e.preventDefault();
+        let keys = [];
+        if (e.ctrlKey) keys.push('Ctrl');
+        if (e.altKey) keys.push('Alt');
+        if (e.shiftKey) keys.push('Shift');
+        if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+            let k = e.key.toUpperCase();
+            if(k === " ") k = "SPACE";
+            keys.push(k);
         }
+        if(keys.length > 0) bindInp.value = keys.join('+');
+    });
+});
 
-        function clearLog() { LOGGER.innerHTML = "Ready for trace..."; }
+// --- WINDOW MANAGEMENT ---
+window.toggleMini = function() {
+    const app = document.getElementById("app-container");
+    const isMini = app.classList.contains("mini-mode");
 
-        function fireProbe() {
-            clearLog();
-            log("--- INITIATING NETWORK TRACE ---", "info");
+    if (!isMini) {
+        savedPos.top = app.style.top;
+        savedPos.left = app.style.left;
+        app.classList.add("mini-mode");
+        app.style.top = (window.innerHeight - 80) + "px";
+        app.style.left = (window.innerWidth - 170) + "px";
+    } else {
+        app.classList.remove("mini-mode");
+        app.style.top = savedPos.top;
+        app.style.left = savedPos.left;
+        app.style.width = "600px";
+        app.style.height = "450px";
+    }
+    localStorage.setItem(STORAGE_KEY_MINI, !isMini);
+};
 
-            // 1. CHECK JQUERY LIBRARY
-            if (typeof $ === 'undefined') {
-                log("CRITICAL FAILURE: jQuery ($) is NOT defined.", "error");
-                log("The game file 'nui://game/ui/jquery.js' did not load.", "error");
-                log("ABORTING TRACE.", "error");
-                return;
+window.closeApp = function() {
+    if (window.parent) window.parent.postMessage({ type: "close" }, "*");
+};
+
+// --- EMOJI DB ---
+const EMOJI_DB = {
+    "Map": [
+        { c: ":aircraftdealer:", f: "4/42/Aircraft_Dealer.png" }, { c: ":atm:", f: "0/0d/ATM.png" },
+        { c: ":boatdealer:", f: "a/af/Watercraft_Dealership.png" }, { c: ":boatgarage:", f: "d/dc/Boat_Garage.png" },
+        { c: ":business:", f: "5/54/Business2.png" }, { c: ":businessbonus:", f: "c/cf/Business_Bonus.png" },
+        { c: ":businessbonusmax:", f: "1/18/Business_Full.png" }, { c: ":businessowned:", f: "6/68/Business_Owned.png" },
+        { c: ":cablecar:", f: "c/c5/Cable_Car.png" }, { c: ":carwash:", f: "d/d8/CarWash.png" },
+        { c: ":clothingstore:", f: "e/ec/Clothing_store.png" }, { c: ":dealership:", f: "d/de/Car_Dealer.png" },
+        { c: ":emscallout:", f: "6/6c/EMS_Friend.png" }, { c: ":fishimporter:", f: "1/1e/Fish_Importer.png" },
+        { c: ":fishingzone:", f: "3/3f/Fish_Zone.png" }, { c: ":fuel:", f: "4/44/Fuel.png" },
+        { c: ":garage:", f: "8/88/Garage.png" }, { c: ":garbageoffice:", f: "e/e2/Garbage_Center.png" },
+        { c: ":grandexchange:", f: "6/60/Grand_Exchange.png" }, { c: ":helifuel:", f: "1/12/HeliFuel.png" },
+        { c: ":heligarage:", f: "c/c8/Helicopter_Garage.png" }, { c: ":hospital:", f: "6/66/Hospital.png" },
+        { c: ":huntingoffice:", f: "0/02/Hunter_Office.png" }, { c: ":jobcenter:", f: "a/ad/JobCenter.png" },
+        { c: ":loanoffice:", f: "9/9b/Loan_Office.png" }, { c: ":lscustoms:", f: "0/06/LS_Customs.png" },
+        { c: ":market:", f: "2/22/Generic_Shop.png" }, { c: ":marketfish:", f: "d/d4/Diving_Market.png" },
+        { c: ":marketmechanic:", f: "0/0a/Mechanic_market.png" }, { c: ":marketmedical:", f: "7/7d/Med_Market.png" },
+        { c: ":marketplace:", f: "c/c1/Marketplace.png" }, { c: ":marketpremium:", f: "6/66/VIP_Market.png" },
+        { c: ":ownedsemi:", f: "8/87/Owned_Semi.png" }, { c: ":ownedtrailer:", f: "c/c0/Owned_Trailer.png" },
+        { c: ":plane:", f: "0/0c/Plane.png" }, { c: ":planefuel:", f: "7/7a/Plane_Fuel.png" },
+        { c: ":planegarage:", f: "d/d4/Aircraft_Garage.png" }, { c: ":planeterminal:", f: "9/9c/Terminal.png" },
+        { c: ":properties:", f: "0/0c/House.png" }, { c: ":raceboat:", f: "5/56/Boat_Race.png" },
+        { c: ":racecar:", f: "3/33/Street_Race.png" }, { c: ":raceplane:", f: "4/40/Aerial_Race.png" },
+        { c: ":repair:", f: "4/46/Repair_point.png" }, { c: ":selfstorage:", f: "thumb/3/3c/Self_Storage.png/64px-Self_Storage.png" },
+        { c: ":trainmetro:", f: "a/a4/Metro_Train.png" }, { c: ":trainpassenger:", f: "a/a5/Passenger_Train.png" },
+        { c: ":truckingbuyer:", f: "a/a3/Trucking_Buyer.png" }, { c: ":truckingseller:", f: "7/7b/Trucking_Seller.png" }
+    ],
+    "Companies": [
+        { c: ":bat:", f: "thumb/6/6e/Bat-1.png/64px-Bat-1.png" }, { c: ":collins:", f: "thumb/0/0c/Collins.png/64px-Collins.png" },
+        { c: ":empire:", f: "thumb/2/2e/IA.png/64px-IA.png" }, { c: ":frllc:", f: "thumb/9/94/FRLLC.png/64px-FRLLC.png" },
+        { c: ":pigs:", f: "thumb/d/da/PIGS.png/67px-PIGS.png" }, { c: ":rts:", f: "thumb/f/f2/RTS2.png/57px-RTS2.png" }
+    ],
+    "Fun": [
+        { c: ":amogus:", f: "thumb/2/2a/Amogus.png/64px-Amogus.png" }, { c: ":anhero:", f: "thumb/2/2e/Anhero.png/64px-Anhero.png" },
+        { c: ":captainmlady:", f: "thumb/c/cc/Captainmlady.png/64px-Captainmlady.png" }, { c: ":catlul:", f: "thumb/d/df/Catlul.png/64px-Catlul.png" },
+        { c: ":cls:", f: "thumb/9/9d/Cls.png/64px-Cls.png" }, { c: ":coolcry:", f: "thumb/b/b9/Coolcry.png/64px-Coolcry.png" },
+        { c: ":flippyboi:", f: "thumb/7/78/Flippyboi.png/64px-Flippyboi.png" }, { c: ":gg:", f: "thumb/9/9d/GG2.png/64px-GG2.png" },
+        { c: ":glitch:", f: "thumb/0/01/Glitch.png/64px-Glitch.png" }, { c: ":goodjob:", f: "thumb/5/5b/Goodjob.png/64px-Goodjob.png" },
+        { c: ":goose:", f: "thumb/d/dd/Goose.png/64px-Goose.png" }, { c: ":heh:", f: "0/01/Heh.png" },
+        { c: ":iaeyes:", f: "thumb/1/1c/IAEyes.png/64px-IAEyes.png" }, { c: ":joedoubt:", f: "thumb/5/55/Joedoubt.png/64px-Joedoubt.png" },
+        { c: ":lul:", f: "thumb/6/6b/Lul.png/64px-Lul.png" }, { c: ":mariothink:", f: "thumb/9/9d/Mariothink.png/64px-Mariothink.png" },
+        { c: ":mek:", f: "thumb/7/74/Mek.png/64px-Mek.png" }, { c: ":meklove:", f: "thumb/5/5a/Meklove.png/64px-Meklove.png" },
+        { c: ":monkat:", f: "a/a0/MonkaT.png" }, { c: ":niv:", f: "thumb/a/a2/Niv.png/64px-Niv.png" },
+        { c: ":nou:", f: "thumb/c/cf/Nou.png/64px-Nou.png" }, { c: ":ohdear:", f: "thumb/1/13/Ohdear.png/64px-Ohdear.png" },
+        { c: ":ok_hand:", f: "thumb/2/25/Okhand.png/64px-Okhand.png" }, { c: ":oof:", f: "thumb/2/2c/Oof.png/64px-Oof.png" },
+        { c: ":plp:", f: "thumb/e/e2/Pepelaughpoint.png/64px-Pepelaughpoint.png" }, { c: ":pepebruh:", f: "thumb/7/76/Pepebruh.png/64px-Pepebruh.png" },
+        { c: ":pepecry:", f: "thumb/5/5a/Pepecry.png/64px-Pepecry.png" }, { c: ":pepeyikes:", f: "c/c1/Pepeyikes.png" },
+        { c: ":pog:", f: "thumb/d/d7/Pog2.png/64px-Pog2.png" }, { c: ":poggers:", f: "thumb/1/14/Poggers.png/64px-Poggers.png" },
+        { c: ":popcornRoo:", f: "thumb/5/5c/Popcornroo.png/64px-Popcornroo.png" }, { c: ":rainbowheart:", f: "thumb/1/12/Rainbowheart.png/64px-Rainbowheart.png" },
+        { c: ":scottishlove:", f: "thumb/4/41/Scottishlove.png/64px-Scottishlove.png" }, { c: ":sinkyboi:", f: "thumb/2/27/Sinkyboi.png/64px-Sinkyboi.png" },
+        { c: ":smart:", f: "thumb/0/02/Smart.png/64px-Smart.png" }, { c: ":streamlurk:", f: "thumb/c/c6/StreamLurk.png/64px-StreamLurk.png" },
+        { c: ":theharv:", f: "thumb/0/0e/Theharv.png/64px-Theharv.png" }, { c: ":thenking:", f: "thumb/4/4a/Thenking.png/64px-Thenking.png" },
+        { c: ":thinking:", f: "thumb/2/29/Thinking.png/64px-Thinking.png" }, { c: ":this:", f: "thumb/d/da/This.png/64px-This.png" },
+        { c: ":wave:", f: "thumb/e/e9/Wave.png/64px-Wave.png" }, { c: ":zabivakafish:", f: "thumb/2/20/Zabivakafish.png/64px-Zabivakafish.png" },
+        { c: ":zabivaka:", f: "thumb/2/2b/Zabivaka.png/64px-Zabivaka.png" },
+        { c: "(˵ ͡° ͜ʖ ͡°˵)", t: true }, { c: "( ͡° ᴥ  ͡° )", t: true }, { c: "ヽ(•_)ᕗ", t: true },
+        { c: "༼ つ ◕_◕ ༽つ", t: true }, { c: "( ⌐■ _■ )", t: true }, { c: "ᕕ( ᐛ )ᕗ", t: true },
+        { c: "(∩_∩)", t: true }, { c: "ಠ_ಠ", t: true }, { c: "ಥ_ಥ", t: true }, { c: "¯\\_(ツ)_/¯", t: true },
+        { c: "(╯°□°）╯︵ ┻━┻", t: true }, { c: "(  ͡~ ͜ʖ ͡°)", t: true }
+    ],
+    "Animated": [
+        { c: ":ayoutried:", f: "d/d4/AYouTried.gif" }, { c: ":angryglitch:", f: "3/37/AngryGlitch.gif" },
+        { c: ":banned:", f: "2/2a/Banned.gif" }, { c: ":bluefirework:", f: "d/de/BlueFirework.gif" },
+        { c: ":bunnyrun:", f: "6/69/BunnyRun.gif" }, { c: ":bunnystand:", f: "6/65/BunnyStand.gif" },
+        { c: ":catscream:", f: "c/c1/Catscream.gif" }, { c: ":catwave:", f: "8/8c/Cat_Wave.gif" },
+        { c: ":chaos:", f: "1/13/Chaos.gif" }, { c: ":dogrun:", f: "2/26/DogRun.gif" },
+        { c: ":dogstand:", f: "d/dc/DogStand.gif" }, { c: ":discodance:", f: "d/d6/DiscoDance.gif" },
+        { c: ":eatingpopcorn:", f: "8/84/EatingPopcorn.gif" }, { c: ":facepalmz:", f: "0/07/FacePalmz.gif" },
+        { c: ":fedora:", f: "a/a0/Fedora.gif" }, { c: ":greenfirework:", f: "f/f8/GreenFirework.gif" },
+        { c: ":homerhide:", f: "b/bf/Homerhide.gif" }, { c: ":2stagefirework:", f: "8/8c/2StageFirework.gif" },
+        { c: ":loading:", f: "2/2f/Loading3.gif" }, { c: ":meltdown:", f: "9/99/Meltdown.gif" },
+        { c: ":meow:", f: "1/1a/Meow.gif" }, { c: ":morshu:", f: "e/ec/Morshu.gif" },
+        { c: ":muppetno:", f: "e/e2/Muppetno.gif" }, { c: ":norpanimated:", f: "5/5e/NoRPAnimated.gif" },
+        { c: ":ok_fidget:", f: "f/f1/OkFidget.gif" }, { c: ":overpriced:", f: "d/da/Overpriced.gif" },
+        { c: ":pbbt:", f: "0/02/Pbbt.gif" }, { c: ":pear7:", f: "7/75/Pear7.gif" },
+        { c: ":pepelaughexp:", f: "a/a4/Pepelaughexp.gif" }, { c: ":pinkfirework:", f: "c/ca/PinkFirework.gif" },
+        { c: ":planetakeoffblink:", f: "e/e2/TakeOffBlink.gif" }, { c: ":planelandingblink:", f: "4/45/LandingBlink.gif" },
+        { c: ":pandapingree:", f: "7/79/PandaPingRee.gif" }, { c: ":wesley:", f: "7/74/Wesley.gif" }
+    ],
+    "Other": [
+        { c: ":boost:", f: "thumb/c/cd/Boost.png/64px-Boost.png" }, { c: ":buy:", f: "thumb/f/f7/Buy.png/64px-Buy.png" },
+        { c: ":f7:", f: "thumb/6/60/F7.png/64px-F7.png" }, { c: ":fedex:", f: "thumb/a/a6/FedEx.png/64px-FedEx.png" },
+        { c: ":fedex-1:", f: "thumb/9/98/FedEx1.png/64px-FedEx1.png" }, { c: ":mountaincatviolet:", f: "thumb/c/c6/MountainCatViolet.png/64px-MountainCatViolet.png" },
+        { c: ":norp:", f: "thumb/c/cc/NoRP.png/64px-NoRP.png" }, { c: ":notification:", f: "thumb/f/f1/Notification.png/64px-Notification.png" },
+        { c: ":planelanding:", f: "9/9c/PlaneLanding.png" }, { c: ":planetakeoff:", f: "f/f0/PlaneTakeoff.png" },
+        { c: ":sell:", f: "thumb/f/fb/Sell.png/64px-Sell.png" }, { c: ":snailtycoon:", f: "thumb/3/33/SnailTycoon.png/64px-SnailTycoon.png" },
+        { c: ":sold:", f: "thumb/c/c1/Sold.png/64px-Sold.png" }, { c: ":trade:", f: "thumb/d/d5/Trade.png/64px-Trade.png" },
+        { c: ":ttycoon:", f: "thumb/f/fa/TTycoon.png/64px-TTycoon.png" }, { c: ":tycoon:", f: "thumb/b/bf/Tycoon.png/64px-Tycoon.png" },
+        { c: ":tycoonheart:", f: "thumb/1/17/TycoonHeart.png/64px-TycoonHeart.png" }, { c: ":tycoonpx:", f: "0/01/Tycoonpx.png" }
+    ]
+};
+
+// --- CORE ACTIONS (DIRECT SEND HTTPS) ---
+window.directSend = function(text = null) {
+    const inp = document.getElementById("msg-input");
+    const msg = text !== null ? text : inp.value;
+    
+    if(!msg.trim()) return;
+
+    // Use JQUERY (if loaded) first for maximum compatibility
+    if (typeof $ !== 'undefined') {
+        $.post(CHAT_ENDPOINT, JSON.stringify({
+            message: msg,
+            channel: CHAT_CHANNEL,
+        }));
+        showToast("SENT! 🚀");
+        if(text === null) inp.value = "";
+    } else {
+        // Fallback to Native Fetch with HTTPS
+        try {
+            fetch(CHAT_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: msg,
+                    channel: CHAT_CHANNEL
+                })
+            });
+            showToast("SENT! 🚀");
+            if(text === null) inp.value = "";
+        } catch(e) {
+            console.error(e);
+            showToast("ERROR");
+        }
+    }
+};
+
+window.doCopy = function(text = null) {
+    const inp = document.getElementById("msg-input");
+    const msg = text !== null ? text : inp.value;
+    if (!msg.trim()) return;
+
+    const ta = document.createElement('textarea');
+    ta.value = msg;
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        showToast("COPIED!");
+    } catch (err) {
+        showToast("ERROR");
+    }
+    document.body.removeChild(ta);
+};
+
+window.loadAndCopy = function(text) {
+    // Single Click: Sends immediately
+    // If you want to copy instead, change this to doCopy(text)
+    window.directSend(text);
+};
+
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    if (!t) return;
+    t.innerText = msg;
+    t.classList.add("show");
+    
+    if(t.timer) clearTimeout(t.timer);
+    t.timer = setTimeout(() => t.classList.remove("show"), 2000);
+}
+
+// --- UI LOGIC ---
+window.switchTab = function(cat) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll(`.tab[onclick="window.switchTab('${cat}')"]`).forEach(t => t.classList.add('active'));
+    const grid = document.getElementById("emoji-grid");
+    grid.innerHTML = "";
+    if (EMOJI_DB[cat]) {
+        EMOJI_DB[cat].forEach(emo => {
+            const el = document.createElement("div");
+            el.className = "emoji-item";
+            if (emo.t) {
+                el.innerText = emo.c;
+                el.style.fontSize = "0.7em";
+                el.style.whiteSpace = "nowrap";
+            } else {
+                el.innerHTML = `<img src="${BASE_URL}/${emo.f}" title="${emo.c}">`;
             }
-            log("✓ jQuery Library (game/ui) Detected.", "success");
+            el.onclick = () => window.insertEmoji(emo.c);
+            grid.appendChild(el);
+        });
+    }
+};
 
-            // 2. DEFINE PACKET
-            const msgText = document.getElementById('msg').value;
-            const endpoint = "http://chat/chatResult";
-            const payloadData = {
-                message: msgText,
-                channel: "Chat" // Case sensitive as per owner
-            };
-            const payloadStr = JSON.stringify(payloadData);
+window.toggleEmojiDrawer = function() {
+    const d = document.getElementById("emoji-drawer");
+    d.classList.toggle("visible");
+};
 
-            log(`Target: ${endpoint}`, "info");
-            log(`Payload: ${payloadStr}`, "payload");
+window.insertEmoji = function(code) {
+    const inp = document.getElementById("msg-input");
+    const start = inp.selectionStart;
+    const end = inp.selectionEnd;
+    const text = inp.value;
+    const before = text.substring(0, start);
+    const after  = text.substring(end, text.length);
+    inp.value = before + (before.length > 0 && !before.endsWith(' ') ? ' ' : '') + code + (after.length > 0 && !after.startsWith(' ') ? ' ' : '') + after;
+    inp.focus();
+};
 
-            // 3. FIRE REQUEST WITH LISTENERS
-            log("Transmitting Packet...", "warn");
+window.savePreset = function() {
+    const txt = document.getElementById("msg-input").value.trim();
+    if (!txt) return;
+    presets.push({ id: Date.now(), text: txt, bind: null });
+    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    renderPresets();
+};
 
-            $.post(endpoint, payloadStr)
-                .done(function(data, status, xhr) {
-                    // SUCCESS - The server accepted it
-                    log(`✓ RESPONSE RECEIVED (Success)`, "success");
-                    log(`   > HTTP Code: ${xhr.status} ${xhr.statusText}`, "success");
-                    log(`   > Server Reply: ${JSON.stringify(data)}`, "success");
-                    log("CONCLUSION: The message hit the chat resource successfully.", "info");
-                })
-                .fail(function(xhr, status, error) {
-                    // FAILURE - Analyze the crash
-                    log(`X TRANSMISSION FAILED`, "error");
-                    log(`   > HTTP Code: ${xhr.status}`, "error");
-                    log(`   > Status Text: ${status}`, "error");
-                    log(`   > Error Detail: ${error}`, "error");
-                    
-                    // AUTO-DIAGNOSIS
-                    if (xhr.status === 404) {
-                        log("DIAGNOSIS: [404] The link is wrong. The resource is not named 'chat' or the callback is not 'chatResult'.", "warn");
-                    } else if (xhr.status === 0) {
-                        log("DIAGNOSIS: [0] The request was blocked (CORS) or the resource refused the connection.", "warn");
-                    } else if (xhr.status === 500) {
-                        log("DIAGNOSIS: [500] The chat resource crashed while processing the message.", "warn");
+window.deletePreset = function(id) {
+    presets = presets.filter(p => p.id !== id);
+    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    renderPresets();
+};
+
+function renderPresets() {
+    const list = document.getElementById("preset-list");
+    list.innerHTML = "";
+    presets.forEach(p => {
+        if(p.bind) registerBinding(p);
+        const card = document.createElement("div");
+        card.className = "preset-card";
+        
+        // CLICKING THE CARD TEXT SENDS IMMEDIATELY
+        card.onclick = (e) => {
+            if(!e.target.closest('button')) window.directSend(p.text);
+        };
+
+        card.innerHTML = `
+            <div class="preset-text">${p.text}</div>
+            <div class="preset-actions">
+                <button class="icon-btn bind ${p.bind ? 'active' : ''}" onclick="window.openBindModal(${p.id})">${p.bind || '⌨'}</button>
+                <button class="icon-btn del" onclick="window.deletePreset(${p.id})">✕</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+// --- BINDING MODAL ---
+window.openBindModal = function(id) {
+    targetPresetId = id;
+    const p = presets.find(x => x.id === id);
+    document.getElementById('bind-input').value = p.bind || "";
+    document.getElementById('modal-overlay').classList.add('active');
+    document.getElementById('bind-input').focus();
+};
+
+window.closeModal = function() {
+    document.getElementById('modal-overlay').classList.remove('active');
+    targetPresetId = null;
+};
+
+window.saveBind = function() {
+    if (!targetPresetId) return;
+    const k = document.getElementById('bind-input').value;
+    const p = presets.find(x => x.id === targetPresetId);
+    if(p) {
+        p.bind = k;
+        localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
+        renderPresets();
+        registerBinding(p);
+    }
+    window.closeModal();
+};
+
+function registerBinding(preset) {
+    if (!window.parent || !preset.bind) return;
+    const triggerName = `userapp_trigger_${preset.id}`;
+    keybindMap[triggerName] = preset.id;
+    window.parent.postMessage({ type: "registerTrigger", trigger: triggerName, name: `Chat: ${preset.text.substring(0, 10)}` }, "*");
+}
+
+window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    const payload = e.data.data || e.data;
+    for (const key in payload) {
+        if (key.startsWith("trigger_userapp_trigger_")) {
+            const trigKey = key.replace("trigger_", "");
+            const presetId = keybindMap[trigKey];
+            if (presetId) {
+                const p = presets.find(x => x.id === presetId);
+                if (p) {
+                    // Flash Bind Button Visual
+                    const btn = document.querySelector(`button[onclick="window.openBindModal(${p.id})"]`);
+                    if(btn) {
+                        const oldColor = btn.style.backgroundColor;
+                        btn.style.backgroundColor = "white";
+                        setTimeout(() => btn.style.backgroundColor = oldColor, 200);
                     }
-                })
-                .always(function() {
-                    log("--- TRACE COMPLETE ---", "info");
-                });
+                    // Instant Send
+                    window.directSend(p.text);
+                }
+            }
         }
-    </script>
+    }
+});
+
+// --- DRAG HANDLER ---
+const elm = document.getElementById("app-container");
+const head = document.getElementById("drag-handle");
+const microView = document.getElementById("micro-view");
+let isDragging = false, startX, startY, initLeft, initTop;
+
+const startDrag = (e) => {
+    if(e.target.closest('button') || e.target.closest('input')) return;
+    e.preventDefault();
+    isDragging = true;
+    startX = e.clientX; startY = e.clientY;
+    const r = elm.getBoundingClientRect();
+    initLeft = r.left; initTop = r.top;
+    document.addEventListener("mousemove", dragMove);
+    document.addEventListener("mouseup", dragEnd);
+};
+
+head.addEventListener("mousedown", startDrag);
+microView.addEventListener("mousedown", startDrag);
+
+function dragMove(e) {
+    if(!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    elm.style.left = (initLeft + dx) + "px";
+    elm.style.top = (initTop + dy) + "px";
+}
+
+function dragEnd() {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragMove);
+    document.removeEventListener("mouseup", dragEnd);
+}
+
+const rh = document.getElementById("resize-handle");
+rh.addEventListener("mousedown", e => {
+    e.preventDefault(); e.stopPropagation();
+    window.addEventListener("mousemove", resizeMove);
+    window.addEventListener("mouseup", resizeEnd);
+});
+
+function resizeMove(e) {
+    if(elm.classList.contains("mini-mode")) return;
+    elm.style.width = Math.max(500, e.clientX - elm.getBoundingClientRect().left) + "px";
+    elm.style.height = Math.max(300, e.clientY - elm.getBoundingClientRect().top) + "px";
+}
+
+function resizeEnd() {
+    window.removeEventListener("mousemove", resizeMove);
+    window.removeEventListener("mouseup", resizeEnd);
+}
+</script>
 </body>
 </html>
