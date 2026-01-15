@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Airline Ops v1.4</title>
+    <title>TT Airline Ops v1.5</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -243,7 +243,6 @@
 <div id="tracker-app">
     <div id="micro-view" onmousedown="dragStart(event)">
         <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
-        
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
             <div class="micro-group">
                 <span style="font-size:1.2em">✈️</span>
@@ -259,21 +258,8 @@
                 <span class="micro-val" id="micro-meal">0</span>
             </div>
         </div>
-
         <div class="micro-row">
-            <div class="micro-group" style="min-width: 90px;">
-                <span class="micro-label">Lvl</span>
-                <span class="micro-val highlight" id="micro-level">0</span>
-                <div class="micro-progress-bg">
-                    <div class="micro-progress-fill" id="micro-bar"></div>
-                </div>
-            </div>
-            <div class="micro-sep"></div>
-            <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
-            <div class="micro-sep"></div>
-            <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
-            <div class="micro-sep"></div>
-            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
+            <div class="micro-group" style="width:100%"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
         </div>
     </div>
 
@@ -673,11 +659,11 @@ function updateGrinderUI(currentVal) {
 function parseBonuses(html) {
     const container = document.getElementById('bonus-container');
     container.innerHTML = ""; 
-    const lines = html.split('<br/>');
+    const lines = html.split(/<br\s*\/?>/i);
     let found = false;
     lines.forEach(line => {
         let text = line.replace(/<[^>]*>/g, '').trim();
-        if ((text.includes("Exp Bonus") || text.includes("Premium") || text.includes("Skill of the Day")) && !text.includes("Expires")) {
+        if (text && (text.includes("Exp Bonus") || text.includes("Premium") || text.includes("Skill of the Day"))) {
             let div = document.createElement('div');
             div.className = 'bonus-item';
             div.innerText = "★ " + text;
