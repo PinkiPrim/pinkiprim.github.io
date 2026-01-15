@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Airline Ops v1.7</title>
+    <title>TT Airline Ops v1.8</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -48,19 +48,27 @@
 
         /* --- MINI MODE --- */
         #tracker-app.mini-mode {
-            width: 420px !important; height: 74px !important;
-            min-height: 74px !important; border-radius: 12px;
-            background: var(--bg-dark); border: 1px solid var(--primary);
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: var(--bg-dark);
+            border: 1px solid var(--primary);
             resize: none;
         }
+
         #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #sky-container, 
         #tracker-app.mini-mode #content,
         #tracker-app.mini-mode #grinder-panel { display: none !important; }
 
         #micro-view {
-            display: none; flex-direction: column; justify-content: center;
-            height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
 
@@ -87,18 +95,26 @@
         /* --- HEADER --- */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
-            height: 65px; padding: 0 10px; cursor: move; position: relative;
+            height: 65px; 
+            padding: 0 10px;
+            cursor: move;
+            position: relative;
             display: flex; align-items: flex-start; justify-content: space-between;
             border-bottom: 1px solid rgba(255,255,255,0.15);
-            overflow: visible; padding-top: 5px; 
-            z-index: 60; 
+            overflow: visible; /* Important for dropdown */
+            padding-top: 5px;
+            z-index: 60; /* Higher than Grinder Panel */
         }
 
         .header-title {
-            position: absolute; left: 50%; top: 25%; transform: translate(-50%, -50%);
-            font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.2em;
-            text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none; white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;
+            position: absolute; left: 50%; top: 25%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
         #user-name-fly {
@@ -158,8 +174,7 @@
         .menu-item:hover { background: var(--primary); color: #000; }
         .menu-item:last-child { border-bottom: none; }
 
-        /* GRINDER PANEL (Overlay) */
-        /* Z-INDEX 50: Below Header (60) */
+        /* GRINDER PANEL (OVERLAY) */
         #grinder-panel {
             position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px);
             background: rgba(10, 15, 20, 0.98); z-index: 50; display: none;
@@ -187,7 +202,7 @@
         }
         .bonus-item { color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
 
-        /* CONTENT */
+        /* --- CONTENT --- */
         #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .route-box { background: rgba(3, 169, 244, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center; }
         .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
@@ -235,12 +250,32 @@
     <div id="micro-view" onmousedown="dragStart(event)">
         <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="micro-group"><span style="font-size:1.2em">✈️</span><span class="micro-val" id="micro-status">IDLE</span><span class="micro-val" id="micro-timer" style="width:25px; text-align:right;">--</span></div>
-            <div class="micro-group"><span class="micro-label">To:</span><span class="micro-val" id="micro-dest" style="max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">--</span></div>
-            <div class="micro-group"><span class="micro-label">🍱</span><span class="micro-val" id="micro-meal">0</span></div>
+            <div class="micro-group">
+                <span style="font-size:1.2em">✈️</span>
+                <span class="micro-val" id="micro-status">IDLE</span>
+                <span class="micro-val" id="micro-timer" style="width:25px; text-align:right;">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">To:</span>
+                <span class="micro-val" id="micro-dest" style="max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">🍱</span>
+                <span class="micro-val" id="micro-meal">0</span>
+            </div>
         </div>
         <div class="micro-row">
-            <div class="micro-group" style="width:100%"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
+            <div class="micro-group" style="width:100%">
+                <span class="micro-label">Lvl</span>
+                <span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
         </div>
     </div>
 
@@ -418,7 +453,6 @@ function toggleMenu() {
     document.getElementById('main-menu').classList.toggle('show');
 }
 
-// Close menu when clicking outside
 window.onclick = function(e) {
     if (!e.target.matches('.burger-btn')) {
         document.getElementById('main-menu').classList.remove('show');
@@ -605,7 +639,7 @@ function processPayload(data) {
         document.getElementById('micro-tokens').innerText = "0";
     }
 
-    // 5. BONUS SCAN (ROBUST)
+    // 5. BONUS SCAN (ROBUST + MEMORY)
     if (data.menu_choices) {
         try {
             let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
@@ -638,26 +672,22 @@ function updateGrinderUI(currentVal) {
 
 function parseBonuses(html) {
     const container = document.getElementById('bonus-container');
-    // Using Regex to split by HTML break tags (br, br/, br /)
     const lines = html.split(/<br\s*\/?>/i);
     let newBonuses = [];
     
     lines.forEach(line => {
-        // Strip HTML tags
         let text = line.replace(/<[^>]*>/g, '').trim();
-        // Check for keywords. Note: WE ALLOW "Expires" now.
+        // Allow lines with "Expires" now!
         if (text && (text.includes("Exp Bonus") || text.includes("Premium") || text.includes("Skill of the Day"))) {
             newBonuses.push(text);
         }
     });
     
-    // Only update DOM if we found something, or if we have nothing in memory
     if (newBonuses.length > 0) {
-        MEMORY.bonuses = newBonuses; // Update memory
+        MEMORY.bonuses = newBonuses;
         renderBonuses();
     } else if (MEMORY.bonuses.length > 0) {
-        // We have memory but current scan found nothing (menu closed?), keep memory displayed
-        renderBonuses();
+        renderBonuses(); // Keep old if new scan fails
     } else {
         container.innerHTML = "<div style='opacity:0.5;font-size:0.8em'>Open 'Identity' menu in-game to scan...</div>";
     }
