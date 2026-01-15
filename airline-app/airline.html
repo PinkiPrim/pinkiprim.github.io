@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Airline Ops v1.1</title>
+    <title>TT Airline Ops v1.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
+            /* Airline Theme - Original Colors */
             --primary: #03a9f4; 
             --primary-dim: #0277bd;
             --bg-glass: rgba(18, 18, 18, 0.95);
-            --bg-dark: rgba(10, 10, 10, 0.98);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
             --border: 1px solid rgba(3, 169, 244, 0.3);
@@ -18,7 +18,7 @@
             --orange: #ff9800;
             --red: #ff5252;
             --accent: #81d4fa;
-            --gold: #ffd700;
+            --gold: #ffd700; /* Added for Grinder */
         }
 
         body {
@@ -42,24 +42,32 @@
             display: flex; flex-direction: column;
             overflow: hidden;
             transition: width 0.2s ease, height 0.2s ease;
-            min-height: 250px;
+            min-height: 200px;
         }
 
         /* --- MINI MODE --- */
         #tracker-app.mini-mode {
-            width: 420px !important; height: 74px !important;
-            min-height: 74px !important; border-radius: 12px;
-            background: var(--bg-dark); border: 1px solid var(--primary);
-            resize: none;
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: rgba(10, 10, 10, 0.98);
+            border: 1px solid var(--primary);
         }
+
         #tracker-app.mini-mode header, 
         #tracker-app.mini-mode #sky-container, 
         #tracker-app.mini-mode #content,
         #tracker-app.mini-mode #grinder-panel { display: none !important; }
 
         #micro-view {
-            display: none; flex-direction: column; justify-content: center;
-            height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
 
@@ -86,49 +94,88 @@
         /* --- HEADER --- */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
-            height: 65px; padding: 0 10px; cursor: move; position: relative;
+            height: 65px; 
+            padding: 0 10px;
+            cursor: move;
+            position: relative;
             display: flex; align-items: flex-start; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.15); overflow: visible; padding-top: 5px; z-index: 20;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            overflow: visible; /* Changed from hidden to visible for Dropdown */
+            padding-top: 5px;
+            z-index: 20;
         }
 
         .header-title {
-            position: absolute; left: 50%; top: 25%; transform: translate(-50%, -50%);
-            font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.2em;
-            text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none; white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;
+            position: absolute; left: 50%; top: 25%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
+        /* Original Animation */
         #user-name-fly {
-            position: absolute; top: 38px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: 38px; left: -150px;
             font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.95em;
             color: #fff; white-space: nowrap; pointer-events: none; z-index: 10;
-            text-shadow: 0 0 5px var(--primary);
+            text-shadow: 0 0 5px var(--primary), 0 0 10px var(--accent), 0 0 20px var(--primary-dim);
         }
 
-        /* BURGER MENU */
-        .menu-container { position: relative; }
-        .burger-btn {
-            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2);
-            color: #fff; font-size: 1.2em; padding: 4px 8px; border-radius: 4px; cursor: pointer;
+        @keyframes flyCycle {
+            0% { left: -150px; transform: translateX(0) translateY(0); opacity: 0; }
+            10% { left: 50%; transform: translateX(-50%) translateY(0); opacity: 1; } 
+            20% { left: 50%; transform: translateX(-50%) translateY(-2px); }
+            30% { left: 50%; transform: translateX(-50%) translateY(1px); }
+            40% { left: 50%; transform: translateX(-50%) translateY(-1px); }
+            50% { left: 50%; transform: translateX(-50%) translateY(2px); }
+            60% { left: 50%; transform: translateX(-50%) translateY(-2px); }
+            70% { left: 50%; transform: translateX(-50%) translateY(1px); }
+            80% { left: 50%; transform: translateX(-50%) translateY(0); }
+            90% { left: 50%; transform: translateX(-50%); opacity: 1; }
+            100% { left: 120%; transform: translateX(0); opacity: 0; } 
         }
-        .burger-btn:hover { background: var(--primary); color: black; }
+
+        .cloud { position: absolute; background-image: url('https://pngimg.com/uploads/cloud/cloud_PNG112272.png'); background-size: contain; background-repeat: no-repeat; opacity: 0.25; pointer-events: none; z-index: 1; }
+        .cloud-1 { top: 10px; left: -50px; width: 60px; height: 30px; animation: floatCloud 25s linear infinite; }
+        .cloud-2 { top: 35px; left: -60px; width: 40px; height: 20px; animation: floatCloud 35s linear infinite 5s; }
+        .cloud-3 { top: 20px; left: -40px; width: 50px; height: 25px; animation: floatCloud 45s linear infinite 12s; }
+        @keyframes floatCloud { 0% { transform: translateX(0); } 100% { transform: translateX(450px); } }
+
+        .header-controls { display: flex; gap: 8px; z-index: 30; align-items: center; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
+        
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
+
+        /* --- BURGER MENU STYLES --- */
+        .menu-container { position: relative; }
+        
+        .burger-btn {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer;
+            font-size: 1.2em; line-height: 1; display: flex; align-items: center; justify-content: center;
+        }
+        .burger-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
 
         .dropdown-menu {
             position: absolute; top: 100%; right: 0; margin-top: 5px;
-            background: #111; border: 1px solid var(--primary); border-radius: 4px;
+            background: #121212; border: 1px solid var(--primary); border-radius: 4px;
             width: 140px; display: none; flex-direction: column; z-index: 100;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.9);
         }
         .dropdown-menu.show { display: flex; }
         
         .menu-item {
-            padding: 10px; color: #ccc; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold;
+            padding: 10px; color: #ccc; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.9em;
             border-bottom: 1px solid rgba(255,255,255,0.1); transition: 0.2s;
         }
         .menu-item:hover { background: var(--primary); color: #000; }
         .menu-item:last-child { border-bottom: none; }
 
-        /* GRINDER PANEL (OVERLAY) */
+        /* --- GRINDER PANEL (Overlay) --- */
         #grinder-panel {
             position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px);
             background: rgba(10, 15, 20, 0.98); z-index: 50; display: none;
@@ -148,6 +195,7 @@
             font-size: 0.9em; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;
         }
         .stat-val.gold { color: var(--gold); }
+        .stat-val.green { color: var(--green); }
         
         .bonus-list {
             margin-top: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;
@@ -155,33 +203,43 @@
         }
         .bonus-item { color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
 
-        /* CONTENT */
+        /* --- CONTENT --- */
         #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .route-box { background: rgba(3, 169, 244, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center; }
-        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; }
-        
+        .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
+        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; line-height: 1.1; margin-bottom: 2px; }
+        .route-progress { font-size: 0.75em; color: var(--text-dim); font-weight: bold; }
         .status-container { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px; margin-bottom: 10px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
-        .status-line { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; color: #ccc; text-transform: uppercase; }
-        .timer-line { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: var(--text-dim); }
-        .timer-line.active { color: var(--green); }
-        .timer-line.urgent { color: var(--red); }
-
+        .status-line { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px; }
+        .timer-line { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: var(--text-dim); line-height: 1; transition: color 0.2s ease; }
+        .timer-line.active { color: var(--green); text-shadow: 0 0 8px rgba(0, 230, 118, 0.4); }
+        .timer-line.urgent { color: var(--red); text-shadow: 0 0 8px rgba(255, 82, 82, 0.6); }
         .section { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .section:last-child { border-bottom: none; }
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
-        
+        .value.bxp { color: var(--green); }
         .progress-container { position: relative; height: 14px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
-        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; font-weight: bold; z-index: 2; }
-
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
+        .xp-remaining-text { text-align: center; font-size: 0.75em; color: var(--text-dim); margin-bottom: 8px; }
+        .xp-remaining-text b { color: var(--primary); }
+        .run-box { background: rgba(79, 195, 247, 0.1); border: 1px solid rgba(79, 195, 247, 0.3); border-radius: 4px; padding: 6px; margin-bottom: 8px; }
+        .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em; }
+        .run-val { font-weight: bold; color: #fff; }
+        .run-label { font-size: 0.8em; color: #aaa; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; text-align: center; }
         .inv-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; border-left: 3px solid var(--text-dim); }
-        .inv-row.low-stock { border-left-color: var(--red); background: rgba(255, 82, 82, 0.1); }
-
-        /* Calculator */
+        .inv-name { font-size: 0.85em; }
+        .inv-stats { font-size: 0.9em; font-weight: bold; text-align: right; }
+        .low-stock { border-left-color: var(--red); background: rgba(255, 82, 82, 0.1); }
         input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 4px; border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em; }
+        input:focus { outline: 1px solid var(--primary); }
+        .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
         .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
-        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; flex: 1; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; }
@@ -190,30 +248,60 @@
 <body>
 
 <div id="tracker-app">
-    <div id="micro-view" onmousedown="dragStart(event)">
+    <div id="micro-view">
         <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="micro-group"><span style="font-size:1.2em">✈️</span><span class="micro-val" id="micro-status">IDLE</span><span class="micro-val" id="micro-timer">--</span></div>
-            <div class="micro-group"><span class="micro-label">To:</span><span class="micro-val" id="micro-dest">--</span></div>
-            <div class="micro-group"><span class="micro-label">🍱</span><span class="micro-val" id="micro-meal">0</span></div>
+            <div class="micro-group">
+                <span style="font-size:1.2em">✈️</span>
+                <span class="micro-val" id="micro-status">IDLE</span>
+                <span class="micro-val" id="micro-timer" style="width:25px; text-align:right;">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">To:</span>
+                <span class="micro-val" id="micro-dest" style="max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">🍱</span>
+                <span class="micro-val" id="micro-meal">0</span>
+            </div>
         </div>
         <div class="micro-row">
-            <div class="micro-group" style="width:100%"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Lvl</span>
+                <span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-bar"></div>
+                </div>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
         </div>
     </div>
 
-    <header id="drag-handle" onmousedown="dragStart(event)">
-        <div class="header-controls"><a href="#" class="nav-icon">🏠</a></div>
+    <header id="drag-handle">
+        <div class="header-controls">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
+        </div>
+        
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <div class="cloud cloud-3"></div>
+        
         <div class="header-title">AIRLINE OPS</div>
         <div id="user-name-fly">Pilot ...</div>
 
-        <div class="menu-container">
-            <button class="burger-btn" onclick="toggleMenu()">☰</button>
-            <div class="dropdown-menu" id="main-menu">
-                <div class="menu-item" onclick="window.toggleMini()">🗖 Mini Mode</div>
-                <div class="menu-item" onclick="toggleGrinder()">📈 Grinder Stats</div>
-                <div class="menu-item" onclick="resetSession()">🔄 Reset Session</div>
+        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <div class="menu-container">
+                <button class="burger-btn" onclick="toggleMenu()">☰</button>
+                <div class="dropdown-menu" id="main-menu">
+                    <div class="menu-item" onclick="window.toggleMini()">🗖 Mini Mode</div>
+                    <div class="menu-item" onclick="toggleGrinder()">📈 Grinder Stats</div>
+                    <div class="menu-item" onclick="resetSession()">🔄 Reset Session</div>
+                </div>
             </div>
+            <span id="clock">00:00</span>
         </div>
     </header>
 
@@ -224,23 +312,23 @@
         </div>
 
         <div class="stat-row">
-            <span class="label">Session Earned</span>
+            <span class="label" style="color:#ccc">Session Earned</span>
             <span class="stat-val gold" id="g-session">0</span>
         </div>
         <div class="stat-row">
-            <span class="label">Avg Per Flight</span>
+            <span class="label" style="color:#ccc">Avg Per Flight</span>
             <span class="stat-val" id="g-avg">0</span>
         </div>
         <div class="stat-row">
-            <span class="label">Est. Per Hour</span>
-            <span class="stat-val highlight" id="g-ph">0</span>
+            <span class="label" style="color:#ccc">Est. Per Hour</span>
+            <span class="stat-val green" id="g-ph">0</span>
         </div>
         <div class="stat-row">
-            <span class="label">Start Balance</span>
+            <span class="label" style="color:#ccc">Start Balance</span>
             <span class="stat-val" id="g-start">0</span>
         </div>
 
-        <div class="grinder-header" style="margin-top:15px; color:var(--primary)">
+        <div class="grinder-header" style="margin-top:15px; color:var(--primary); border-bottom:1px solid #444;">
             <span>ACTIVE BONUSES</span>
         </div>
         <div class="bonus-list" id="bonus-container">
@@ -253,10 +341,10 @@
     </div>
 
     <div id="content">
-        <div class="route-box">
-            <div style="font-size:0.6em; color:var(--accent);">DESTINATION</div>
+        <div class="route-box" id="route-box">
+            <div class="route-label">Current Destination</div>
             <div class="route-name" id="disp-route-name">Waiting for route...</div>
-            <div style="font-size:0.75em; color:#aaa;" id="disp-dist">Dist: -/-</div>
+            <div class="route-progress" id="disp-dist">Dist: -/-</div>
         </div>
 
         <div class="status-container">
@@ -266,61 +354,108 @@
 
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div><div class="label">Pilot Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
-                <div style="text-align:right;"><div class="label">XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
+                <div><div class="label">Airline Pilot Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
             </div>
+
             <div class="progress-container">
                 <div class="progress-bar" id="level-bar"></div>
-                <div class="progress-text" id="level-text">0%</div>
+                <div class="progress-text" id="level-text">Waiting for data...</div>
             </div>
-            <div class="xp-remaining-text" id="disp-xp-remaining" style="text-align:center; font-size:0.75em; color:#aaa; margin-bottom:5px;"></div>
+            
+            <div class="xp-remaining-text" id="disp-xp-remaining">Start a flight...</div>
+
+            <div class="run-box">
+                <div style="border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:5px; padding-bottom:3px; color:var(--primary); font-size:0.85em; font-weight:bold; letter-spacing:1px;">SESSION TRACKER</div>
+                <div class="run-grid">
+                    <div>
+                        <div class="run-label">Session XP Gain</div>
+                        <div class="run-val" id="disp-session-xp" style="color:var(--green)">0 XP</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div class="run-label">Avg XP / Flight</div>
+                        <div class="run-val" id="disp-xp-drop">0 XP</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-box"><div class="label">Bonus XP</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Flights Done</div><div class="value" id="disp-drops" style="color:var(--accent)">0</div></div>
+                <div class="stat-box"><div class="label">Tokens</div><div class="value" id="disp-tokens" style="color:var(--accent)">0</div></div>
+            </div>
         </div>
 
         <div class="section">
-            <div class="label">Inventory</div>
+            <div class="label">Galley Supplies</div>
             <div class="inv-row" id="row-meal">
-                <div style="font-size:0.85em">🍱 Airline Meals</div>
-                <div style="font-weight:bold" id="stock-meal">0</div>
+                <div class="inv-name">🍱 Airline Meals</div>
+                <div class="inv-stats">
+                    Stock: <span id="stock-meal">0</span>
+                </div>
             </div>
         </div>
 
         <div class="section" style="border:none;">
-            <div class="label">Calculator</div>
-            <input type="number" id="target-input" placeholder="Target XP">
+            <div class="label">Flight Calculator</div>
+            <input type="number" id="target-input" placeholder="e.g. 500000">
+            
             <div class="quick-btn-row">
                 <button class="quick-btn" onclick="window.setCalc(100000)">100K</button>
                 <button class="quick-btn" onclick="window.setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="window.setCalc(10000000)">10M</button>
             </div>
-            <div class="calc-output" id="calc-result"></div>
+
+            <div class="calc-output" id="calc-result">Complete 1 flight to calibrate...</div>
         </div>
     </div>
-
-    <div id="resize-handle"></div>
+    
+    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
 
 <script>
-// --- CONFIGURATION ---
+// --- STATE ---
+let SESSION_START_TIME = Date.now();
 const JOB_EXP_KEY = "exp_piloting_piloting";
-const JOB_BXP_KEY_TOKEN = "exp_token_a|piloting|piloting"; // Bonus Pool
-const JOB_BXP_KEY_PHYSICAL = "exp_token|piloting|piloting"; // Item Token
+const JOB_BXP_KEY_BONUS = "exp_token_a|piloting|piloting"; 
+const JOB_BXP_KEY_TOKEN = "exp_token|piloting|piloting"; 
 const ITEM_MEAL = "fridge_airline_meal";
 
-const STORAGE_KEY_CALC = "tt_air_calc_v1";
-const STORAGE_KEY_MINI = "tt_air_mini_v1";
+const STORAGE_KEY_CALC = "target_xp_airline"; 
+const STORAGE_KEY_MINI = "mini_mode_airline";
 
-// --- STATE ---
-const STATE = {
-    currentXP: 0, startXP: null,
-    startTokens: null, currentTokens: 0,
-    runs: 0,
-    startTime: Date.now(),
-    isDeboarding: false
+let routeResetTimeout = null;
+let TRUNK_KEY = null;
+
+const MEMORY = { inventory: {}, trunk: {} };
+const STATE = { 
+    currentXP: 0, startXP: 0, sessionGain: 0, completedRuns: 0, avgXP: 0,
+    isDeboarding: false,
+    startTokens: null, currentTokens: 0
 };
 
-// --- UI HELPERS ---
+// --- INIT ---
+const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
+if (savedTarget) document.getElementById('target-input').value = savedTarget;
+
+const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
+if (savedMini === "true") {
+    document.getElementById('tracker-app').classList.add('mini-mode');
+}
+
+// --- UI FUNCTIONS ---
+window.toggleMini = function() {
+    const app = document.getElementById('tracker-app');
+    app.classList.toggle('mini-mode');
+    const isMini = app.classList.contains('mini-mode');
+    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+    document.getElementById('main-menu').classList.remove('show'); // Close menu
+};
+
 function toggleMenu() {
     document.getElementById('main-menu').classList.toggle('show');
 }
+
 // Close menu when clicking outside
 window.onclick = function(e) {
     if (!e.target.matches('.burger-btn')) {
@@ -336,141 +471,191 @@ function toggleGrinder() {
 function resetSession() {
     STATE.startXP = STATE.currentXP;
     STATE.startTokens = STATE.currentTokens;
-    STATE.runs = 0;
-    STATE.startTime = Date.now();
+    STATE.sessionGain = 0;
+    STATE.completedRuns = 0;
+    STATE.avgXP = 0;
+    SESSION_START_TIME = Date.now();
     document.getElementById('main-menu').classList.remove('show');
-    updateGrinderUI(0);
+    updateGrinderUI(STATE.currentTokens);
+    renderStats();
 }
 
-window.toggleMini = function() {
-    const app = document.getElementById('tracker-app');
-    app.classList.toggle('mini-mode');
-    const isMini = app.classList.contains('mini-mode');
-    localStorage.setItem(STORAGE_KEY_MINI, isMini);
-    document.getElementById('main-menu').classList.remove('show');
-};
-
-const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
-if (savedMini === "true") document.getElementById('tracker-app').classList.add('mini-mode');
-
-const savedCalc = localStorage.getItem(STORAGE_KEY_CALC);
-if (savedCalc) document.getElementById('target-input').value = savedCalc;
-
-window.setCalc = function(val) {
-    document.getElementById('target-input').value = val;
+window.setCalc = function(amount) {
+    document.getElementById('target-input').value = amount;
     runCalculator();
 };
 
-// --- DATA ENGINE ---
+const nameEl = document.getElementById('user-name-fly');
+function startNameCycle() {
+    nameEl.style.animation = 'none'; nameEl.offsetHeight; 
+    nameEl.style.animation = 'flyCycle 15s linear infinite'; 
+}
+startNameCycle();
+
+setInterval(() => {
+    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}, 1000);
+
+// --- ENGINE ---
+function requestData() {
+    if(window.parent) {
+        try { 
+            let keys = [
+                JOB_EXP_KEY, JOB_BXP_KEY_BONUS, JOB_BXP_KEY_TOKEN,
+                "status", "inventory", "chest", "trunkCapacity", "trunkWeight", "name", "vehicle", "menu_choices"
+            ];
+            if(TRUNK_KEY) keys.push(TRUNK_KEY);
+            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+            window.parent.postMessage({ type: "getData" }, "*"); 
+        } catch(e) {}
+    }
+}
+setInterval(requestData, 1000); 
+
 window.addEventListener('message', (event) => {
-    let d = event.data;
-    if (d && d.type === 'data' && d.data) d = d.data;
-    if (!d) return;
+    let payload = event.data;
+    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
+    if (!payload) return;
+    processPayload(payload);
+});
 
-    // 1. Status Parsing (Flight State)
-    if (d.status) {
+function processPayload(data) {
+    if (data.name) document.getElementById('user-name-fly').innerText = "Pilot " + data.name;
+
+    // 1. STATUS & FLIGHT LOGIC
+    if (data.status) {
         try {
-            let statusData = (typeof d.status === 'string') ? JSON.parse(d.status) : d.status;
-            let lines = statusData.lines || [];
-            
-            if (lines[0]) {
-                let clean = lines[0].replace(/~[a-z]~/g, "").replace("Status:", "").trim();
-                let timer = clean.match(/\((\d+)\s*s\)/i);
+            let statusData = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
+            if (statusData && statusData.lines) {
+                let lines = statusData.lines;
                 
-                // Flight counting logic
-                if (clean.toUpperCase().includes("DE-BOARDING")) STATE.isDeboarding = true;
-                else if (STATE.isDeboarding) {
-                    STATE.runs++;
-                    STATE.isDeboarding = false;
+                if (lines[0]) {
+                    let cleanStatus = cleanString(lines[0]).replace("Status:", "").replace(/\(\d+\s*seconds?\)/i, "").trim();
+                    let timerMatch = cleanString(lines[0]).match(/\((\d+)\s*seconds?\)/i);
+                    
+                    document.getElementById('disp-status').innerText = cleanStatus || "ACTIVE";
+                    document.getElementById('micro-status').innerText = cleanStatus || "ACTIVE";
+
+                    let timerEl = document.getElementById('disp-timer');
+                    let microTimer = document.getElementById('micro-timer');
+                    if (timerMatch) {
+                        let sec = parseInt(timerMatch[1]);
+                        timerEl.innerText = sec + "s";
+                        microTimer.innerText = sec + "s";
+                        let urgentClass = (sec <= 10) ? "urgent" : "active";
+                        timerEl.className = `timer-line ${urgentClass}`;
+                    } else {
+                        timerEl.innerText = "--";
+                        microTimer.innerText = "--";
+                        timerEl.className = "timer-line";
+                    }
+
+                    const statusUpper = cleanStatus.toUpperCase();
+                    if (statusUpper.includes("DE-BOARDING") || statusUpper.includes("DEBOARDING")) {
+                         STATE.isDeboarding = true; 
+                    } else {
+                        if (STATE.isDeboarding === true) {
+                            STATE.completedRuns++;
+                            STATE.isDeboarding = false; 
+                            updateAverages();
+                        }
+                    }
                 }
 
-                document.getElementById('disp-status').innerText = clean.split('(')[0].trim();
-                document.getElementById('micro-status').innerText = clean.split('(')[0].trim().substring(0, 8);
-                
-                if(timer) {
-                    document.getElementById('disp-timer').innerText = timer[1] + "s";
-                    document.getElementById('micro-timer').innerText = timer[1] + "s";
-                } else {
-                    document.getElementById('disp-timer').innerText = "--";
-                    document.getElementById('micro-timer').innerText = "";
+                if (lines[1]) {
+                    let destLine = cleanString(lines[1]).replace("Destination:", "").trim();
+                    document.getElementById('disp-route-name').innerText = destLine;
+                    document.getElementById('micro-dest').innerText = destLine.substring(0, 18);
+                }
+
+                if (lines[2]) {
+                    let distLine = cleanString(lines[2]).replace("Distance to destination:", "").trim();
+                    document.getElementById('disp-dist').innerText = "Dist: " + distLine;
                 }
             }
-            if (lines[1]) {
-                let dest = lines[1].replace(/~[a-z]~/g, "").replace("Destination:", "").trim();
-                document.getElementById('disp-route-name').innerText = dest;
-                document.getElementById('micro-dest').innerText = dest.substring(0, 10);
+        } catch (e) {}
+    }
+
+    // 2. XP LOGIC
+    let currentXP = data[JOB_EXP_KEY];
+    if (typeof currentXP === 'number') {
+        if (STATE.startXP === 0) { STATE.startXP = currentXP; STATE.currentXP = currentXP; } 
+        else { STATE.currentXP = currentXP; STATE.sessionGain = currentXP - STATE.startXP; updateAverages(); }
+        renderStats();
+    }
+
+    // 3. INVENTORY LOGIC
+    let currentVeh = data.vehicle ? data.vehicle.trim().toLowerCase() : "";
+    if (currentVeh && (!TRUNK_KEY || !TRUNK_KEY.includes(currentVeh))) {
+        for (let key in data) {
+            if (key.startsWith("chest_") && key.includes(currentVeh)) {
+                TRUNK_KEY = key; break;
             }
-            if (lines[2]) {
-                document.getElementById('disp-dist').innerText = lines[2].replace(/~[a-z]~/g, "");
+        }
+    }
+    
+    if(data.inventory) {
+        try { let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; if(inv) MEMORY.inventory = inv; } catch(e){}
+    }
+    if(TRUNK_KEY && data[TRUNK_KEY]) {
+        try { 
+            let trunkData = data[TRUNK_KEY];
+            if (trunkData && trunkData !== "") {
+                let trunk = (typeof trunkData === 'string') ? JSON.parse(trunkData) : trunkData; 
+                if(trunk) MEMORY.trunk = trunk; 
             }
-        } catch(e){}
+        } catch(e) {}
     }
+    
+    let totalMeals = 0;
+    if(MEMORY.inventory[ITEM_MEAL]) totalMeals += (MEMORY.inventory[ITEM_MEAL].amount || MEMORY.inventory[ITEM_MEAL] || 0);
+    if(MEMORY.trunk[ITEM_MEAL]) totalMeals += (MEMORY.trunk[ITEM_MEAL].amount || MEMORY.trunk[ITEM_MEAL] || 0);
+    
+    const mealEl = document.getElementById('stock-meal');
+    const mealRow = document.getElementById('row-meal');
+    mealEl.innerText = totalMeals;
+    document.getElementById('micro-meal').innerText = totalMeals;
+    if(totalMeals < 5) mealRow.className = "inv-row low-stock";
+    else mealRow.className = "inv-row";
 
-    // 2. XP & Level
-    let xp = d[JOB_EXP_KEY];
-    if (typeof xp === 'number') {
-        if (STATE.startXP === null) STATE.startXP = xp;
-        STATE.currentXP = xp;
+    // 4. BXP & TOKENS (Bonus = Inventory or direct Key)
+    let bxp = data[JOB_BXP_KEY_BONUS];
+    if (!bxp && MEMORY.inventory) bxp = MEMORY.inventory[JOB_BXP_KEY_BONUS];
+    if (bxp) {
+        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
+        document.getElementById('disp-bxp').innerText = formatNumber(val);
         
-        let lvl = getLevelInfo(xp);
-        let pct = Math.min(100, Math.max(0, ((lvl.expInLevel / lvl.expForNext) * 100))).toFixed(1);
-        
-        document.getElementById('disp-level').innerText = lvl.level;
-        document.getElementById('micro-level').innerText = lvl.level;
-        document.getElementById('disp-xp').innerText = formatNumber(xp);
-        document.getElementById('level-bar').style.width = pct + "%";
-        document.getElementById('level-text').innerText = pct + "%";
-        document.getElementById('micro-bar').style.width = pct + "%";
-        
-        let needed = Math.round(lvl.expForNext - lvl.expInLevel);
-        document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
-        
-        runCalculator();
-    }
-
-    // 3. Grinder Stats (Tokens)
-    let tokens = d[JOB_BXP_KEY_BONUS]; // Pool
-    if(!tokens) tokens = d[JOB_BXP_KEY_PHYSICAL]; // Item
-    // Check inventory if not in root
-    if (!tokens && d.inventory) {
-        try {
-            let inv = JSON.parse(d.inventory);
-            tokens = inv[JOB_BXP_KEY_BONUS] || inv[JOB_BXP_KEY_PHYSICAL];
-        } catch(e){}
-    }
-
-    if (tokens) {
-        let val = (typeof tokens === 'object') ? tokens.amount : tokens;
+        // GRINDER LOGIC
         if(STATE.startTokens === null) STATE.startTokens = val;
         STATE.currentTokens = val;
         updateGrinderUI(val);
     }
 
-    // 4. Inventory (Meals)
-    let meals = 0;
-    // Check main inv + trunk logic would go here similar to prev versions
-    // Simplified for this snippet:
-    if(d.inventory) {
-        try {
-            let inv = JSON.parse(d.inventory);
-            let m = inv[ITEM_MEAL];
-            if(m) meals += (m.amount || m);
-        } catch(e){}
+    let tokens = data[JOB_BXP_KEY_TOKEN];
+    if (!tokens && MEMORY.inventory) tokens = MEMORY.inventory[JOB_BXP_KEY_TOKEN];
+    if (tokens) {
+        let val = (typeof tokens === 'object') ? tokens.amount : tokens;
+        let txt = formatNumber(val);
+        document.getElementById('disp-tokens').innerText = txt;
+        document.getElementById('micro-tokens').innerText = txt;
+    } else {
+        document.getElementById('disp-tokens').innerText = "0";
+        document.getElementById('micro-tokens').innerText = "0";
     }
-    document.getElementById('stock-meal').innerText = meals;
-    document.getElementById('micro-meal').innerText = meals;
-    if(meals < 5) document.getElementById('row-meal').classList.add('low-stock');
-    else document.getElementById('row-meal').classList.remove('low-stock');
 
-    // 5. Active Bonus Scan
-    if (d.menu_choices) {
+    // 5. BONUS SCAN
+    if (data.menu_choices) {
         try {
-            let menu = JSON.parse(d.menu_choices);
+            let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
             let identityHtml = menu.find(m => m[0] === "Identity")?.[1];
             if (identityHtml) parseBonuses(identityHtml);
         } catch(e) {}
     }
-});
+}
+
+function updateAverages() {
+    if (STATE.completedRuns > 0) STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
+}
 
 function updateGrinderUI(currentVal) {
     let earned = currentVal - STATE.startTokens;
@@ -479,10 +664,11 @@ function updateGrinderUI(currentVal) {
     document.getElementById('g-session').innerText = formatNumber(earned);
     document.getElementById('g-start').innerText = formatNumber(STATE.startTokens);
 
-    let avg = STATE.runs > 0 ? Math.round(earned / STATE.runs) : 0;
+    // Calc avg per run (using flight runs)
+    let avg = STATE.completedRuns > 0 ? Math.round(earned / STATE.completedRuns) : 0;
     document.getElementById('g-avg').innerText = formatNumber(avg);
 
-    let mins = (Date.now() - STATE.startTime) / 60000;
+    let mins = (Date.now() - SESSION_START_TIME) / 60000;
     if(mins > 1) {
         let ph = Math.round((earned / mins) * 60);
         document.getElementById('g-ph').innerText = formatNumber(ph);
@@ -491,7 +677,6 @@ function updateGrinderUI(currentVal) {
 
 function parseBonuses(html) {
     const container = document.getElementById('bonus-container');
-    // Only update if content changed to prevent flicker, logic omitted for brevity
     container.innerHTML = ""; 
     const lines = html.split('<br/>');
     let found = false;
@@ -508,16 +693,53 @@ function parseBonuses(html) {
     if (!found) container.innerHTML = "<div style='opacity:0.5;font-size:0.8em'>No active bonuses found.</div>";
 }
 
-function getLevelInfo(exp) {
-    let level = 0, xpCap = 5;
-    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
-    return { level, expInLevel: exp, expForNext: xpCap };
+function cleanString(str) {
+    if (!str) return "";
+    return str.replace(/~[a-z]~/g, "").trim();
+}
+
+function renderStats() {
+    const lvl = getLevelInfo(STATE.currentXP);
+    const xpText = formatNumber(STATE.currentXP);
+    
+    document.getElementById('disp-xp').innerText = xpText;
+    document.getElementById('micro-xp').innerText = xpText;
+    
+    document.getElementById('disp-level').innerText = lvl.level;
+    document.getElementById('micro-level').innerText = lvl.level;
+    
+    const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
+    document.getElementById('level-bar').style.width = pct + "%";
+    document.getElementById('level-text').innerText = pct + "%";
+    
+    document.getElementById('micro-bar').style.width = pct + "%";
+
+    document.getElementById('disp-session-xp').innerText = formatNumber(STATE.sessionGain) + " XP";
+    document.getElementById('disp-xp-drop').innerText = Math.round(STATE.avgXP) + " XP";
+    
+    document.getElementById('disp-drops').innerText = STATE.completedRuns;
+
+    const needed = Math.round(lvl.expForNext - lvl.expInLevel);
+    document.getElementById('disp-xp-remaining').innerHTML = `<b>${formatNumber(needed)}</b> XP to Next Level`;
+    document.getElementById('micro-calc').innerText = formatNumber(needed);
+
+    runCalculator();
 }
 
 function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
     if (num >= 1000) return (num / 1000).toFixed(1) + "K";
     return num.toLocaleString();
+}
+
+function getLevelInfo(exp) {
+    let level = 0, xpCap = 5;
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    return { level, expInLevel: exp, expForNext: xpCap };
+}
+
+function getPercentValue(exp, cap) {
+    return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
 }
 
 function runCalculator() {
@@ -536,29 +758,26 @@ function runCalculator() {
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
-        el.innerHTML = `Need: <b>${formatNumber(diff)} XP</b>`;
+        const avgDrop = (STATE.avgXP > 0) ? STATE.avgXP : 1; 
+        const estDrops = Math.ceil(diff / avgDrop);
+        el.innerHTML = `Need: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(estDrops)}</b></span>`;
     } else {
         el.innerHTML = `Target Reached!`;
     }
 }
 
-// Request Data Loop
-setInterval(() => {
-    if(window.parent) window.parent.postMessage({ type: "getData" }, "*");
-}, 1000);
-
-// Drag Logic
+// Drag & Resize Logic
 const elm = document.getElementById("tracker-app");
 const head = document.getElementById("drag-handle");
-const micro = document.getElementById("micro-view");
+const microView = document.getElementById("micro-view");
 let isDragging = false, startX, startY, initLeft, initTop;
 
 const startDrag = (e) => {
     if(e.target.closest('button') || e.target.closest('input') || e.target.closest('a')) return;
     e.preventDefault(); isDragging = true;
     startX = e.clientX; startY = e.clientY;
-    initLeft = elm.getBoundingClientRect().left;
-    initTop = elm.getBoundingClientRect().top;
+    const r = elm.getBoundingClientRect();
+    initLeft = r.left; initTop = r.top;
     document.addEventListener("mousemove", dragMove);
     document.addEventListener("mouseup", dragEnd);
 };
@@ -573,9 +792,8 @@ const dragEnd = () => {
     document.removeEventListener("mouseup", dragEnd);
 };
 head.addEventListener("mousedown", startDrag);
-micro.addEventListener("mousedown", startDrag);
+microView.addEventListener("mousedown", startDrag);
 
-// Resize Logic
 const rh = document.getElementById('resize-handle');
 rh.addEventListener('mousedown', (e) => {
     e.preventDefault();
