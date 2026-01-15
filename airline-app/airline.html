@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Airline Ops v1.3</title>
+    <title>TT Airline Ops v1.4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -46,23 +46,33 @@
             min-height: 250px;
         }
 
-        /* --- MINI MODE --- */
+        /* --- MINI MODE (RESTORED TO ORIGINAL SPEC) --- */
         #tracker-app.mini-mode {
-            width: 420px !important; height: 74px !important;
-            min-height: 74px !important; border-radius: 12px;
-            background: var(--bg-dark); border: 1px solid var(--primary);
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: var(--bg-dark);
+            border: 1px solid var(--primary);
+            resize: none;
         }
+
         #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #sky-container, 
         #tracker-app.mini-mode #content,
         #tracker-app.mini-mode #grinder-panel { display: none !important; }
 
         #micro-view {
-            display: none; flex-direction: column; justify-content: center;
-            height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
 
+        /* Mini Mode Rows */
         .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
         .micro-group { display: flex; align-items: center; gap: 8px; }
         .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
@@ -84,7 +94,6 @@
         .micro-btn:hover { background: var(--primary); color: white; }
 
         /* --- HEADER --- */
-        /* Z-INDEX 60: Keeps Header ON TOP of the Grinder Panel */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
             height: 65px; padding: 0 10px; cursor: move; position: relative;
@@ -160,7 +169,6 @@
         .menu-item:last-child { border-bottom: none; }
 
         /* --- GRINDER PANEL (Overlay) --- */
-        /* Z-INDEX 50: Lower than Header (60), so it slides 'under' the menu button */
         #grinder-panel {
             position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px);
             background: rgba(10, 15, 20, 0.98); z-index: 50; display: none;
@@ -191,8 +199,9 @@
         /* --- CONTENT --- */
         #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .route-box { background: rgba(3, 169, 244, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center; }
-        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; }
-        
+        .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
+        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; line-height: 1.1; margin-bottom: 2px; }
+        .route-progress { font-size: 0.75em; color: var(--text-dim); font-weight: bold; }
         .status-container { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px; margin-bottom: 10px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
         .status-line { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px; }
         .timer-line { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: var(--text-dim); line-height: 1; transition: color 0.2s ease; }
@@ -234,13 +243,37 @@
 <div id="tracker-app">
     <div id="micro-view" onmousedown="dragStart(event)">
         <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
+        
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="micro-group"><span style="font-size:1.2em">✈️</span><span class="micro-val" id="micro-status">IDLE</span><span class="micro-val" id="micro-timer">--</span></div>
-            <div class="micro-group"><span class="micro-label">To:</span><span class="micro-val" id="micro-dest">--</span></div>
-            <div class="micro-group"><span class="micro-label">🍱</span><span class="micro-val" id="micro-meal">0</span></div>
+            <div class="micro-group">
+                <span style="font-size:1.2em">✈️</span>
+                <span class="micro-val" id="micro-status">IDLE</span>
+                <span class="micro-val" id="micro-timer" style="width:25px; text-align:right;">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">To:</span>
+                <span class="micro-val" id="micro-dest" style="max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">🍱</span>
+                <span class="micro-val" id="micro-meal">0</span>
+            </div>
         </div>
+
         <div class="micro-row">
-            <div class="micro-group" style="width:100%"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Lvl</span>
+                <span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-bar"></div>
+                </div>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
         </div>
     </div>
 
@@ -304,9 +337,9 @@
 
     <div id="content">
         <div class="route-box" id="route-box">
-            <div style="font-size:0.6em; color:var(--accent);">DESTINATION</div>
+            <div class="route-label">Current Destination</div>
             <div class="route-name" id="disp-route-name">Waiting for route...</div>
-            <div style="font-size:0.75em; color:#aaa;" id="disp-dist">Dist: -/-</div>
+            <div class="route-progress" id="disp-dist">Dist: -/-</div>
         </div>
 
         <div class="status-container">
@@ -496,7 +529,7 @@ function processPayload(data) {
                     let timerMatch = cleanString(lines[0]).match(/\((\d+)\s*seconds?\)/i);
                     
                     document.getElementById('disp-status').innerText = cleanStatus || "ACTIVE";
-                    document.getElementById('micro-status').innerText = cleanStatus || "ACTIVE";
+                    document.getElementById('micro-status').innerText = cleanStatus.split(' ')[0] || "ACTIVE";
 
                     let timerEl = document.getElementById('disp-timer');
                     let microTimer = document.getElementById('micro-timer');
@@ -527,7 +560,7 @@ function processPayload(data) {
                 if (lines[1]) {
                     let destLine = cleanString(lines[1]).replace("Destination:", "").trim();
                     document.getElementById('disp-route-name').innerText = destLine;
-                    document.getElementById('micro-dest').innerText = destLine.substring(0, 18);
+                    document.getElementById('micro-dest').innerText = destLine.substring(0, 10);
                 }
 
                 if (lines[2]) {
