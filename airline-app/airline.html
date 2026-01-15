@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Airline Ops v1.9</title>
+    <title>TT Airline Ops v1.8 Fixed</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -48,19 +48,27 @@
 
         /* --- MINI MODE --- */
         #tracker-app.mini-mode {
-            width: 420px !important; height: 74px !important;
-            min-height: 74px !important; border-radius: 12px;
-            background: var(--bg-dark); border: 1px solid var(--primary);
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: var(--bg-dark);
+            border: 1px solid var(--primary);
             resize: none;
         }
+
         #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #sky-container, 
         #tracker-app.mini-mode #content,
         #tracker-app.mini-mode #grinder-panel { display: none !important; }
 
         #micro-view {
-            display: none; flex-direction: column; justify-content: center;
-            height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
 
@@ -87,18 +95,26 @@
         /* --- HEADER --- */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
-            height: 65px; padding: 0 10px; cursor: move; position: relative;
+            height: 65px; 
+            padding: 0 10px;
+            cursor: move;
+            position: relative;
             display: flex; align-items: flex-start; justify-content: space-between;
             border-bottom: 1px solid rgba(255,255,255,0.15);
-            overflow: visible; padding-top: 5px; 
+            overflow: visible; 
+            padding-top: 5px;
             z-index: 60; 
         }
 
         .header-title {
-            position: absolute; left: 50%; top: 25%; transform: translate(-50%, -50%);
-            font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.2em;
-            text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none; white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;
+            position: absolute; left: 50%; top: 25%;
+            transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
         #user-name-fly {
@@ -636,16 +652,18 @@ function updateGrinderUI(currentVal) {
 
 function parseBonuses(html) {
     const container = document.getElementById('bonus-container');
+    // Regex split by line breaks to handle <br/>, <br />, <br>
     const lines = html.split(/<br\s*\/?>/i);
     let newBonuses = [];
     
     lines.forEach(line => {
-        // Strip HTML tags and decode HTML entities like &#37; to %
-        let tempDiv = document.createElement('div');
-        tempDiv.innerHTML = line;
-        let text = tempDiv.textContent || tempDiv.innerText || "";
+        // Decode HTML entities (e.g., &#37; -> %)
+        let decoded = line.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
         
-        text = text.trim();
+        // Strip tags
+        let text = decoded.replace(/<[^>]*>/g, '').trim();
+        
+        // Filter logic: Allow "Expires" now!
         if (text && (text.includes("Exp Bonus") || text.includes("Premium") || text.includes("Skill of the Day"))) {
             newBonuses.push(text);
         }
@@ -655,7 +673,7 @@ function parseBonuses(html) {
         MEMORY.bonuses = newBonuses;
         renderBonuses();
     } else if (MEMORY.bonuses.length > 0) {
-        renderBonuses(); // Keep old if new scan fails
+        renderBonuses(); // Keep old
     } else {
         container.innerHTML = "<div style='opacity:0.5;font-size:0.8em'>Open 'Identity' menu in-game to scan...</div>";
     }
