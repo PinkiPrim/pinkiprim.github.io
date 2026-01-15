@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Airline Ops v1.2</title>
+    <title>TT Airline Ops v1.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Airline Theme - Original Colors */
+            /* Airline Theme */
             --primary: #03a9f4; 
             --primary-dim: #0277bd;
             --bg-glass: rgba(18, 18, 18, 0.95);
+            --bg-dark: rgba(10, 10, 10, 0.98);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
             --border: 1px solid rgba(3, 169, 244, 0.3);
@@ -18,7 +19,7 @@
             --orange: #ff9800;
             --red: #ff5252;
             --accent: #81d4fa;
-            --gold: #ffd700; /* Added for Grinder */
+            --gold: #ffd700; 
         }
 
         body {
@@ -42,32 +43,23 @@
             display: flex; flex-direction: column;
             overflow: hidden;
             transition: width 0.2s ease, height 0.2s ease;
-            min-height: 200px;
+            min-height: 250px;
         }
 
         /* --- MINI MODE --- */
         #tracker-app.mini-mode {
-            width: 420px !important;
-            height: 74px !important;
-            min-height: 74px !important;
-            border-radius: 12px;
-            background: rgba(10, 10, 10, 0.98);
-            border: 1px solid var(--primary);
+            width: 420px !important; height: 74px !important;
+            min-height: 74px !important; border-radius: 12px;
+            background: var(--bg-dark); border: 1px solid var(--primary);
         }
-
         #tracker-app.mini-mode header, 
         #tracker-app.mini-mode #sky-container, 
         #tracker-app.mini-mode #content,
         #tracker-app.mini-mode #grinder-panel { display: none !important; }
 
         #micro-view {
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            height: 100%;
-            padding: 0 12px;
-            font-family: 'Rajdhani', sans-serif;
-            cursor: move;
+            display: none; flex-direction: column; justify-content: center;
+            height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
 
@@ -92,31 +84,23 @@
         .micro-btn:hover { background: var(--primary); color: white; }
 
         /* --- HEADER --- */
+        /* Z-INDEX 60: Keeps Header ON TOP of the Grinder Panel */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(3, 169, 244, 0.2));
-            height: 65px; 
-            padding: 0 10px;
-            cursor: move;
-            position: relative;
+            height: 65px; padding: 0 10px; cursor: move; position: relative;
             display: flex; align-items: flex-start; justify-content: space-between;
             border-bottom: 1px solid rgba(255,255,255,0.15);
-            overflow: visible; /* Changed from hidden to visible for Dropdown */
-            padding-top: 5px;
-            z-index: 20;
+            overflow: visible; padding-top: 5px; 
+            z-index: 60; 
         }
 
         .header-title {
-            position: absolute; left: 50%; top: 25%;
-            transform: translate(-50%, -50%);
-            font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; font-size: 1.2em;
-            text-transform: uppercase; letter-spacing: 2px;
-            color: #fff; pointer-events: none; white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 10;
+            position: absolute; left: 50%; top: 25%; transform: translate(-50%, -50%);
+            font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.2em;
+            text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none; white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;
         }
 
-        /* Original Animation */
         #user-name-fly {
             position: absolute; top: 38px; left: -150px;
             font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.95em;
@@ -176,6 +160,7 @@
         .menu-item:last-child { border-bottom: none; }
 
         /* --- GRINDER PANEL (Overlay) --- */
+        /* Z-INDEX 50: Lower than Header (60), so it slides 'under' the menu button */
         #grinder-panel {
             position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px);
             background: rgba(10, 15, 20, 0.98); z-index: 50; display: none;
@@ -206,9 +191,8 @@
         /* --- CONTENT --- */
         #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
         .route-box { background: rgba(3, 169, 244, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center; }
-        .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
-        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; line-height: 1.1; margin-bottom: 2px; }
-        .route-progress { font-size: 0.75em; color: var(--text-dim); font-weight: bold; }
+        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; }
+        
         .status-container { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px; margin-bottom: 10px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
         .status-line { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px; }
         .timer-line { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: var(--text-dim); line-height: 1; transition: color 0.2s ease; }
@@ -222,7 +206,7 @@
         .value.bxp { color: var(--green); }
         .progress-container { position: relative; height: 14px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
-        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; font-weight: bold; z-index: 2; }
         .xp-remaining-text { text-align: center; font-size: 0.75em; color: var(--text-dim); margin-bottom: 8px; }
         .xp-remaining-text b { color: var(--primary); }
         .run-box { background: rgba(79, 195, 247, 0.1); border: 1px solid rgba(79, 195, 247, 0.3); border-radius: 4px; padding: 6px; margin-bottom: 8px; }
@@ -239,7 +223,7 @@
         input:focus { outline: 1px solid var(--primary); }
         .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
         .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
-        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; flex: 1; }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; }
@@ -248,42 +232,20 @@
 <body>
 
 <div id="tracker-app">
-    <div id="micro-view">
+    <div id="micro-view" onmousedown="dragStart(event)">
         <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="micro-group">
-                <span style="font-size:1.2em">✈️</span>
-                <span class="micro-val" id="micro-status">IDLE</span>
-                <span class="micro-val" id="micro-timer" style="width:25px; text-align:right;">--</span>
-            </div>
-            <div class="micro-group">
-                <span class="micro-label">To:</span>
-                <span class="micro-val" id="micro-dest" style="max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">--</span>
-            </div>
-            <div class="micro-group">
-                <span class="micro-label">🍱</span>
-                <span class="micro-val" id="micro-meal">0</span>
-            </div>
+            <div class="micro-group"><span style="font-size:1.2em">✈️</span><span class="micro-val" id="micro-status">IDLE</span><span class="micro-val" id="micro-timer">--</span></div>
+            <div class="micro-group"><span class="micro-label">To:</span><span class="micro-val" id="micro-dest">--</span></div>
+            <div class="micro-group"><span class="micro-label">🍱</span><span class="micro-val" id="micro-meal">0</span></div>
         </div>
         <div class="micro-row">
-            <div class="micro-group" style="min-width: 90px;">
-                <span class="micro-label">Lvl</span>
-                <span class="micro-val highlight" id="micro-level">0</span>
-                <div class="micro-progress-bg">
-                    <div class="micro-progress-fill" id="micro-bar"></div>
-                </div>
-            </div>
-            <div class="micro-sep"></div>
-            <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
-            <div class="micro-sep"></div>
-            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
+            <div class="micro-group" style="width:100%"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
         </div>
     </div>
 
-    <header id="drag-handle">
-        <div class="header-controls">
-            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
-        </div>
+    <header id="drag-handle" onmousedown="dragStart(event)">
+        <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
         
         <div class="cloud cloud-1"></div>
         <div class="cloud cloud-2"></div>
@@ -342,9 +304,9 @@
 
     <div id="content">
         <div class="route-box" id="route-box">
-            <div class="route-label">Current Destination</div>
+            <div style="font-size:0.6em; color:var(--accent);">DESTINATION</div>
             <div class="route-name" id="disp-route-name">Waiting for route...</div>
-            <div class="route-progress" id="disp-dist">Dist: -/-</div>
+            <div style="font-size:0.75em; color:#aaa;" id="disp-dist">Dist: -/-</div>
         </div>
 
         <div class="status-container">
