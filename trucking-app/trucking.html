@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Trucking Ops v1</title>
+    <title>TT Trucking Ops (Recipe)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
-    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* Trucking Theme - Deep Orange/Amber */
             --primary: #ff5722; 
             --primary-dim: #bf360c;
             --bg-glass: rgba(20, 10, 5, 0.95);
@@ -18,9 +16,7 @@
             --text-dim: #aaaaaa;
             --border: 1px solid rgba(255, 87, 34, 0.3);
             --green: #00e676;
-            --orange: #ff9800;
             --red: #ff5252;
-            --accent: #ffab91;
             --gold: #ffd700; 
         }
 
@@ -35,8 +31,7 @@
         }
 
         #tracker-app {
-            position: absolute;
-            top: 50px; left: 50px;
+            position: absolute; top: 50px; left: 50px;
             width: 320px;
             background: var(--bg-glass);
             border: var(--border);
@@ -45,7 +40,7 @@
             display: flex; flex-direction: column;
             overflow: hidden;
             transition: width 0.2s ease, height 0.2s ease;
-            min-height: 250px;
+            min-height: 350px; /* Taller for new features */
         }
 
         /* --- MINI MODE --- */
@@ -58,34 +53,26 @@
             border: 1px solid var(--primary);
             resize: none;
         }
-
         #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #content,
-        #tracker-app.mini-mode #grinder-panel { display: none !important; }
+        #tracker-app.mini-mode #manifest-panel,
+        #tracker-app.mini-mode #content { display: none !important; }
 
         #micro-view {
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            height: 100%;
-            padding: 0 10px;
-            font-family: 'Rajdhani', sans-serif;
-            cursor: move;
+            display: none; flex-direction: column; justify-content: center;
+            height: 100%; padding: 0 10px; font-family: 'Rajdhani', sans-serif; cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
 
+        /* Micro Rows */
         .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; gap: 5px; }
         .micro-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
         .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
-        
         .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
         .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
         .micro-val.highlight { color: var(--primary); }
         .micro-val.active { color: var(--green); }
-        
         .micro-progress-bg { width: 50px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
         .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
-
         .micro-btn {
             position: absolute; top: 4px; right: 4px;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
@@ -96,127 +83,71 @@
 
         /* --- HEADER --- */
         header {
-            background: linear-gradient(180deg, var(--primary-dim), rgba(0, 0, 0, 0.5));
-            height: 65px; 
-            padding: 0 10px;
-            cursor: move;
-            position: relative;
-            display: flex; align-items: flex-start; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            overflow: visible; 
-            padding-top: 5px;
-            z-index: 60; 
+            background: linear-gradient(180deg, var(--primary-dim), rgba(0, 0, 0, 0.8));
+            padding: 8px 10px; cursor: move; border-bottom: 1px solid rgba(255,255,255,0.15);
+            display: flex; flex-direction: column; gap: 6px; z-index: 60;
         }
 
-        .header-title {
-            position: absolute; left: 50%; top: 25%;
-            transform: translate(-50%, -50%);
-            font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; font-size: 1.2em;
-            text-transform: uppercase; letter-spacing: 2px;
-            color: #fff; pointer-events: none; white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .header-title { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.2em; text-transform: uppercase; color: #fff; }
+        .mini-toggle-btn { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+        .mini-toggle-btn:hover { background: var(--primary); border-color: var(--primary); }
 
-        #user-name-fly {
-            position: absolute; top: 38px; left: -150px;
-            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.95em;
-            color: #fff; white-space: nowrap; pointer-events: none; z-index: 10;
-            text-shadow: 0 0 5px var(--primary);
+        /* Recipe Controls */
+        .recipe-control { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); 
         }
-
-        @keyframes flyCycle {
-            0% { left: -150px; transform: translateX(0); opacity: 0; }
-            10% { left: 50%; transform: translateX(-50%); opacity: 1; } 
-            90% { left: 50%; transform: translateX(-50%); opacity: 1; }
-            100% { left: 120%; transform: translateX(0); opacity: 0; } 
+        .recipe-label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-right: 5px; }
+        #recipe-select { 
+            background: #222; color: white; border: 1px solid #444; 
+            font-family: 'Rajdhani', sans-serif; font-weight: bold; padding: 2px; border-radius: 3px; cursor: pointer;
         }
+        #active-recipe-display { color: var(--gold); font-weight: bold; font-size: 0.9em; }
 
-        .header-controls { display: flex; gap: 8px; z-index: 30; align-items: center; }
-        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
-        .nav-icon:hover { color: #fff; }
+        /* --- MANIFEST PANEL (Expandable Box) --- */
+        #manifest-panel {
+            position: absolute; top: 90px; left: 0; width: 100%; height: calc(100% - 90px);
+            background: rgba(15, 8, 5, 0.99); z-index: 50; display: none;
+            flex-direction: column; padding: 10px; box-sizing: border-box;
+            border-top: 1px solid var(--primary);
+        }
+        #manifest-panel.active { display: flex; }
+
+        .panel-header { font-family: 'Rajdhani', sans-serif; color: var(--primary); border-bottom: 1px solid #333; margin-bottom: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         
-        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
+        .manifest-list { flex: 1; overflow-y: auto; scrollbar-width: thin; }
+        .manifest-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; }
+        .manifest-name { color: #ccc; }
+        .manifest-count { font-weight: bold; font-family: 'Rajdhani', sans-serif; }
+        .manifest-count.good { color: var(--green); }
+        .manifest-count.bad { color: var(--red); }
 
-        /* BURGER MENU */
-        .menu-container { position: relative; }
-        .burger-btn {
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
-            color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer;
-            font-size: 1.2em; line-height: 1; display: flex; align-items: center; justify-content: center;
-        }
-        .burger-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
+        /* --- MAIN CONTENT --- */
+        #content { padding: 10px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 
-        .dropdown-menu {
-            position: absolute; top: 100%; right: 0; margin-top: 5px;
-            background: #121212; border: 1px solid var(--primary); border-radius: 4px;
-            width: 140px; display: none; flex-direction: column; z-index: 100;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.9);
-        }
-        .dropdown-menu.show { display: flex; }
-        
-        .menu-item {
-            padding: 10px; color: #ccc; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.9em;
-            border-bottom: 1px solid rgba(255,255,255,0.1); transition: 0.2s;
-        }
-        .menu-item:hover { background: var(--primary); color: #000; }
-        .menu-item:last-child { border-bottom: none; }
-
-        /* GRINDER PANEL */
-        #grinder-panel {
-            position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px);
-            background: rgba(15, 10, 5, 0.98); z-index: 50; display: none;
-            flex-direction: column; padding: 15px; box-sizing: border-box;
-            backdrop-filter: blur(5px); overflow-y: auto;
-        }
-        #grinder-panel.active { display: flex; }
-
-        .grinder-header {
-            font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.1em;
-            color: var(--gold); border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px;
-            display: flex; justify-content: space-between;
-        }
-
-        .stat-row {
-            display: flex; justify-content: space-between; margin-bottom: 8px;
-            font-size: 0.9em; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;
-        }
-        .stat-val.gold { color: var(--gold); }
-        .stat-val.green { color: var(--green); }
-        
-        .bonus-list {
-            margin-top: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;
-            font-size: 0.8em; color: #ccc;
-        }
-        .bonus-item { color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
-
-        /* CONTENT */
-        #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
-        .section { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .section:last-child { border-bottom: none; }
+        .section { padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
-        .value.bxp { color: var(--green); }
-        
-        .progress-container { position: relative; height: 14px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Progress Bar */
+        .progress-container { position: relative; height: 14px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
-        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; font-weight: bold; z-index: 2; }
-        
-        .xp-remaining-text { text-align: center; font-size: 0.75em; color: var(--text-dim); margin-bottom: 8px; }
-        .xp-remaining-text b { color: var(--primary); }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; font-weight: bold; z-index: 2; text-shadow: 1px 1px 1px black; }
 
-        .inv-list { margin-top: 5px; }
-        .inv-item { display: flex; justify-content: space-between; font-size: 0.85em; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .inv-item span:last-child { color: var(--primary); font-weight: bold; }
+        /* Buttons */
+        .action-btn { width: 100%; background: rgba(255, 87, 34, 0.2); border: 1px solid var(--primary); color: white; padding: 8px; font-family: 'Rajdhani', sans-serif; font-weight: bold; cursor: pointer; border-radius: 4px; margin-bottom: 5px; transition: 0.2s; }
+        .action-btn:hover { background: var(--primary); color: black; }
 
-        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 4px; border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em; }
-        input:focus { outline: 1px solid var(--primary); }
-        .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
-        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
-        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; flex: 1; }
-        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        /* Stats Grid */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
+        .stat-val { font-weight: bold; font-size: 1.1em; }
+
+        /* Calculator */
+        input[type="number"] { width: 95%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; margin-top: 5px; font-family: inherit; }
+        .calc-result { font-size: 0.8em; color: var(--text-dim); margin-top: 5px; }
 
         #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; }
     </style>
@@ -225,380 +156,320 @@
 
 <div id="tracker-app">
     <div id="micro-view" onmousedown="dragStart(event)">
-        <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
+        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="micro-group"><span style="font-size:1.2em">🚛</span><span class="micro-val highlight">TRUCK OPS</span></div>
-            <div class="micro-group"><span class="micro-label">Status:</span><span class="micro-val" id="micro-status">Active</span></div>
+            <div class="micro-group"><span style="font-size:1.2em">🚛</span><span class="micro-val highlight">RECIPE OPS</span></div>
+            <div class="micro-group"><span class="micro-val" id="micro-recipe">Test 1</span></div>
         </div>
         <div class="micro-row">
-            <div class="micro-group" style="width:100%"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
+            <div class="micro-group" style="width:100%">
+                <span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span>
+                <div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div>
+            </div>
         </div>
         <div class="micro-row" style="padding-top:2px;">
             <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
             <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
-            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
+            <div class="micro-group"><span class="micro-label">Acts:</span><span class="micro-val highlight" id="micro-acts">0</span></div>
         </div>
     </div>
 
     <header id="drag-handle" onmousedown="dragStart(event)">
-        <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
-        <div class="header-title">TRUCKING OPS</div>
-        <div id="user-name-fly">Driver ...</div>
-        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
-            <div class="menu-container">
-                <button class="burger-btn" onclick="toggleMenu()">☰</button>
-                <div class="dropdown-menu" id="main-menu">
-                    <div class="menu-item" onclick="window.toggleMini()">🗖 Mini Mode</div>
-                    <div class="menu-item" onclick="toggleGrinder()">📈 Grinder Stats</div>
-                    <div class="menu-item" onclick="resetSession()">🔄 Reset Session</div>
-                </div>
+        <div class="header-top">
+            <div class="header-title">TRUCKING OPS</div>
+            <button class="mini-toggle-btn" onclick="toggleMini()">MINI</button>
+        </div>
+        
+        <div class="recipe-control">
+            <div style="display:flex; align-items:center;">
+                <span class="recipe-label">Plan:</span>
+                <select id="recipe-select" onmousedown="event.stopPropagation()" onchange="changeRecipe()">
+                    <option value="Test 1">Test 1</option>
+                    <option value="Test 2">Test 2</option>
+                    <option value="Test 3">Test 3</option>
+                </select>
             </div>
-            <span id="clock">00:00</span>
+            <div id="active-recipe-display">Test 1</div>
         </div>
     </header>
 
-    <div id="grinder-panel">
-        <div class="grinder-header">
-            <span>TRUCKING TOKEN TRACKER</span>
-            <span style="color:#aaa; font-size:0.7em">PHYSICAL</span>
+    <div id="manifest-panel">
+        <div class="panel-header">
+            <span>RECIPE MANIFEST</span>
+            <span style="cursor:pointer; font-size:0.8em; color:#ccc;" onclick="toggleManifest()">CLOSE [X]</span>
         </div>
-        <div class="stat-row"><span class="label" style="color:#ccc">Session Earned</span><span class="stat-val gold" id="g-session">0</span></div>
-        <div class="stat-row"><span class="label" style="color:#ccc">AVG Per Hour</span><span class="stat-val" id="g-ph">0</span></div>
-        <div class="stat-row"><span class="label" style="color:#ccc">AVG Per 6h</span><span class="stat-val" id="g-6h">0</span></div>
-        <div class="stat-row"><span class="label" style="color:#ccc">AVG Per 12h</span><span class="stat-val" id="g-12h">0</span></div>
-        <div class="stat-row"><span class="label" style="color:#ccc">AVG Per Day (24h)</span><span class="stat-val" id="g-24h">0</span></div>
-        <div class="stat-row"><span class="label" style="color:#ccc">Start Balance</span><span class="stat-val" id="g-start">0</span></div>
-        
-        <div class="grinder-header" style="margin-top:15px; color:var(--primary); border-bottom:1px solid #444;"><span>ACTIVE BONUSES</span></div>
-        <div class="bonus-list" id="bonus-container"><div style="font-style:italic; opacity:0.5; font-size:0.8em">Open 'Identity' menu...</div></div>
-        
-        <div style="margin-top:auto; text-align:center;"><button class="quick-btn" onclick="toggleGrinder()">CLOSE PANEL</button></div>
+        <div style="font-size:0.75em; color:#aaa; margin-bottom:8px; border-bottom:1px solid #333; padding-bottom:4px;">
+            COMBINED STORAGE (POCKET + TRUNK)
+        </div>
+        <div class="manifest-list" id="manifest-content">
+            <div style="text-align:center; color:#666; margin-top:20px;">Scanning inventory...</div>
+        </div>
     </div>
 
     <div id="content">
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div><div class="label">Trucker Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div><div class="label">Trucking Level</div><div class="value highlight" id="disp-level">0</div></div>
                 <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
             </div>
             <div class="progress-container"><div class="progress-bar" id="level-bar"></div><div class="progress-text" id="level-text">0%</div></div>
-            <div class="xp-remaining-text" id="disp-xp-remaining"></div>
         </div>
 
+        <button class="action-btn" onclick="toggleManifest()">📦 OPEN MANIFEST / TRUNK</button>
+
         <div class="section">
-            <div class="label" style="color:var(--primary); border-bottom:1px solid #333; margin-bottom:4px;">CARGO LOG</div>
-            <div class="inv-list" id="cargo-list">
-                <div style="font-style:italic; color:#666; font-size:0.8em;">No cargo detected.</div>
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="label">Session BXP</div>
+                    <div class="stat-val" style="color:var(--green)" id="disp-session">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Tokens</div>
+                    <div class="stat-val" style="color:var(--gold)" id="disp-tokens">0</div>
+                </div>
             </div>
         </div>
 
         <div class="section" style="border:none;">
-            <div class="label">XP Calculator</div>
-            <input type="number" id="target-input" placeholder="Target XP">
-            <div class="quick-btn-row">
-                <button class="quick-btn" onclick="window.setCalc(100000)">100K</button>
-                <button class="quick-btn" onclick="window.setCalc(1000000)">1M</button>
-                <button class="quick-btn" onclick="window.setCalc(10000000)">10M</button>
+            <div class="label">Target XP Calculator</div>
+            <input type="number" id="target-input" placeholder="Enter Target XP" onmousedown="event.stopPropagation()">
+            <div class="calc-result">
+                Avg XP/Action: <span id="avg-xp" style="color:#fff">0</span><br>
+                Potential Actions: <span id="est-actions" style="color:var(--primary); font-weight:bold; font-size:1.1em;">--</span>
             </div>
-            <div class="calc-output" id="calc-result"></div>
         </div>
     </div>
     
-    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
+    <div id="resize-handle"></div>
 </div>
 
 <script>
-// --- HELPERS ---
+// --- HELPERS (SAFE SET) ---
 function safeSetText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
-function safeSetHTML(id, html) { const el = document.getElementById(id); if(el) el.innerHTML = html; }
-function safeSetClass(id, className) { const el = document.getElementById(id); if(el) el.className = className; }
+function safeSetVal(id, val) { const el = document.getElementById(id); if(el) el.value = val; }
+
+// --- CONFIGURATION (EDIT RECIPES HERE) ---
+const RECIPES = {
+    "Test 1": { "tcargologs": 1, "mechanicals_jumper_cable": 1 },
+    "Test 2": { "defibkit": 1, "jerry_can|DIESEL|Petrol": 1 },
+    "Test 3": { "spaceship_part": 1, "gut_knife_st|0": 1 } 
+};
 
 // --- STATE ---
-let SESSION_START_TIME = Date.now();
-const JOB_EXP_KEY = "exp_trucking_trucking"; 
-// Note: We scan inventory for "exp_token|trucking|trucking" (Physical)
-const JOB_TOKEN_KEY_PHYSICAL = "exp_token|trucking|trucking";
+const JOB_EXP_KEY = "exp_trucking_trucking";
+const JOB_TOKEN_KEY = "exp_token|trucking|trucking"; // Physical
+const JOB_BXP_KEY = "exp_token_a|trucking|trucking"; // Pool
+const STORAGE_KEY_MINI = "tt_truck_recipe_mini";
 
-const STORAGE_KEY_CALC = "tt_truck_calc_v1"; 
-const STORAGE_KEY_MINI = "tt_truck_mini_v1";
-
-const MEMORY = { inventory: {}, bonuses: [] };
-const STATE = { 
-    currentXP: 0, startXP: 0, 
-    startTokens: null, currentTokens: 0 
+let STATE = {
+    currentRecipe: "Test 1",
+    currentXP: 0,
+    startXP: 0,
+    sessionGain: 0,
+    actionCount: 0, // Counts XP ticks
+    inventory: {}, // Merged Inv + Trunk
+    tokens: 0,
+    bxp: 0
 };
 
 // --- INIT ---
-const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
-if (savedTarget) document.getElementById('target-input').value = savedTarget;
-
 const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
 if (savedMini === "true") document.getElementById('tracker-app').classList.add('mini-mode');
+safeSetVal('recipe-select', STATE.currentRecipe);
 
-// --- UI FUNCTIONS ---
-window.toggleMini = function() {
+// --- FUNCTIONS ---
+function toggleMini() {
     const app = document.getElementById('tracker-app');
     app.classList.toggle('mini-mode');
     localStorage.setItem(STORAGE_KEY_MINI, app.classList.contains('mini-mode'));
-    document.getElementById('main-menu').classList.remove('show');
-};
-
-function toggleMenu() { document.getElementById('main-menu').classList.toggle('show'); }
-window.onclick = function(e) { if (!e.target.matches('.burger-btn')) document.getElementById('main-menu').classList.remove('show'); }
-function toggleGrinder() { document.getElementById('grinder-panel').classList.toggle('active'); document.getElementById('main-menu').classList.remove('show'); }
-
-function resetSession() {
-    STATE.startXP = STATE.currentXP;
-    STATE.startTokens = STATE.currentTokens;
-    SESSION_START_TIME = Date.now();
-    document.getElementById('main-menu').classList.remove('show');
-    updateGrinderUI(STATE.currentTokens);
 }
 
-window.setCalc = function(amount) {
-    document.getElementById('target-input').value = amount;
-    runCalculator();
-};
-
-const nameEl = document.getElementById('user-name-fly');
-function startNameCycle() {
-    if(!nameEl) return;
-    nameEl.style.animation = 'none'; nameEl.offsetHeight; 
-    nameEl.style.animation = 'flyCycle 15s linear infinite'; 
+function changeRecipe() {
+    const sel = document.getElementById('recipe-select');
+    STATE.currentRecipe = sel.value;
+    safeSetText('active-recipe-display', sel.value);
+    safeSetText('micro-recipe', sel.value);
+    renderManifest(); 
 }
-startNameCycle();
 
-setInterval(() => {
-    safeSetText('clock', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
-}, 1000);
-
-// --- ENGINE ---
-function requestData() {
-    if(window.parent) {
-        try { 
-            let keys = [ JOB_EXP_KEY, "status", "inventory", "name", "menu_choices" ];
-            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
-            window.parent.postMessage({ type: "getData" }, "*"); 
-        } catch(e) {}
-    }
+function toggleManifest() {
+    const panel = document.getElementById('manifest-panel');
+    panel.classList.toggle('active');
 }
-setInterval(requestData, 1000); 
 
+// --- DATA PROCESSING ---
 window.addEventListener('message', (event) => {
-    let payload = event.data;
-    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
-    if (!payload) return;
-    processPayload(payload);
-});
+    let data = event.data;
+    if (data.type === 'data') data = data.data;
+    if (!data) return;
 
-function processPayload(data) {
-    if (data.name) safeSetText('user-name-fly', "Trucker " + data.name);
-
-    // 1. XP LOGIC
-    let currentXP = data[JOB_EXP_KEY];
-    if (typeof currentXP === 'number') {
-        if (STATE.startXP === 0) { STATE.startXP = currentXP; STATE.currentXP = currentXP; } 
-        else { STATE.currentXP = currentXP; }
+    // 1. XP Logic
+    if (data[JOB_EXP_KEY]) {
+        let xp = data[JOB_EXP_KEY];
+        if (STATE.startXP === 0) { STATE.startXP = xp; STATE.currentXP = xp; }
+        
+        if (xp > STATE.currentXP) {
+            STATE.actionCount++; 
+            STATE.currentXP = xp;
+            STATE.sessionGain = xp - STATE.startXP;
+        }
         renderStats();
     }
 
-    // 2. INVENTORY SCAN (For Tokens & Cargo)
+    // 2. Inventory Merging
+    let mergedInv = {};
+    
+    // Personal
     if (data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
-            
-            // Tokens (Physical)
-            let tokenData = inv[JOB_TOKEN_KEY_PHYSICAL];
-            let currentTok = 0;
-            if(tokenData) currentTok = (typeof tokenData === 'object') ? tokenData.amount : tokenData;
-            
-            if (STATE.startTokens === null) STATE.startTokens = currentTok;
-            STATE.currentTokens = currentTok;
-            safeSetText('micro-tokens', formatNumber(currentTok));
-            updateGrinderUI(currentTok);
-
-            // Cargo Listing
-            renderCargoList(inv);
-
-        } catch(e){}
-    }
-
-    // 3. BONUS SCAN
-    if (data.menu_choices) {
-        try {
-            let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
-            let identityHtml = menu.find(m => m[0] === "Identity")?.[1];
-            if (identityHtml) parseBonuses(identityHtml);
+            for (let key in inv) {
+                let amt = (typeof inv[key] === 'object') ? inv[key].amount : inv[key];
+                mergedInv[key] = (mergedInv[key] || 0) + amt;
+            }
         } catch(e) {}
     }
-}
 
-function renderCargoList(inv) {
-    const list = document.getElementById('cargo-list');
-    if(!list) return;
-    
-    let html = "";
-    let found = false;
-
-    // Filter items: "trucking_" prefix OR known cargo items, BUT NOT "exp_token"
-    for (let key in inv) {
-        if (key.includes("exp_token")) continue; // Skip tokens
-        
-        // Logic: if key starts with "trucking_" OR "tcargologs" etc
-        if (key.startsWith("trucking_") || key === "tcargologs" || key.startsWith("mechanicals_")) {
-            let item = inv[key];
-            let amt = (typeof item === 'object') ? item.amount : item;
-            // Clean name: remove prefix, replace _ with space
-            let name = key.replace("trucking_", "").replace("mechanicals_", "").replace(/_/g, " ").toUpperCase();
-            if(key === "tcargologs") name = "LOGS";
-
-            html += `<div class="inv-item"><span>${name}</span><span>${amt}</span></div>`;
-            found = true;
+    // Trunk/Chest
+    for (let key in data) {
+        if (key.startsWith("chest")) {
+            try {
+                if (data[key] === "none" || !data[key]) continue;
+                let chest = (typeof data[key] === 'string') ? JSON.parse(data[key]) : data[key];
+                for (let itemKey in chest) {
+                    let amt = (typeof chest[itemKey] === 'object') ? chest[itemKey].amount : chest[itemKey];
+                    mergedInv[itemKey] = (mergedInv[itemKey] || 0) + amt;
+                }
+            } catch(e) {}
         }
     }
-
-    if(!found) html = "<div style='font-style:italic; color:#666; font-size:0.8em;'>No cargo loaded.</div>";
-    list.innerHTML = html;
-}
-
-function updateGrinderUI(currentVal) {
-    let earned = currentVal - STATE.startTokens;
-    if(earned < 0) { STATE.startTokens = currentVal; earned = 0; } 
-
-    safeSetText('g-session', formatNumber(earned));
-    safeSetText('g-start', formatNumber(STATE.startTokens));
-
-    let mins = (Date.now() - SESSION_START_TIME) / 60000;
-    if(mins < 1) mins = 1; // Prevent div by zero
-
-    let perMin = earned / mins;
     
-    // Calculate Rates
-    safeSetText('g-ph', formatNumber(Math.round(perMin * 60)));
-    safeSetText('g-6h', formatNumber(Math.round(perMin * 360)));
-    safeSetText('g-12h', formatNumber(Math.round(perMin * 720)));
-    safeSetText('g-24h', formatNumber(Math.round(perMin * 1440)));
-}
-
-function parseBonuses(html) {
-    const lines = html.split(/<br\s*\/?>/i);
-    let newBonuses = [];
-    lines.forEach(line => {
-        let decoded = line.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
-        let text = decoded.replace(/<[^>]*>/g, '').trim();
-        if (text && (text.includes("Exp Bonus") || text.includes("Premium") || text.includes("Skill of the Day"))) {
-            newBonuses.push(text);
-        }
-    });
+    STATE.inventory = mergedInv;
     
-    const container = document.getElementById('bonus-container');
-    if (newBonuses.length > 0) {
-        container.innerHTML = "";
-        newBonuses.forEach(text => {
-            let div = document.createElement('div');
-            div.className = 'bonus-item';
-            div.innerText = "★ " + text;
-            container.appendChild(div);
-        });
+    // Tokens
+    if (mergedInv[JOB_TOKEN_KEY]) STATE.tokens = mergedInv[JOB_TOKEN_KEY];
+    safeSetText('disp-tokens', STATE.tokens.toLocaleString());
+    safeSetText('micro-tokens', STATE.tokens.toLocaleString());
+    safeSetText('disp-session', STATE.sessionGain.toLocaleString());
+    safeSetText('micro-acts', STATE.actionCount);
+    
+    // Update Manifest
+    renderManifest();
+});
+
+function renderManifest() {
+    const list = document.getElementById('manifest-content');
+    if (!list) return;
+
+    list.innerHTML = ""; 
+    const requirements = RECIPES[STATE.currentRecipe];
+    if (!requirements) {
+        list.innerHTML = "<div style='text-align:center;color:#666'>No recipe data.</div>";
+        return;
     }
-}
 
-function cleanString(str) {
-    if (!str) return "";
-    return str.replace(/~[a-z]~/g, "").trim();
+    for (let itemCode in requirements) {
+        let have = STATE.inventory[itemCode] || 0;
+        let niceName = itemCode.replace(/_/g, " ").toUpperCase();
+        // Shorten long names for UI
+        if(niceName.length > 25) niceName = niceName.substring(0, 22) + "...";
+
+        let countClass = (have > 0) ? "good" : "bad";
+
+        let row = document.createElement('div');
+        row.className = 'manifest-item';
+        row.innerHTML = `
+            <span class="manifest-name">${niceName}</span>
+            <span class="manifest-count ${countClass}">x${have}</span>
+        `;
+        list.appendChild(row);
+    }
 }
 
 function renderStats() {
-    const lvl = getLevelInfo(STATE.currentXP);
-    const xpText = formatNumber(STATE.currentXP);
+    // Level Math (Loop method)
+    let xp = STATE.currentXP;
+    let level = 0, xpCap = 5;
+    while (xp >= xpCap) { xp -= xpCap; level++; xpCap = (level + 1) * 5; }
     
-    safeSetText('disp-xp', xpText);
-    safeSetText('micro-xp', xpText);
-    safeSetText('disp-level', lvl.level);
-    safeSetText('micro-level', lvl.level);
+    safeSetText('disp-level', level);
+    safeSetText('micro-level', level);
+    safeSetText('disp-xp', STATE.currentXP.toLocaleString());
+    safeSetText('micro-xp', STATE.currentXP.toLocaleString());
     
-    const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
+    let pct = Math.min(100, Math.max(0, (xp / xpCap) * 100)).toFixed(1);
+    
     const bar = document.getElementById('level-bar');
     if(bar) bar.style.width = pct + "%";
     safeSetText('level-text', pct + "%");
+    
     const mBar = document.getElementById('micro-bar');
     if(mBar) mBar.style.width = pct + "%";
-
-    const needed = Math.round(lvl.expForNext - lvl.expInLevel);
-    safeSetHTML('disp-xp-remaining', `<b>${formatNumber(needed)}</b> XP to Next Level`);
-    safeSetText('micro-calc', formatNumber(needed));
 
     runCalculator();
 }
 
-function formatNumber(num) {
-    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-    return num.toLocaleString();
-}
-
-function getLevelInfo(exp) {
-    let level = 0, xpCap = 5;
-    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
-    return { level, expInLevel: exp, expForNext: xpCap };
-}
-
-function getPercentValue(exp, cap) {
-    return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
-}
-
 function runCalculator() {
-    const inp = document.getElementById('target-input');
-    if(!inp) return;
-    const val = inp.value;
-    const el = document.getElementById('calc-result');
-    localStorage.setItem(STORAGE_KEY_CALC, val);
+    const input = document.getElementById('target-input');
+    if (!input.value) return;
     
-    if (!val) { if(el) el.innerText = ""; return; }
+    let target = parseInt(input.value);
     
-    let inputVal = parseInt(val.replace(/,/g, ''));
-    let targetXP = inputVal;
-    if (inputVal < 200) { 
-         let lvlXP = 0; 
-         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
-         targetXP = (5 * inputVal * (inputVal + 1)) / 2;
+    // Calculate Avg XP per Action
+    let avg = 0;
+    if (STATE.actionCount > 0) {
+        avg = Math.round(STATE.sessionGain / STATE.actionCount);
     }
+    
+    safeSetText('avg-xp', avg > 0 ? avg + " XP" : "Calibrating...");
 
-    if (targetXP > STATE.currentXP) {
-        const diff = targetXP - STATE.currentXP;
-        el.innerHTML = `Need: <b>${formatNumber(diff)} XP</b>`;
+    const actEl = document.getElementById('est-actions');
+    if (avg > 0 && target > STATE.currentXP) {
+        let diff = target - STATE.currentXP;
+        let actions = Math.ceil(diff / avg);
+        actEl.innerText = actions.toLocaleString() + " Runs";
     } else {
-        el.innerHTML = `Target Reached!`;
+        actEl.innerText = "--";
     }
 }
 
-// Drag & Resize Logic
+// Request Data Loop
+setInterval(() => {
+    if(window.parent) {
+        // Request inv + chest
+        window.parent.postMessage({ type: "getNamedData", keys: [JOB_EXP_KEY, "inventory", "chest"] }, "*");
+        window.parent.postMessage({ type: "getData" }, "*");
+    }
+}, 1000);
+
+// Drag & Resize
 const elm = document.getElementById("tracker-app");
 const head = document.getElementById("drag-handle");
-const microView = document.getElementById("micro-view");
 let isDragging = false, startX, startY, initLeft, initTop;
 
-const startDrag = (e) => {
-    if(e.target.closest('button') || e.target.closest('input') || e.target.closest('a')) return;
-    e.preventDefault(); isDragging = true;
-    startX = e.clientX; startY = e.clientY;
-    const r = elm.getBoundingClientRect();
-    initLeft = r.left; initTop = r.top;
-    document.addEventListener("mousemove", dragMove);
-    document.addEventListener("mouseup", dragEnd);
-};
-const dragMove = (e) => {
-    if(!isDragging) return;
+if(head) {
+    head.addEventListener("mousedown", (e) => {
+        if(e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return;
+        e.preventDefault(); isDragging = true;
+        startX = e.clientX; startY = e.clientY;
+        const r = elm.getBoundingClientRect();
+        initLeft = r.left; initTop = r.top;
+        window.addEventListener("mousemove", dragMove);
+        window.addEventListener("mouseup", dragEnd);
+    });
+}
+
+function dragMove(e) {
+    if (!isDragging) return;
     elm.style.left = (initLeft + e.clientX - startX) + "px";
     elm.style.top = (initTop + e.clientY - startY) + "px";
-};
-const dragEnd = () => {
+}
+
+function dragEnd() {
     isDragging = false;
-    document.removeEventListener("mousemove", dragMove);
-    document.removeEventListener("mouseup", dragEnd);
-};
-head.addEventListener("mousedown", startDrag);
-microView.addEventListener("mousedown", startDrag);
+    window.removeEventListener("mousemove", dragMove);
+    window.removeEventListener("mouseup", dragEnd);
+}
 
 const rh = document.getElementById('resize-handle');
 rh.addEventListener('mousedown', (e) => {
@@ -609,12 +480,18 @@ rh.addEventListener('mousedown', (e) => {
 function resize(e) {
     if(elm.classList.contains('mini-mode')) return;
     elm.style.width = Math.max(280, e.clientX - elm.getBoundingClientRect().left) + 'px';
-    elm.style.height = Math.max(250, e.clientY - elm.getBoundingClientRect().top) + 'px';
+    elm.style.height = Math.max(300, e.clientY - elm.getBoundingClientRect().top) + 'px';
 }
 function stopResize() {
     window.removeEventListener('mousemove', resize);
     window.removeEventListener('mouseup', stopResize);
 }
+
+// Clock
+setInterval(() => {
+    safeSetText('clock', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+}, 1000);
+
 </script>
 </body>
 </html>
