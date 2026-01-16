@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Trucking Ops v3.5</title>
+    <title>TT Trucking Ops v3.6</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -10,15 +10,13 @@
         :root {
             --primary: #ff5722; 
             --primary-dim: #bf360c;
-            --bg-glass: rgba(18, 18, 18, 0.96);
-            --bg-dark: rgba(10, 5, 2, 0.98);
+            --bg-glass: rgba(15, 15, 15, 0.97);
+            --bg-dark: rgba(5, 2, 0, 0.99);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
-            --border: 1px solid rgba(255, 87, 34, 0.4);
+            --border: 1px solid rgba(255, 87, 34, 0.5);
             --green: #00e676;
-            --orange: #ff9800;
             --red: #ff5252;
-            --accent: #ffab91;
             --gold: #ffd700; 
         }
 
@@ -38,11 +36,11 @@
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.9);
+            box-shadow: 0 4px 25px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             overflow: hidden;
-            transition: width 0.2s ease, height 0.2s ease;
-            min-height: 400px;
+            min-height: 480px;
+            transition: width 0.2s, height 0.2s;
         }
 
         /* --- MINI MODE --- */
@@ -53,43 +51,42 @@
             resize: none;
         }
         #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #manifest-panel,
+        #tracker-app.mini-mode .plan-row,
         #tracker-app.mini-mode #content,
-        #tracker-app.mini-mode #grinder-panel,
-        #tracker-app.mini-mode .plan-row { display: none !important; }
+        #tracker-app.mini-mode .overlay-panel { display: none !important; }
 
         #micro-view {
             display: none; flex-direction: column; justify-content: center;
-            height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
+            height: 100%; padding: 0 15px; font-family: 'Rajdhani', sans-serif; cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
-        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; gap: 5px; }
-        .micro-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
+        .micro-group { display: flex; align-items: center; gap: 8px; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.95em; }
         .micro-val.highlight { color: var(--primary); }
-        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-bg { width: 80px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 5px; }
         .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
 
         /* --- HEADER & ANIMATION --- */
         header {
-            background: linear-gradient(180deg, var(--primary-dim), rgba(0, 0, 0, 0.85));
+            background: linear-gradient(180deg, var(--primary-dim), rgba(0, 0, 0, 0.9));
             height: 65px; padding: 0 10px; cursor: move; position: relative;
             display: flex; align-items: flex-start; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.15); overflow: visible; padding-top: 5px; z-index: 60; 
+            border-bottom: 1px solid rgba(255,255,255,0.15); z-index: 60; 
         }
 
         .header-title {
             position: absolute; left: 50%; top: 25%; transform: translate(-50%, -50%);
             font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.3em;
             text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.6); z-index: 10;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10;
         }
 
         #user-name-fly {
             position: absolute; top: 38px; left: -150px;
             font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.95em;
             color: #fff; white-space: nowrap; pointer-events: none; z-index: 10;
-            text-shadow: 0 0 8px var(--primary);
+            text-shadow: 0 0 10px var(--primary);
             animation: flyCycle 18s linear infinite;
         }
 
@@ -100,56 +97,51 @@
             100% { left: 125%; transform: translateX(0); opacity: 0; } 
         }
 
-        .header-controls { display: flex; gap: 8px; z-index: 30; align-items: center; }
-        .nav-icon { text-decoration: none; font-size: 1.2em; cursor: pointer; color: #ccc; }
-        .nav-icon:hover { color: #fff; }
-        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.9em; margin-top: 4px; }
+        .nav-icon { text-decoration: none; font-size: 1.3em; cursor: pointer; color: #ccc; margin-top: 5px; }
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.9em; margin-top: 5px; }
 
-        /* BURGER MENU */
-        .burger-btn { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 3px 7px; border-radius: 4px; cursor: pointer; font-size: 1.1em; }
-        .dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 5px; background: #0f0f0f; border: 1px solid var(--primary); border-radius: 4px; width: 150px; display: none; flex-direction: column; z-index: 100; box-shadow: 0 8px 16px rgba(0,0,0,1); }
+        .burger-btn { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 2px 8px; border-radius: 4px; cursor: pointer; margin-top: 5px; }
+        .dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 5px; background: #0a0a0a; border: 1px solid var(--primary); border-radius: 4px; width: 160px; display: none; flex-direction: column; z-index: 100; box-shadow: 0 8px 16px rgba(0,0,0,1); }
         .dropdown-menu.show { display: flex; }
-        .menu-item { padding: 12px; color: #ddd; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 0.95em; border-bottom: 1px solid #222; }
-        .menu-item:hover { background: var(--primary); color: #000; font-weight: bold; }
+        .menu-item { padding: 12px; color: #ccc; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 0.95em; border-bottom: 1px solid #222; }
+        .menu-item:hover { background: var(--primary); color: #000; font-weight: 900; }
 
-        /* PLAN SELECTION */
-        .plan-row { background: #141414; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
-        .plan-label { font-family: 'Rajdhani', sans-serif; font-size: 0.85em; color: var(--primary); font-weight: 800; text-transform: uppercase; }
-        #recipe-select { background: #000; color: white; border: 1px solid #444; font-family: 'Rajdhani', sans-serif; font-weight: bold; padding: 3px 6px; border-radius: 3px; width: 140px; }
+        /* --- PLAN SELECTION --- */
+        .plan-row { background: #111; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
+        .plan-label { font-family: 'Rajdhani', sans-serif; font-size: 0.8em; color: var(--primary); font-weight: 800; text-transform: uppercase; }
+        #recipe-select { background: #000; color: #fff; border: 1px solid #444; font-family: 'Rajdhani', sans-serif; font-weight: bold; padding: 4px; width: 160px; border-radius: 4px; }
 
         /* --- CONTENT --- */
-        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
-        .section { padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
-        .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .value { font-size: 1.2em; font-weight: 800; }
+        #content { padding: 15px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+        .section { padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; }
+        .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
+        .value { font-size: 1.3em; font-weight: 900; }
         .highlight { color: var(--primary); }
 
-        /* Progress Bars */
-        .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.6); border-radius: 4px; margin: 6px 0; overflow: hidden; border: 1px solid #333; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary-dim), var(--primary)); width: 0%; transition: width 0.4s ease; }
-        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
+        .progress-container { position: relative; height: 18px; background: rgba(0,0,0,0.7); border-radius: 4px; margin: 8px 0; overflow: hidden; border: 1px solid #333; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary-dim), var(--primary)); width: 0%; transition: width 0.5s ease; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.75em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
 
-        /* Cargo Log & Manifest */
-        .cargo-item { background: rgba(255,255,255,0.02); border-left: 3px solid var(--primary-dim); margin-bottom: 6px; padding: 6px 10px; }
-        .cargo-main { display: flex; justify-content: space-between; font-family: 'Rajdhani', sans-serif; font-weight: 800; }
-        .cargo-locs { font-size: 0.75em; color: #888; margin-top: 4px; border-top: 1px solid #222; padding-top: 4px; }
-        .loc-row { display: flex; justify-content: space-between; padding: 1px 0; }
+        /* Cargo List Item */
+        .cargo-item { background: rgba(255, 255, 255, 0.03); border-left: 4px solid var(--primary); margin-bottom: 10px; padding: 10px; border-radius: 0 4px 4px 0; }
+        .cargo-main { display: flex; justify-content: space-between; font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.1em; }
+        .cargo-locs { font-size: 0.8em; color: #aaa; margin-top: 6px; padding-top: 6px; border-top: 1px solid #222; }
+        .loc-row { display: flex; justify-content: space-between; padding: 2px 0; }
+        .loc-name { font-style: italic; }
         .loc-qty { color: var(--primary); font-weight: bold; }
 
-        .action-btn { width: 100%; background: rgba(216, 67, 21, 0.15); border: 1px solid var(--primary); color: #fff; padding: 10px; font-family: 'Rajdhani', sans-serif; font-weight: 800; cursor: pointer; border-radius: 4px; margin: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
-        .action-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 10px var(--primary-dim); }
+        .action-btn { width: 100%; background: rgba(255, 87, 34, 0.15); border: 1px solid var(--primary); color: #fff; padding: 12px; font-family: 'Rajdhani', sans-serif; font-weight: 800; cursor: pointer; border-radius: 4px; margin: 10px 0; text-transform: uppercase; transition: 0.2s; }
+        .action-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary-dim); }
 
-        /* Calculator */
-        input[type="number"] { width: 96%; background: rgba(0,0,0,0.4); border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
-        .calc-result { font-size: 0.85em; color: var(--text-dim); margin-top: 8px; line-height: 1.4; }
+        input[type="number"], .api-input { width: 96%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 1.1em; }
 
-        /* Panels */
-        .overlay-panel { position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px); background: #0a0a0a; z-index: 80; display: none; flex-direction: column; padding: 15px; box-sizing: border-box; }
+        /* Overlays */
+        .overlay-panel { position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px); background: #050505; z-index: 85; display: none; flex-direction: column; padding: 20px; box-sizing: border-box; }
         .overlay-panel.active { display: flex; }
-        .panel-title { font-family: 'Rajdhani', sans-serif; font-weight: 900; color: var(--gold); border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 15px; text-transform: uppercase; display: flex; justify-content: space-between; }
-        .stat-row-g { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9em; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        .panel-title { font-family: 'Rajdhani', sans-serif; font-weight: 900; color: var(--gold); border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; text-transform: uppercase; display: flex; justify-content: space-between; }
+        .stat-row-g { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1em; border-bottom: 1px solid #1a1a1a; padding-bottom: 6px; }
 
-        #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
+        #resize-handle { position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; cursor: nwse-resize; z-index: 100; }
     </style>
 </head>
 <body>
@@ -162,16 +154,16 @@
         </div>
         <div class="micro-row">
             <span class="micro-group">LVL <span class="micro-val highlight" id="micro-lvl">0</span> <div class="micro-progress-bg"><div class="micro-progress-fill" id="micro-bar"></div></div></span>
-            <span class="micro-val">XP <span id="micro-xp">0</span></span>
+            <span class="micro-val">TOK: <span id="micro-tok" style="color:var(--gold)">0</span></span>
         </div>
-        <button class="micro-btn" style="position:absolute; top:2px; right:2px;" onclick="toggleMini()">🗖</button>
+        <button class="micro-btn" style="position:absolute; top:4px; right:4px; opacity:0.5;" onclick="toggleMini()">🗖</button>
     </div>
 
     <header id="drag-handle">
         <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
         <div class="header-title">TRUCKING OPS</div>
         <div id="user-name-fly">Driver ...</div>
-        <div class="header-controls" style="flex-direction:column; gap:0; align-items:flex-end;">
+        <div class="header-controls" style="flex-direction:column; align-items:flex-end;">
             <div class="menu-container">
                 <button class="burger-btn" onclick="toggleMenu()">☰</button>
                 <div class="dropdown-menu" id="main-menu">
@@ -181,12 +173,12 @@
                     <div class="menu-item" onclick="resetSession()">🔄 Reset Session</div>
                 </div>
             </div>
-            <span id="clock">00:00 AM</span>
+            <span id="clock">00:00</span>
         </div>
     </header>
 
     <div class="plan-row">
-        <span class="plan-label">PLAN:</span>
+        <span class="plan-label">ACTIVE PLAN:</span>
         <select id="recipe-select" onchange="changeRecipe()">
             <option value="Test 1">Test 1</option>
             <option value="Test 2">Test 2</option>
@@ -197,49 +189,51 @@
     <div id="content">
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div><div class="label">Trucker Level</div><div class="value highlight" style="font-size:1.8em" id="disp-lvl">0</div></div>
-                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.95em">0</div></div>
+                <div><div class="label">Trucker Level</div><div class="value highlight" style="font-size:2em" id="disp-lvl">0</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:1em">0</div></div>
             </div>
             <div class="progress-container"><div class="progress-bar" id="level-bar"></div><div class="progress-text" id="level-text">0%</div></div>
-            <div style="text-align:center; font-size:0.8em; color:var(--primary); font-weight:bold; margin-top:4px;" id="xp-needed">Calibrating...</div>
+            <div style="text-align:center; font-size:0.85em; color:var(--primary); font-weight:900; margin-top:5px;" id="xp-needed">Calibrating...</div>
         </div>
 
         <div class="section">
-            <div class="label" style="color:var(--primary); font-weight:900;">CARGO LOG (MANIFEST)</div>
-            <div id="cargo-log-list" style="min-height:40px;">
-                <div style="text-align:center; color:#444; padding:10px;">Scanning Manifest...</div>
+            <div class="label" style="color:var(--primary); font-weight:900;">CARGO LOG (DETAILED SCAN)</div>
+            <div id="cargo-log-list" style="min-height:60px;">
+                <div style="text-align:center; color:#555; padding:20px;">Ready for scan...</div>
             </div>
-            <button class="action-btn" id="api-btn" onclick="fetchStorages()">📦 CHECK STORAGE (INV+TRUNK+API)</button>
+            <button class="action-btn" id="api-btn" onclick="fetchStorages()">📦 CHECK STORAGE (INV + TRUNK + API)</button>
         </div>
 
         <div class="section" style="border:none;">
             <div class="label">Target XP Calculator</div>
             <input type="number" id="target-input" placeholder="Enter Target XP" oninput="runCalculator()">
-            <div class="calc-result">
-                Potential Actions To Target XP: <span id="est-actions" style="color:var(--primary); font-weight:900; font-size:1.1em;">--</span>
+            <div class="calc-result" id="calc-result">
+                Potential Actions To Target XP: <span id="est-actions" style="color:var(--primary); font-weight:900; font-size:1.2em;">--</span>
             </div>
         </div>
     </div>
 
     <div id="grinder-panel" class="overlay-panel">
-        <div class="panel-title"><span>TOKEN TRACKER</span><span style="font-size:0.6em; color:#888;">PHYSICAL</span></div>
+        <div class="panel-title"><span>GRINDER TRACKER</span><span style="font-size:0.6em; color:#666;">TRUCKING</span></div>
         <div class="stat-row-g"><span style="color:#aaa">Session Earned</span><span class="highlight" id="g-session">0</span></div>
         <div class="stat-row-g"><span style="color:#aaa">AVG Per Hour</span><span id="g-1h">0</span></div>
         <div class="stat-row-g"><span style="color:#aaa">AVG Per 6h</span><span id="g-6h">0</span></div>
         <div class="stat-row-g"><span style="color:#aaa">AVG Per 12h</span><span id="g-12h">0</span></div>
         <div class="stat-row-g"><span style="color:#aaa">AVG Per 24h</span><span id="g-24h">0</span></div>
-        <div class="panel-title" style="margin-top:15px; color:var(--primary); border-color:var(--primary-dim)">ACTIVE BONUSES</div>
-        <div id="bonus-list" style="font-size:0.85em; color:#ccc; overflow-y:auto; flex:1;"></div>
+        <div class="panel-title" style="margin-top:20px; color:var(--primary); border-color:var(--primary-dim)">ACTIVE BONUSES</div>
+        <div id="bonus-list" style="font-size:0.9em; color:#ddd; overflow-y:auto; flex:1;"></div>
         <button class="action-btn" onclick="toggleGrinder()">CLOSE PANEL</button>
     </div>
 
     <div id="settings-panel" class="overlay-panel">
-        <div class="panel-title">API CONFIGURATION</div>
-        <div class="label">USER ID</div>
-        <input type="text" id="api-uid" placeholder="Example: 757858">
-        <div class="label" style="margin-top:15px;">TYCOON API KEY</div>
-        <input type="password" id="api-key" placeholder="Paste Private API Key">
-        <p style="font-size:0.7em; color:#666; margin-top:10px;">Use <b>/api private new</b> in-game to generate a key. This data stays in your local browser storage only.</p>
+        <div class="panel-title">API SETTINGS</div>
+        <div class="label">TYCOON USER ID</div>
+        <input type="text" id="api-uid" class="api-input" placeholder="757858">
+        <div class="label" style="margin-top:20px;">PRIVATE API KEY</div>
+        <input type="password" id="api-key" class="api-input" placeholder="Paste Key Here">
+        <div style="font-size:0.75em; color:#777; margin-top:15px; line-height:1.4;">
+            Keys are stored locally. Use <b>/api private new</b> in Tycoon to get yours.
+        </div>
         <button class="action-btn" style="margin-top:auto;" onclick="saveSettings()">SAVE SETTINGS</button>
     </div>
 
@@ -247,31 +241,46 @@
 </div>
 
 <script>
-// --- TRAILER CAPACITIES ---
-const TRAILER_CONFIG = { "trailerswb": 400, "trailers": 475, "trailerlogs2": 600, "botdumptr": 775, "drybulktr": 1000, "dumptr": 1500, "docktrailer2": 2200, "docktrailer": 2500, "trailers2": 2750, "trailerswb2": 3000, "tvtrailer": 3500, "tvtrailer2": 5000, "boxlongtr": 8500, "trailerlarge": 9000, "mk15": 6000 };
-
-const RECIPES = {
-    "Test 1": { "tcargologs": 1, "mechanicals_jumper_cable": 1 },
-    "Test 2": { "defibkit": 1, "jerry_can|DIESEL|Petrol": 1 },
-    "Test 3": { "spaceship_part": 1, "gut_knife_st|0": 1 } 
+// --- FULL ITEM DATABASE RECONSTRUCTED ---
+const ITEM_MAP = {
+    "tcargologs": "Logs",
+    "mechanicals_jumper_cable": "Jumper Cable",
+    "defibkit": "Defibrillator Kit",
+    "jerry_can|DIESEL|Petrol": "Jerry Can (Petrol)",
+    "spaceship_part": "Spaceship Part",
+    "gut_knife_st|0": "Gut Knife",
+    "scrap_acid": "Acid",
+    "crafted_batteries": "Batteries",
+    "mechanicals_battery": "Car Battery",
+    "crafted_cardboard": "Cardboard",
+    "crafted_rebar": "Rebar",
+    "crafted_concrete": "Concrete",
+    "military_titanium": "Titanium"
 };
 
-const TOK_KEY = "exp_token|trucking|trucking";
+const RECIPES = {
+    "Test 1": ["tcargologs", "mechanicals_jumper_cable"],
+    "Test 2": ["defibkit", "jerry_can|DIESEL|Petrol"],
+    "Test 3": ["spaceship_part", "gut_knife_st|0"] 
+};
+
+// --- APP STATE ---
 const EXP_KEY = "exp_trucking_trucking";
+const TOK_KEY = "exp_token|trucking|trucking";
 
 let STATE = {
-    recipe: "Test 1", xp: 0, startXp: 0, actions: 0, startT: 0, sessionTok: 0,
-    localInv: {}, apiInv: {}, startTime: Date.now(),
+    recipe: "Test 1", xp: 0, startXp: 0, actions: 0, 
+    startTok: 0, currentTok: 0, startTime: Date.now(),
+    localInv: {}, apiInv: {}, 
     uid: localStorage.getItem("tt_uid_t") || "", key: localStorage.getItem("tt_key_t") || ""
 };
 
-// --- CORE FUNCTIONS ---
+// --- UI LOGIC ---
 function toggleMenu() { document.getElementById('main-menu').classList.toggle('show'); }
 function toggleGrinder() { document.getElementById('grinder-panel').classList.toggle('active'); toggleMenu(); }
 function toggleSettings() { 
     if(STATE.uid) document.getElementById('api-uid').value = STATE.uid;
-    document.getElementById('settings-panel').classList.toggle('active'); 
-    toggleMenu(); 
+    document.getElementById('settings-panel').classList.toggle('active'); toggleMenu(); 
 }
 function toggleMini() { document.getElementById('tracker-app').classList.toggle('mini-mode'); toggleMenu(); }
 
@@ -285,64 +294,75 @@ function saveSettings() {
 
 function changeRecipe() {
     STATE.recipe = document.getElementById('recipe-select').value;
-    document.getElementById('active-recipe-display').innerText = STATE.recipe;
     document.getElementById('micro-recipe').innerText = "Plan: " + STATE.recipe;
     renderCargo();
 }
 
-// --- DATA ENGINE ---
-window.addEventListener('message', (e) => {
-    let d = e.data.type === 'data' ? e.data.data : e.data;
-    if (!d) return;
+// --- DATA PROCESSING ---
+window.addEventListener('message', (event) => {
+    let data = event.data.type === 'data' ? event.data.data : event.data;
+    if (!data) return;
 
-    if (d.name) document.getElementById('user-name-fly').innerText = "Driver " + d.name;
+    if (data.name) document.getElementById('user-name-fly').innerText = "Driver " + data.name;
 
-    if (d[EXP_KEY]) {
-        let val = d[EXP_KEY];
+    // 1. XP / Stats
+    if (data[EXP_KEY]) {
+        let val = data[EXP_KEY];
         if (STATE.startXp === 0) STATE.startXp = val;
         if (val > STATE.xp && STATE.xp !== 0) STATE.actions++;
         STATE.xp = val;
-        updateStats();
+        updateUI();
     }
 
-    // Process Local Storage (Pocket + Chests)
+    // 2. Local Inventory Scan (Merging Pocket + All Chests)
     let merged = {};
-    if (d.inventory) {
-        let inv = JSON.parse(d.inventory);
-        for(let k in inv) merged[k] = (merged[k]||0) + (inv[k].amount || inv[k]);
+    if (data.inventory) {
+        let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
+        for(let k in inv) {
+            if(!merged[k]) merged[k] = [];
+            merged[k].push({ loc: "Pocket", qty: (inv[k].amount || inv[k]) });
+        }
     }
-    for (let k in d) {
-        if (k.startsWith("chest") && d[k] !== "none") {
+    // Deep scan for all chest data keys (Trailers, Cabs, Backpacks)
+    for (let k in data) {
+        if ((k.startsWith("chest") || k === "backpack") && data[k] !== "none" && data[k] !== "") {
             try {
-                let c = JSON.parse(d[k]);
-                for(let i in c) merged[i] = (merged[i]||0) + (c[i].amount || c[i]);
-            } catch(err){}
+                let chest = (typeof data[k] === 'string') ? JSON.parse(data[k]) : data[k];
+                let label = k === "backpack" ? "Backpack" : "Vehicle/Chest";
+                for(let item in chest) {
+                    if(!merged[item]) merged[item] = [];
+                    merged[item].push({ loc: label, qty: (chest[item].amount || chest[item]) });
+                }
+            } catch(e){}
         }
     }
     STATE.localInv = merged;
 
+    // 3. Physical Tokens
     if (merged[TOK_KEY]) {
-        let t = merged[TOK_KEY];
-        if (STATE.startT === 0) STATE.startT = t;
-        STATE.sessionTok = t - STATE.startT;
+        let total = merged[TOK_KEY].reduce((a,b) => a + b.qty, 0);
+        if (STATE.startTok === 0) STATE.startTok = total;
+        STATE.currentTok = total;
         updateGrinder();
     }
 
-    if(d.menu_choices) {
+    // 4. Identity Scan
+    if(data.menu_choices) {
         try {
-            let menu = JSON.parse(d.menu_choices);
+            let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
             let id = menu.find(m => m[0] === 'Identity');
             if(id) parseBonuses(id[1]);
-        } catch(err){}
+        } catch(e){}
     }
     
     renderCargo();
 });
 
+// --- API BATCH FETCHER ---
 async function fetchStorages() {
-    if(!STATE.uid || !STATE.key) return alert("Setup API in settings first!");
+    if(!STATE.uid || !STATE.key) return alert("Please configure API settings first!");
     const btn = document.getElementById('api-btn');
-    btn.innerText = "⚡ BATCH LOADING...";
+    btn.innerText = "⚡ FETCHING ALL STORAGES...";
     
     try {
         const res = await fetch(`https://ttycoon.eu/api/v1/playerdata/storages?id=${STATE.uid}`, {
@@ -354,69 +374,70 @@ async function fetchStorages() {
             json.data.forEach(store => {
                 for(let item in store.inventory) {
                     if(!STATE.apiInv[item]) STATE.apiInv[item] = [];
-                    STATE.apiInv[item].push({ loc: store.displayName, qty: store.inventory[item].amount });
+                    STATE.apiInv[item].push({ loc: store.displayName || store.name, qty: store.inventory[item].amount });
                 }
             });
-            btn.innerText = "✅ REFRESHED";
+            btn.innerText = "✅ STORAGE SYNCED";
         }
-    } catch(e) { btn.innerText = "❌ ERROR"; }
-    setTimeout(() => btn.innerText = "📦 CHECK STORAGE (INV+TRUNK+API)", 3000);
+    } catch(e) { btn.innerText = "❌ API ERROR"; }
+    setTimeout(() => btn.innerText = "📦 CHECK STORAGE (INV + TRUNK + API)", 3000);
     renderCargo();
 }
 
 function renderCargo() {
     let html = "";
     let reqs = RECIPES[STATE.recipe];
-    for (let item in reqs) {
-        let local = STATE.localInv[item] || 0;
-        let remote = STATE.apiInv[item] || [];
-        let rTotal = remote.reduce((a, b) => a + b.qty, 0);
-        let total = local + rTotal;
+    if(!reqs) return;
+
+    reqs.forEach(itemKey => {
+        let localData = STATE.localInv[itemKey] || [];
+        let apiData = STATE.apiInv[itemKey] || [];
         
+        let localTotal = localData.reduce((a,b) => a + b.qty, 0);
+        let apiTotal = apiData.reduce((a,b) => a + b.qty, 0);
+        let grandTotal = localTotal + apiTotal;
+        
+        let displayName = ITEM_MAP[itemKey] || itemKey.replace(/_/g,' ').toUpperCase();
+
         html += `<div class="cargo-item">
-            <div class="cargo-main"><span>${item.replace(/_/g,' ').toUpperCase()}</span><span style="color:${total > 0 ? 'var(--green)' : 'var(--red)'}">${total}</span></div>
+            <div class="cargo-main"><span>${displayName}</span><span style="color:${grandTotal > 0 ? 'var(--green)' : 'var(--red)'}">${grandTotal}</span></div>
             <div class="cargo-locs">
-                ${local > 0 ? `<div class="loc-row"><span>Pocket/Vehicle</span><span class="loc-qty">${local}</span></div>` : ''}
-                ${remote.map(r => `<div class="loc-row"><span>${r.loc}</span><span class="loc-qty">${r.qty}</span></div>`).join('')}
-                ${total === 0 ? '<div>Stock: 0 - Visit HQ or Storages</div>' : ''}
+                ${localData.map(d => `<div class="loc-row"><span class="loc-name">${d.loc}</span><span class="loc-qty">${d.qty}</span></div>`).join('')}
+                ${apiData.map(d => `<div class="loc-row"><span class="loc-name">${d.loc}</span><span class="loc-qty">${d.qty}</span></div>`).join('')}
+                ${grandTotal === 0 ? '<div style="opacity:0.5">No stock found in any scanned storage</div>' : ''}
             </div>
         </div>`;
-    }
+    });
     document.getElementById('cargo-log-list').innerHTML = html;
 }
 
-function updateStats() {
+function updateUI() {
     let x = STATE.xp, c = 5, l = 0;
     while (x >= c) { x -= c; l++; c = (l + 1) * 5; }
-    safeSetText('disp-lvl', l);
-    safeSetText('micro-lvl', l);
-    safeSetText('disp-xp', STATE.xp.toLocaleString());
-    safeSetText('micro-xp', STATE.xp.toLocaleString());
+    document.getElementById('disp-lvl').innerText = l;
+    document.getElementById('micro-lvl').innerText = l;
+    document.getElementById('disp-xp').innerText = STATE.xp.toLocaleString();
+    document.getElementById('micro-xp').innerText = STATE.xp.toLocaleString();
     let p = (x/c*100).toFixed(1);
     document.getElementById('level-bar').style.width = p + "%";
     document.getElementById('micro-bar').style.width = p + "%";
-    safeSetText('level-text', p + "%");
-    safeSetText('xp-needed', Math.round(c - x).toLocaleString() + " XP to Next Level");
+    document.getElementById('level-text').innerText = p + "%";
+    document.getElementById('xp-needed').innerText = Math.round(c - x).toLocaleString() + " XP to Next Level";
     runCalculator();
 }
 
-function runCalculator() {
-    let t = parseInt(document.getElementById('target-input').value);
-    if (!t || STATE.actions === 0) return;
-    let avg = (STATE.xp - STATE.startXp) / STATE.actions;
-    let diff = t - STATE.xp;
-    document.getElementById('est-actions').innerText = diff > 0 ? Math.ceil(diff/avg).toLocaleString() + " Actions" : "COMPLETE";
-}
-
 function updateGrinder() {
-    safeSetText('g-session', STATE.sessionTok);
-    safeSetText('micro-tok', STATE.sessionTok);
+    let earned = STATE.currentTok - STATE.startTok;
+    if(earned < 0) { STATE.startTok = STATE.currentTok; earned = 0; }
+    document.getElementById('g-session').innerText = earned.toLocaleString();
+    document.getElementById('micro-tok').innerText = earned.toLocaleString();
+    
     let ms = (Date.now() - STATE.startTime) / 60000;
-    let r = STATE.sessionTok / (ms || 1);
-    safeSetText('g-1h', Math.round(r * 60));
-    safeSetText('g-6h', Math.round(r * 360));
-    safeSetText('g-12h', Math.round(r * 720));
-    safeSetText('g-24h', Math.round(r * 1440));
+    let r = earned / (ms || 1);
+    document.getElementById('g-1h').innerText = Math.round(r * 60).toLocaleString();
+    document.getElementById('g-6h').innerText = Math.round(r * 360).toLocaleString();
+    document.getElementById('g-12h').innerText = Math.round(r * 720).toLocaleString();
+    document.getElementById('g-24h').innerText = Math.round(r * 1440).toLocaleString();
 }
 
 function parseBonuses(h) {
@@ -424,29 +445,42 @@ function parseBonuses(h) {
     let out = "";
     lines.forEach(l => {
         let t = l.replace(/<[^>]*>/g, "").replace(/&#(\d+);/g, (m,d)=>String.fromCharCode(d)).trim();
-        if(t && (t.includes("Bonus") || t.includes("Premium") || t.includes("Skill"))) out += `<div style="margin-bottom:3px;">★ ${t}</div>`;
+        if(t && (t.includes("Bonus") || t.includes("Premium") || t.includes("Skill"))) out += `<div style="margin-bottom:4px;">★ ${t}</div>`;
     });
     document.getElementById('bonus-list').innerHTML = out;
 }
 
+function runCalculator() {
+    let t = parseInt(document.getElementById('target-input').value);
+    if (!t || STATE.actions === 0) return;
+    let avg = (STATE.xp - STATE.startXp) / STATE.actions;
+    let diff = t - STATE.xp;
+    document.getElementById('est-actions').innerText = diff > 0 ? Math.ceil(diff/avg).toLocaleString() + " Actions" : "TARGET REACHED";
+}
+
 function resetSession() { 
     STATE.startXp = STATE.xp; STATE.actions = 0; 
-    STATE.startT = STATE.localInv[TOK_KEY] || 0; 
+    STATE.startTok = STATE.currentTok; 
     STATE.startTime = Date.now(); 
     toggleMenu(); 
 }
 
+// --- ENGINE LOOP ---
 setInterval(() => {
-    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [EXP_KEY, "inventory", "chest"] }, "*");
-    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [EXP_KEY, "inventory", "chest", "backpack", "name", "menu_choices"] }, "*");
+}, 1000);
+
+setInterval(() => {
+    let d = new Date();
+    document.getElementById('clock').innerText = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }, 1000);
 
 // --- DRAG ---
 const dH = document.getElementById("drag-handle");
-let d=false, sx, sy, ox, oy;
-dH.onmousedown = e => { if(e.target.tagName==='SELECT'||e.target.tagName==='BUTTON')return; d=true; sx=e.clientX; sy=e.clientY; let r=document.getElementById('tracker-app').getBoundingClientRect(); ox=r.left; oy=r.top; };
-window.onmousemove = e => { if(d){ let a=document.getElementById('tracker-app'); a.style.left=(ox+e.clientX-sx)+'px'; a.style.top=(oy+e.clientY-sy)+'px'; }};
-window.onmouseup = () => d=false;
+let drag=false, sx, sy, ox, oy;
+dH.onmousedown = e => { if(e.target.tagName==='SELECT'||e.target.tagName==='BUTTON')return; drag=true; sx=e.clientX; sy=e.clientY; let r=document.getElementById('tracker-app').getBoundingClientRect(); ox=r.left; oy=r.top; };
+window.onmousemove = e => { if(drag){ let a=document.getElementById('tracker-app'); a.style.left=(ox+e.clientX-sx)+'px'; a.style.top=(oy+e.clientY-sy)+'px'; }};
+window.onmouseup = () => drag=false;
 </script>
 </body>
 </html>
