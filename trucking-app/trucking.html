@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Trucking Ops v3.2</title>
+    <title>TT Trucking Ops v3.1</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -75,6 +75,13 @@
         .micro-val.active { color: var(--green); }
         .micro-progress-bg { width: 50px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
         .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
+        .micro-btn {
+            position: absolute; top: 4px; right: 4px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa; padding: 0px 4px; border-radius: 3px; 
+            font-size: 0.6em; cursor: pointer; text-transform: uppercase; z-index: 99;
+        }
+        .micro-btn:hover { background: var(--primary); color: white; }
 
         /* --- HEADER --- */
         header {
@@ -124,12 +131,11 @@
         .panel-header { font-family: 'Rajdhani', sans-serif; color: var(--primary); border-bottom: 1px solid #333; margin-bottom: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         
         .manifest-list { flex: 1; overflow-y: auto; scrollbar-width: thin; }
-        .manifest-item { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; }
-        .manifest-main { display: flex; justify-content: space-between; font-weight: bold; color:#fff; }
-        .manifest-sub { display: flex; flex-direction: column; margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--primary-dim); }
-        .sub-row { display: flex; justify-content: space-between; font-size: 0.8em; color: #ccc; }
-        .sub-loc { font-style: italic; }
-        .sub-amt { color: var(--primary); font-weight: bold; }
+        .manifest-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; }
+        .manifest-name { color: #ccc; }
+        .manifest-count { font-weight: bold; font-family: 'Rajdhani', sans-serif; }
+        .manifest-count.good { color: var(--green); }
+        .manifest-count.bad { color: var(--red); }
 
         /* --- MAIN CONTENT --- */
         #content { padding: 10px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
@@ -157,7 +163,7 @@
         input[type="number"] { width: 95%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; margin-top: 5px; font-family: inherit; }
         .calc-result { font-size: 0.8em; color: var(--text-dim); margin-top: 5px; }
 
-        /* OVERLAYS */
+        /* OVERLAYS (Grinder & Settings) */
         .overlay-panel {
             position: absolute; top: 105px; left: 0; width: 100%; height: calc(100% - 105px);
             background: rgba(10, 5, 0, 0.98); z-index: 50; display: none; flex-direction: column; padding: 10px;
@@ -232,10 +238,10 @@
             <span style="cursor:pointer; font-size:0.8em; color:#ccc;" onclick="toggleManifest()">CLOSE [X]</span>
         </div>
         <div style="font-size:0.75em; color:#aaa; margin-bottom:8px; border-bottom:1px solid #333; padding-bottom:4px;">
-            INVENTORY + VEHICLE + API STORAGES
+            COMBINED STORAGE (POCKET + TRUNK + API)
         </div>
         <div class="manifest-list" id="manifest-content">
-            <div style="text-align:center; color:#666; margin-top:20px;">Ready. Select a plan.</div>
+            <div style="text-align:center; color:#666; margin-top:20px;">Scanning inventory...</div>
         </div>
     </div>
 
@@ -248,7 +254,7 @@
             <div class="progress-container"><div class="progress-bar" id="level-bar"></div><div class="progress-text" id="level-text">0%</div></div>
         </div>
 
-        <button class="action-btn" id="check-btn" onclick="checkStorage()">📦 CHECK STORAGE (FULL SCAN)</button>
+        <button class="action-btn" id="check-btn" onclick="checkStorage()">CHECK STORAGE (INV + TRUNK + API)</button>
 
         <div class="section">
             <div class="stat-grid">
@@ -306,7 +312,14 @@
 function safeSetText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
 function safeSetVal(id, val) { const el = document.getElementById(id); if(el) el.value = val; }
 
-// --- CONFIGURATION ---
+// --- CONFIGURATION (TRAILER CAPACITIES) ---
+const TRAILER_CONFIG = {
+  "trailerswb": 400, "trailers": 475, "trailerlogs2": 600, "botdumptr": 775,
+  "drybulktr": 1000, "dumptr": 1500, "docktrailer2": 2200, "docktrailer": 2500,
+  "trailers2": 2750, "trailerswb2": 3000, "tvtrailer": 3500, "tvtrailer2": 5000,
+  "boxlongtr": 8500, "trailerlarge": 9000, "mk15": 6000
+};
+
 const RECIPES = {
     "Test 1": { "tcargologs": 1, "mechanicals_jumper_cable": 1 },
     "Test 2": { "defibkit": 1, "jerry_can|DIESEL|Petrol": 1 },
@@ -315,8 +328,8 @@ const RECIPES = {
 
 // --- STATE ---
 const JOB_EXP_KEY = "exp_trucking_trucking";
-const JOB_TOKEN_KEY = "exp_token|trucking|trucking";
-const JOB_BXP_KEY = "exp_token_a|trucking|trucking";
+const JOB_TOKEN_KEY = "exp_token|trucking|trucking"; // Physical
+const JOB_BXP_KEY = "exp_token_a|trucking|trucking"; // Pool
 const STORAGE_KEY_MINI = "tt_truck_recipe_mini";
 
 let STATE = {
@@ -325,8 +338,7 @@ let STATE = {
     startXP: 0,
     sessionGain: 0,
     actionCount: 0, 
-    inventory: {}, // Local Inventory + Vehicle
-    apiInventory: {}, // Data fetched from API
+    inventory: {}, // Merged Inv + Trunk + API
     tokens: 0,
     startTokens: 0,
     bxp: 0,
@@ -347,7 +359,6 @@ function toggleMini() {
     const app = document.getElementById('tracker-app');
     app.classList.toggle('mini-mode');
     localStorage.setItem(STORAGE_KEY_MINI, app.classList.contains('mini-mode'));
-    document.getElementById('main-menu').classList.remove('show');
 }
 
 function toggleMenu() { document.getElementById('main-menu').classList.toggle('show'); }
@@ -377,10 +388,11 @@ function changeRecipe() {
     STATE.currentRecipe = sel.value;
     safeSetText('active-recipe-display', sel.value);
     safeSetText('micro-recipe', sel.value);
+    safeSetText('req-name', sel.value);
     renderManifest(); 
 }
 
-// --- CORE DATA HANDLING ---
+// --- DATA PROCESSING ---
 window.addEventListener('message', (event) => {
     let data = event.data;
     if (data.type === 'data') data = data.data;
@@ -399,24 +411,21 @@ window.addEventListener('message', (event) => {
         renderStats();
     }
 
-    // 2. Inventory Parsing (Local + Vehicle)
-    let localInv = {};
+    // 2. Inventory Merging (Local)
+    let mergedInv = {};
     
-    // Personal Inventory
+    // Personal
     if (data.inventory) {
         try {
             let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
             for (let key in inv) {
                 let amt = (typeof inv[key] === 'object') ? inv[key].amount : inv[key];
-                // Store with location 'Pocket'
-                if(!localInv[key]) localInv[key] = { total: 0, locations: [] };
-                localInv[key].total += amt;
-                localInv[key].locations.push({ name: "Pocket", amount: amt });
+                mergedInv[key] = (mergedInv[key] || 0) + amt;
             }
         } catch(e) {}
     }
 
-    // Vehicle Trunk
+    // Trunk/Chest
     for (let key in data) {
         if (key.startsWith("chest")) {
             try {
@@ -424,30 +433,36 @@ window.addEventListener('message', (event) => {
                 let chest = (typeof data[key] === 'string') ? JSON.parse(data[key]) : data[key];
                 for (let itemKey in chest) {
                     let amt = (typeof chest[itemKey] === 'object') ? chest[itemKey].amount : chest[itemKey];
-                    // Store with location 'Vehicle'
-                    if(!localInv[itemKey]) localInv[itemKey] = { total: 0, locations: [] };
-                    localInv[itemKey].total += amt;
-                    localInv[itemKey].locations.push({ name: "Vehicle", amount: amt });
+                    mergedInv[itemKey] = (mergedInv[itemKey] || 0) + amt;
                 }
             } catch(e) {}
         }
     }
     
-    STATE.inventory = localInv;
+    // Store local inventory for now, API merge happens on button click
+    STATE.localInventory = mergedInv;
+    STATE.inventory = mergedInv; // Default to local
     
     // Tokens
-    let tokenData = localInv[JOB_TOKEN_KEY];
-    if (tokenData) {
-        let t = tokenData.total;
+    if (mergedInv[JOB_TOKEN_KEY]) {
+        let t = mergedInv[JOB_TOKEN_KEY];
         if(STATE.startTokens === 0) STATE.startTokens = t;
         STATE.tokens = t;
         updateGrinderUI();
     }
     
-    // Name
+    // Bonuses
+    if(data.menu_choices) {
+        try {
+            let menu = JSON.parse(data.menu_choices);
+            let id = menu.find(m => m[0] === 'Identity');
+            if(id) parseBonus(id[1]);
+        } catch(e){}
+    }
+    
     if(data.name) safeSetText('disp-name', "Trucker " + data.name);
     
-    // Auto Update Manifest if Open (Uses cached API data + fresh Local data)
+    // If panel open, refresh (local only until button pressed)
     if(document.getElementById('manifest-panel').classList.contains('active')) {
         renderManifest();
     }
@@ -456,97 +471,72 @@ window.addEventListener('message', (event) => {
 async function checkStorage() {
     const btn = document.getElementById('check-btn');
     
-    // 1. Fetch API
-    if (STATE.uid && STATE.apiKey) {
-        btn.innerText = "FETCHING API...";
-        try {
-            const response = await fetch(`https://ttycoon.eu/api/v1/playerdata/storages?id=${STATE.uid}`, {
-                headers: { 'X-Tycoon-Key': STATE.apiKey }
-            });
-            
-            if (response.ok) {
-                const json = await response.json();
-                STATE.apiInventory = {}; // Reset API cache
-                
-                // Parse API Data
-                if(json.data && Array.isArray(json.data)) {
-                    json.data.forEach(storage => {
-                        if(storage.inventory) {
-                            for (let itemKey in storage.inventory) {
-                                let amt = storage.inventory[itemKey].amount || 0;
-                                let locName = storage.displayName || storage.name || "Storage";
-                                
-                                if(!STATE.apiInventory[itemKey]) STATE.apiInventory[itemKey] = { total: 0, locations: [] };
-                                STATE.apiInventory[itemKey].total += amt;
-                                STATE.apiInventory[itemKey].locations.push({ name: locName, amount: amt });
-                            }
-                        }
-                    });
-                }
-                btn.innerText = "SUCCESS (UPDATED)";
-            } else {
-                btn.innerText = "API ERROR";
-            }
-        } catch (e) {
-            btn.innerText = "CONN ERROR";
-        }
-    } else {
-        btn.innerText = "NO API KEY (LOCAL ONLY)";
+    if (!STATE.uid || !STATE.apiKey) {
+        alert("Please set User ID and API Key in Settings first.");
+        return;
     }
+
+    btn.innerText = "FETCHING API DATA...";
     
-    setTimeout(() => btn.innerText = "CHECK STORAGE (FULL SCAN)", 2000);
-    
-    // 2. Open Panel & Render
-    renderManifest();
-    if(!document.getElementById('manifest-panel').classList.contains('active')) {
-        toggleManifest();
+    try {
+        const response = await fetch(`https://ttycoon.eu/api/v1/playerdata/storages?id=${STATE.uid}`, {
+            headers: { 'X-Tycoon-Key': STATE.apiKey }
+        });
+        
+        if (response.ok) {
+            const json = await response.json();
+            // Merge API data with Local data
+            let combined = { ...STATE.localInventory }; 
+            
+            // Iterate over API storage array
+            if(json.data && Array.isArray(json.data)) {
+                json.data.forEach(storage => {
+                    if(storage.inventory) {
+                        for (let itemKey in storage.inventory) {
+                            let amt = storage.inventory[itemKey].amount || 0;
+                            combined[itemKey] = (combined[itemKey] || 0) + amt;
+                        }
+                    }
+                });
+            }
+            
+            STATE.inventory = combined; // Update main state
+            renderManifest();
+            toggleManifest(); // Open the panel
+            btn.innerText = "CHECK STORAGE (SUCCESS)";
+            setTimeout(() => btn.innerText = "CHECK STORAGE (INV + TRUNK + API)", 2000);
+        } else {
+            throw new Error("API Error");
+        }
+    } catch (e) {
+        console.error(e);
+        btn.innerText = "API ERROR (CHECK CONSOLE)";
+        setTimeout(() => btn.innerText = "CHECK STORAGE (INV + TRUNK + API)", 2000);
     }
 }
 
 function renderManifest() {
     const list = document.getElementById('manifest-content');
+    if (!list) return;
+
     list.innerHTML = ""; 
     const requirements = RECIPES[STATE.currentRecipe];
     if (!requirements) return;
 
     for (let itemCode in requirements) {
-        // Merge Local + API data for this item
-        let local = STATE.inventory[itemCode] || { total: 0, locations: [] };
-        let remote = STATE.apiInventory[itemCode] || { total: 0, locations: [] };
-        
-        let total = local.total + remote.total;
-        let allLocs = [...local.locations, ...remote.locations];
-
+        let have = STATE.inventory[itemCode] || 0;
         let niceName = itemCode.replace(/_/g, " ").toUpperCase();
         if(niceName.length > 25) niceName = niceName.substring(0, 22) + "...";
 
-        let countClass = (total > 0) ? "good" : "bad";
+        let countClass = (have > 0) ? "good" : "bad";
 
-        // Build HTML
-        let itemHtml = `
-            <div class="manifest-item">
-                <div class="manifest-main">
-                    <span class="manifest-name">${niceName}</span>
-                    <span class="manifest-count ${countClass}">x${total}</span>
-                </div>
+        let row = document.createElement('div');
+        row.className = 'manifest-item';
+        row.innerHTML = `
+            <span class="manifest-name">${niceName}</span>
+            <span class="manifest-count ${countClass}">x${have}</span>
         `;
-        
-        // Add Location Breakdown
-        if(allLocs.length > 0) {
-            itemHtml += `<div class="manifest-sub">`;
-            allLocs.forEach(loc => {
-                itemHtml += `
-                    <div class="sub-row">
-                        <span class="sub-loc">${loc.name}</span>
-                        <span class="sub-amt">${loc.amount}</span>
-                    </div>
-                `;
-            });
-            itemHtml += `</div>`;
-        }
-        
-        itemHtml += `</div>`;
-        list.innerHTML += itemHtml;
+        list.appendChild(row);
     }
 }
 
@@ -596,6 +586,7 @@ function renderStats() {
     let pct = Math.min(100, Math.max(0, (xp / cap) * 100)).toFixed(1);
     document.getElementById('level-bar').style.width = pct + "%";
     safeSetText('level-text', pct + "%");
+    document.getElementById('xp-needed').innerText = Math.round(cap - xp) + " XP to Next Level";
 
     runCalculator();
 }
@@ -628,7 +619,7 @@ function resetSession() {
     document.getElementById('main-menu').classList.remove('show');
 }
 
-// Loop
+// Request Data Loop
 setInterval(() => {
     if(window.parent) {
         window.parent.postMessage({ type: "getNamedData", keys: [JOB_EXP_KEY, "inventory", "chest", "name", "menu_choices"] }, "*");
@@ -636,6 +627,7 @@ setInterval(() => {
     }
 }, 1000);
 
+// Clock
 setInterval(() => {
     safeSetText('clock', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
 }, 1000);
@@ -670,7 +662,7 @@ function resize(e) {
     const elm = document.getElementById('tracker-app');
     if(elm.classList.contains('mini-mode')) return;
     elm.style.width = Math.max(280, e.clientX - elm.getBoundingClientRect().left) + 'px';
-    elm.style.height = Math.max(300, e.clientY - elm.getBoundingClientRect().top) + 'px';
+    elm.style.height = Math.max(250, e.clientY - elm.getBoundingClientRect().top) + 'px';
 }
 function stopResize() {
     window.removeEventListener('mousemove', resize);
