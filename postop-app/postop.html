@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT PostOP Ops v4.1</title>
+    <title>TT PostOP Ops v4.2</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -57,7 +57,6 @@
             height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
-        
         .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; gap: 5px; }
         .micro-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
         .micro-val { color: #fff; font-weight: 700; font-size: 0.95em; }
@@ -145,11 +144,9 @@
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.9em; margin-top: 4px; }
 
         .mini-mode-btn {
-            position: absolute; top: 10px; right: 10px;
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); 
             color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer; 
-            font-size: 0.7em; font-weight: bold; font-family: 'Rajdhani', sans-serif;
-            z-index: 99;
+            font-size: 0.75em; font-weight: bold; font-family: 'Rajdhani', sans-serif;
         }
         .mini-mode-btn:hover { background: var(--primary); border-color: var(--accent); }
 
@@ -189,7 +186,7 @@
             font-size: 1.2em; font-weight: 900; color: #fff; border-radius: 4px;
         }
 
-        input[type="number"] { width: 96%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; margin-top:5px; }
+        input[type="number"], .api-input { width: 96%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; margin-top:5px; }
         .calc-result { font-size: 0.85em; color: var(--text-dim); margin-top: 5px; }
         
         .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
@@ -242,7 +239,6 @@
     </div>
 
     <header id="drag-handle">
-        <button class="mini-mode-btn" onclick="toggleMini()">MINI</button>
         <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
         <div class="header-title">POSTOP OPS</div>
         
@@ -259,6 +255,7 @@
         </div>
 
         <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <button class="mini-mode-btn" onclick="toggleMini()">MINI</button>
             <span id="clock">00:00</span>
         </div>
     </header>
@@ -325,8 +322,9 @@ const JOB_EXP_KEY = "exp_trucking_postop";
 const JOB_TOK_KEY = "exp_token|trucking|postop";
 
 let STATE = {
-    xp: 0, startXp: 0, actions: 0, tok: 0, 
-    lastStatus: "", trunkWeight: 0, trunkCap: 0
+    currentXP: 0, startXP: 0, 
+    sessionGain: 0, completedRuns: 0, avgXP: 0,
+    startTokens: null, currentTokens: 0
 };
 let MEMORY = { inventory: {} };
 
@@ -369,51 +367,71 @@ window.addEventListener('message', (event) => {
         } catch(e){}
     }
 
-    // 2. XP Logic (Reverted simple logic from v3.1/v3.2)
-    let xp = data[JOB_EXP_KEY];
+    // 2. XP Logic (Fixed v3.2 Logic with aggressive number parsing)
+    let rawXP = data[JOB_EXP_KEY];
     
-    // Fallback if key missing (check inv)
-    if (!xp && data.inventory) {
+    // Check Inventory Backup if root key missing
+    if (rawXP === undefined && MEMORY.inventory[JOB_EXP_KEY]) {
+        rawXP = MEMORY.inventory[JOB_EXP_KEY];
+    }
+    // Check Inventory in data if root key missing
+    if (rawXP === undefined && data.inventory) {
         try { 
             let inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
-            if(inv[JOB_EXP_KEY]) xp = inv[JOB_EXP_KEY];
+            if(inv[JOB_EXP_KEY]) rawXP = inv[JOB_EXP_KEY];
         } catch(e){}
     }
-
-    // Handle Object { amount: 123 }
-    if (typeof xp === 'object' && xp !== null && xp.amount !== undefined) {
-        xp = xp.amount;
+    
+    // Parse Object format {amount: 123} if needed
+    if (typeof rawXP === 'object' && rawXP !== null && rawXP.amount !== undefined) {
+        rawXP = rawXP.amount;
     }
 
-    if (typeof xp === 'number') {
-        if (STATE.startXp === 0) STATE.startXp = xp;
-        if (xp > STATE.xp && STATE.xp !== 0) STATE.actions++;
-        STATE.xp = xp;
-        updateUI();
+    // Process Valid Number
+    if (rawXP !== undefined && !isNaN(parseFloat(rawXP))) {
+        let currentXP = parseFloat(rawXP); // No flooring, exact value
+        
+        if (STATE.startXP === 0) { 
+            STATE.startXP = currentXP; 
+            STATE.currentXP = currentXP; 
+        } 
+        else if (currentXP > STATE.currentXP) {
+            STATE.completedRuns++;
+            STATE.currentXP = currentXP;
+            STATE.sessionGain = currentXP - STATE.startXP;
+            if (STATE.completedRuns > 0) STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
+        }
+        renderStats();
     }
 
     // 3. Tokens
     let inv = {};
     if (data.inventory) {
-        try { inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
+        try { 
+            inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; 
+            MEMORY.inventory = inv; 
+        } catch(e){}
     }
+    
     let tObj = inv[JOB_TOK_KEY] || data[JOB_TOK_KEY];
     if (tObj) {
         let tVal = (typeof tObj === 'object') ? tObj.amount : tObj;
-        STATE.tok = tVal;
+        STATE.currentTokens = tVal;
         document.getElementById('disp-tokens').innerText = formatNumber(tVal);
         document.getElementById('micro-tokens').innerText = formatNumber(tVal);
     }
 });
 
-function updateUI() {
-    let x = STATE.xp, c = 5, l = 0;
+function renderStats() {
+    let x = STATE.currentXP;
+    let c = 5, l = 0;
     while (x >= c) { x -= c; l++; c = (l + 1) * 5; }
     
+    // Corrected ID match for micro-view
     document.getElementById('disp-lvl').innerText = l;
-    document.getElementById('micro-lvl').innerText = l;
-    document.getElementById('disp-xp').innerText = STATE.xp.toLocaleString();
-    document.getElementById('micro-xp').innerText = formatNumber(STATE.xp);
+    document.getElementById('micro-level').innerText = l; 
+    document.getElementById('disp-xp').innerText = STATE.currentXP.toLocaleString();
+    document.getElementById('micro-xp').innerText = formatNumber(STATE.currentXP);
     
     let p = (x/c*100).toFixed(1);
     document.getElementById('level-bar').style.width = p + "%";
@@ -423,12 +441,8 @@ function updateUI() {
     let needed = Math.floor(c - x);
     document.getElementById('xp-needed').innerText = needed.toLocaleString() + " XP to Next Level";
     
-    let ses = STATE.xp - STATE.startXp;
-    document.getElementById('disp-session').innerText = ses.toLocaleString();
-    
-    // XP PER STOP LOGIC
-    let avg = STATE.actions > 0 ? Math.round(ses / STATE.actions) : 0;
-    document.getElementById('disp-avg').innerText = avg;
+    document.getElementById('disp-session').innerText = STATE.sessionGain.toLocaleString();
+    document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
     
     runCalculator();
 }
@@ -437,11 +451,9 @@ function runCalculator() {
     let t = parseInt(document.getElementById('target-input').value);
     if (!t) return;
     
-    // Use Session Avg if available, otherwise assume current gap
-    let ses = STATE.xp - STATE.startXp;
-    let avg = (STATE.actions > 0) ? (ses / STATE.actions) : 1; 
+    let avg = STATE.avgXP > 0 ? STATE.avgXP : 1; 
+    let diff = t - STATE.currentXP;
     
-    let diff = t - STATE.xp;
     let stops = diff > 0 ? Math.ceil(diff/avg) : 0;
     let txt = stops > 0 ? stops.toLocaleString() + " Stops" : "TARGET REACHED";
     
@@ -450,7 +462,6 @@ function runCalculator() {
 }
 
 setInterval(() => {
-    // Polling only PostOP keys
     if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [JOB_EXP_KEY, JOB_TOK_KEY, "inventory", "status"] }, "*");
     let d = new Date();
     document.getElementById('clock').innerText = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
