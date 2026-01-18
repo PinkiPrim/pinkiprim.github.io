@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT PostOP Ops v3.5</title>
+    <title>TT PostOP Ops v3.6</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -139,6 +139,12 @@
 
         @keyframes pkgCycle { 0% { opacity: 1; } 95% { opacity: 1; } 100% { opacity: 0; } }
 
+        #user-name-display {
+            position: absolute; bottom: 55px; left: 10px;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em;
+            color: #ccc; z-index: 15;
+        }
+
         .header-controls { display: flex; gap: 8px; z-index: 30; align-items: center; }
         .nav-icon { text-decoration: none; font-size: 1.2em; cursor: pointer; color: #ccc; }
         .nav-icon:hover { color: #fff; }
@@ -158,8 +164,9 @@
             background: rgba(255, 215, 0, 0.05); border: 1px dashed var(--accent);
             border-radius: 6px; padding: 8px; margin-bottom: 12px; text-align: center;
         }
-        .status-title { font-size: 0.7em; color: var(--accent); letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase; }
-        .status-main { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .status-title { font-size: 0.7em; color: var(--accent); letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; }
+        .status-main { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); margin-bottom: 5px; }
+        
         .status-details { display: flex; flex-direction: column; gap: 2px; }
         .status-line { font-size: 0.9em; color: #ccc; font-weight: bold; }
 
@@ -175,6 +182,7 @@
         .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
         .xp-remaining-text b { color: var(--primary); }
 
+        /* 3 COLUMN GRID */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
         .stat-val { font-weight: bold; font-size: 1.1em; }
@@ -241,6 +249,7 @@
     <header id="drag-handle">
         <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
         <div class="header-title">POSTOP OPS</div>
+        <div id="user-name-display">Driver ...</div>
         
         <div id="delivery-scene">
             <div class="house-container">
@@ -326,6 +335,7 @@ let STATE = {
     lastStatus: "", trunkWeight: 0, trunkCap: 0
 };
 let MEMORY = { trunk: {}, inventory: {} };
+let TRUNK_KEY = null;
 
 // --- UI LOGIC ---
 function toggleMini() { 
@@ -345,6 +355,8 @@ function cleanString(s) { return s.replace(/~[a-z]~/g, "").trim(); }
 window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
+
+    if (data.name) document.getElementById('user-name-display').innerText = "Driver " + data.name;
 
     // 1. Status Parsing
     if(data.status) {
@@ -366,22 +378,28 @@ window.addEventListener('message', (event) => {
         } catch(e){}
     }
 
-    // 2. XP Logic (UPDATED FIX)
+    // 2. XP Logic (FIXED)
     let rawXP = data[JOB_EXP_KEY];
     
-    // Check Inventory Backup if root key missing
-    if (rawXP === undefined && MEMORY.inventory[JOB_EXP_KEY]) {
-        rawXP = MEMORY.inventory[JOB_EXP_KEY];
+    // Fallback scan (Inventory or Root)
+    if (!rawXP && MEMORY.inventory[JOB_EXP_KEY]) rawXP = MEMORY.inventory[JOB_EXP_KEY];
+    if (!rawXP && data.inventory) {
+        try { 
+            let inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
+            if(inv[JOB_EXP_KEY]) rawXP = inv[JOB_EXP_KEY];
+        } catch(e){}
     }
-    
-    // Parse Object format {amount: 123} if needed
-    if (typeof rawXP === 'object' && rawXP !== null) {
+
+    // Object Extraction { amount: 123 }
+    if (typeof rawXP === 'object' && rawXP !== null && rawXP.amount !== undefined) {
         rawXP = rawXP.amount;
+    } else if (typeof rawXP === 'string') {
+        rawXP = parseFloat(rawXP);
     }
 
     // Process Valid Number
-    if (typeof rawXP === 'number') {
-        let xp = Math.floor(rawXP); // Floor decimals
+    if (typeof rawXP === 'number' && !isNaN(rawXP)) {
+        let xp = Math.floor(rawXP);
         if (STATE.startXp === 0) STATE.startXp = xp;
         if (xp > STATE.xp && STATE.xp !== 0) STATE.actions++;
         STATE.xp = xp;
@@ -389,11 +407,15 @@ window.addEventListener('message', (event) => {
     }
 
     // 3. Tokens
+    let inv = {};
     if (data.inventory) {
-        try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
+        try { 
+            inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; 
+            MEMORY.inventory = inv; // Cache inventory
+        } catch(e){}
     }
     
-    let tObj = MEMORY.inventory[JOB_TOK_KEY] || data[JOB_TOK_KEY];
+    let tObj = inv[JOB_TOK_KEY] || data[JOB_TOK_KEY];
     if (tObj) {
         let tVal = (typeof tObj === 'object') ? tObj.amount : tObj;
         STATE.tok = tVal;
@@ -422,6 +444,7 @@ function updateUI() {
     let ses = STATE.xp - STATE.startXp;
     document.getElementById('disp-session').innerText = ses.toLocaleString();
     
+    // XP PER STOP LOGIC
     let avg = STATE.actions > 0 ? Math.round(ses / STATE.actions) : 0;
     document.getElementById('disp-avg').innerText = avg;
     
@@ -442,7 +465,7 @@ function runCalculator() {
 }
 
 setInterval(() => {
-    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [JOB_EXP_KEY, JOB_TOK_KEY, "inventory", "status"] }, "*");
+    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [JOB_EXP_KEY, JOB_TOK_KEY, "inventory", "status", "name"] }, "*");
     let d = new Date();
     document.getElementById('clock').innerText = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }, 1000);
