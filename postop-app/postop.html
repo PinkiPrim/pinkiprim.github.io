@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT PostOP Ops v2.0</title>
+    <title>TT PostOP Ops v3.0</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* PostOP Theme: Purple & Gold */
+            /* PostOP Theme */
             --primary: #673ab7; 
             --primary-dim: #4527a0;
             --accent: #ffd700;
@@ -93,67 +93,82 @@
 
         /* --- POSTMAN ANIMATION SCENE --- */
         #delivery-scene {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 50px;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 60px;
             overflow: hidden; pointer-events: none; z-index: 5;
-            background: linear-gradient(to bottom, transparent 90%, #333 90%);
+            background: linear-gradient(to bottom, transparent 90%, #222 90%); /* Pavement */
         }
 
         .house-container {
-            position: absolute; bottom: 5px; width: 100%; height: 100%;
-            display: flex; justify-content: space-around; padding: 0 20px; box-sizing: border-box;
+            position: absolute; bottom: 4px; width: 100%; height: 100%;
+            display: flex; justify-content: space-between; /* Even spacing */
+            padding: 0 15px; box-sizing: border-box; /* Padding creates the start/end buffer */
         }
 
-        .house-spot { position: relative; width: 30px; height: 30px; }
-        .house-emoji { font-size: 24px; position: absolute; bottom: 0; left: 0; z-index: 2; }
+        .house-spot { position: relative; width: 40px; height: 40px; display:flex; justify-content:center; align-items:flex-end; }
+        
+        .house-emoji { 
+            font-size: 34px; line-height: 1; z-index: 2; 
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8));
+        }
         
         .package {
-            font-size: 14px; position: absolute; bottom: 2px; left: -5px; z-index: 3;
-            opacity: 0; /* Hidden by default */
-        }
-
-        /* Package Appear Animations */
-        /* Total cycle: 12s. Stops happen at approx 10%, 25%, 40%, 55%, 70%, 85% */
-        .pkg-1 { animation: pkgAppear 12s step-end infinite; animation-delay: 1.2s; }
-        .pkg-2 { animation: pkgAppear 12s step-end infinite; animation-delay: 2.8s; }
-        .pkg-3 { animation: pkgAppear 12s step-end infinite; animation-delay: 4.4s; }
-        .pkg-4 { animation: pkgAppear 12s step-end infinite; animation-delay: 6.0s; }
-        .pkg-5 { animation: pkgAppear 12s step-end infinite; animation-delay: 7.6s; }
-        .pkg-6 { animation: pkgAppear 12s step-end infinite; animation-delay: 9.2s; }
-
-        @keyframes pkgAppear {
-            0% { opacity: 1; } /* Visible after delay */
-            90% { opacity: 1; }
-            95% { opacity: 0; } /* Reset */
-            100% { opacity: 0; }
+            font-size: 16px; position: absolute; bottom: 2px; right: 0px; z-index: 20;
+            opacity: 0; /* Invisible start */
         }
 
         .postman {
-            position: absolute; bottom: 2px; left: -30px;
-            font-size: 28px; z-index: 10;
-            animation: postmanRoute 12s linear infinite;
+            position: absolute; bottom: 2px; left: -40px;
+            font-size: 32px; z-index: 30;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+            animation: postmanRun 12s linear infinite;
         }
 
-        /* Postman Route: Move -> Stop -> Move -> Stop */
-        /* Houses are roughly at 8%, 25%, 42%, 58%, 75%, 92% of container width */
-        @keyframes postmanRoute {
-            0% { left: -30px; }
-            8% { left: 6%; }  /* Stop 1 Arrive */
-            12% { left: 6%; } /* Stop 1 Wait */
-            22% { left: 22%; } /* Stop 2 Arrive */
-            26% { left: 22%; } /* Stop 2 Wait */
-            36% { left: 39%; } /* Stop 3 Arrive */
-            40% { left: 39%; } /* Stop 3 Wait */
-            50% { left: 56%; } /* Stop 4 Arrive */
-            54% { left: 56%; } /* Stop 4 Wait */
-            64% { left: 72%; } /* Stop 5 Arrive */
-            68% { left: 72%; } /* Stop 5 Wait */
-            78% { left: 89%; } /* Stop 6 Arrive */
-            82% { left: 89%; } /* Stop 6 Wait */
-            100% { left: 110%; } /* Exit */
+        /* ANIMATION SYNC (12s Total) 
+           Container Width: ~340px. 
+           Stops calculated based on 6 houses spaced evenly with padding.
+           ~8% (H1), ~24% (H2), ~41% (H3), ~58% (H4), ~74% (H5), ~90% (H6)
+        */
+
+        @keyframes postmanRun {
+            0%   { left: -40px; transform: scaleX(1); } /* Start Left */
+            
+            7%   { left: 6%; }   /* Arrive H1 */
+            11%  { left: 6%; }   /* Wait H1 */
+            
+            21%  { left: 22%; }  /* Arrive H2 */
+            25%  { left: 22%; }  /* Wait H2 */
+            
+            38%  { left: 39%; }  /* Arrive H3 */
+            42%  { left: 39%; }  /* Wait H3 */
+            
+            54%  { left: 56%; }  /* Arrive H4 */
+            58%  { left: 56%; }  /* Wait H4 */
+            
+            71%  { left: 72%; }  /* Arrive H5 */
+            75%  { left: 72%; }  /* Wait H5 */
+            
+            88%  { left: 88%; }  /* Arrive H6 */
+            92%  { left: 88%; }  /* Wait H6 */
+
+            100% { left: 360px; } /* Exit Right */
+        }
+
+        /* Package Appearances - Synced to "Wait" phases above */
+        .pkg-1 { animation: pkgCycle 12s step-end infinite; animation-delay: 1.0s; }
+        .pkg-2 { animation: pkgCycle 12s step-end infinite; animation-delay: 2.7s; }
+        .pkg-3 { animation: pkgCycle 12s step-end infinite; animation-delay: 4.8s; }
+        .pkg-4 { animation: pkgCycle 12s step-end infinite; animation-delay: 6.7s; }
+        .pkg-5 { animation: pkgCycle 12s step-end infinite; animation-delay: 8.8s; }
+        .pkg-6 { animation: pkgCycle 12s step-end infinite; animation-delay: 10.8s; }
+
+        @keyframes pkgCycle {
+            0% { opacity: 1; }  /* Appear */
+            95% { opacity: 1; } /* Stay until cycle resets */
+            100% { opacity: 0; } /* Reset */
         }
 
         #user-name-display {
-            position: absolute; bottom: 55px; left: 10px;
+            position: absolute; bottom: 58px; left: 10px;
             font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em;
             color: #ccc; z-index: 15;
         }
@@ -163,7 +178,6 @@
         .nav-icon:hover { color: #fff; }
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.9em; margin-top: 4px; }
 
-        /* BURGER MENU */
         .menu-container { position: relative; }
         .burger-btn { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
         .dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 5px; background: #0f0f0f; border: 1px solid var(--primary); border-radius: 4px; width: 150px; display: none; flex-direction: column; z-index: 100; box-shadow: 0 8px 16px rgba(0,0,0,1); }
@@ -174,13 +188,9 @@
         /* CONTENT */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-        .status-box {
-            background: rgba(255, 215, 0, 0.05); border: 1px solid var(--accent);
-            border-radius: 6px; padding: 8px; margin-bottom: 12px; text-align: center;
-        }
-        .status-title { font-size: 0.7em; color: var(--accent); letter-spacing: 1px; margin-bottom: 2px; }
-        .status-main { font-family: 'Rajdhani', sans-serif; font-size: 1.1em; font-weight: 800; color: #fff; }
-        .status-sub { font-size: 0.85em; color: #ccc; margin-top: 2px; }
+        .plan-row { background: #141414; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
+        .plan-label { font-family: 'Rajdhani', sans-serif; font-size: 0.85em; color: var(--primary); font-weight: 800; text-transform: uppercase; }
+        #recipe-select { background: #000; color: white; border: 1px solid #444; font-family: 'Rajdhani', sans-serif; font-weight: bold; padding: 4px; width: 190px; border-radius: 3px; font-size: 0.85em; }
 
         .section { padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
         .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
@@ -191,25 +201,22 @@
         .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; transition: width 0.4s ease; }
         .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-        .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
-        .stat-val { font-weight: bold; font-size: 1.1em; }
+        .cargo-item { background: rgba(255,255,255,0.02); border-left: 3px solid var(--primary); margin-bottom: 6px; padding: 6px 10px; }
+        .cargo-main { display: flex; justify-content: space-between; font-family: 'Rajdhani', sans-serif; font-weight: 800; }
+        .cargo-locs { font-size: 0.75em; color: #888; margin-top: 4px; border-top: 1px solid #222; padding-top: 4px; }
+        .loc-row { display: flex; justify-content: space-between; padding: 1px 0; }
+        .loc-qty { color: var(--primary); font-weight: bold; }
 
-        input[type="number"] { width: 95%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 6px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; margin-top: 5px;}
-        .calc-result { font-size: 0.85em; color: var(--text-dim); margin-top: 5px; }
-        
-        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
-        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; flex: 1; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
-        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .action-btn { width: 100%; background: rgba(103, 58, 183, 0.15); border: 1px solid var(--primary); color: #fff; padding: 10px; font-family: 'Rajdhani', sans-serif; font-weight: 800; cursor: pointer; border-radius: 4px; margin: 8px 0; text-transform: uppercase; }
+        .action-btn:hover { background: var(--primary); color: #fff; box-shadow: 0 0 10px var(--primary-dim); }
 
-        /* GRINDER OVERLAY */
-        .overlay-panel { position: absolute; top: 70px; left: 0; width: 100%; height: calc(100% - 70px); background: #0a0a0a; z-index: 80; display: none; flex-direction: column; padding: 15px; box-sizing: border-box; }
+        .overlay-panel { position: absolute; top: 85px; left: 0; width: 100%; height: calc(100% - 85px); background: #0a0a0a; z-index: 80; display: none; flex-direction: column; padding: 15px; box-sizing: border-box; }
         .overlay-panel.active { display: flex; }
         .panel-title { font-family: 'Rajdhani', sans-serif; font-weight: 900; color: var(--accent); border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 15px; text-transform: uppercase; display: flex; justify-content: space-between; }
         .stat-row-g { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9em; border-bottom: 1px solid #222; padding-bottom: 5px; }
-        
-        .action-btn { width: 100%; background: rgba(103, 58, 183, 0.3); border: 1px solid var(--primary); color: #fff; padding: 10px; font-family: 'Rajdhani', sans-serif; font-weight: 800; cursor: pointer; border-radius: 4px; margin: 8px 0; text-transform: uppercase; }
-        .action-btn:hover { background: var(--primary); color: #fff; box-shadow: 0 0 10px var(--primary-dim); }
+
+        input[type="number"], .api-input { width: 96%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; margin-top:5px; }
+        .calc-result { font-size: 0.85em; color: var(--text-dim); margin-top: 5px; }
 
         #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
     </style>
@@ -220,7 +227,7 @@
     <div id="micro-view" onmousedown="dragStart(event)">
         <div class="micro-row">
             <span class="micro-group">📦 <span class="micro-val highlight">POST OPS</span></span>
-            <span class="micro-val" id="micro-status">IDLE</span>
+            <span class="micro-val" id="micro-recipe">Plan: Test 1</span>
         </div>
         <div class="micro-row">
             <span class="micro-group">LVL <span class="micro-val highlight" id="micro-lvl">0</span> <div class="micro-progress-bg"><div class="micro-progress-fill" id="micro-bar"></div></div></span>
@@ -232,18 +239,18 @@
     <header id="drag-handle">
         <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
         <div class="header-title">POSTOP OPS</div>
+        <div id="user-name-fly">Driver ...</div>
         
         <div id="delivery-scene">
-            <div id="user-name-display">Driver ...</div>
-            <div class="postman">🧑‍💼</div>
             <div class="house-container">
-                <div class="house-spot"><div class="house">🏠</div><div class="package pkg-1">📦</div></div>
-                <div class="house-spot"><div class="house">🏠</div><div class="package pkg-2">📦</div></div>
-                <div class="house-spot"><div class="house">🏠</div><div class="package pkg-3">📦</div></div>
-                <div class="house-spot"><div class="house">🏠</div><div class="package pkg-4">📦</div></div>
-                <div class="house-spot"><div class="house">🏠</div><div class="package pkg-5">📦</div></div>
-                <div class="house-spot"><div class="house">🏠</div><div class="package pkg-6">📦</div></div>
+                <div class="house-spot"><div class="house-emoji">🏠</div><div class="package pkg-1">📦</div></div>
+                <div class="house-spot"><div class="house-emoji">🏠</div><div class="package pkg-2">📦</div></div>
+                <div class="house-spot"><div class="house-emoji">🏠</div><div class="package pkg-3">📦</div></div>
+                <div class="house-spot"><div class="house-emoji">🏠</div><div class="package pkg-4">📦</div></div>
+                <div class="house-spot"><div class="house-emoji">🏠</div><div class="package pkg-5">📦</div></div>
+                <div class="house-spot"><div class="house-emoji">🏠</div><div class="package pkg-6">📦</div></div>
             </div>
+            <div class="postman">🧑‍💼</div>
         </div>
 
         <div class="header-controls" style="flex-direction:column; gap:0; align-items:flex-end;">
@@ -252,6 +259,7 @@
                 <div class="dropdown-menu" id="main-menu">
                     <div class="menu-item" onclick="toggleMini()">🗖 Mini Mode</div>
                     <div class="menu-item" onclick="toggleGrinder()">📈 Grinder Stats</div>
+                    <div class="menu-item" onclick="toggleSettings()">⚙️ API Settings</div>
                     <div class="menu-item" onclick="resetSession()">🔄 Reset Session</div>
                 </div>
             </div>
@@ -259,44 +267,31 @@
         </div>
     </header>
 
-    <div id="content">
-        <div class="status-box">
-            <div class="status-title">CURRENT STATUS</div>
-            <div class="status-main" id="disp-status">Waiting for job data...</div>
-            <div class="status-sub" id="disp-sub">--</div>
-        </div>
+    <div class="plan-row">
+        <span class="plan-label">PLAN:</span>
+        <select id="recipe-select" onchange="changeRecipe()"></select>
+    </div>
 
+    <div id="content">
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div><div class="label">PostOP Level</div><div class="value highlight" style="font-size:1.8em" id="disp-lvl">0</div></div>
                 <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
             </div>
             <div class="progress-container"><div class="progress-bar" id="level-bar"></div><div class="progress-text" id="level-text">0%</div></div>
-            <div style="text-align:center; font-size:0.8em; color:var(--primary); font-weight:bold; margin-top:5px;" id="xp-needed">...</div>
+            <div id="xp-needed" style="text-align:center; font-size:0.8em; color:var(--primary); font-weight:bold; margin-top:5px;"></div>
         </div>
 
         <div class="section">
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <div class="label">Session XP</div>
-                    <div class="stat-val" style="color:var(--green)" id="disp-session">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="label">Tokens</div>
-                    <div class="stat-val" style="color:var(--accent)" id="disp-tokens">0</div>
-                </div>
-            </div>
+            <div class="label" style="color:var(--primary)">CARGO LOG (MANIFEST)</div>
+            <div id="cargo-log-list"><div style="text-align:center; color:#444; padding:10px;">Select a plan...</div></div>
+            <button class="action-btn" id="api-btn" onclick="fetchStorages()">📦 CHECK STORAGE (INV+TRUNK+API)</button>
         </div>
 
         <div class="section" style="border:none;">
             <div class="label">Target XP Calculator</div>
             <input type="number" id="target-input" placeholder="Enter Target XP" oninput="runCalculator()">
-            <div class="quick-btn-row">
-                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
-                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
-                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
-            </div>
-            <div class="calc-result">Potential Actions: <span id="est-actions" style="color:var(--accent); font-weight:bold;">--</span></div>
+            <div class="calc-result">Potential Actions To Target XP: <span id="est-actions" style="color:var(--primary); font-weight:bold;">--</span></div>
         </div>
     </div>
 
@@ -308,73 +303,117 @@
         <button class="action-btn" style="margin-top:auto;" onclick="toggleGrinder()">CLOSE</button>
     </div>
 
+    <div id="settings-panel" class="overlay-panel">
+        <div class="panel-title">API SETTINGS</div>
+        <div class="label">USER ID</div><input type="text" id="api-uid" class="api-input" placeholder="e.g. 757858">
+        <div class="label" style="margin-top:10px">API KEY</div><input type="password" id="api-key" class="api-input" placeholder="Tycoon API Key">
+        <button class="action-btn" onclick="saveSettings()">SAVE SETTINGS</button>
+        <button class="action-btn" style="margin-top:auto;" onclick="toggleSettings()">CLOSE</button>
+    </div>
+
     <div id="resize-handle"></div>
 </div>
 
 <script>
-// --- CONFIG ---
-const JOB_EXP_KEY = "exp_trucking_postop";
-const JOB_TOK_KEY = "exp_token|trucking|postop";
-const JOB_BONUS_KEY = "exp_token_a|trucking|postop";
-
-let STATE = {
-    xp: 0, startXp: 0, actions: 0, tok: 0, startTok: 0, startT: Date.now(),
-    lastStatus: ""
+// --- ITEM DATABASE ---
+const ITEM_DB = {
+    "tcargologs": "Logs", "mechanicals_jumper_cable": "Jumper Cable", "defibkit": "Defibrillator Kit", "jerry_can|DIESEL|Petrol": "Jerry Can (Petrol)", "spaceship_part": "Spaceship Part", "gut_knife_st": "StatTrak Gut Knife", "scrap_acid": "Acid", "fridge_airline_meal": "Airline Meal", "petrochem_asphalt": "Asphalt Concrete", "backpack": "Backpack", "engine_bag": "Bag-o-Engines", "bandages": "Bandage", "crafted_batteries": "Batteries", "mechanicals_battery": "Car Battery", "crafted_cardboard": "Cardboard", "crafted_cement": "Cement Mix", "crafted_ceramictiles": "Ceramic Tiles", "mechanicals_chassis": "Chassis", "military_chemicals": "Chemicals", "crafted_circuit": "Circuit Boards", "crafted_computer": "Computers", "crafted_concrete": "Concrete", "mining_copper": "Copper Ore", "crafted_copperwire": "Copper Wire Spool", "petrochem_oil": "Crude Oil", "petrochem_diesel": "Diesel", "tcargosmall": "Erasers", "military_explosives": "Explosives", "crafted_fiberglass": "Fiberglass Spool", "refined_flint": "Flint", "refined_glass": "Glass", "scrap_gravel": "Gravel", "mining_iron": "Iron Ore", "petrochem_kerosene": "Kerosene", "petrochem_petrol": "Petrol", "refined_planks": "Planks", "petrochem_propane": "Propane", "recycled_rubble": "Quarry Rubble", "scrap_emerald": "Raw Emeralds", "petrochem_gas": "Raw Gas", "scrap_ore": "Raw Ore Mix", "crafted_rebar": "Rebar", "recycled_electronics": "Recycled Electronics", "recycled_trash": "Recycled Trash", "refined_aluminum": "Refined Aluminum", "refined_amalgam": "Refined Amalgam", "refined_bronze": "Refined Bronze Alloy", "refined_copper": "Refined Copper", "refined_gold": "Refined Gold", "refined_solder": "Refined Solder", "refined_tin": "Refined Tin", "refined_zinc": "Refined Zinc", "mechanicals_rubber": "Rubber", "refined_sand": "Sand", "tcargodust": "Sawdust", "scrap_aluminum": "Scrap Aluminum", "scrap_copper": "Scrap Copper", "scrap_gold": "Scrap Gold", "scrap_lead": "Scrap Lead", "scrap_mercury": "Scrap Mercury", "scrap_plastic": "Scrap Plastic", "scrap_tin": "Scrap Tin", "shipping_crate_empty": "Shipping Container", "petrochem_sulfur": "Sulfur", "military_titanium": "Titanium", "military_titanium_ore": "Titanium Ore", "pucargosmall": "Tools", "recycled_waste": "Toxic Waste", "mechanicals_battery_evb": "Traction Battery", "liquid_water": "Treated Water", "liquid_water_raw": "Unfiltered Water", "mechanicals_vehicle_framework": "Vehicle Framework", "petrochem_waste": "Waste Water", "mechanicals_wheels": "Wheels"
 };
 
-// --- UI LOGIC ---
+const RECIPE_DB = [
+    { name: "Alamo: Sell Fish", items: ["fish_meat", "fish_meat_premium"] },
+    { name: "CollinsCo: Boat Vouchers", items: ["collinsco_boat_voucher"] },
+    { name: "House Construction", items: ["crafted_copperwire", "crafted_rebar", "crafted_concrete", "refined_planks", "crafted_ceramictiles", "crafted_computer"] },
+    { name: "EMS: Defib Charging", items: ["e_defibkit", "defibkit"] },
+    { name: "Illegal: Pill Crafting", items: ["illegal_meth", "illegal_crate", "pills"] },
+    { name: "Illegal: Defib Charging", items: ["scrap_plastic", "e_defibkit"] },
+    { name: "Log Collection", items: ["tcargologs"] },
+    { name: "Construction Site Delivery", items: ["petrochem_asphalt", "crafted_rebar", "crafted_concrete"] },
+    { name: "Refinery: Crude Oil", items: ["petrochem_oil", "petrochem_diesel", "petrochem_petrol", "petrochem_kerosene"] },
+    { name: "Refinery: Asphalt/Gas", items: ["petrochem_oil", "scrap_gravel", "petrochem_gas", "military_chemicals", "petrochem_propane"] },
+    { name: "Filtering: Concrete/Ore", items: ["liquid_water", "crafted_cement", "mining_token_copper", "mining_token_iron", "scrap_emerald", "scrap_ore", "scrap_gravel"] },
+    { name: "Filtering: Waste/Gravel", items: ["recycled_waste", "scrap_mercury", "scrap_lead", "scrap_acid", "scrap_gravel", "refined_sand", "refined_flint", "recycled_rubble"] },
+    { name: "Fridgit: Airline Meals", items: ["fridge_meat", "fridge_veggies", "fridge_dairy", "fridge_airline_meal", "fridge_store_delivery"] },
+    { name: "Electronics Store", items: ["crafted_copperwire", "refined_solder", "recycled_electronics", "crafted_fiberglass", "refined_amalgam", "crafted_circuit"] },
+    { name: "Vehicle Parts Factory", items: ["refined_amalgam", "refined_glass", "mechanicals_chassis", "crafted_circuit", "mechanicals_battery", "mechanicals_wheels", "crafted_fiberglass", "petrochem_kerosene", "mechanicals_vehicle_framework"] }
+];
+
+let STATE = {
+    planIdx: 0, xp: 0, startXp: 0, actions: 0, tok: 0, startTok: 0, startT: Date.now(),
+    localInv: {}, apiInv: {}, uid: localStorage.getItem("tt_uid_t") || "", key: localStorage.getItem("tt_key_t") || ""
+};
+
+// --- CORE ---
+const EXP_KEY = "exp_trucking_postop";
+const TOK_KEY = "exp_token|trucking|postop";
+
+function init() {
+    const sel = document.getElementById('recipe-select');
+    RECIPE_DB.forEach((r, i) => sel.innerHTML += `<option value="${i}">${r.name}</option>`);
+    if(STATE.uid) document.getElementById('api-uid').value = STATE.uid;
+    if(STATE.key) document.getElementById('api-key').value = STATE.key;
+    renderCargo();
+}
+
 function toggleMenu() { document.getElementById('main-menu').classList.toggle('show'); }
 function toggleGrinder() { document.getElementById('grinder-panel').classList.toggle('active'); toggleMenu(); }
+function toggleSettings() { document.getElementById('settings-panel').classList.toggle('active'); toggleMenu(); }
 function toggleMini() { document.getElementById('tracker-app').classList.toggle('mini-mode'); toggleMenu(); }
-function setCalc(val) { document.getElementById('target-input').value = val; runCalculator(); }
+
+function saveSettings() {
+    STATE.uid = document.getElementById('api-uid').value;
+    STATE.key = document.getElementById('api-key').value;
+    localStorage.setItem("tt_uid_t", STATE.uid);
+    localStorage.setItem("tt_key_t", STATE.key);
+    document.getElementById('settings-panel').classList.remove('active');
+}
+
+function changeRecipe() {
+    STATE.planIdx = document.getElementById('recipe-select').value;
+    document.getElementById('micro-recipe').innerText = RECIPE_DB[STATE.planIdx].name;
+    renderCargo();
+}
 
 window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
-
-    if (data.name) document.getElementById('user-name-display').innerText = "Driver " + data.name;
-
-    // 1. Status Parsing
-    if(data.status) {
-        try {
-            let s = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
-            if(s.lines) {
-                let statusLine = cleanString(s.lines[0]); // e.g. "Status: Unloading (17s)"
-                let subText = "";
-                if(s.lines[1]) subText += cleanString(s.lines[1]) + " ";
-                if(s.lines[2]) subText += cleanString(s.lines[2]);
-
-                document.getElementById('disp-status').innerText = statusLine || "Idle";
-                document.getElementById('disp-sub').innerText = subText || "--";
-                document.getElementById('micro-status').innerText = (statusLine.split(':')[1] || statusLine).trim().substring(0,15);
-            }
-        } catch(e){}
-    }
-
-    // 2. XP
-    let xp = data[JOB_EXP_KEY];
-    if (typeof xp === 'number') {
-        if (STATE.startXp === 0) STATE.startXp = xp;
-        if (xp > STATE.xp && STATE.xp !== 0) STATE.actions++;
-        STATE.xp = xp;
+    if (data.name) document.getElementById('user-name-fly').innerText = "Driver " + data.name;
+    
+    // XP Parsing
+    let rawXP = data[EXP_KEY];
+    if (typeof rawXP === 'object') rawXP = rawXP.amount;
+    if (typeof rawXP === 'number') {
+        if (STATE.startXp === 0) STATE.startXp = rawXP;
+        if (rawXP > STATE.xp && STATE.xp !== 0) STATE.actions++;
+        STATE.xp = rawXP;
         updateUI();
     }
 
-    // 3. Tokens
-    let inv = {};
-    if (data.inventory) {
-        try { inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
-    }
-    
-    let tObj = inv[JOB_TOK_KEY] || data[JOB_TOK_KEY];
-    if (tObj) {
-        let tVal = (typeof tObj === 'object') ? tObj.amount : tObj;
-        if (STATE.startTok === 0) STATE.startTok = tVal;
-        STATE.tok = tVal;
+    // Inventory Parsing
+    let merged = {};
+    const proc = (raw, label) => {
+        if(!raw) return;
+        let obj = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+        for(let k in obj) {
+            let qty = (typeof obj[k] === 'object') ? (obj[k].amount || obj[k].count || 0) : obj[k];
+            if(!merged[k]) merged[k] = [];
+            merged[k].push({ loc: label, qty: qty });
+        }
+    };
+    proc(data.inventory, "Pocket");
+    proc(data.backpack, "Backpack");
+    for(let k in data) if(k.startsWith("chest") && data[k] !== "none") proc(data[k], "Vehicle/Storage");
+    STATE.localInv = merged;
+
+    // Tokens
+    if (merged[TOK_KEY]) {
+        let t = merged[TOK_KEY].reduce((a,b)=>a+b.qty,0);
+        if (STATE.startTok === 0) STATE.startTok = t;
+        STATE.tok = t;
         updateGrinder();
     }
-
-    // 4. Bonuses
+    
+    // Identity
     if(data.menu_choices) {
         try {
             let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
@@ -382,7 +421,50 @@ window.addEventListener('message', (event) => {
             if(id) parseBonuses(id[1]);
         } catch(e){}
     }
+    renderCargo();
 });
+
+async function fetchStorages() {
+    if(!STATE.uid || !STATE.key) return alert("API Key/ID required!");
+    const btn = document.getElementById('api-btn');
+    btn.innerText = "⚡ SCANNING...";
+    try {
+        const res = await fetch(`https://ttycoon.eu/api/v1/playerdata/storages?id=${STATE.uid}`, { headers: { 'X-Tycoon-Key': STATE.key } });
+        const json = await res.json();
+        if(json.code == "200") {
+            STATE.apiInv = {};
+            json.data.forEach(s => {
+                for(let k in s.inventory) {
+                    if(!STATE.apiInv[k]) STATE.apiInv[k] = [];
+                    STATE.apiInv[k].push({ loc: s.displayName || s.name, qty: s.inventory[k].amount });
+                }
+            });
+            btn.innerText = "✅ SYNCED";
+        }
+    } catch(e) { btn.innerText = "❌ ERROR"; }
+    setTimeout(() => btn.innerText = "📦 CHECK STORAGE (INV+TRUNK+API)", 3000);
+    renderCargo();
+}
+
+function renderCargo() {
+    let html = "";
+    let reqs = RECIPE_DB[STATE.planIdx].items;
+    reqs.forEach(k => {
+        let local = STATE.localInv[k] || [];
+        let remote = STATE.apiInv[k] || [];
+        let total = local.reduce((a,b)=>a+b.qty,0) + remote.reduce((a,b)=>a+b.qty,0);
+        
+        html += `<div class="cargo-item">
+            <div class="cargo-main"><span>${(ITEM_DB[k] || k).toUpperCase()}</span><span style="color:${total > 0 ? 'var(--green)' : 'var(--red)'}">${total}</span></div>
+            <div class="cargo-locs">`;
+        
+        [...local, ...remote].forEach(d => html += `<div class="loc-row"><span>${d.loc}</span><span class="loc-qty">${d.qty}</span></div>`);
+        
+        if(total === 0) html += `<div>Not found in storage.</div>`;
+        html += `</div></div>`;
+    });
+    document.getElementById('cargo-log-list').innerHTML = html;
+}
 
 function updateUI() {
     let x = STATE.xp, c = 5, l = 0;
@@ -391,24 +473,18 @@ function updateUI() {
     document.getElementById('micro-lvl').innerText = l;
     document.getElementById('disp-xp').innerText = STATE.xp.toLocaleString();
     document.getElementById('micro-xp').innerText = STATE.xp.toLocaleString();
-    
     let p = (x/c*100).toFixed(1);
     document.getElementById('level-bar').style.width = p + "%";
     document.getElementById('level-text').innerText = p + "%";
     document.getElementById('micro-bar').style.width = p + "%";
     document.getElementById('xp-needed').innerText = Math.round(c - x).toLocaleString() + " XP to Next Level";
-    
-    let ses = STATE.xp - STATE.startXp;
-    document.getElementById('disp-session').innerText = ses.toLocaleString() + " XP";
-    
     runCalculator();
 }
 
 function updateGrinder() {
     let e = STATE.tok - STATE.startTok;
-    document.getElementById('disp-tokens').innerText = e.toLocaleString();
+    document.getElementById('g-session').innerText = e.toLocaleString();
     document.getElementById('micro-tokens').innerText = e.toLocaleString();
-    
     let r = e / ((Date.now() - STATE.startT) / 60000 || 1);
     
     let html = `
@@ -435,37 +511,29 @@ function runCalculator() {
     if (!t || STATE.actions === 0) return;
     let avg = (STATE.xp - STATE.startXp) / STATE.actions;
     let diff = t - STATE.xp;
-    document.getElementById('est-actions').innerText = diff > 0 ? Math.ceil(diff/avg).toLocaleString() + " Stops" : "TARGET REACHED";
-    document.getElementById('micro-calc').innerText = diff > 0 ? Math.ceil(diff/avg) : "-";
+    document.getElementById('est-actions').innerText = diff > 0 ? Math.ceil(diff/avg).toLocaleString() + " Actions" : "TARGET REACHED";
 }
 
-function cleanString(s) {
-    return s.replace(/~[a-z]~/g, "").trim();
-}
-
-function resetSession() { 
-    STATE.startXp = STATE.xp; STATE.actions = 0; STATE.startTok = STATE.tok; STATE.startT = Date.now(); 
-    toggleMenu(); 
-}
+function resetSession() { STATE.startXp = STATE.xp; STATE.actions = 0; STATE.startTok = STATE.tok; STATE.startT = Date.now(); toggleMenu(); }
 
 setInterval(() => {
-    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [JOB_EXP_KEY, JOB_TOK_KEY, JOB_BONUS_KEY, "inventory", "status", "name", "menu_choices"] }, "*");
+    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [EXP_KEY, TOK_KEY, "inventory", "chest", "backpack", "name", "menu_choices"] }, "*");
     let d = new Date();
     document.getElementById('clock').innerText = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }, 1000);
 
 const dH = document.getElementById("drag-handle");
 let dr=false, sx, sy, ox, oy;
-dH.onmousedown = e => { if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return; dr=true; sx=e.clientX; sy=e.clientY; let r=document.getElementById('tracker-app').getBoundingClientRect(); ox=r.left; oy=r.top; };
+dH.onmousedown = e => { if(e.target.tagName==='SELECT'||e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return; dr=true; sx=e.clientX; sy=e.clientY; let r=document.getElementById('tracker-app').getBoundingClientRect(); ox=r.left; oy=r.top; };
 window.onmousemove = e => { if(dr){ let a=document.getElementById('tracker-app'); a.style.left=(ox+e.clientX-sx)+'px'; a.style.top=(oy+e.clientY-sy)+'px'; }};
 window.onmouseup = () => dr=false;
 
-// Resize
 const rh = document.getElementById('resize-handle');
 rh.onmousedown = e => { e.preventDefault(); window.addEventListener('mousemove', rs); window.addEventListener('mouseup', rsEnd); };
 function rs(e) { let a=document.getElementById('tracker-app'); if(!a.classList.contains('mini-mode')) { a.style.width=Math.max(280, e.clientX-a.getBoundingClientRect().left)+'px'; a.style.height=Math.max(200, e.clientY-a.getBoundingClientRect().top)+'px'; } }
 function rsEnd() { window.removeEventListener('mousemove', rs); window.removeEventListener('mouseup', rsEnd); }
 
+init();
 </script>
 </body>
 </html>
