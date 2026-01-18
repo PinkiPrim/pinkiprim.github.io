@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT PostOP Ops v3.8</title>
+    <title>TT PostOP Ops v3.9</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -38,7 +38,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             overflow: hidden;
-            min-height: 350px;
+            min-height: 400px;
             transition: width 0.2s, height 0.2s;
         }
 
@@ -138,12 +138,6 @@
 
         @keyframes pkgCycle { 0% { opacity: 1; } 95% { opacity: 1; } 100% { opacity: 0; } }
 
-        #user-name-display {
-            position: absolute; bottom: 55px; left: 10px;
-            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em;
-            color: #ccc; z-index: 15;
-        }
-
         .header-controls { display: flex; gap: 8px; z-index: 30; align-items: center; }
         .nav-icon { text-decoration: none; font-size: 1.2em; cursor: pointer; color: #ccc; }
         .nav-icon:hover { color: #fff; }
@@ -164,8 +158,7 @@
             border-radius: 6px; padding: 8px; margin-bottom: 12px; text-align: center;
         }
         .status-title { font-size: 0.7em; color: var(--accent); letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase; }
-        .status-main { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); margin-bottom: 5px; }
-        
+        .status-main { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
         .status-details { display: flex; flex-direction: column; gap: 2px; }
         .status-line { font-size: 0.9em; color: #ccc; font-weight: bold; }
 
@@ -248,7 +241,6 @@
     <header id="drag-handle">
         <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
         <div class="header-title">POSTOP OPS</div>
-        <div id="user-name-display">Driver ...</div>
         
         <div id="delivery-scene">
             <div class="house-container">
@@ -330,10 +322,12 @@ const JOB_EXP_KEY = "exp_trucking_postop";
 const JOB_TOK_KEY = "exp_token|trucking|postop";
 
 let STATE = {
-    xp: 0, startXp: 0, actions: 0, tok: 0, startTok: 0, startT: Date.now(),
-    lastStatus: "", trunkWeight: 0, trunkCap: 0
+    currentXP: 0, startXP: 0, 
+    sessionGain: 0, completedRuns: 0, avgXP: 0,
+    startTokens: null, currentTokens: 0,
+    runActive: false, runStartXP: 0
 };
-let MEMORY = { trunk: {}, inventory: {} };
+let MEMORY = { inventory: {}, trunk: {} };
 let TRUNK_KEY = null;
 
 // --- UI LOGIC ---
@@ -355,8 +349,6 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    if (data.name) document.getElementById('user-name-display').innerText = "Driver " + data.name;
-
     // 1. Status Parsing
     if(data.status) {
         try {
@@ -377,10 +369,10 @@ window.addEventListener('message', (event) => {
         } catch(e){}
     }
 
-    // 2. XP Logic (FIXED & FLOORED)
+    // 2. XP Logic (Reverted to v3.2 Logic with Flooring)
     let rawXP = data[JOB_EXP_KEY];
     
-    // Fallback scan (Inventory or Root)
+    // Fallback scan
     if (!rawXP && MEMORY.inventory[JOB_EXP_KEY]) rawXP = MEMORY.inventory[JOB_EXP_KEY];
     if (!rawXP && data.inventory) {
         try { 
@@ -389,48 +381,50 @@ window.addEventListener('message', (event) => {
         } catch(e){}
     }
 
-    // Object Extraction { amount: 123 }
+    // Parse Object
     if (typeof rawXP === 'object' && rawXP !== null && rawXP.amount !== undefined) {
         rawXP = rawXP.amount;
-    } else if (typeof rawXP === 'string') {
-        rawXP = parseFloat(rawXP);
     }
 
-    // Process Valid Number
-    if (typeof rawXP === 'number' && !isNaN(rawXP)) {
-        let xp = Math.floor(rawXP); // Strictly floored per request
-        if (STATE.startXp === 0) STATE.startXp = xp;
-        if (xp > STATE.xp && STATE.xp !== 0) STATE.actions++;
-        STATE.xp = xp;
-        updateUI();
+    if (typeof rawXP === 'number' || (typeof rawXP === 'string' && !isNaN(parseFloat(rawXP)))) {
+        let currentXP = Math.floor(parseFloat(rawXP));
+        
+        if (STATE.startXP === 0) { 
+            STATE.startXP = currentXP; 
+            STATE.currentXP = currentXP; 
+        } else if (currentXP > STATE.currentXP) {
+            // Logic moved from v3.2
+            STATE.completedRuns++; // Increment stop count
+            STATE.currentXP = currentXP;
+            STATE.sessionGain = currentXP - STATE.startXP;
+            if (STATE.completedRuns > 0) STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
+        }
+        renderStats();
     }
 
     // 3. Tokens
     let inv = {};
     if (data.inventory) {
-        try { 
-            inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; 
-            MEMORY.inventory = inv; 
-        } catch(e){}
+        try { inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; MEMORY.inventory = inv; } catch(e){}
     }
-    
     let tObj = inv[JOB_TOK_KEY] || data[JOB_TOK_KEY];
     if (tObj) {
         let tVal = (typeof tObj === 'object') ? tObj.amount : tObj;
-        STATE.tok = tVal;
+        STATE.currentTokens = tVal;
         document.getElementById('disp-tokens').innerText = formatNumber(tVal);
         document.getElementById('micro-tokens').innerText = formatNumber(tVal);
     }
 });
 
-function updateUI() {
-    let x = STATE.xp, c = 5, l = 0;
+function renderStats() {
+    let x = STATE.currentXP;
+    let c = 5, l = 0;
     while (x >= c) { x -= c; l++; c = (l + 1) * 5; }
     
     document.getElementById('disp-lvl').innerText = l;
     document.getElementById('micro-lvl').innerText = l;
-    document.getElementById('disp-xp').innerText = STATE.xp.toLocaleString();
-    document.getElementById('micro-xp').innerText = formatNumber(STATE.xp);
+    document.getElementById('disp-xp').innerText = STATE.currentXP.toLocaleString();
+    document.getElementById('micro-xp').innerText = formatNumber(STATE.currentXP);
     
     let p = (x/c*100).toFixed(1);
     document.getElementById('level-bar').style.width = p + "%";
@@ -440,21 +434,18 @@ function updateUI() {
     let needed = Math.floor(c - x);
     document.getElementById('xp-needed').innerText = needed.toLocaleString() + " XP to Next Level";
     
-    let ses = STATE.xp - STATE.startXp;
-    document.getElementById('disp-session').innerText = ses.toLocaleString();
-    
-    // XP PER STOP LOGIC
-    let avg = STATE.actions > 0 ? Math.round(ses / STATE.actions) : 0;
-    document.getElementById('disp-avg').innerText = avg;
+    document.getElementById('disp-session').innerText = STATE.sessionGain.toLocaleString();
+    document.getElementById('disp-avg').innerText = Math.round(STATE.avgXP);
     
     runCalculator();
 }
 
 function runCalculator() {
     let t = parseInt(document.getElementById('target-input').value);
-    if (!t || STATE.actions === 0) return;
-    let avg = (STATE.xp - STATE.startXp) / STATE.actions;
-    let diff = t - STATE.xp;
+    if (!t) return;
+    
+    let avg = STATE.avgXP > 0 ? STATE.avgXP : 1; 
+    let diff = t - STATE.currentXP;
     
     let stops = diff > 0 ? Math.ceil(diff/avg) : 0;
     let txt = stops > 0 ? stops.toLocaleString() + " Stops" : "TARGET REACHED";
@@ -464,7 +455,7 @@ function runCalculator() {
 }
 
 setInterval(() => {
-    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [JOB_EXP_KEY, JOB_TOK_KEY, "inventory", "status", "name"] }, "*");
+    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: [JOB_EXP_KEY, JOB_TOK_KEY, "inventory", "status"] }, "*");
     let d = new Date();
     document.getElementById('clock').innerText = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }, 1000);
