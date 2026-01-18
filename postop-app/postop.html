@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT PostOP Ops v3.4</title>
+    <title>TT PostOP Ops v3.5</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -38,7 +38,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             overflow: hidden;
-            min-height: 350px;
+            min-height: 400px;
             transition: width 0.2s, height 0.2s;
         }
 
@@ -50,7 +50,8 @@
             resize: none;
         }
         #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #content { display: none !important; }
+        #tracker-app.mini-mode #content, 
+        #tracker-app.mini-mode #grinder-panel { display: none !important; }
 
         #micro-view {
             display: none; flex-direction: column; justify-content: center;
@@ -178,7 +179,7 @@
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
         .stat-val { font-weight: bold; font-size: 1.1em; }
 
-        /* CAPACITY BOX (Smaller) */
+        /* CAPACITY BOX */
         .capacity-display {
             background: rgba(0,0,0,0.3); border: 1px solid var(--primary); 
             padding: 4px; text-align: center; font-family: 'Rajdhani', sans-serif;
@@ -324,7 +325,7 @@ let STATE = {
     xp: 0, startXp: 0, actions: 0, tok: 0, startTok: 0, startT: Date.now(),
     lastStatus: "", trunkWeight: 0, trunkCap: 0
 };
-let TRUNK_KEY = null;
+let MEMORY = { trunk: {}, inventory: {} };
 
 // --- UI LOGIC ---
 function toggleMini() { 
@@ -365,10 +366,22 @@ window.addEventListener('message', (event) => {
         } catch(e){}
     }
 
-    // 2. XP Logic (FLOORED)
-    let xp = data[JOB_EXP_KEY];
-    if (typeof xp === 'number') {
-        xp = Math.floor(xp);
+    // 2. XP Logic (UPDATED FIX)
+    let rawXP = data[JOB_EXP_KEY];
+    
+    // Check Inventory Backup if root key missing
+    if (rawXP === undefined && MEMORY.inventory[JOB_EXP_KEY]) {
+        rawXP = MEMORY.inventory[JOB_EXP_KEY];
+    }
+    
+    // Parse Object format {amount: 123} if needed
+    if (typeof rawXP === 'object' && rawXP !== null) {
+        rawXP = rawXP.amount;
+    }
+
+    // Process Valid Number
+    if (typeof rawXP === 'number') {
+        let xp = Math.floor(rawXP); // Floor decimals
         if (STATE.startXp === 0) STATE.startXp = xp;
         if (xp > STATE.xp && STATE.xp !== 0) STATE.actions++;
         STATE.xp = xp;
@@ -376,11 +389,11 @@ window.addEventListener('message', (event) => {
     }
 
     // 3. Tokens
-    let inv = {};
     if (data.inventory) {
-        try { inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
+        try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
     }
-    let tObj = inv[JOB_TOK_KEY] || data[JOB_TOK_KEY];
+    
+    let tObj = MEMORY.inventory[JOB_TOK_KEY] || data[JOB_TOK_KEY];
     if (tObj) {
         let tVal = (typeof tObj === 'object') ? tObj.amount : tObj;
         STATE.tok = tVal;
@@ -409,7 +422,6 @@ function updateUI() {
     let ses = STATE.xp - STATE.startXp;
     document.getElementById('disp-session').innerText = ses.toLocaleString();
     
-    // XP PER STOP LOGIC
     let avg = STATE.actions > 0 ? Math.round(ses / STATE.actions) : 0;
     document.getElementById('disp-avg').innerText = avg;
     
@@ -441,7 +453,6 @@ dH.onmousedown = e => { if(e.target.tagName==='BUTTON'||e.target.tagName==='INPU
 window.onmousemove = e => { if(dr){ let a=document.getElementById('tracker-app'); a.style.left=(ox+e.clientX-sx)+'px'; a.style.top=(oy+e.clientY-sy)+'px'; }};
 window.onmouseup = () => dr=false;
 
-// Resize
 const rh = document.getElementById('resize-handle');
 rh.onmousedown = e => { e.preventDefault(); window.addEventListener('mousemove', rs); window.addEventListener('mouseup', rsEnd); };
 function rs(e) { let a=document.getElementById('tracker-app'); if(!a.classList.contains('mini-mode')) { a.style.width=Math.max(280, e.clientX-a.getBoundingClientRect().left)+'px'; a.style.height=Math.max(200, e.clientY-a.getBoundingClientRect().top)+'px'; } }
