@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v1.0</title>
+    <title>TT Cabbie Ops v1.1</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -47,8 +47,8 @@
 
         /* --- MINI MODE --- */
         #tracker-app.mini-mode {
-            width: 460px !important; height: 74px !important;
-            min-height: 74px !important; border-radius: 12px;
+            width: 460px !important; height: 90px !important; /* Slightly taller for more info */
+            min-height: 90px !important; border-radius: 12px;
             background: #1a1a00; border: 1px solid var(--accent);
             resize: none;
         }
@@ -61,11 +61,11 @@
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
         
-        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; gap: 5px; }
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 33%; gap: 5px; }
         .micro-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
         .micro-val { color: #fff; font-weight: 700; font-size: 0.95em; }
         .micro-val.highlight { color: var(--accent); }
-        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-bg { width: 50px; height: 5px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 5px; }
         .micro-progress-fill { height: 100%; background: var(--accent); width: 0%; }
 
         .micro-btn {
@@ -159,6 +159,7 @@
         .status-details { display: flex; flex-direction: column; gap: 2px; margin-top: 5px; }
         .status-line { font-size: 0.9em; color: #ddd; font-weight: bold; }
         .idle-val { color: var(--red); font-weight: 900; }
+        .bonus-val { color: var(--green); font-weight: 900; }
 
         .section { padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
         .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
@@ -198,32 +199,31 @@
 <div id="tracker-app">
     <div id="micro-view" onmousedown="dragStart(event)">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+        
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
             <div class="micro-group">
                 <span style="font-size:1.2em">🚕</span>
-                <span class="micro-val highlight">CABBIE</span>
+                <span class="micro-val highlight" id="micro-status">IDLE</span>
             </div>
             <div class="micro-group">
-                <span class="micro-label">Fares:</span>
-                <span class="micro-val active" id="micro-fares">0</span>
+                <span class="micro-label">Bonus:</span>
+                <span class="micro-val active" id="micro-bonus" style="color:var(--green)">0</span>
             </div>
         </div>
 
         <div class="micro-row">
-            <div class="micro-group" style="min-width: 90px;">
+            <div class="micro-group">
+                <span class="micro-label">Fares:</span>
+                <span class="micro-val active" id="micro-fares">0</span>
+            </div>
+            <div class="micro-sep">|</div>
+            <div class="micro-group">
                 <span class="micro-label">Biz</span>
                 <span class="micro-val highlight" id="micro-biz-lvl">0</span>
-                <div class="micro-progress-bg">
-                    <div class="micro-progress-fill" id="micro-biz-bar"></div>
-                </div>
             </div>
-            <div class="micro-sep"></div>
-            <div class="micro-group" style="min-width: 90px;">
+            <div class="micro-group">
                 <span class="micro-label">Race</span>
                 <span class="micro-val highlight" id="micro-race-lvl">0</span>
-                <div class="micro-progress-bg">
-                    <div class="micro-progress-fill" id="micro-race-bar"></div>
-                </div>
             </div>
         </div>
     </div>
@@ -256,7 +256,10 @@
             <div class="status-details">
                 <div class="status-line" id="disp-loc">--</div>
                 <div class="status-line" id="disp-dist" style="font-size:0.85em; color:var(--text-dim);">--</div>
-                <div class="status-line" style="margin-top:4px;">IDLE: <span class="idle-val" id="disp-idle">0 / 30</span></div>
+                <div style="display:flex; justify-content:center; gap:15px; margin-top:4px;">
+                    <div class="status-line">IDLE: <span class="idle-val" id="disp-idle">0/30</span></div>
+                    <div class="status-line">BONUS: <span class="bonus-val" id="disp-bonus">0</span></div>
+                </div>
             </div>
         </div>
 
@@ -358,26 +361,42 @@ window.addEventListener('message', (event) => {
                 let status = "Idle";
                 let location = "--";
                 let distance = "";
-                let fares = 0;
                 let idle = "0 / 30";
+                let timer = "0";
+                
+                // Temp vars for persistent checks
+                let currentFares = -1;
 
                 s.lines.forEach(line => {
                     let clean = cleanString(line);
                     if(clean.startsWith("Status:")) status = clean.replace("Status:", "").trim();
                     if(clean.startsWith("Area:")) location = clean.replace("Area:", "").trim();
                     if(clean.includes("Distance to destination:")) distance = clean;
-                    if(clean.startsWith("Fares This Session:")) fares = parseInt(clean.replace("Fares This Session:", "").trim()) || 0;
+                    
+                    if(clean.startsWith("Fares This Session:")) {
+                        currentFares = parseInt(clean.replace("Fares This Session:", "").trim());
+                    }
+                    
                     if(clean.includes("Idle Cycles:")) idle = clean.replace("Idle Cycles:", "").trim();
+                    if(clean.includes("Time Bonus:")) timer = clean.replace("Time Bonus:", "").trim();
                 });
 
+                // Persistence Logic for Fares
+                if(currentFares > -1) {
+                    STATE.fares = currentFares; // Update if present
+                } 
+                // If missing (e.g. during "Busy" status), we keep STATE.fares as is.
+
                 document.getElementById('disp-status').innerText = status;
+                document.getElementById('micro-status').innerText = status.substring(0, 10);
                 document.getElementById('disp-loc').innerText = location;
                 document.getElementById('disp-dist').innerText = distance;
-                document.getElementById('disp-fares').innerText = fares;
-                document.getElementById('micro-fares').innerText = fares;
+                document.getElementById('disp-fares').innerText = STATE.fares;
+                document.getElementById('micro-fares').innerText = STATE.fares;
                 document.getElementById('disp-idle').innerText = idle;
                 
-                STATE.fares = fares; // Sync state
+                document.getElementById('disp-bonus').innerText = timer;
+                document.getElementById('micro-bonus').innerText = timer;
             }
         } catch(e){}
     }
