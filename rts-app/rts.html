@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT R.T.S. Ops v2.4</title>
+    <title>TT R.T.S. Ops v2.5</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -40,7 +40,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             overflow: hidden;
-            min-height: 480px; /* Taller for dual bars */
+            min-height: 400px;
             transition: width 0.2s, height 0.2s;
         }
 
@@ -111,12 +111,6 @@
         .road-lane { bottom: 5px; height: 35px; }
         .sky-lane { top: 5px; height: 30px; opacity: 0.7; }
 
-        /* Wrapper is 200% width. 
-           Left half (0-100% of screen) has vehicles.
-           Right half (100%-200% of screen) has duplicate vehicles.
-           Animation moves from -100% (Right half visible) to 0% (Left half visible) 
-           creating perception of rightward movement.
-        */
         .marquee-content {
             display: flex; min-width: 200%;
             animation: loopRight 12s linear infinite;
@@ -126,9 +120,7 @@
             animation: loopRight 20s linear infinite;
         }
 
-        .vehicle-set {
-            width: 50%; display: flex; justify-content: space-around;
-        }
+        .vehicle-set { width: 50%; display: flex; justify-content: space-around; }
 
         @keyframes loopRight {
             0% { transform: translateX(-50%); }
@@ -339,7 +331,11 @@ let STATE = {
     jobXP: 0, startJobXP: 0, actions: 0, 
     jobType: "rts_professional",
     score: 0, startT: Date.now(),
-    raceXP: 0, bizXP: 0
+    raceXP: 0, bizXP: 0,
+    
+    // Tracking State Logic
+    isOnJob: false, // Currently on a route?
+    lastStreak: "0" // Persist streak value
 };
 let MEMORY = { inventory: {} };
 
@@ -387,22 +383,42 @@ window.addEventListener('message', (event) => {
         document.getElementById('disp-job-title').innerText = title;
     }
 
-    // 2. Status Parsing
+    // 2. Status Parsing & Job Count Logic
     if(data.status) {
         try {
             let s = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
             if(s.lines) {
                 let dist = "--", dest = "Idle", streak = "0";
+                let hasActiveDest = false;
+
                 s.lines.forEach(line => {
                     let clean = cleanString(line);
                     if(clean.includes("Distance:")) dist = clean;
-                    if(clean.includes("Destination:")) dest = clean.replace("Destination:", "").trim();
-                    if(clean.includes("Streak:")) streak = clean.replace("Streak:", "").trim();
+                    if(clean.includes("Destination:")) {
+                        dest = clean.replace("Destination:", "").trim();
+                        if (dest && dest !== "" && dest !== "No active job") hasActiveDest = true;
+                    }
+                    if(clean.includes("Streak:")) {
+                        streak = clean.replace("Streak:", "").trim();
+                        // Only update streak if it's a valid number > 0, otherwise keep last known
+                        if (streak !== "0") STATE.lastStreak = streak;
+                    }
                 });
-                document.getElementById('disp-dest').innerText = dest;
+
+                // JOBS DONE LOGIC: Transition from Active -> Idle
+                if (hasActiveDest && !STATE.isOnJob) {
+                    STATE.isOnJob = true; // Started a job
+                } else if (!hasActiveDest && STATE.isOnJob) {
+                    STATE.isOnJob = false; // Finished a job
+                    STATE.actions++; // Increment counter
+                }
+
+                document.getElementById('disp-dest').innerText = dest || "No active job";
                 document.getElementById('disp-dist').innerText = dist;
-                document.getElementById('disp-streak').innerText = streak;
-                document.getElementById('micro-streak').innerText = streak;
+                
+                // Display Persisted Streak
+                document.getElementById('disp-streak').innerText = STATE.lastStreak;
+                document.getElementById('micro-streak').innerText = STATE.lastStreak;
             }
         } catch(e){}
     }
@@ -417,7 +433,7 @@ window.addEventListener('message', (event) => {
         }
     }
 
-    // 4. XP Logic (All 3 tracks)
+    // 4. XP Parsing
     let raceXP = parseXP(data, "exp_player_racing");
     let bizXP = parseXP(data, "exp_business_business");
     let jobKey = KEY_MAP[STATE.jobType] || "exp_trucking_trucking";
@@ -426,23 +442,12 @@ window.addEventListener('message', (event) => {
     // Update STATE
     if(raceXP > 0) STATE.raceXP = raceXP;
     if(bizXP > 0) STATE.bizXP = bizXP;
-
-    // Detect Job Completion via XP gain on any track
-    let triggered = false;
     
-    // Main Job XP Logic (for session calculator)
+    // Main Job XP (Used for session calculator mainly)
     if (jobXP > 0) {
         let xp = Math.floor(jobXP);
         if (STATE.startJobXP === 0) STATE.startJobXP = xp;
-        if (xp > STATE.jobXP && STATE.jobXP !== 0) { STATE.actions++; triggered = true; }
         STATE.jobXP = xp;
-    }
-
-    // Secondary Trigger Check
-    if (!triggered) {
-        // If job xp didn't move but secondary did, still count as a "job"
-        // Note: we need previous values to detect change, simplified here by assuming if main didn't trigger we check if others update in same tick (hard without memory of last tick, relying on updateUI freq)
-        // For simplicity in this version, we count actions based on main job XP, but update visuals for all.
     }
     
     updateUI();
@@ -502,7 +507,7 @@ function runCalculator() {
     let t = parseInt(document.getElementById('target-input').value);
     if (!t) return;
     
-    // Calculate based on the Job XP (Trucking/Piloting)
+    // Calculate based on the Job XP
     let avg = STATE.actions > 0 ? ((STATE.jobXP - STATE.startJobXP) / STATE.actions) : 250; 
     let diff = t - STATE.jobXP;
     
