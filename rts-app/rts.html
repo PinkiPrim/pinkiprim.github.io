@@ -2,24 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT R.T.S. Ops v1.0</title>
+    <title>TT R.T.S. Ops v2.1</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* RTS Theme: Industrial Blue & Orange */
-            --primary: #1565c0; 
-            --primary-dim: #0d47a1;
-            --accent: #ff9800;
+            /* RTS Theme: Industrial Orange */
+            --primary: #ef6c00;      /* Orange 800 */
+            --primary-dim: #e65100;  /* Orange 900 */
+            --accent: #ffab00;       /* Amber A700 */
             
-            --bg-glass: rgba(10, 15, 20, 0.96);
+            --bg-glass: rgba(20, 10, 5, 0.96);
             --bg-dark: rgba(5, 8, 10, 0.99);
             --text-main: #ffffff;
-            --text-dim: #90caf9;
-            --border: 1px solid rgba(21, 101, 192, 0.5);
-            --green: #00e676;
-            --red: #ff5252;
+            --text-dim: #ffcc80;
+            --border: 1px solid rgba(239, 108, 0, 0.5);
+            --green: #76ff03;
+            --red: #ff1744;
         }
 
         body {
@@ -34,7 +34,7 @@
 
         #tracker-app {
             position: absolute; top: 50px; left: 50px;
-            width: 320px;
+            width: 350px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
@@ -49,7 +49,7 @@
         #tracker-app.mini-mode {
             width: 460px !important; height: 74px !important;
             min-height: 74px !important; border-radius: 12px;
-            background: var(--bg-dark); border: 1px solid var(--accent);
+            background: #1a0f00; border: 1px solid var(--accent);
             resize: none;
         }
         #tracker-app.mini-mode header, 
@@ -77,78 +77,92 @@
 
         /* --- HEADER & ANIMATION --- */
         header {
-            background: linear-gradient(180deg, var(--primary-dim), rgba(0, 0, 0, 0.85));
-            height: 80px; padding: 0 10px; cursor: move; position: relative;
-            display: flex; align-items: flex-start; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.15); overflow: hidden; padding-top: 5px; z-index: 60; 
+            background: linear-gradient(180deg, var(--primary-dim), rgba(0, 0, 0, 0.9));
+            height: 85px; padding: 0; cursor: move; position: relative;
+            display: flex; flex-direction: column;
+            border-bottom: 1px solid rgba(255,255,255,0.15); overflow: hidden; z-index: 60; 
         }
 
         .header-title {
-            position: absolute; left: 50%; top: 15%; transform: translate(-50%, -50%);
-            font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.3em;
+            position: absolute; top: 10px; left: 10px;
+            font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.4em;
             text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.6); z-index: 10;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10;
         }
         
-        .header-subtitle {
-            position: absolute; left: 50%; top: 35%; transform: translateX(-50%);
-            font-family: 'Rajdhani', sans-serif; font-size: 0.8em; font-weight: bold;
-            color: var(--accent); text-transform: uppercase; letter-spacing: 1px;
-            opacity: 0.8;
+        .header-job {
+            position: absolute; top: 32px; left: 10px;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.85em;
+            color: var(--accent); text-transform: uppercase; letter-spacing: 1px; z-index: 10;
         }
 
-        /* RTS ANIMATION SCENE */
+        /* ANIMATION SCENE */
         #rts-scene {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 50px;
-            overflow: hidden; pointer-events: none; z-index: 5;
-            background: linear-gradient(to bottom, transparent 90%, #222 90%);
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden; pointer-events: none; z-index: 1;
+            background: linear-gradient(to bottom, transparent 60%, #221100 90%);
         }
 
-        .rts-truck {
-            position: absolute; bottom: 2px; left: -60px;
-            font-size: 32px; z-index: 30;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
-            animation: truckDrive 15s linear infinite;
+        /* Continuous Loop Animation */
+        .marquee-container {
+            position: absolute; width: 100%; overflow: hidden;
+            display: flex; white-space: nowrap;
+        }
+
+        /* Road Lane */
+        .road-lane { bottom: 5px; height: 35px; }
+        .sky-lane { top: 5px; height: 30px; opacity: 0.7; }
+
+        .marquee-content {
+            display: flex;
+            animation: scrollLeft 15s linear infinite;
+        }
+        /* Flip vehicles to face RIGHT */
+        .vehicle-icon {
+            font-size: 28px; margin-right: 40px; 
+            transform: scaleX(-1); /* Flips standard left-facing vehicle emojis to right */
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
         }
         
-        .rts-plane {
-            position: absolute; bottom: 15px; left: -60px;
-            font-size: 28px; z-index: 30;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
-            animation: planeFly 12s linear infinite;
-            display: none;
+        /* Sky vehicles move slower */
+        .sky-content {
+            display: flex;
+            animation: scrollLeft 25s linear infinite;
+        }
+        .sky-icon {
+            font-size: 24px; margin-right: 100px;
+            transform: scaleX(-1);
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
         }
 
-        @keyframes truckDrive {
-            0% { left: -60px; } 100% { left: 110%; }
+        @keyframes scrollLeft {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(0%); } 
         }
-        @keyframes planeFly {
-            0% { left: -60px; bottom: 15px; } 50% { bottom: 25px; } 100% { left: 110%; bottom: 15px; }
-        }
-
-        .header-controls { display: flex; gap: 8px; z-index: 30; align-items: center; }
-        .nav-icon { text-decoration: none; font-size: 1.2em; cursor: pointer; color: #ccc; }
-        .nav-icon:hover { color: #fff; }
-        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.9em; margin-top: 4px; }
 
         .mini-mode-btn {
+            position: absolute; top: 10px; right: 10px;
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); 
             color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer; 
-            font-size: 0.75em; font-weight: bold; font-family: 'Rajdhani', sans-serif;
+            font-size: 0.7em; font-weight: bold; font-family: 'Rajdhani', sans-serif;
+            z-index: 99;
         }
         .mini-mode-btn:hover { background: var(--primary); border-color: var(--accent); }
+        
+        #clock { position: absolute; bottom: 5px; right: 10px; font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #aaa; font-size: 0.8em; z-index: 20; }
 
         /* CONTENT */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
         .status-box {
-            background: rgba(21, 101, 192, 0.1); border: 1px dashed var(--accent);
+            background: rgba(255, 171, 0, 0.05); border: 1px dashed var(--accent);
             border-radius: 6px; padding: 8px; margin-bottom: 12px; text-align: center;
         }
         .status-title { font-size: 0.7em; color: var(--accent); letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase; }
-        .status-main { font-family: 'Rajdhani', sans-serif; font-size: 1.1em; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
-        .status-details { display: flex; flex-direction: column; gap: 2px; }
-        .status-line { font-size: 0.9em; color: #ccc; font-weight: bold; }
+        .status-main { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .status-details { display: flex; flex-direction: column; gap: 2px; margin-top: 5px; }
+        .status-line { font-size: 0.9em; color: #ddd; font-weight: bold; }
+        .streak-val { color: var(--green); font-weight: 900; }
 
         .section { padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
         .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
@@ -182,12 +196,12 @@
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
             <div class="micro-group">
-                <span style="font-size:1.2em">📦</span>
-                <span class="micro-val highlight">R.T.S OPS</span>
+                <span style="font-size:1.2em">🚛</span>
+                <span class="micro-val highlight">R.T.S.</span>
             </div>
             <div class="micro-group">
-                <span class="micro-label">Status:</span>
-                <span class="micro-val" id="micro-status">IDLE</span>
+                <span class="micro-label">Streak:</span>
+                <span class="micro-val" id="micro-streak">0</span>
             </div>
         </div>
 
@@ -206,25 +220,64 @@
             </div>
             <div class="micro-sep"></div>
             <div class="micro-group">
-                <span class="micro-label">Streak:</span>
-                <span class="micro-val active" id="micro-streak">0</span>
+                <span class="micro-label">Score:</span>
+                <span class="micro-val active" id="micro-score">0</span>
             </div>
         </div>
     </div>
 
     <header id="drag-handle">
-        <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
-        <div class="header-title">R.T.S OPS</div>
-        <div class="header-subtitle" id="job-subtitle">PROFESSIONAL</div>
+        <button class="mini-mode-btn" onclick="toggleMini()">MINI</button>
+        <div class="header-title">R.T.S. OPS</div>
+        <div class="header-job" id="disp-job-title">PROFESSIONAL</div>
+        <span id="clock">00:00</span>
         
         <div id="rts-scene">
-            <div class="rts-truck" id="anim-truck">🚛</div>
-            <div class="rts-plane" id="anim-plane">✈️</div>
-        </div>
+            <div class="marquee-container sky-lane">
+                <div class="sky-content">
+                    <span class="sky-icon">✈️</span>
+                    <span class="sky-icon">🚁</span>
+                    <span class="sky-icon">🛩️</span>
+                    <span class="sky-icon">🛸</span>
+                    <span class="sky-icon">✈️</span>
+                    <span class="sky-icon">🚁</span>
+                </div>
+                <div class="sky-content">
+                    <span class="sky-icon">✈️</span>
+                    <span class="sky-icon">🚁</span>
+                    <span class="sky-icon">🛩️</span>
+                    <span class="sky-icon">🛸</span>
+                    <span class="sky-icon">✈️</span>
+                    <span class="sky-icon">🚁</span>
+                </div>
+            </div>
 
-        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
-            <button class="mini-mode-btn" onclick="toggleMini()">MINI</button>
-            <span id="clock">00:00</span>
+            <div class="marquee-container road-lane">
+                <div class="marquee-content">
+                    <span class="vehicle-icon">🚛</span>
+                    <span class="vehicle-icon">🚚</span>
+                    <span class="vehicle-icon">🚜</span>
+                    <span class="vehicle-icon">🚐</span>
+                    <span class="vehicle-icon">🚑</span>
+                    <span class="vehicle-icon">🚒</span>
+                    <span class="vehicle-icon">🚓</span>
+                    <span class="vehicle-icon">🚕</span>
+                    <span class="vehicle-icon">🚗</span>
+                    <span class="vehicle-icon">🛻</span>
+                </div>
+                <div class="marquee-content">
+                    <span class="vehicle-icon">🚛</span>
+                    <span class="vehicle-icon">🚚</span>
+                    <span class="vehicle-icon">🚜</span>
+                    <span class="vehicle-icon">🚐</span>
+                    <span class="vehicle-icon">🚑</span>
+                    <span class="vehicle-icon">🚒</span>
+                    <span class="vehicle-icon">🚓</span>
+                    <span class="vehicle-icon">🚕</span>
+                    <span class="vehicle-icon">🚗</span>
+                    <span class="vehicle-icon">🛻</span>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -233,8 +286,8 @@
             <div class="status-title">CURRENT ASSIGNMENT</div>
             <div class="status-main" id="disp-dest">No active job</div>
             <div class="status-details">
-                <div class="status-line" id="disp-dist" style="font-size:0.9em; color:#fff; font-weight:bold;">--</div>
-                <div class="status-line" id="disp-streak" style="color:var(--accent); font-size:0.85em; margin-top:2px;">Streak: 0</div>
+                <div class="status-line" id="disp-dist">--</div>
+                <div class="status-line" style="color:var(--accent); margin-top:4px;">STREAK: <span class="streak-val" id="disp-streak">0</span></div>
             </div>
         </div>
 
@@ -283,17 +336,24 @@
 // --- STATE ---
 let STATE = {
     xp: 0, startXp: 0, actions: 0, 
-    jobType: "rts_professional", // Default
+    jobType: "rts_professional",
     score: 0,
-    startT: Date.now()
+    startT: Date.now(),
+    
+    // Tracking secondary stats to detect job completion if main XP lags
+    racingXP: 0,
+    bizXP: 0
 };
+let MEMORY = { inventory: {} };
 
 // --- KEYS ---
 const KEY_MAP = {
     "rts_professional": "exp_trucking_trucking",
-    "rts_job_air": "exp_piloting_cargos",
-    "rts_job": "exp_piloting_cargos" // Transporter uses same XP as Aviator usually, or check specific
+    "rts_job": "exp_trucking_trucking", // Fixed: Transporter = Trucking
+    "rts_job_air": "exp_piloting_cargos"
 };
+// Secondary keys that indicate a completed drop
+const SEC_KEYS = ["exp_player_racing", "exp_business_business"];
 
 // --- UI LOGIC ---
 function toggleMini() { 
@@ -321,73 +381,94 @@ window.addEventListener('message', (event) => {
         let isAir = false;
         
         if(data.job.includes("aviator") || data.job === "rts_job_air") { title = "AVIATOR"; isAir = true; }
-        else if(data.job.includes("transporter")) { title = "TRANSPORTER"; isAir = true; }
+        else if(data.job.includes("transporter") || data.job === "rts_job") { title = "TRANSPORTER"; isAir = false; }
         
-        document.getElementById('job-subtitle').innerText = title;
-        document.getElementById('anim-truck').style.display = isAir ? 'none' : 'block';
-        document.getElementById('anim-plane').style.display = isAir ? 'block' : 'none';
+        document.getElementById('disp-job-title').innerText = title;
         document.getElementById('lvl-label').innerText = isAir ? "Pilot Level" : "Trucking Level";
     }
 
-    // 2. Status Parsing (RTS Specific)
+    // 2. Status Parsing
     if(data.status) {
         try {
             let s = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
-            // Example: {"lines":["Distance: 2218m","Destination: Windmill Farm","Streak: 0"],"title":"~o~RTS Legendary Delivery"}
             if(s.lines) {
-                let dist = "", dest = "No active job", streak = "0";
-                
+                let dist = "--", dest = "Idle", streak = "0";
                 s.lines.forEach(line => {
                     let clean = cleanString(line);
                     if(clean.includes("Distance:")) dist = clean;
                     if(clean.includes("Destination:")) dest = clean.replace("Destination:", "").trim();
-                    if(clean.includes("Streak:")) streak = clean;
+                    if(clean.includes("Streak:")) streak = clean.replace("Streak:", "").trim();
                 });
-
                 document.getElementById('disp-dest').innerText = dest;
                 document.getElementById('disp-dist').innerText = dist;
                 document.getElementById('disp-streak').innerText = streak;
-                
-                // Micro Update
-                document.getElementById('micro-status').innerText = dest.substring(0, 15);
-                document.getElementById('micro-streak').innerText = streak.split(':')[1] || "0";
+                document.getElementById('micro-streak').innerText = streak;
             }
         } catch(e){}
     }
 
-    // 3. Notification Parsing (Score)
+    // 3. Score Parsing
     if (data.notification) {
-        // "R.T.S. Score: 1000, Pay : 30300"
         let match = data.notification.match(/Score:\s*(\d+)/);
         if (match) {
             STATE.score = parseInt(match[1]);
             document.getElementById('disp-score').innerText = STATE.score;
+            document.getElementById('micro-score').innerText = STATE.score;
         }
     }
 
-    // 4. XP Logic
+    // 4. XP Logic (Main + Secondary Triggers)
     let xpKey = KEY_MAP[STATE.jobType] || "exp_trucking_trucking";
-    let rawXP = data[xpKey];
+    let rawXP = parseXP(data, xpKey);
     
-    // Fallback scan
-    if (!rawXP && data.inventory) {
-        try { 
-            let inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
-            if(inv[xpKey]) rawXP = inv[xpKey];
-        } catch(e){}
-    }
+    // Check Secondary XPs (Racing/Business) to detect job finish
+    let raceXP = parseXP(data, "exp_player_racing");
+    let bizXP = parseXP(data, "exp_business_business");
 
-    if (typeof rawXP === 'object' && rawXP !== null && rawXP.amount !== undefined) rawXP = rawXP.amount;
-    if (typeof rawXP === 'string') rawXP = parseFloat(rawXP);
+    let actionTriggered = false;
 
-    if (typeof rawXP === 'number' && !isNaN(rawXP)) {
+    // Check Main XP
+    if (rawXP > 0) {
         let xp = Math.floor(rawXP);
         if (STATE.startXp === 0) STATE.startXp = xp;
-        if (xp > STATE.xp && STATE.xp !== 0) STATE.actions++;
+        
+        if (xp > STATE.xp && STATE.xp !== 0) {
+            STATE.actions++;
+            actionTriggered = true;
+        }
         STATE.xp = xp;
         updateUI();
     }
+
+    // Check Secondary XP Triggers (If Main XP didn't trigger, but these did -> Count it)
+    if (!actionTriggered) {
+        if (raceXP > STATE.racingXP && STATE.racingXP !== 0) {
+            STATE.actions++;
+            actionTriggered = true;
+        } else if (bizXP > STATE.bizXP && STATE.bizXP !== 0) {
+            STATE.actions++;
+            actionTriggered = true;
+        }
+    }
+
+    if (raceXP > 0) STATE.racingXP = raceXP;
+    if (bizXP > 0) STATE.bizXP = bizXP;
+    
+    if (actionTriggered) updateUI();
 });
+
+function parseXP(data, key) {
+    let val = data[key];
+    if (!val && data.inventory) {
+        try { 
+            let inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
+            if(inv[key]) val = inv[key];
+        } catch(e){}
+    }
+    if (typeof val === 'object' && val !== null && val.amount !== undefined) val = val.amount;
+    if (typeof val === 'string') val = parseFloat(val);
+    return (typeof val === 'number' && !isNaN(val)) ? val : 0;
+}
 
 function updateUI() {
     let x = STATE.xp, c = 5, l = 0;
@@ -417,8 +498,8 @@ function runCalculator() {
     let t = parseInt(document.getElementById('target-input').value);
     if (!t) return;
     
-    // RTS jobs vary wildly in XP, so we use a simple average if available
-    let avg = STATE.actions > 0 ? ((STATE.xp - STATE.startXp) / STATE.actions) : 100; // Default estimate
+    // Default avg estimate if no actions yet
+    let avg = STATE.actions > 0 ? ((STATE.xp - STATE.startXp) / STATE.actions) : 250; 
     let diff = t - STATE.xp;
     
     let stops = diff > 0 ? Math.ceil(diff/avg) : 0;
@@ -428,14 +509,21 @@ function runCalculator() {
 }
 
 function resetSession() { 
-    STATE.startXp = STATE.xp; STATE.actions = 0; STATE.startT = Date.now(); 
+    STATE.startXp = STATE.xp; 
+    STATE.actions = 0; 
+    STATE.startT = Date.now(); 
     toggleMenu(); 
+    updateUI();
+}
+
+function toggleMenu() {
+    // Placeholder if you add menu later, avoiding errors
 }
 
 setInterval(() => {
-    // Request Keys for RTS
     let keys = [
-        "exp_trucking_trucking", "exp_piloting_cargos", // Main XP keys
+        "exp_trucking_trucking", "exp_piloting_cargos", 
+        "exp_player_racing", "exp_business_business",
         "inventory", "job", "status", "notification", "name"
     ];
     if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
