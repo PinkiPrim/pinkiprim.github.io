@@ -2,17 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT R.T.S. Ops v2.1</title>
+    <title>TT R.T.S. Ops v2.3</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
-            /* RTS Theme: Industrial Orange */
-            --primary: #ef6c00;      /* Orange 800 */
-            --primary-dim: #e65100;  /* Orange 900 */
-            --accent: #ffab00;       /* Amber A700 */
-            
+            --primary: #ef6c00;
+            --primary-dim: #e65100;
+            --accent: #ffab00;
             --bg-glass: rgba(20, 10, 5, 0.96);
             --bg-dark: rgba(5, 8, 10, 0.99);
             --text-main: #ffffff;
@@ -41,7 +39,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             overflow: hidden;
-            min-height: 400px;
+            min-height: 420px;
             transition: width 0.2s, height 0.2s;
         }
 
@@ -60,6 +58,7 @@
             height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
         }
         #tracker-app.mini-mode #micro-view { display: flex; }
+        
         .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; gap: 5px; }
         .micro-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
         .micro-val { color: #fff; font-weight: 700; font-size: 0.95em; }
@@ -84,14 +83,14 @@
         }
 
         .header-title {
-            position: absolute; top: 10px; left: 10px;
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
             font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.4em;
             text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10;
         }
         
         .header-job {
-            position: absolute; top: 32px; left: 10px;
+            position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
             font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.85em;
             color: var(--accent); text-transform: uppercase; letter-spacing: 1px; z-index: 10;
         }
@@ -103,42 +102,51 @@
             background: linear-gradient(to bottom, transparent 60%, #221100 90%);
         }
 
-        /* Continuous Loop Animation */
         .marquee-container {
             position: absolute; width: 100%; overflow: hidden;
             display: flex; white-space: nowrap;
         }
 
-        /* Road Lane */
         .road-lane { bottom: 5px; height: 35px; }
         .sky-lane { top: 5px; height: 30px; opacity: 0.7; }
 
+        /* The Content Block - Must be at least 100% width */
         .marquee-content {
-            display: flex;
-            animation: scrollLeft 15s linear infinite;
-        }
-        /* Flip vehicles to face RIGHT */
-        .vehicle-icon {
-            font-size: 28px; margin-right: 40px; 
-            transform: scaleX(-1); /* Flips standard left-facing vehicle emojis to right */
-            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+            display: flex; align-items: center; justify-content: space-around;
+            min-width: 100%; /* Ensures it fills screen */
+            animation: loopRight 12s linear infinite;
         }
         
-        /* Sky vehicles move slower */
         .sky-content {
-            display: flex;
-            animation: scrollLeft 25s linear infinite;
-        }
-        .sky-icon {
-            font-size: 24px; margin-right: 100px;
-            transform: scaleX(-1);
-            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+            display: flex; align-items: center; justify-content: space-around;
+            min-width: 100%;
+            animation: loopRight 20s linear infinite;
         }
 
-        @keyframes scrollLeft {
+        /* Seamless Loop Logic:
+           We have two identical blocks (A and B).
+           They start shifted -100% (so B is on screen, A is off-screen left).
+           They move to 0% (so A is on screen, B is off-screen right).
+           Then it snaps back to -100%.
+        */
+        @keyframes loopRight {
             0% { transform: translateX(-100%); }
-            100% { transform: translateX(0%); } 
+            100% { transform: translateX(0%); }
         }
+
+        .vehicle-icon, .sky-icon {
+            font-size: 28px; padding: 0 15px; /* Spacing */
+            transform: scaleX(-1); /* Face Right */
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+        }
+        .sky-icon { font-size: 24px; }
+
+        /* Header Controls */
+        .nav-icon { 
+            position: absolute; top: 10px; left: 10px; 
+            text-decoration: none; font-size: 1.2em; cursor: pointer; color: #ccc; z-index: 99; 
+        }
+        .nav-icon:hover { color: #fff; }
 
         .mini-mode-btn {
             position: absolute; top: 10px; right: 10px;
@@ -169,11 +177,15 @@
         .value { font-size: 1.2em; font-weight: 800; }
         .highlight { color: var(--primary); }
 
+        /* Level Stack */
+        .level-stack { display: flex; flex-direction: column; gap: 6px; }
+        .level-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; }
+        .level-name { font-size: 0.8em; color: #ccc; font-weight: bold; }
+        .level-val { font-family: 'Rajdhani', sans-serif; font-size: 1.1em; font-weight: 900; color: var(--accent); }
+
         .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.6); border-radius: 4px; margin: 6px 0; overflow: hidden; border: 1px solid #333; }
         .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; transition: width 0.4s ease; }
         .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
-
-        .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
@@ -227,6 +239,7 @@
     </div>
 
     <header id="drag-handle">
+        <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
         <button class="mini-mode-btn" onclick="toggleMini()">MINI</button>
         <div class="header-title">R.T.S. OPS</div>
         <div class="header-job" id="disp-job-title">PROFESSIONAL</div>
@@ -235,47 +248,25 @@
         <div id="rts-scene">
             <div class="marquee-container sky-lane">
                 <div class="sky-content">
-                    <span class="sky-icon">✈️</span>
-                    <span class="sky-icon">🚁</span>
-                    <span class="sky-icon">🛩️</span>
-                    <span class="sky-icon">🛸</span>
-                    <span class="sky-icon">✈️</span>
-                    <span class="sky-icon">🚁</span>
+                    <span class="sky-icon">✈️</span><span class="sky-icon">🚁</span><span class="sky-icon">🛩️</span>
+                    <span class="sky-icon">🛸</span><span class="sky-icon">✈️</span><span class="sky-icon">🚁</span>
                 </div>
                 <div class="sky-content">
-                    <span class="sky-icon">✈️</span>
-                    <span class="sky-icon">🚁</span>
-                    <span class="sky-icon">🛩️</span>
-                    <span class="sky-icon">🛸</span>
-                    <span class="sky-icon">✈️</span>
-                    <span class="sky-icon">🚁</span>
+                    <span class="sky-icon">✈️</span><span class="sky-icon">🚁</span><span class="sky-icon">🛩️</span>
+                    <span class="sky-icon">🛸</span><span class="sky-icon">✈️</span><span class="sky-icon">🚁</span>
                 </div>
             </div>
 
             <div class="marquee-container road-lane">
                 <div class="marquee-content">
-                    <span class="vehicle-icon">🚛</span>
-                    <span class="vehicle-icon">🚚</span>
-                    <span class="vehicle-icon">🚜</span>
-                    <span class="vehicle-icon">🚐</span>
-                    <span class="vehicle-icon">🚑</span>
-                    <span class="vehicle-icon">🚒</span>
-                    <span class="vehicle-icon">🚓</span>
-                    <span class="vehicle-icon">🚕</span>
-                    <span class="vehicle-icon">🚗</span>
-                    <span class="vehicle-icon">🛻</span>
+                    <span class="vehicle-icon">🚛</span><span class="vehicle-icon">🚚</span><span class="vehicle-icon">🚜</span>
+                    <span class="vehicle-icon">🚐</span><span class="vehicle-icon">🚑</span><span class="vehicle-icon">🚒</span>
+                    <span class="vehicle-icon">🚓</span><span class="vehicle-icon">🚕</span><span class="vehicle-icon">🚗</span><span class="vehicle-icon">🛻</span>
                 </div>
                 <div class="marquee-content">
-                    <span class="vehicle-icon">🚛</span>
-                    <span class="vehicle-icon">🚚</span>
-                    <span class="vehicle-icon">🚜</span>
-                    <span class="vehicle-icon">🚐</span>
-                    <span class="vehicle-icon">🚑</span>
-                    <span class="vehicle-icon">🚒</span>
-                    <span class="vehicle-icon">🚓</span>
-                    <span class="vehicle-icon">🚕</span>
-                    <span class="vehicle-icon">🚗</span>
-                    <span class="vehicle-icon">🛻</span>
+                    <span class="vehicle-icon">🚛</span><span class="vehicle-icon">🚚</span><span class="vehicle-icon">🚜</span>
+                    <span class="vehicle-icon">🚐</span><span class="vehicle-icon">🚑</span><span class="vehicle-icon">🚒</span>
+                    <span class="vehicle-icon">🚓</span><span class="vehicle-icon">🚕</span><span class="vehicle-icon">🚗</span><span class="vehicle-icon">🛻</span>
                 </div>
             </div>
         </div>
@@ -292,12 +283,22 @@
         </div>
 
         <div class="section">
-            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div><div class="label" id="lvl-label">RTS Level</div><div class="value highlight" style="font-size:1.8em" id="disp-lvl">0</div></div>
-                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
+            <div class="level-stack">
+                <div class="level-row">
+                    <span class="level-name">RACING LEVEL</span>
+                    <span class="level-val" id="disp-race-lvl">0</span>
+                </div>
+                <div class="level-row">
+                    <span class="level-name">BUSINESS LEVEL</span>
+                    <span class="level-val" id="disp-biz-lvl">0</span>
+                </div>
+            </div>
+            
+            <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:flex-end;">
+                <div class="label">Job XP (Current)</div>
+                <div class="value" id="disp-xp" style="font-size:0.9em">0</div>
             </div>
             <div class="progress-container"><div class="progress-bar" id="level-bar"></div><div class="progress-text" id="level-text">0%</div></div>
-            <div style="text-align:center; font-size:0.8em; color:var(--primary); font-weight:bold; margin-top:5px;" id="xp-needed">...</div>
         </div>
 
         <div class="section">
@@ -337,23 +338,17 @@
 let STATE = {
     xp: 0, startXp: 0, actions: 0, 
     jobType: "rts_professional",
-    score: 0,
-    startT: Date.now(),
-    
-    // Tracking secondary stats to detect job completion if main XP lags
-    racingXP: 0,
-    bizXP: 0
+    score: 0, startT: Date.now(),
+    raceXP: 0, bizXP: 0
 };
 let MEMORY = { inventory: {} };
 
 // --- KEYS ---
 const KEY_MAP = {
     "rts_professional": "exp_trucking_trucking",
-    "rts_job": "exp_trucking_trucking", // Fixed: Transporter = Trucking
+    "rts_job": "exp_trucking_trucking",
     "rts_job_air": "exp_piloting_cargos"
 };
-// Secondary keys that indicate a completed drop
-const SEC_KEYS = ["exp_player_racing", "exp_business_business"];
 
 // --- UI LOGIC ---
 function toggleMini() { 
@@ -369,25 +364,26 @@ function formatNumber(num) {
     return num.toLocaleString();
 }
 function cleanString(s) { return s ? s.replace(/~[a-z]~/g, "").trim() : ""; }
+function getLevel(exp) {
+    let level = 0, xpCap = 5;
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    return { level, percent: (exp/xpCap*100).toFixed(1) };
+}
 
 window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    // 1. Detect Job Type
+    // 1. Job Type
     if (data.job) {
         STATE.jobType = data.job;
         let title = "PROFESSIONAL";
-        let isAir = false;
-        
-        if(data.job.includes("aviator") || data.job === "rts_job_air") { title = "AVIATOR"; isAir = true; }
-        else if(data.job.includes("transporter") || data.job === "rts_job") { title = "TRANSPORTER"; isAir = false; }
-        
+        if(data.job.includes("aviator") || data.job === "rts_job_air") title = "AVIATOR";
+        else if(data.job.includes("transporter")) title = "TRANSPORTER";
         document.getElementById('disp-job-title').innerText = title;
-        document.getElementById('lvl-label').innerText = isAir ? "Pilot Level" : "Trucking Level";
     }
 
-    // 2. Status Parsing
+    // 2. Status
     if(data.status) {
         try {
             let s = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
@@ -407,7 +403,7 @@ window.addEventListener('message', (event) => {
         } catch(e){}
     }
 
-    // 3. Score Parsing
+    // 3. Score
     if (data.notification) {
         let match = data.notification.match(/Score:\s*(\d+)/);
         if (match) {
@@ -417,44 +413,35 @@ window.addEventListener('message', (event) => {
         }
     }
 
-    // 4. XP Logic (Main + Secondary Triggers)
-    let xpKey = KEY_MAP[STATE.jobType] || "exp_trucking_trucking";
-    let rawXP = parseXP(data, xpKey);
-    
-    // Check Secondary XPs (Racing/Business) to detect job finish
+    // 4. XP Parsing
     let raceXP = parseXP(data, "exp_player_racing");
     let bizXP = parseXP(data, "exp_business_business");
+    let jobKey = KEY_MAP[STATE.jobType] || "exp_trucking_trucking";
+    let jobXP = parseXP(data, jobKey);
 
-    let actionTriggered = false;
+    // Update Levels
+    if(raceXP > 0) document.getElementById('disp-race-lvl').innerText = getLevel(raceXP).level;
+    if(bizXP > 0) document.getElementById('disp-biz-lvl').innerText = getLevel(bizXP).level;
 
-    // Check Main XP
-    if (rawXP > 0) {
-        let xp = Math.floor(rawXP);
+    // Job Logic (Fail-safe trigger)
+    let triggered = false;
+    
+    if (jobXP > 0) {
+        let xp = Math.floor(jobXP);
         if (STATE.startXp === 0) STATE.startXp = xp;
-        
-        if (xp > STATE.xp && STATE.xp !== 0) {
-            STATE.actions++;
-            actionTriggered = true;
-        }
+        if (xp > STATE.xp && STATE.xp !== 0) { STATE.actions++; triggered = true; }
         STATE.xp = xp;
-        updateUI();
     }
 
-    // Check Secondary XP Triggers (If Main XP didn't trigger, but these did -> Count it)
-    if (!actionTriggered) {
-        if (raceXP > STATE.racingXP && STATE.racingXP !== 0) {
-            STATE.actions++;
-            actionTriggered = true;
-        } else if (bizXP > STATE.bizXP && STATE.bizXP !== 0) {
-            STATE.actions++;
-            actionTriggered = true;
-        }
+    if (!triggered) {
+        if (raceXP > STATE.racingXP && STATE.racingXP !== 0) { STATE.actions++; triggered = true; } 
+        else if (bizXP > STATE.bizXP && STATE.bizXP !== 0) { STATE.actions++; triggered = true; }
     }
 
     if (raceXP > 0) STATE.racingXP = raceXP;
     if (bizXP > 0) STATE.bizXP = bizXP;
     
-    if (actionTriggered) updateUI();
+    updateUI();
 });
 
 function parseXP(data, key) {
@@ -471,25 +458,21 @@ function parseXP(data, key) {
 }
 
 function updateUI() {
-    let x = STATE.xp, c = 5, l = 0;
-    while (x >= c) { x -= c; l++; c = (l + 1) * 5; }
+    let lvlData = getLevel(STATE.xp);
+    document.getElementById('micro-level').innerText = lvlData.level;
+    document.getElementById('level-bar').style.width = lvlData.percent + "%";
+    document.getElementById('level-text').innerText = lvlData.percent + "%";
     
-    document.getElementById('disp-lvl').innerText = l;
-    document.getElementById('micro-level').innerText = l;
     document.getElementById('disp-xp').innerText = STATE.xp.toLocaleString();
     document.getElementById('micro-xp').innerText = formatNumber(STATE.xp);
-    
-    let p = (x/c*100).toFixed(1);
-    document.getElementById('level-bar').style.width = p + "%";
-    document.getElementById('level-text').innerText = p + "%";
-    document.getElementById('micro-bar').style.width = p + "%";
-    
-    let needed = Math.floor(c - x);
-    document.getElementById('xp-needed').innerText = needed.toLocaleString() + " XP to Next Level";
     
     let ses = STATE.xp - STATE.startXp;
     document.getElementById('disp-session').innerText = ses.toLocaleString();
     document.getElementById('disp-jobs').innerText = STATE.actions;
+    
+    // Average XP
+    let avg = STATE.actions > 0 ? Math.round(ses / STATE.actions) : 0;
+    document.getElementById('disp-avg').innerText = avg;
     
     runCalculator();
 }
@@ -497,28 +480,19 @@ function updateUI() {
 function runCalculator() {
     let t = parseInt(document.getElementById('target-input').value);
     if (!t) return;
-    
-    // Default avg estimate if no actions yet
-    let avg = STATE.actions > 0 ? ((STATE.xp - STATE.startXp) / STATE.actions) : 250; 
+    let avg = STATE.actions > 0 ? ((STATE.xp - STATE.startXp) / STATE.actions) : 250;
     let diff = t - STATE.xp;
-    
     let stops = diff > 0 ? Math.ceil(diff/avg) : 0;
     let txt = stops > 0 ? "~" + stops.toLocaleString() + " Jobs" : "TARGET REACHED";
-    
     document.getElementById('est-actions').innerText = txt;
 }
 
 function resetSession() { 
-    STATE.startXp = STATE.xp; 
-    STATE.actions = 0; 
-    STATE.startT = Date.now(); 
+    STATE.startXp = STATE.xp; STATE.actions = 0; STATE.startT = Date.now(); 
     toggleMenu(); 
-    updateUI();
 }
 
-function toggleMenu() {
-    // Placeholder if you add menu later, avoiding errors
-}
+function toggleMenu() { /* Placeholder */ }
 
 setInterval(() => {
     let keys = [
