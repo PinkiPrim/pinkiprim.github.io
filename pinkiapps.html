@@ -2,38 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Operations Hub v3.0</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+    <title>TT Operations Hub v4.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
         :root {
             --bg-glass: rgba(15, 15, 15, 0.95);
-            --border: 1px solid rgba(255, 255, 255, 0.15);
+            --border: 1px solid rgba(255, 255, 255, 0.1);
+            --text-main: #e0e0e0;
         }
 
         html, body {
             margin: 0; padding: 0;
             font-family: 'Roboto', sans-serif;
             background-color: transparent !important;
-            color: white;
+            color: var(--text-main);
             overflow: hidden;
             height: 100vh; width: 100vw;
             user-select: none;
         }
 
-        /* --- MENU CONTAINER --- */
+        /* --- CONTAINER --- */
         #menu-container {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 700px;
+            width: 720px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 16px;
             padding: 30px;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.9);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.95);
+            backdrop-filter: blur(12px);
         }
 
         h1 {
@@ -41,14 +43,14 @@
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 4px;
-            margin: 0;
-            font-size: 2em;
+            margin: 0 0 5px 0;
+            font-size: 2.2em;
             color: #fff;
-            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
 
         .subtitle {
-            color: #aaa;
+            color: #888;
             font-size: 0.85em;
             margin-bottom: 25px;
             text-transform: uppercase;
@@ -59,11 +61,11 @@
             width: 60%;
         }
 
-        /* --- GRID LAYOUT --- */
+        /* --- GRID --- */
         .grid-wrapper {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            gap: 12px;
         }
 
         /* --- BUTTON BASE --- */
@@ -72,186 +74,150 @@
             align-items: center;
             justify-content: flex-start;
             width: 100%;
-            padding: 12px 15px;
+            height: 50px; /* Fixed height for consistency */
+            padding: 0 15px;
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.05);
             border-radius: 8px;
-            color: #ccc;
+            color: #bbb;
             text-decoration: none;
             font-family: 'Rajdhani', sans-serif;
             font-weight: 700;
             font-size: 1em;
             text-transform: uppercase;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease-in-out;
             box-sizing: border-box;
             cursor: pointer;
             position: relative;
-            overflow: hidden; /* Critical for containing animations */
+            overflow: hidden;
             z-index: 1;
         }
 
         .nav-btn .content-layer {
-            display: flex; align-items: center;
-            position: relative; z-index: 5; /* Keeps text above animation */
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            position: relative;
+            z-index: 10; /* Text sits above animations */
+            display: flex;
+            align-items: center;
+            width: 100%;
+            transition: transform 0.2s;
         }
 
-        .icon { width: 24px; text-align: center; margin-right: 10px; font-size: 1.2em; }
+        .icon { width: 24px; text-align: center; margin-right: 12px; font-size: 1.3em; }
 
-        /* --- HOVER EFFECTS & ANIMATIONS --- */
-        
+        /* --- ANIMATED BACKGROUND LAYER --- */
         .nav-btn::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0; transition: opacity 0.3s ease; z-index: 2;
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; /* Hidden by default */
+            z-index: 1;
+            transition: opacity 0.3s ease;
         }
 
+        /* --- HOVER STATE --- */
         .nav-btn:hover {
-            transform: translateY(-3px) scale(1.02);
+            transform: translateY(-2px);
             color: #fff;
-            border-color: rgba(255,255,255,0.5);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            border-color: rgba(255,255,255,0.3);
         }
         
-        .nav-btn:hover::before { opacity: 1; }
+        .nav-btn:hover::before { opacity: 1; /* Show animation on hover */ }
+        .nav-btn:hover .content-layer { transform: translateX(5px); }
 
-        /* 1. FIRE OPS (Embers & Red Glow) */
-        .nav-btn.fire:hover { border-color: #ff5722; }
+        /* --- SPECIFIC JOB STYLES --- */
+
+        /* 1. FIRE OPS (Embers) */
+        .nav-btn.fire:hover { border-color: #ff5722; text-shadow: 0 0 8px #ff5722; }
         .nav-btn.fire::before {
             background: linear-gradient(45deg, #bf360c, #e64a19);
         }
-        .nav-btn.fire:hover::after {
-            content: '✦ ✦ . ✦ . ✦';
-            position: absolute; bottom: -20px; left: 0; width: 100%;
-            color: #ffeb3b; font-size: 10px; z-index: 3;
-            animation: rise 1.5s linear infinite;
-            text-shadow: 10px 20px #ffeb3b, 40px 10px #ff9800, 80px 30px #ffeb3b;
-            opacity: 0.6;
-        }
 
-        /* 2. MECHANIC (Blue Gradient & Spinning Gear) */
-        .nav-btn.mech:hover { border-color: #039be5; }
+        /* 2. MECHANIC (Blue Gear) */
+        .nav-btn.mech:hover { border-color: #039be5; text-shadow: 0 0 8px #039be5; }
         .nav-btn.mech::before {
             background: linear-gradient(135deg, #01579b, #0288d1);
         }
-        .nav-btn.mech:hover::after {
-            content: '⚙️';
-            position: absolute; right: -10px; bottom: -10px;
-            font-size: 60px; opacity: 0.2; z-index: 3;
-            animation: spin 4s linear infinite;
-        }
 
-        /* 3. EMS (Strobe Light) */
-        .nav-btn.ems:hover { border-color: #e53935; }
+        /* 3. EMS (Strobe) */
+        .nav-btn.ems:hover { border-color: #e53935; text-shadow: 0 0 8px #e53935; }
         .nav-btn.ems::before {
             background: linear-gradient(90deg, #b71c1c, #d32f2f);
-            animation: strobe 1s infinite alternate;
+            animation: strobe 0.8s infinite alternate;
         }
 
-        /* 4. CARGO (Runway Lights) */
-        .nav-btn.cargo:hover { border-color: #0277bd; }
+        /* 4. CARGO (Blue Stripes) */
+        .nav-btn.cargo:hover { border-color: #0277bd; text-shadow: 0 0 8px #0277bd; }
         .nav-btn.cargo::before {
-            background: linear-gradient(to right, #01579b 50%, #0277bd 50%);
-            background-size: 20px 100%;
-            opacity: 0.8;
+            background: repeating-linear-gradient(45deg, #01579b, #01579b 10px, #0277bd 10px, #0277bd 20px);
         }
 
-        /* 5. HUNTER (Forest Camo) */
-        .nav-btn.hunter:hover { border-color: #558b2f; }
+        /* 5. HUNTER (Forest) */
+        .nav-btn.hunter:hover { border-color: #558b2f; text-shadow: 0 0 8px #558b2f; }
         .nav-btn.hunter::before {
-            background: linear-gradient(45deg, #1b5e20, #33691e);
-        }
-        .nav-btn.hunter:hover::after {
-            content: '🎯';
-            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-            font-size: 24px; opacity: 0.3;
+            background: linear-gradient(to right, #1b5e20, #33691e);
         }
 
-        /* 6. HELI (Rotating Blades Shadow) */
-        .nav-btn.heli:hover { border-color: #ff9800; }
+        /* 6. HELI (Orange) */
+        .nav-btn.heli:hover { border-color: #ff9800; text-shadow: 0 0 8px #ff9800; }
         .nav-btn.heli::before {
             background: linear-gradient(to bottom, #e65100, #f57c00);
         }
-        .nav-btn.heli:hover::after {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: repeating-conic-gradient(from 0deg, rgba(0,0,0,0.1) 0deg 20deg, transparent 20deg 120deg);
-            animation: spin 0.5s linear infinite;
-        }
 
-        /* 7. TRAIN (Moving Tracks) */
-        .nav-btn.train:hover { border-color: #ffb300; }
+        /* 7. TRAIN (Tracks) */
+        .nav-btn.train:hover { border-color: #ffb300; text-shadow: 0 0 8px #ffb300; }
         .nav-btn.train::before {
-            background: repeating-linear-gradient(90deg, #3e2723, #3e2723 10px, #5d4037 10px, #5d4037 20px);
-            opacity: 0.8;
+            background: repeating-linear-gradient(90deg, #3e2723, #3e2723 10px, #4e342e 10px, #4e342e 20px);
             animation: slideBG 1s linear infinite;
         }
 
-        /* 8. BUS (Moving Road) */
-        .nav-btn.bus:hover { border-color: #00bcd4; }
+        /* 8. BUS (Asphalt) */
+        .nav-btn.bus:hover { border-color: #00bcd4; text-shadow: 0 0 8px #00bcd4; }
         .nav-btn.bus::before {
-            background: #263238;
-        }
-        .nav-btn.bus:hover::after {
-            content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 2px;
-            background: repeating-linear-gradient(90deg, transparent, transparent 10px, #fff 10px, #fff 20px);
-            animation: slideBG 1s linear infinite;
+            background: #37474f;
         }
 
-        /* 9. AIRLINE (Moving Clouds) */
-        .nav-btn.airline:hover { border-color: #4fc3f7; }
+        /* 9. AIRLINE (Sky) */
+        .nav-btn.airline:hover { border-color: #4fc3f7; text-shadow: 0 0 8px #4fc3f7; }
         .nav-btn.airline::before {
-            background: linear-gradient(to bottom, #0288d1, #4fc3f7);
-        }
-        .nav-btn.airline:hover::after {
-            content: '☁️ ☁️'; position: absolute; top: 5px; left: 0; width: 100%;
-            color: rgba(255,255,255,0.4); font-size: 20px;
-            animation: slideText 3s linear infinite;
+            background: linear-gradient(to top, #0288d1, #29b6f6);
         }
 
         /* 10. GARBAGE (Sludge) */
-        .nav-btn.garbage:hover { border-color: #76ff03; }
+        .nav-btn.garbage:hover { border-color: #76ff03; text-shadow: 0 0 8px #76ff03; }
         .nav-btn.garbage::before {
-            background: linear-gradient(180deg, #33691e, #64dd17);
+            background: linear-gradient(135deg, #33691e, #64dd17);
         }
 
-        /* 11. POST OP (Falling Packages) */
-        .nav-btn.postop:hover { border-color: #673ab7; }
+        /* 11. POST OP (Purple) */
+        .nav-btn.postop:hover { border-color: #673ab7; text-shadow: 0 0 8px #673ab7; }
         .nav-btn.postop::before {
-            background: linear-gradient(135deg, #4527a0, #673ab7);
-        }
-        .nav-btn.postop:hover::after {
-            content: '📦'; position: absolute; top: -20px; right: 20px;
-            font-size: 20px; opacity: 0.5;
-            animation: fall 1s linear infinite;
+            background: linear-gradient(135deg, #311b92, #673ab7);
         }
 
-        /* 12. RTS (Moving Chevrons) */
-        .nav-btn.rts:hover { border-color: #ef6c00; }
+        /* 12. RTS (Orange Chevrons) */
+        .nav-btn.rts:hover { border-color: #ef6c00; text-shadow: 0 0 8px #ef6c00; }
         .nav-btn.rts::before {
-            background: repeating-linear-gradient(45deg, #e65100, #e65100 10px, #ef6c00 10px, #ef6c00 20px);
+            background: repeating-linear-gradient(-45deg, #e65100, #e65100 10px, #ef6c00 10px, #ef6c00 20px);
             animation: slideBG 2s linear infinite;
         }
 
         /* 13. CABBIE (Taxi Checkers) */
-        .nav-btn.cabbie:hover { border-color: #fbc02d; color: #000; }
-        .nav-btn.cabbie .content-layer { text-shadow: none; } /* Black text needs no shadow */
+        .nav-btn.cabbie:hover { border-color: #fbc02d; color: #111; text-shadow: none; }
         .nav-btn.cabbie::before {
             background-color: #fbc02d;
             background-image: 
                 linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000),
                 linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
-            background-position: 0 0, 10px 10px;
             background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
             opacity: 0.15;
-            animation: slideBG 4s linear infinite;
+            animation: slideBG 3s linear infinite;
         }
 
-        /* --- KEYFRAMES --- */
-        @keyframes rise { 0% { transform: translateY(0); opacity: 0.8; } 100% { transform: translateY(-40px); opacity: 0; } }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes strobe { 0% { background: #b71c1c; } 50% { background: #0d47a1; } 100% { background: #b71c1c; } }
-        @keyframes slideBG { 0% { background-position: 0 0; } 100% { background-position: 50px 0; } }
-        @keyframes slideText { 0% { transform: translateX(-20px); opacity:0; } 50% { opacity: 0.5; } 100% { transform: translateX(100%); opacity: 0; } }
-        @keyframes fall { 0% { top: -20px; opacity:0; } 50% { opacity: 0.5; } 100% { top: 100%; opacity: 0; } }
+        /* --- ANIMATIONS --- */
+        @keyframes strobe { 0% { opacity: 0.7; } 100% { opacity: 1; } }
+        @keyframes slideBG { 0% { background-position: 0 0, 10px 10px; } 100% { background-position: 40px 0, 50px 10px; } }
 
     </style>
 </head>
