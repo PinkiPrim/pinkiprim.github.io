@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT R.T.S. Ops v3.0</title>
+    <title>TT R.T.S. Ops v3.1</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -40,7 +40,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             overflow: hidden;
-            min-height: 460px;
+            min-height: 480px;
             transition: width 0.2s, height 0.2s;
         }
 
@@ -123,7 +123,7 @@
         .vehicle-set { width: 50%; display: flex; justify-content: space-around; }
 
         @keyframes loopRight {
-            0% { transform: translateX(-100%); }
+            0% { transform: translateX(-50%); }
             100% { transform: translateX(0%); }
         }
 
@@ -178,9 +178,12 @@
         .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
         .progress-sub { text-align: center; font-size: 0.75em; color: #888; font-style: italic; }
         
-        .session-gain { font-size: 0.8em; color: var(--green); margin-left: 5px; font-weight: bold; }
+        /* New Session Row Style */
+        .session-row { text-align: center; font-size: 0.85em; margin-top: 4px; color: var(--text-dim); }
+        .session-gain { color: var(--green); font-weight: bold; margin-left: 5px; }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+        /* Updated Grid */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
         .stat-val { font-weight: bold; font-size: 1.1em; }
 
@@ -279,28 +282,22 @@
 
         <div class="section progress-group">
             <div class="progress-header">
-                <div style="display:flex; align-items:baseline;">
-                    <div class="label">RACING LEVEL</div>
-                    <div class="value highlight" style="font-size:1.5em; margin-left:8px;" id="disp-race-lvl">0</div>
-                    <span class="session-gain" id="sess-race">+0</span>
-                </div>
+                <div><div class="label">RACING LEVEL</div><div class="value highlight" style="font-size:1.5em;" id="disp-race-lvl">0</div></div>
                 <div style="text-align:right;"><div class="label">XP</div><div class="value" id="disp-race-xp" style="font-size:0.9em">0</div></div>
             </div>
             <div class="progress-container"><div class="progress-bar" id="race-bar"></div><div class="progress-text" id="race-text">0%</div></div>
             <div class="progress-sub" id="race-needed">...</div>
+            <div class="session-row">Session Gain: <span class="session-gain" id="sess-race">+0 XP</span></div>
         </div>
 
         <div class="section progress-group">
             <div class="progress-header">
-                <div style="display:flex; align-items:baseline;">
-                    <div class="label">BUSINESS LEVEL</div>
-                    <div class="value highlight" style="font-size:1.5em; margin-left:8px;" id="disp-biz-lvl">0</div>
-                    <span class="session-gain" id="sess-biz">+0</span>
-                </div>
+                <div><div class="label">BUSINESS LEVEL</div><div class="value highlight" style="font-size:1.5em;" id="disp-biz-lvl">0</div></div>
                 <div style="text-align:right;"><div class="label">XP</div><div class="value" id="disp-biz-xp" style="font-size:0.9em">0</div></div>
             </div>
             <div class="progress-container"><div class="progress-bar" id="biz-bar"></div><div class="progress-text" id="biz-text">0%</div></div>
             <div class="progress-sub" id="biz-needed">...</div>
+            <div class="session-row">Session Gain: <span class="session-gain" id="sess-biz">+0 XP</span></div>
         </div>
 
         <div class="section">
@@ -312,10 +309,6 @@
                 <div class="stat-box">
                     <div class="label">RTS Score</div>
                     <div class="stat-val" style="color:#fff" id="disp-score">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="label">XP / Job</div>
-                    <div class="stat-val" style="color:var(--text-dim)" id="disp-avg">0</div>
                 </div>
             </div>
         </div>
@@ -345,7 +338,7 @@ let STATE = {
     // XP Tracking
     raceXP: 0, startRaceXP: 0,
     bizXP: 0, startBizXP: 0,
-    mainJobXP: 0, startMainJobXP: 0, // Used for 'Avg' calc
+    mainJobXP: 0, startMainJobXP: 0,
 
     // Tracking State Logic
     isOnJob: false,
@@ -488,7 +481,7 @@ function updateUI() {
         document.getElementById('race-bar').style.width = rData.percent + "%";
         document.getElementById('race-text').innerText = rData.percent + "%";
         document.getElementById('race-needed').innerText = rData.needed + " XP to Next Level";
-        document.getElementById('sess-race').innerText = `(Session: +${(STATE.raceXP - STATE.startRaceXP).toLocaleString()})`;
+        document.getElementById('sess-race').innerText = `+${(STATE.raceXP - STATE.startRaceXP).toLocaleString()} XP`;
         
         document.getElementById('micro-race-lvl').innerText = rData.level;
         document.getElementById('micro-race-bar').style.width = rData.percent + "%";
@@ -502,7 +495,7 @@ function updateUI() {
         document.getElementById('biz-bar').style.width = bData.percent + "%";
         document.getElementById('biz-text').innerText = bData.percent + "%";
         document.getElementById('biz-needed').innerText = bData.needed + " XP to Next Level";
-        document.getElementById('sess-biz').innerText = `(Session: +${(STATE.bizXP - STATE.startBizXP).toLocaleString()})`;
+        document.getElementById('sess-biz').innerText = `+${(STATE.bizXP - STATE.startBizXP).toLocaleString()} XP`;
 
         document.getElementById('micro-biz-lvl').innerText = bData.level;
         document.getElementById('micro-biz-bar').style.width = bData.percent + "%";
@@ -510,11 +503,6 @@ function updateUI() {
 
     // 3. Stats
     document.getElementById('disp-jobs').innerText = STATE.actions;
-    
-    // Average XP (Using Main Job XP as basis)
-    let sesMain = STATE.mainJobXP - STATE.startMainJobXP;
-    let avg = STATE.actions > 0 ? Math.round(sesMain / STATE.actions) : 0;
-    document.getElementById('disp-avg').innerText = avg;
     
     runCalculator();
 }
