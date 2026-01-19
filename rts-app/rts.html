@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT R.T.S. Ops v3.1</title>
+    <title>TT R.T.S. Ops v3.2</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -123,7 +123,7 @@
         .vehicle-set { width: 50%; display: flex; justify-content: space-around; }
 
         @keyframes loopRight {
-            0% { transform: translateX(-50%); }
+            0% { transform: translateX(-100%); }
             100% { transform: translateX(0%); }
         }
 
@@ -178,16 +178,17 @@
         .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
         .progress-sub { text-align: center; font-size: 0.75em; color: #888; font-style: italic; }
         
-        /* New Session Row Style */
         .session-row { text-align: center; font-size: 0.85em; margin-top: 4px; color: var(--text-dim); }
         .session-gain { color: var(--green); font-weight: bold; margin-left: 5px; }
 
-        /* Updated Grid */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
         .stat-val { font-weight: bold; font-size: 1.1em; }
 
-        input[type="number"] { width: 96%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; margin-top:5px; }
+        /* CALCULATOR */
+        select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: var(--accent); padding: 6px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; cursor: pointer; }
+        option { background: #111; color: white; }
+        input[type="number"] { width: 96%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
         .calc-result { font-size: 0.85em; color: var(--text-dim); margin-top: 5px; }
         
         .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
@@ -242,29 +243,14 @@
         <div id="rts-scene">
             <div class="marquee-container sky-lane">
                 <div class="sky-content">
-                    <div class="vehicle-set">
-                        <span class="sky-icon">✈️</span><span class="sky-icon">🚁</span><span class="sky-icon">🛩️</span>
-                        <span class="sky-icon">🛸</span><span class="sky-icon">✈️</span><span class="sky-icon">🚁</span>
-                    </div>
-                    <div class="vehicle-set">
-                        <span class="sky-icon">✈️</span><span class="sky-icon">🚁</span><span class="sky-icon">🛩️</span>
-                        <span class="sky-icon">🛸</span><span class="sky-icon">✈️</span><span class="sky-icon">🚁</span>
-                    </div>
+                    <div class="vehicle-set"><span class="sky-icon">✈️</span><span class="sky-icon">🚁</span><span class="sky-icon">🛩️</span><span class="sky-icon">🛸</span><span class="sky-icon">✈️</span><span class="sky-icon">🚁</span></div>
+                    <div class="vehicle-set"><span class="sky-icon">✈️</span><span class="sky-icon">🚁</span><span class="sky-icon">🛩️</span><span class="sky-icon">🛸</span><span class="sky-icon">✈️</span><span class="sky-icon">🚁</span></div>
                 </div>
             </div>
-
             <div class="marquee-container road-lane">
                 <div class="marquee-content">
-                    <div class="vehicle-set">
-                        <span class="vehicle-icon">🚛</span><span class="vehicle-icon">🚚</span><span class="vehicle-icon">🚜</span>
-                        <span class="vehicle-icon">🚐</span><span class="vehicle-icon">🚑</span><span class="vehicle-icon">🚒</span>
-                        <span class="vehicle-icon">🚓</span><span class="vehicle-icon">🚕</span>
-                    </div>
-                    <div class="vehicle-set">
-                        <span class="vehicle-icon">🚛</span><span class="vehicle-icon">🚚</span><span class="vehicle-icon">🚜</span>
-                        <span class="vehicle-icon">🚐</span><span class="vehicle-icon">🚑</span><span class="vehicle-icon">🚒</span>
-                        <span class="vehicle-icon">🚓</span><span class="vehicle-icon">🚕</span>
-                    </div>
+                    <div class="vehicle-set"><span class="vehicle-icon">🚛</span><span class="vehicle-icon">🚚</span><span class="vehicle-icon">🚜</span><span class="vehicle-icon">🚐</span><span class="vehicle-icon">🚑</span><span class="vehicle-icon">🚒</span><span class="vehicle-icon">🚓</span><span class="vehicle-icon">🚕</span></div>
+                    <div class="vehicle-set"><span class="vehicle-icon">🚛</span><span class="vehicle-icon">🚚</span><span class="vehicle-icon">🚜</span><span class="vehicle-icon">🚐</span><span class="vehicle-icon">🚑</span><span class="vehicle-icon">🚒</span><span class="vehicle-icon">🚓</span><span class="vehicle-icon">🚕</span></div>
                 </div>
             </div>
         </div>
@@ -314,7 +300,12 @@
         </div>
 
         <div class="section" style="border:none;">
-            <div class="label">Target XP Calculator (Current Job)</div>
+            <div class="label">Target XP Calculator</div>
+            <select id="calc-mode" onchange="runCalculator()">
+                <option value="race">Racing XP</option>
+                <option value="biz">Business XP</option>
+                <option value="job">Job XP (Trucking/Pilot)</option>
+            </select>
             <input type="number" id="target-input" placeholder="Enter Target XP" oninput="runCalculator()">
             <div class="quick-btn-row">
                 <button class="quick-btn" onclick="setCalc(100000)">100K</button>
@@ -509,15 +500,24 @@ function updateUI() {
 
 function runCalculator() {
     let t = parseInt(document.getElementById('target-input').value);
+    let mode = document.getElementById('calc-mode').value;
     if (!t) return;
     
-    // Use Main Job XP for calculation
-    let ses = STATE.mainJobXP - STATE.startMainJobXP;
-    let avg = STATE.actions > 0 ? (ses / STATE.actions) : 250;
-    let diff = t - STATE.mainJobXP;
+    let currentXP = 0, startXP = 0;
     
+    if(mode === 'race') { currentXP = STATE.raceXP; startXP = STATE.startRaceXP; }
+    else if(mode === 'biz') { currentXP = STATE.bizXP; startXP = STATE.startBizXP; }
+    else { currentXP = STATE.mainJobXP; startXP = STATE.startMainJobXP; }
+
+    // Calc Average based on specific skill gain per action
+    let totalGain = currentXP - startXP;
+    let avg = STATE.actions > 0 ? (totalGain / STATE.actions) : 250;
+    if(avg <= 0) avg = 250; // Prevent divide by zero/negative if just started
+
+    let diff = t - currentXP;
     let stops = diff > 0 ? Math.ceil(diff/avg) : 0;
     let txt = stops > 0 ? "~" + stops.toLocaleString() + " Jobs" : "TARGET REACHED";
+    
     document.getElementById('est-actions').innerText = txt;
 }
 
@@ -535,7 +535,7 @@ setInterval(() => {
 
 const dH = document.getElementById("drag-handle");
 let dr=false, sx, sy, ox, oy;
-dH.onmousedown = e => { if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return; dr=true; sx=e.clientX; sy=e.clientY; let r=document.getElementById('tracker-app').getBoundingClientRect(); ox=r.left; oy=r.top; };
+dH.onmousedown = e => { if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return; dr=true; sx=e.clientX; sy=e.clientY; let r=document.getElementById('tracker-app').getBoundingClientRect(); ox=r.left; oy=r.top; };
 window.onmousemove = e => { if(dr){ let a=document.getElementById('tracker-app'); a.style.left=(ox+e.clientX-sx)+'px'; a.style.top=(oy+e.clientY-sy)+'px'; }};
 window.onmouseup = () => dr=false;
 
