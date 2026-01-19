@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v1.3</title>
+    <title>TT Cabbie Ops v1.4</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -178,7 +178,7 @@
         .session-row { text-align: center; font-size: 0.85em; margin-top: 4px; color: var(--text-dim); }
         .session-gain { color: var(--green); font-weight: bold; margin-left: 5px; }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
         .stat-val { font-weight: bold; font-size: 1.1em; }
 
@@ -293,8 +293,12 @@
                     <div class="stat-val" style="color:var(--accent)" id="disp-fares">0</div>
                 </div>
                 <div class="stat-box">
-                    <div class="label">Avg XP / Fare</div>
-                    <div class="stat-val" style="color:#fff" id="disp-avg">0</div>
+                    <div class="label">Avg Race XP</div>
+                    <div class="stat-val" style="color:#fff" id="disp-avg-race">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Avg Biz XP</div>
+                    <div class="stat-val" style="color:#fff" id="disp-avg-biz">0</div>
                 </div>
             </div>
         </div>
@@ -503,10 +507,15 @@ function updateUI() {
         if(bBar) bBar.style.width = bData.percent + "%";
     }
 
-    // 3. Calc Average (Combined)
-    let totalGain = (STATE.bizXP - STATE.startBizXP) + (STATE.raceXP - STATE.startRaceXP);
-    let avg = STATE.fares > 0 ? Math.round(totalGain / STATE.fares) : 0;
-    document.getElementById('disp-avg').innerText = avg;
+    // 3. Calc Average (Individual)
+    let bizGain = STATE.bizXP - STATE.startBizXP;
+    let raceGain = STATE.raceXP - STATE.startRaceXP;
+    
+    let avgBiz = STATE.fares > 0 ? Math.round(bizGain / STATE.fares) : 0;
+    let avgRace = STATE.fares > 0 ? Math.round(raceGain / STATE.fares) : 0;
+    
+    document.getElementById('disp-avg-biz').innerText = avgBiz;
+    document.getElementById('disp-avg-race').innerText = avgRace;
     
     runCalculator();
 }
@@ -521,7 +530,7 @@ function runCalculator() {
     else { currentXP = STATE.bizXP; startXP = STATE.startBizXP; }
 
     let totalGain = currentXP - startXP;
-    let avg = STATE.fares > 0 ? (totalGain / STATE.fares) : 1000; 
+    let avg = STATE.fares > 0 ? (totalGain / STATE.fares) : 1000; // Default estimate
     if(avg <= 0) avg = 1000;
 
     let diff = t - currentXP;
