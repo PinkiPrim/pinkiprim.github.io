@@ -28,11 +28,11 @@
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             
-            width: 500px; /* Wider for 2 columns */
+            width: 680px; /* Wider for 3 columns */
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 12px;
-            padding: 30px;
+            padding: 25px; /* Reduced padding */
             text-align: center;
             box-shadow: 0 4px 20px rgba(0,0,0,0.8);
         }
@@ -43,19 +43,19 @@
             text-transform: uppercase;
             letter-spacing: 3px;
             margin: 0;
-            font-size: 2.2em;
+            font-size: 1.8em; /* Slightly smaller title */
             color: #fff;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
 
         .subtitle {
             color: #888;
-            font-size: 0.85em;
-            margin-bottom: 25px;
+            font-size: 0.8em;
+            margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 1px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 10px;
+            padding-bottom: 8px;
             display: inline-block;
             width: 50%;
         }
@@ -63,8 +63,8 @@
         /* --- GRID LAYOUT --- */
         .grid-wrapper {
             display: grid;
-            grid-template-columns: 1fr 1fr; /* 2 Columns */
-            gap: 12px; /* Space between buttons */
+            grid-template-columns: repeat(3, 1fr); /* 3 Columns */
+            gap: 8px; /* Tighter gap */
         }
 
         /* --- BUTTONS --- */
@@ -73,15 +73,15 @@
             align-items: center;
             justify-content: flex-start; /* Left align content */
             width: 100%;
-            padding: 15px 15px; /* Smaller padding */
+            padding: 10px 12px; /* Compact padding */
             background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
             border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
+            border-radius: 6px;
             color: #ccc;
             text-decoration: none;
             font-family: 'Rajdhani', sans-serif;
             font-weight: 700;
-            font-size: 1.1em;
+            font-size: 0.95em; /* Smaller font */
             text-transform: uppercase;
             transition: all 0.2s ease;
             box-sizing: border-box;
@@ -99,24 +99,25 @@
         }
 
         /* Colored Borders */
-        .nav-btn.fire:hover    { border-left: 4px solid #ff5722; }
-        .nav-btn.mech:hover    { border-left: 4px solid #0091ea; }
-        .nav-btn.ems:hover     { border-left: 4px solid #e53935; }
-        .nav-btn.cargo:hover   { border-left: 4px solid #0277bd; }
-        .nav-btn.hunter:hover  { border-left: 4px solid #558b2f; }
-        .nav-btn.heli:hover    { border-left: 4px solid #ff9800; } /* Safety Orange */
-        .nav-btn.train:hover   { border-left: 4px solid #ffb300; } /* Train Amber */
-        .nav-btn.bus:hover     { border-left: 4px solid #00bcd4; } /* Bus Teal */
-        .nav-btn.airline:hover { border-left: 4px solid #4fc3f7; } /* Airline Sky Blue */
-        .nav-btn.garbage:hover { border-left: 4px solid #76ff03; } /* Garbage Lime */
-        .nav-btn.postop:hover  { border-left: 4px solid #673ab7; } /* PostOP Purple */
-        .nav-btn.rts:hover     { border-left: 4px solid #ef6c00; } /* RTS Orange */
+        .nav-btn.fire:hover    { border-left: 3px solid #ff5722; }
+        .nav-btn.mech:hover    { border-left: 3px solid #0091ea; }
+        .nav-btn.ems:hover     { border-left: 3px solid #e53935; }
+        .nav-btn.cargo:hover   { border-left: 3px solid #0277bd; }
+        .nav-btn.hunter:hover  { border-left: 3px solid #558b2f; }
+        .nav-btn.heli:hover    { border-left: 3px solid #ff9800; }
+        .nav-btn.train:hover   { border-left: 3px solid #ffb300; }
+        .nav-btn.bus:hover     { border-left: 3px solid #00bcd4; }
+        .nav-btn.airline:hover { border-left: 3px solid #4fc3f7; }
+        .nav-btn.garbage:hover { border-left: 3px solid #76ff03; }
+        .nav-btn.postop:hover  { border-left: 3px solid #673ab7; }
+        .nav-btn.rts:hover     { border-left: 3px solid #ef6c00; }
+        .nav-btn.cabbie:hover  { border-left: 3px solid #fbc02d; } /* Taxi Yellow */
 
         .icon { 
-            width: 30px; 
+            width: 24px; 
             text-align: center; 
-            margin-right: 10px; 
-            font-size: 1.2em; 
+            margin-right: 8px; 
+            font-size: 1.1em; 
         }
 
     </style>
@@ -175,6 +176,10 @@
 
             <a href="https://pinkiprim.github.io/rts-app/rts.html" class="nav-btn rts">
                 <span class="icon">🚛</span> R.T.S. Ops
+            </a>
+
+            <a href="https://pinkiprim.github.io/cabbie-app/cabbie.html" class="nav-btn cabbie">
+                <span class="icon">🚕</span> Cabbie Ops
             </a>
 
         </div>
