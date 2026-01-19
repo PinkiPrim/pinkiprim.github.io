@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Cabbie Ops v1.0</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            /* Taxi Theme */
+            --primary: #fbc02d;      /* Taxi Yellow */
+            --primary-dim: #f57f17;  /* Darker Orange/Yellow */
+            --accent: #fff176;       /* Light Yellow */
+            
+            --bg-glass: rgba(20, 20, 10, 0.96);
+            --bg-dark: rgba(10, 10, 5, 0.99);
+            --text-main: #ffffff;
+            --text-dim: #fff9c4;
+            --border: 1px solid rgba(251, 192, 45, 0.5);
+            --green: #76ff03;
+            --red: #ff1744;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        #tracker-app {
+            position: absolute; top: 50px; left: 50px;
+            width: 350px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.9);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            min-height: 460px;
+            transition: width 0.2s, height 0.2s;
+        }
+
+        /* --- MINI MODE --- */
+        #tracker-app.mini-mode {
+            width: 460px !important; height: 74px !important;
+            min-height: 74px !important; border-radius: 12px;
+            background: #1a1a00; border: 1px solid var(--accent);
+            resize: none;
+        }
+        #tracker-app.mini-mode header, 
+        #tracker-app.mini-mode #content { display: none !important; }
+
+        #micro-view {
+            display: none; flex-direction: column; justify-content: center;
+            height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move;
+        }
+        #tracker-app.mini-mode #micro-view { display: flex; }
+        
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; gap: 5px; }
+        .micro-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.95em; }
+        .micro-val.highlight { color: var(--accent); }
+        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-fill { height: 100%; background: var(--accent); width: 0%; }
+
+        .micro-btn {
+            position: absolute; top: 4px; right: 4px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa; padding: 0px 4px; border-radius: 3px; 
+            font-size: 0.6em; cursor: pointer; text-transform: uppercase; z-index: 99;
+        }
+        .micro-btn:hover { background: var(--primary); color: white; }
+
+        /* --- HEADER & ANIMATION --- */
+        header {
+            background: linear-gradient(180deg, var(--primary-dim), rgba(0, 0, 0, 0.9));
+            height: 85px; padding: 0; cursor: move; position: relative;
+            display: flex; flex-direction: column;
+            border-bottom: 1px solid rgba(255,255,255,0.15); overflow: hidden; z-index: 60; 
+        }
+
+        .header-title {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.4em;
+            text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10;
+        }
+        
+        .header-job {
+            position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.85em;
+            color: var(--accent); text-transform: uppercase; letter-spacing: 1px; z-index: 10;
+        }
+
+        /* ANIMATION SCENE */
+        #taxi-scene {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden; pointer-events: none; z-index: 1;
+            background: linear-gradient(to bottom, transparent 60%, #111 90%);
+        }
+
+        .marquee-container {
+            position: absolute; width: 100%; overflow: hidden;
+            display: flex; white-space: nowrap;
+        }
+
+        .road-lane { bottom: 5px; height: 35px; }
+
+        .marquee-content {
+            display: flex; min-width: 200%;
+            animation: loopRight 8s linear infinite;
+        }
+
+        .vehicle-set { width: 50%; display: flex; justify-content: space-around; }
+
+        @keyframes loopRight {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0%); }
+        }
+
+        .vehicle-icon {
+            font-size: 28px; 
+            transform: scaleX(-1); /* Face Right */
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+        }
+
+        /* Header Controls */
+        .nav-icon { 
+            position: absolute; top: 10px; left: 10px; 
+            text-decoration: none; font-size: 1.2em; cursor: pointer; color: #ccc; z-index: 99; 
+        }
+        .nav-icon:hover { color: #fff; }
+
+        .mini-mode-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); 
+            color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer; 
+            font-size: 0.7em; font-weight: bold; font-family: 'Rajdhani', sans-serif;
+            z-index: 99;
+        }
+        .mini-mode-btn:hover { background: var(--primary); border-color: var(--accent); }
+        
+        #clock { position: absolute; bottom: 5px; right: 10px; font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #aaa; font-size: 0.8em; z-index: 20; }
+
+        /* CONTENT */
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+
+        .status-box {
+            background: rgba(251, 192, 45, 0.05); border: 1px dashed var(--accent);
+            border-radius: 6px; padding: 8px; margin-bottom: 12px; text-align: center;
+        }
+        .status-title { font-size: 0.7em; color: var(--accent); letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase; }
+        .status-main { font-family: 'Rajdhani', sans-serif; font-size: 1.2em; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .status-details { display: flex; flex-direction: column; gap: 2px; margin-top: 5px; }
+        .status-line { font-size: 0.9em; color: #ddd; font-weight: bold; }
+        .idle-val { color: var(--red); font-weight: 900; }
+
+        .section { padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
+        .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .value { font-size: 1.2em; font-weight: 800; }
+        .highlight { color: var(--primary); }
+
+        /* DUAL PROGRESS BARS */
+        .progress-group { margin-bottom: 15px; }
+        .progress-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2px; }
+        .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.6); border-radius: 4px; margin-bottom: 4px; overflow: hidden; border: 1px solid #333; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; transition: width 0.4s ease; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
+        .progress-sub { text-align: center; font-size: 0.75em; color: #888; font-style: italic; }
+        
+        .session-row { text-align: center; font-size: 0.85em; margin-top: 4px; color: var(--text-dim); }
+        .session-gain { color: var(--green); font-weight: bold; margin-left: 5px; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 5px; text-align: center; border-radius: 4px; }
+        .stat-val { font-weight: bold; font-size: 1.1em; }
+
+        /* CALCULATOR */
+        select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: var(--accent); padding: 6px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; cursor: pointer; }
+        option { background: #111; color: white; }
+        input[type="number"] { width: 96%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: bold; margin-top:5px; }
+        .calc-result { font-size: 0.85em; color: var(--text-dim); margin-top: 5px; }
+        
+        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; flex: 1; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
+    </style>
+</head>
+<body>
+
+<div id="tracker-app">
+    <div id="micro-view" onmousedown="dragStart(event)">
+        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div class="micro-group">
+                <span style="font-size:1.2em">🚕</span>
+                <span class="micro-val highlight">CABBIE</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Fares:</span>
+                <span class="micro-val active" id="micro-fares">0</span>
+            </div>
+        </div>
+
+        <div class="micro-row">
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Biz</span>
+                <span class="micro-val highlight" id="micro-biz-lvl">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-biz-bar"></div>
+                </div>
+            </div>
+            <div class="micro-sep"></div>
+            <div class="micro-group" style="min-width: 90px;">
+                <span class="micro-label">Race</span>
+                <span class="micro-val highlight" id="micro-race-lvl">0</span>
+                <div class="micro-progress-bg">
+                    <div class="micro-progress-fill" id="micro-race-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <header id="drag-handle">
+        <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
+        <button class="mini-mode-btn" onclick="toggleMini()">MINI</button>
+        <div class="header-title">CABBIE OPS</div>
+        <div class="header-job">COLLINSCO TAXI</div>
+        <span id="clock">00:00</span>
+        
+        <div id="taxi-scene">
+            <div class="marquee-container road-lane">
+                <div class="marquee-content">
+                    <div class="vehicle-set">
+                        <span class="vehicle-icon">🚕</span><span class="vehicle-icon">🚕</span><span class="vehicle-icon">🚖</span><span class="vehicle-icon">🚕</span>
+                    </div>
+                    <div class="vehicle-set">
+                        <span class="vehicle-icon">🚕</span><span class="vehicle-icon">🚕</span><span class="vehicle-icon">🚖</span><span class="vehicle-icon">🚕</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="content">
+        <div class="status-box">
+            <div class="status-title">CURRENT STATUS</div>
+            <div class="status-main" id="disp-status">Waiting for dispatch...</div>
+            <div class="status-details">
+                <div class="status-line" id="disp-loc">--</div>
+                <div class="status-line" id="disp-dist" style="font-size:0.85em; color:var(--text-dim);">--</div>
+                <div class="status-line" style="margin-top:4px;">IDLE: <span class="idle-val" id="disp-idle">0 / 30</span></div>
+            </div>
+        </div>
+
+        <div class="section progress-group">
+            <div class="progress-header">
+                <div><div class="label">BUSINESS LEVEL</div><div class="value highlight" style="font-size:1.5em;" id="disp-biz-lvl">0</div></div>
+                <div style="text-align:right;"><div class="label">XP</div><div class="value" id="disp-biz-xp" style="font-size:0.9em">0</div></div>
+            </div>
+            <div class="progress-container"><div class="progress-bar" id="biz-bar"></div><div class="progress-text" id="biz-text">0%</div></div>
+            <div class="progress-sub" id="biz-needed">...</div>
+            <div class="session-row">Session Gain: <span class="session-gain" id="sess-biz">+0 XP</span></div>
+        </div>
+
+        <div class="section progress-group">
+            <div class="progress-header">
+                <div><div class="label">RACING LEVEL</div><div class="value highlight" style="font-size:1.5em;" id="disp-race-lvl">0</div></div>
+                <div style="text-align:right;"><div class="label">XP</div><div class="value" id="disp-race-xp" style="font-size:0.9em">0</div></div>
+            </div>
+            <div class="progress-container"><div class="progress-bar" id="race-bar"></div><div class="progress-text" id="race-text">0%</div></div>
+            <div class="progress-sub" id="race-needed">...</div>
+            <div class="session-row">Session Gain: <span class="session-gain" id="sess-race">+0 XP</span></div>
+        </div>
+
+        <div class="section">
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="label">Fares (Session)</div>
+                    <div class="stat-val" style="color:var(--accent)" id="disp-fares">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Avg XP / Fare</div>
+                    <div class="stat-val" style="color:#fff" id="disp-avg">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="border:none;">
+            <div class="label">Target XP Calculator</div>
+            <select id="calc-mode" onchange="runCalculator()">
+                <option value="biz">Business XP</option>
+                <option value="race">Racing XP</option>
+            </select>
+            <input type="number" id="target-input" placeholder="Enter Target XP" oninput="runCalculator()">
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+            <div class="calc-result">Potential Fares: <span id="est-actions" style="color:var(--accent); font-weight:bold;">--</span></div>
+        </div>
+    </div>
+
+    <div id="resize-handle"></div>
+</div>
+
+<script>
+// --- STATE ---
+let STATE = {
+    fares: 0,
+    bizXP: 0, startBizXP: 0,
+    raceXP: 0, startRaceXP: 0
+};
+let MEMORY = { inventory: {} };
+
+// --- UI LOGIC ---
+function toggleMini() { 
+    const app = document.getElementById('tracker-app');
+    app.classList.toggle('mini-mode');
+}
+function setCalc(val) { document.getElementById('target-input').value = val; runCalculator(); }
+
+// --- HELPERS ---
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toLocaleString();
+}
+function cleanString(s) { return s ? s.replace(/~[a-z]~/g, "").trim() : ""; }
+function getLevel(exp) {
+    let level = 0, xpCap = 5;
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    return { 
+        level, 
+        percent: (exp/xpCap*100).toFixed(1),
+        needed: Math.round(xpCap - exp).toLocaleString()
+    };
+}
+
+window.addEventListener('message', (event) => {
+    let data = event.data.type === 'data' ? event.data.data : event.data;
+    if (!data) return;
+
+    // 1. Status Parsing (Cabbie Specific)
+    if(data.status) {
+        try {
+            let s = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
+            if(s.lines) {
+                // "Status: ~g~Available", "Status: ~y~Busy~w~"
+                let status = "Idle";
+                let location = "--";
+                let distance = "";
+                let fares = 0;
+                let idle = "0 / 30";
+
+                s.lines.forEach(line => {
+                    let clean = cleanString(line);
+                    if(clean.startsWith("Status:")) status = clean.replace("Status:", "").trim();
+                    if(clean.startsWith("Area:")) location = clean.replace("Area:", "").trim();
+                    if(clean.includes("Distance to destination:")) distance = clean;
+                    if(clean.startsWith("Fares This Session:")) fares = parseInt(clean.replace("Fares This Session:", "").trim()) || 0;
+                    if(clean.includes("Idle Cycles:")) idle = clean.replace("Idle Cycles:", "").trim();
+                });
+
+                document.getElementById('disp-status').innerText = status;
+                document.getElementById('disp-loc').innerText = location;
+                document.getElementById('disp-dist').innerText = distance;
+                document.getElementById('disp-fares').innerText = fares;
+                document.getElementById('micro-fares').innerText = fares;
+                document.getElementById('disp-idle').innerText = idle;
+                
+                STATE.fares = fares; // Sync state
+            }
+        } catch(e){}
+    }
+
+    // 2. XP Parsing
+    let raceXP = parseXP(data, "exp_player_racing");
+    let bizXP = parseXP(data, "exp_business_business");
+
+    if(raceXP > 0) {
+        if(STATE.startRaceXP === 0) STATE.startRaceXP = raceXP;
+        STATE.raceXP = raceXP;
+    }
+    if(bizXP > 0) {
+        if(STATE.startBizXP === 0) STATE.startBizXP = bizXP;
+        STATE.bizXP = bizXP;
+    }
+    
+    updateUI();
+});
+
+function parseXP(data, key) {
+    let val = data[key];
+    if (!val && data.inventory) {
+        try { 
+            let inv = typeof data.inventory === 'string' ? JSON.parse(data.inventory) : data.inventory;
+            if(inv[key]) val = inv[key];
+        } catch(e){}
+    }
+    if (typeof val === 'object' && val !== null && val.amount !== undefined) val = val.amount;
+    if (typeof val === 'string') val = parseFloat(val);
+    return (typeof val === 'number' && !isNaN(val)) ? val : 0;
+}
+
+function updateUI() {
+    // 1. Update Racing Bar
+    if (STATE.raceXP > 0) {
+        let rData = getLevel(STATE.raceXP);
+        document.getElementById('disp-race-lvl').innerText = rData.level;
+        document.getElementById('disp-race-xp').innerText = STATE.raceXP.toLocaleString();
+        document.getElementById('race-bar').style.width = rData.percent + "%";
+        document.getElementById('race-text').innerText = rData.percent + "%";
+        document.getElementById('race-needed').innerText = rData.needed + " XP to Next Level";
+        document.getElementById('sess-race').innerText = `+${(STATE.raceXP - STATE.startRaceXP).toLocaleString()} XP`;
+        
+        document.getElementById('micro-race-lvl').innerText = rData.level;
+        document.getElementById('micro-race-bar').style.width = rData.percent + "%";
+    }
+
+    // 2. Update Business Bar
+    if (STATE.bizXP > 0) {
+        let bData = getLevel(STATE.bizXP);
+        document.getElementById('disp-biz-lvl').innerText = bData.level;
+        document.getElementById('disp-biz-xp').innerText = STATE.bizXP.toLocaleString();
+        document.getElementById('biz-bar').style.width = bData.percent + "%";
+        document.getElementById('biz-text').innerText = bData.percent + "%";
+        document.getElementById('biz-needed').innerText = bData.needed + " XP to Next Level";
+        document.getElementById('sess-biz').innerText = `+${(STATE.bizXP - STATE.startBizXP).toLocaleString()} XP`;
+
+        document.getElementById('micro-biz-lvl').innerText = bData.level;
+        document.getElementById('micro-biz-bar').style.width = bData.percent + "%";
+    }
+
+    // 3. Calc Average (Combined)
+    let totalGain = (STATE.bizXP - STATE.startBizXP) + (STATE.raceXP - STATE.startRaceXP);
+    let avg = STATE.fares > 0 ? Math.round(totalGain / STATE.fares) : 0;
+    document.getElementById('disp-avg').innerText = avg;
+    
+    runCalculator();
+}
+
+function runCalculator() {
+    let t = parseInt(document.getElementById('target-input').value);
+    let mode = document.getElementById('calc-mode').value;
+    if (!t) return;
+    
+    let currentXP = 0, startXP = 0;
+    if(mode === 'race') { currentXP = STATE.raceXP; startXP = STATE.startRaceXP; }
+    else { currentXP = STATE.bizXP; startXP = STATE.startBizXP; }
+
+    let totalGain = currentXP - startXP;
+    let avg = STATE.fares > 0 ? (totalGain / STATE.fares) : 1000; // Default estimate
+    if(avg <= 0) avg = 1000;
+
+    let diff = t - currentXP;
+    let stops = diff > 0 ? Math.ceil(diff/avg) : 0;
+    let txt = stops > 0 ? "~" + stops.toLocaleString() + " Fares" : "TARGET REACHED";
+    
+    document.getElementById('est-actions').innerText = txt;
+}
+
+setInterval(() => {
+    let keys = [
+        "exp_player_racing", "exp_business_business",
+        "inventory", "status", "name"
+    ];
+    if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+    
+    let d = new Date();
+    document.getElementById('clock').innerText = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}, 1000);
+
+const dH = document.getElementById("drag-handle");
+let dr=false, sx, sy, ox, oy;
+dH.onmousedown = e => { if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return; dr=true; sx=e.clientX; sy=e.clientY; let r=document.getElementById('tracker-app').getBoundingClientRect(); ox=r.left; oy=r.top; };
+window.onmousemove = e => { if(dr){ let a=document.getElementById('tracker-app'); a.style.left=(ox+e.clientX-sx)+'px'; a.style.top=(oy+e.clientY-sy)+'px'; }};
+window.onmouseup = () => dr=false;
+
+const rh = document.getElementById('resize-handle');
+rh.onmousedown = e => { e.preventDefault(); window.addEventListener('mousemove', rs); window.addEventListener('mouseup', rsEnd); };
+function rs(e) { let a=document.getElementById('tracker-app'); if(!a.classList.contains('mini-mode')) { a.style.width=Math.max(280, e.clientX-a.getBoundingClientRect().left)+'px'; a.style.height=Math.max(200, e.clientY-a.getBoundingClientRect().top)+'px'; } }
+function rsEnd() { window.removeEventListener('mousemove', rs); window.removeEventListener('mouseup', rsEnd); }
+
+</script>
+</body>
+</html>
