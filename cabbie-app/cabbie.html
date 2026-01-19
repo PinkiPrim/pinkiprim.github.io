@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v1.4</title>
+    <title>TT Cabbie Ops v1.5</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -325,7 +325,10 @@
 <script>
 // --- STATE ---
 let STATE = {
-    fares: 0,
+    fares: 0, // Total fares from game status
+    localFares: 0, // Tracks fares actually completed since tool opened
+    lastGameFares: -1, // To detect changes in game status fares
+    
     bizXP: 0, startBizXP: 0,
     raceXP: 0, startRaceXP: 0
 };
@@ -396,19 +399,16 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    // 1. Status Parsing (Cabbie Specific)
+    // 1. Status Parsing
     if(data.status) {
         try {
             let s = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
             if(s.lines) {
-                // "Status: ~g~Available", "Status: ~y~Busy~w~"
                 let status = "Idle";
                 let location = "--";
                 let distance = "";
                 let idle = "0 / 30";
                 let timer = "0";
-                
-                // Temp vars for persistent checks
                 let currentFares = -1;
 
                 s.lines.forEach(line => {
@@ -425,11 +425,21 @@ window.addEventListener('message', (event) => {
                     if(clean.includes("Time Bonus:")) timer = clean.replace("Time Bonus:", "").trim();
                 });
 
-                // Persistence Logic for Fares
+                // --- FARE TRACKING LOGIC ---
+                // If game reports a valid number
                 if(currentFares > -1) {
-                    STATE.fares = currentFares; // Update if present
-                } 
-                // If missing (e.g. during "Busy" status), we keep STATE.fares as is.
+                    STATE.fares = currentFares; // Always show total game session fares
+                    
+                    // If this is the first update, initialize lastGameFares
+                    if (STATE.lastGameFares === -1) {
+                        STATE.lastGameFares = currentFares;
+                    } 
+                    // If fares increased since last update, increment our LOCAL counter
+                    else if (currentFares > STATE.lastGameFares) {
+                        STATE.localFares += (currentFares - STATE.lastGameFares);
+                        STATE.lastGameFares = currentFares;
+                    }
+                }
 
                 document.getElementById('disp-status').innerText = status;
                 document.getElementById('micro-status').innerText = status.substring(0, 10);
@@ -438,7 +448,6 @@ window.addEventListener('message', (event) => {
                 document.getElementById('disp-fares').innerText = STATE.fares;
                 document.getElementById('micro-fares').innerText = STATE.fares;
                 document.getElementById('disp-idle').innerText = idle;
-                
                 document.getElementById('disp-bonus').innerText = timer;
                 document.getElementById('micro-bonus').innerText = timer;
             }
@@ -507,12 +516,14 @@ function updateUI() {
         if(bBar) bBar.style.width = bData.percent + "%";
     }
 
-    // 3. Calc Average (Individual)
+    // 3. Calc Average (Using LOCAL Fares)
     let bizGain = STATE.bizXP - STATE.startBizXP;
     let raceGain = STATE.raceXP - STATE.startRaceXP;
     
-    let avgBiz = STATE.fares > 0 ? Math.round(bizGain / STATE.fares) : 0;
-    let avgRace = STATE.fares > 0 ? Math.round(raceGain / STATE.fares) : 0;
+    // Default to session gain if 0 fares recorded locally, or use local fares
+    // If localFares is 0, we can't divide, so show 0
+    let avgBiz = STATE.localFares > 0 ? Math.round(bizGain / STATE.localFares) : 0;
+    let avgRace = STATE.localFares > 0 ? Math.round(raceGain / STATE.localFares) : 0;
     
     document.getElementById('disp-avg-biz').innerText = avgBiz;
     document.getElementById('disp-avg-race').innerText = avgRace;
@@ -530,7 +541,7 @@ function runCalculator() {
     else { currentXP = STATE.bizXP; startXP = STATE.startBizXP; }
 
     let totalGain = currentXP - startXP;
-    let avg = STATE.fares > 0 ? (totalGain / STATE.fares) : 1000; // Default estimate
+    let avg = STATE.localFares > 0 ? (totalGain / STATE.localFares) : 1000; 
     if(avg <= 0) avg = 1000;
 
     let diff = t - currentXP;
@@ -543,7 +554,6 @@ function runCalculator() {
 // MAIN HEADER DRAG
 const dH = document.getElementById("drag-handle");
 dH.onmousedown = (e) => {
-    // Only use dH if mini-mode is NOT active (mini has its own handler)
     if (!document.getElementById('tracker-app').classList.contains('mini-mode')) {
         dragStart(e);
     }
