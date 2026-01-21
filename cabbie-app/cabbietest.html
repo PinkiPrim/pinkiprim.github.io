@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v1.8</title>
+    <title>TT Cabbie Ops v1.9</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -34,14 +34,14 @@
 
         #tracker-app {
             position: absolute; top: 50px; left: 50px;
-            width: 320px; /* Reduced Width */
+            width: 320px;
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             overflow: hidden;
-            min-height: 400px; /* Reduced Min Height */
+            min-height: 380px; /* Reduced further */
             transition: width 0.2s, height 0.2s;
         }
 
@@ -80,7 +80,7 @@
         /* --- HEADER & ANIMATION --- */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(0, 0, 0, 0.9));
-            height: 60px; /* Reduced Height */
+            height: 60px;
             padding: 0; cursor: move; position: relative;
             display: flex; flex-direction: column;
             border-bottom: 1px solid rgba(255,255,255,0.15); overflow: hidden; z-index: 60; 
@@ -168,16 +168,19 @@
         .value { font-size: 1.1em; font-weight: 800; }
         .highlight { color: var(--primary); }
 
-        /* DUAL PROGRESS BARS */
-        .progress-group { margin-bottom: 8px; }
-        .progress-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2px; }
-        .progress-container { position: relative; height: 12px; background: rgba(0,0,0,0.6); border-radius: 4px; margin-bottom: 2px; overflow: hidden; border: 1px solid #333; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; transition: width 0.4s ease; }
-        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
-        .progress-sub { text-align: center; font-size: 0.7em; color: #888; font-style: italic; }
+        /* COMPACT PROGRESS BARS */
+        .progress-group { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1px; }
+        .lvl-block { font-size: 0.75em; color: var(--text-dim); font-weight: bold; }
+        .lvl-val { font-size: 1.4em; color: var(--accent); margin-left: 4px; font-weight: 900; font-family: 'Rajdhani', sans-serif; }
+        .xp-val { font-size: 0.8em; color: #fff; }
         
-        .session-row { text-align: center; font-size: 0.75em; margin-top: 2px; color: var(--text-dim); }
-        .session-gain { color: var(--green); font-weight: bold; margin-left: 5px; }
+        .progress-container { position: relative; height: 10px; background: rgba(0,0,0,0.6); border-radius: 4px; margin-bottom: 2px; overflow: hidden; border: 1px solid #333; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; transition: width 0.4s ease; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.6em; font-weight: 900; z-index: 2; text-shadow: 1px 1px 2px black; }
+        
+        .progress-footer { display: flex; justify-content: space-between; font-size: 0.7em; color: #888; font-style: italic; }
+        .session-val { color: var(--green); font-weight: bold; }
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 4px; text-align: center; border-radius: 4px; }
@@ -282,22 +285,28 @@
 
         <div class="streak-display" id="main-streak-display">STREAK: ?</div>
 
-        <div class="section progress-group">
+        <div class="progress-group">
             <div class="progress-header">
-                <div><div class="label">BUSINESS LEVEL</div><div class="value highlight" style="font-size:1.3em;" id="disp-biz-lvl">0</div></div>
-                <div style="text-align:right;"><div class="label">XP</div><div class="value" id="disp-biz-xp" style="font-size:0.85em">0</div></div>
+                <div class="lvl-block">BUSINESS <span class="lvl-val" id="disp-biz-lvl">0</span></div>
+                <div class="xp-val" id="disp-biz-xp">0</div>
             </div>
             <div class="progress-container"><div class="progress-bar" id="biz-bar"></div><div class="progress-text" id="biz-text">0%</div></div>
-            <div class="session-row">Session: <span class="session-gain" id="sess-biz">+0 XP</span></div>
+            <div class="progress-footer">
+                <div>Session: <span class="session-val" id="sess-biz">+0</span></div>
+                <div id="biz-needed">...</div>
+            </div>
         </div>
 
-        <div class="section progress-group">
+        <div class="progress-group">
             <div class="progress-header">
-                <div><div class="label">RACING LEVEL</div><div class="value highlight" style="font-size:1.3em;" id="disp-race-lvl">0</div></div>
-                <div style="text-align:right;"><div class="label">XP</div><div class="value" id="disp-race-xp" style="font-size:0.85em">0</div></div>
+                <div class="lvl-block">RACING <span class="lvl-val" id="disp-race-lvl">0</span></div>
+                <div class="xp-val" id="disp-race-xp">0</div>
             </div>
             <div class="progress-container"><div class="progress-bar" id="race-bar"></div><div class="progress-text" id="race-text">0%</div></div>
-            <div class="session-row">Session: <span class="session-gain" id="sess-race">+0 XP</span></div>
+            <div class="progress-footer">
+                <div>Session: <span class="session-val" id="sess-race">+0</span></div>
+                <div id="race-needed">...</div>
+            </div>
         </div>
 
         <div class="section">
@@ -579,6 +588,7 @@ function updateUI() {
         let rBar = document.getElementById('race-bar');
         if(rBar) rBar.style.width = rData.percent + "%";
         safeSetText('race-text', rData.percent + "%");
+        safeSetText('race-needed', rData.needed + " to Next");
         safeSetText('sess-race', `+${(STATE.raceXP - STATE.startRaceXP).toLocaleString()} XP`);
         
         // Micro Updates
@@ -596,6 +606,7 @@ function updateUI() {
         let bBar = document.getElementById('biz-bar');
         if(bBar) bBar.style.width = bData.percent + "%";
         safeSetText('biz-text', bData.percent + "%");
+        safeSetText('biz-needed', bData.needed + " to Next");
         safeSetText('sess-biz', `+${(STATE.bizXP - STATE.startBizXP).toLocaleString()} XP`);
 
         // Micro Updates
