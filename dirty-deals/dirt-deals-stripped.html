@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final v10.1</title>
+    <title>Dirty Deals - Grinder Vision v10.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -12,6 +12,7 @@
             --border: 1px solid #333; --text-main: #ffffff; --text-dim: #888888;
             --st-pending: #f1c40f; --st-accepted: #3498db; 
             --st-denied: #e74c3c; --st-completed: #2ecc71;
+            --gold: #f1c40f;
         }
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
@@ -119,6 +120,7 @@
         .h-row.item { color: white; font-weight: bold; font-size: 1.1em; }
         .h-row.item span { color: #888; font-size: 0.8em; }
         .h-row.price { color: #2ecc71; font-weight: bold; font-family: 'Rajdhani', sans-serif; font-size: 1em; }
+        .h-row.commission { color: var(--gold); font-size: 0.85em; font-weight: bold; margin-top: -2px; }
         .h-row.worker { color: #e67e22; font-size: 0.8em; font-weight: bold; }
         .status-container { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
         .status-badge { padding: 4px 8px; border-radius: 3px; font-size: 0.7em; font-weight: bold; text-transform: uppercase; color: #000; display: inline-block; }
@@ -358,7 +360,7 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
     
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
     var ADMIN_IDS = ["757858", "744622", "637174"];
@@ -551,8 +553,8 @@
         let status = document.getElementById('ue-status').value;
         let staff = document.getElementById('ue-staff').value;
         
-        // --- FIX V9.9: DO NOT CLEAR CUSTOMER ROLE ---
-        // if (role === "Customer") role = "";  <-- REMOVED
+        // FIX V9.9: REMOVED "Customer" CLEARING LOGIC.
+        // The value "Customer" is now sent directly to the sheet as a valid dropdown option.
 
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
@@ -641,22 +643,8 @@
         if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } 
         else if (!state.customOrderMode) { rInput.value = val; }
         var total = state.item.price * val;
-        // DYNAMIC COMMISSION CALCULATION
-        var isHigh = (document.getElementById('input-priority').value === 'high');
-        var isCustom = state.customOrderMode;
-        
-        var rate = 0.05; // Default 5%
-        if (isCustom && isHigh) rate = 0.15;
-        else if (isCustom) rate = 0.10;
-        else if (isHigh) rate = 0.08;
-        
-        // Add fee to total price?
-        // Note: The prompt asked for "Cuts", which usually means "Grinder gets X%", not "Customer pays X% extra".
-        // However, in previous versions, we did `total *= 1.05` for High Priority.
-        // I will maintain the Customer Price logic:
-        if (isHigh) total *= 1.05; 
-        if (isCustom) total *= 1.10; 
-
+        if(document.getElementById('input-priority').value === 'high') total *= 1.05;
+        if(state.customOrderMode) total *= 1.10;
         document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
     }
 
@@ -691,11 +679,7 @@
         }
         var btns = document.querySelectorAll('.header-btn'); for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
         document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view)).classList.add('active');
-        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); 
-        if(view === 'housekeeping') {
-            fetchAdminUsers(true); // Pre-fetch grinders for dropdown
-            switchAdminTab('users');
-        }
+        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); if(view === 'housekeeping') switchAdminTab('users');
     }
 
     function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
@@ -788,7 +772,7 @@
         }
 
         var div = document.createElement('div'); div.className = "history-item";
-        div.innerHTML = `<div class="h-top"><div class="h-info"><div class="h-row user">${o.username} <span style="font-family:monospace; color:#666;">(${o.userId})</span></div><div class="h-row item">${o.item} <span style="color:#888;">x${o.qty}</span></div><div class="h-row price">$${parseInt(o.price).toLocaleString()}</div>${o.grinder ? '<div class="h-row worker">Worker: '+o.grinder+'</div>' : ''}</div><div class="status-container"><div class="status-badge st-${status}">${status}</div>${controls}</div></div><div class="chat-area"><div class="chat-logs">${(o.chat ? o.chat.split(" | ").join("\n") : "No messages.")}</div><div class="chat-input-row"><input type="text" class="chat-input" placeholder="Type message..." maxlength="140"><button class="chat-send" onclick="sendChatFromBtn(this, '${o.timestamp}', '${(o.orderUserId||o.userId)}')">SEND</button></div></div>`;
+        div.innerHTML = `<div class="h-top"><div class="h-info"><div class="h-row user">${o.username} <span style="font-family:monospace; color:#666;">(${o.userId})</span></div><div class="h-row item">${o.item} <span style="color:#888;">x${o.qty}</span></div><div class="h-row price">$${parseInt(o.price).toLocaleString()}</div>${(isGrinderView && o.commission) ? '<div class="h-row commission">Cut: '+o.commission+'</div>' : ''}${o.grinder ? '<div class="h-row worker">Worker: '+o.grinder+'</div>' : ''}</div><div class="status-container"><div class="status-badge st-${status}">${status}</div>${controls}</div></div><div class="chat-area"><div class="chat-logs">${(o.chat ? o.chat.split(" | ").join("\n") : "No messages.")}</div><div class="chat-input-row"><input type="text" class="chat-input" placeholder="Type message..." maxlength="140"><button class="chat-send" onclick="sendChatFromBtn(this, '${o.timestamp}', '${(o.orderUserId||o.userId)}')">SEND</button></div></div>`;
         return div;
     }
 
