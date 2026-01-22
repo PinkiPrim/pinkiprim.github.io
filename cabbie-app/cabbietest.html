@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v2.4</title>
+    <title>TT Cabbie Ops v2.6</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -157,13 +157,16 @@
             <span>XP BREAKDOWN</span>
             <span style="font-size:0.7em; color:#aaa; cursor:pointer;" onclick="toggleBreakdown()">[CLOSE]</span>
         </div>
+        
         <div class="bd-row"><span class="label">Base Fare (Long Dist)</span><span class="bd-val">7.5 XP</span></div>
         <div class="bd-row"><span class="label">Streak Multiplier</span><span class="bd-val" id="bd-streak-mult">1.0x</span></div>
         <div class="bd-row"><span class="label">Time Bonus</span><span class="bd-val">2.0x</span></div>
+        
         <div class="bd-header" style="margin-top:10px; font-size:0.9em; color:#fff;">ACTIVE BONUSES</div>
         <div class="bd-sub-list" id="bd-bonus-list">
             <div style="font-style:italic; opacity:0.5;">Scan Identity tab to see...</div>
         </div>
+        
         <div class="bd-row" style="margin-top:10px; border-top:1px solid #444; padding-top:5px;">
             <span class="label">Est. XP / Fare</span>
             <span class="bd-val green" style="font-size:1.2em" id="bd-total">0 XP</span>
@@ -249,11 +252,11 @@ function safeSetHTML(id, html) { const el = document.getElementById(id); if (el)
 
 // --- STATE ---
 let STATE = {
-    fares: 0, 
-    lastFares: -1, // Tracks changes in fare count for streak logic
+    // Protected High Water Mark for fares (prevents reset to 0 during busy/glitches)
+    protectedFares: 0,
     
-    bizXP: 0, startBizXP: 0, 
-    raceXP: 0, startRaceXP: 0,
+    bizXP: 0, startBizXP: null, 
+    raceXP: 0, startRaceXP: null,
     
     streak: 0, streakSynced: false,
     activeBonuses: [], totalBonusPercent: 0
@@ -301,48 +304,58 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    // 1. Status Parsing (Status & Fares)
+    // 1. Status Parsing
     if(data.status) {
         try {
             let s = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
             if(s.lines) {
                 let status = "Idle", location = "--", distance = "", idle = "0 / 30", timer = "0", currentFares = 0;
+                let foundFaresLine = false;
+
                 s.lines.forEach(line => {
                     let clean = cleanString(line);
                     if(clean.startsWith("Status:")) status = clean.replace("Status:", "").trim();
                     if(clean.startsWith("Area:")) location = clean.replace("Area:", "").trim();
                     if(clean.includes("Distance to destination:")) distance = clean;
-                    if(clean.startsWith("Fares This Session:")) currentFares = parseInt(clean.replace("Fares This Session:", "").trim());
+                    if(clean.startsWith("Fares This Session:")) {
+                        currentFares = parseInt(clean.replace("Fares This Session:", "").trim());
+                        foundFaresLine = true;
+                    }
                     if(clean.includes("Idle Cycles:")) idle = clean.replace("Idle Cycles:", "").trim();
                     if(clean.includes("Time Bonus:")) timer = clean.replace("Time Bonus:", "").trim();
                 });
                 
-                // FARE LOGIC (The Truth from Server)
-                if (STATE.lastFares === -1) {
-                    STATE.lastFares = currentFares; // Init
-                } else if (currentFares > STATE.lastFares) {
-                    // Fare increased! Update Streak
-                    if (STATE.streakSynced) {
-                        STATE.streak += (currentFares - STATE.lastFares);
-                        updateStreakUI();
+                // --- FARE & STREAK LOGIC (PROTECTED) ---
+                if (foundFaresLine && !isNaN(currentFares)) {
+                    // Update if > 0 (Allows resets to 1, but ignores 0 glitches)
+                    if (currentFares > 0) {
+                        // Check if fares INCREASED from our protected value
+                        if (currentFares > STATE.protectedFares) {
+                            let increase = currentFares - STATE.protectedFares;
+                            // Logic: Fares went up -> Streak goes up
+                            if (STATE.streakSynced) {
+                                STATE.streak += increase;
+                                updateStreakUI();
+                            }
+                        }
+                        // Always update protectedFares if valid > 0
+                        STATE.protectedFares = currentFares;
                     }
-                    STATE.lastFares = currentFares;
                 }
-                STATE.fares = currentFares;
-
+                
                 safeSetText('disp-status', status); safeSetText('micro-status', status.substring(0, 10));
                 safeSetText('disp-loc', location); safeSetText('disp-dist', distance);
-                safeSetText('disp-fares', STATE.fares); safeSetText('micro-fares', STATE.fares);
+                safeSetText('disp-fares', STATE.protectedFares); safeSetText('micro-fares', STATE.protectedFares);
                 safeSetText('disp-idle', idle); safeSetText('disp-bonus', timer); safeSetText('micro-bonus', timer);
             }
         } catch(e){}
     }
 
-    // 2. XP Parsing (Protect against 0/Blank)
+    // 2. XP Parsing
     let raceXP = parseXP(data, "exp_player_racing");
     let bizXP = parseXP(data, "exp_business_business");
     
-    // Only update if valid and positive
+    // Protection against 0/Blank packets
     if (raceXP > 0) updateRaceXP(raceXP);
     if (bizXP > 0) updateBizXP(bizXP);
     
@@ -377,6 +390,7 @@ function parseBonuses(html) {
     const lines = html.split(/<br\s*\/?>/i);
     let newBonuses = [];
     let totalPct = 0;
+    
     lines.forEach(line => {
         let decoded = line.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
         let text = decoded.replace(/<[^>]*>/g, '').trim();
@@ -386,6 +400,7 @@ function parseBonuses(html) {
             newBonuses.push(text);
         }
     });
+    
     STATE.activeBonuses = newBonuses;
     STATE.totalBonusPercent = totalPct;
     updateBreakdownUI();
@@ -402,6 +417,7 @@ function updateBreakdownUI() {
             container.appendChild(div);
         });
     }
+    
     let streakMult = (100 + STATE.streak) / 100;
     safeSetText('bd-streak-mult', streakMult.toFixed(2) + "x");
     let xpPerFare = calculateCabbieXP(STATE.streak);
@@ -418,17 +434,18 @@ function parseXP(data, key) {
     return (typeof val === 'number' && !isNaN(val)) ? val : 0;
 }
 
+// --- UPDATE XP LOGIC (WITH V2.0 MATH) ---
 function updateRaceXP(val) {
     const newXP = Number(val);
-    if (isNaN(newXP)) return;
-    if (STATE.startRaceXP === 0) { STATE.startRaceXP = newXP; STATE.raceXP = newXP; return; }
+    if (isNaN(newXP) || newXP <= 0) return;
+    if (STATE.startRaceXP === null) { STATE.startRaceXP = newXP; STATE.raceXP = newXP; return; }
     STATE.raceXP = newXP;
 }
 
 function updateBizXP(val) {
     const newXP = Number(val);
-    if (isNaN(newXP)) return;
-    if (STATE.startBizXP === 0) { STATE.startBizXP = newXP; STATE.bizXP = newXP; return; }
+    if (isNaN(newXP) || newXP <= 0) return;
+    if (STATE.startBizXP === null) { STATE.startBizXP = newXP; STATE.bizXP = newXP; return; }
     STATE.bizXP = newXP;
 }
 
@@ -444,32 +461,34 @@ function updateStreakUI() {
 
 function updateUI() {
     // 1. Race UI
-    if (STATE.raceXP > 0 && STATE.startRaceXP > 0) {
+    if (STATE.raceXP > 0 && STATE.startRaceXP !== null) {
         let rData = getLevel(STATE.raceXP);
         safeSetText('disp-race-lvl', rData.level); safeSetText('disp-race-xp', STATE.raceXP.toLocaleString());
         let rBar = document.getElementById('race-bar'); if(rBar) rBar.style.width = rData.percent + "%";
         safeSetText('race-text', rData.percent + "%"); safeSetText('race-needed', rData.needed + " to Next");
-        // V2.0 Logic: Current - Start
-        let gain = STATE.raceXP - STATE.startRaceXP;
+        
+        let gain = STATE.raceXP - STATE.startRaceXP; // Simple V2.0 Logic
         safeSetText('sess-race', `+${gain.toLocaleString()} XP`);
         safeSetText('micro-race-lvl', rData.level); let mBar = document.getElementById('micro-race-bar'); if(mBar) mBar.style.width = rData.percent + "%";
-        // V2.0 Logic: Session Gain / Fares
-        if (STATE.fares > 0) safeSetText('disp-avg-race', Math.round(gain / STATE.fares));
+        
+        // Average: Session Gain / Protected Fares
+        if (STATE.protectedFares > 0) safeSetText('disp-avg-race', Math.round(gain / STATE.protectedFares));
         else safeSetText('disp-avg-race', 0);
     }
 
     // 2. Biz UI
-    if (STATE.bizXP > 0 && STATE.startBizXP > 0) {
+    if (STATE.bizXP > 0 && STATE.startBizXP !== null) {
         let bData = getLevel(STATE.bizXP);
         safeSetText('disp-biz-lvl', bData.level); safeSetText('disp-biz-xp', STATE.bizXP.toLocaleString());
         let bBar = document.getElementById('biz-bar'); if(bBar) bBar.style.width = bData.percent + "%";
         safeSetText('biz-text', bData.percent + "%"); safeSetText('biz-needed', bData.needed + " to Next");
-        // V2.0 Logic: Current - Start
-        let gain = STATE.bizXP - STATE.startBizXP;
+        
+        let gain = STATE.bizXP - STATE.startBizXP; // Simple V2.0 Logic
         safeSetText('sess-biz', `+${gain.toLocaleString()} XP`);
         safeSetText('micro-biz-lvl', bData.level); let mbBar = document.getElementById('micro-biz-bar'); if(mbBar) mbBar.style.width = bData.percent + "%";
-        // V2.0 Logic: Session Gain / Fares
-        if (STATE.fares > 0) safeSetText('disp-avg-biz', Math.round(gain / STATE.fares));
+        
+        // Average: Session Gain / Protected Fares
+        if (STATE.protectedFares > 0) safeSetText('disp-avg-biz', Math.round(gain / STATE.protectedFares));
         else safeSetText('disp-avg-biz', 0);
     }
 
