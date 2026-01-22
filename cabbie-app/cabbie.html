@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v4.0</title>
+    <title>TT Cabbie Ops v4.3</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -62,14 +62,9 @@
         .mini-mode-btn:hover { background: var(--primary); border-color: var(--accent); }
         #clock { position: absolute; bottom: 2px; right: 8px; font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #aaa; font-size: 0.75em; z-index: 20; }
 
-        /* BURGER MENU */
-        .menu-container { position: absolute; top: 5px; right: 40px; z-index: 99; }
-        .burger-btn { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 1px 5px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
-        .burger-btn:hover { background: var(--primary); border-color: var(--accent); }
-        .dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 5px; background: #121212; border: 1px solid var(--primary); border-radius: 4px; width: 120px; display: none; flex-direction: column; z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.9); }
-        .dropdown-menu.show { display: flex; }
-        .menu-item { padding: 8px; color: #ccc; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.8em; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .menu-item:hover { background: var(--primary); color: #000; }
+        /* BURGER MENU (Replaced by Resync Button) */
+        .resync-btn { position: absolute; top: 5px; right: 45px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 1px 5px; border-radius: 4px; cursor: pointer; font-size: 0.65em; font-weight: bold; font-family: 'Rajdhani', sans-serif; z-index: 99; }
+        .resync-btn:hover { background: var(--primary); border-color: var(--accent); }
 
         #content { padding: 8px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
@@ -127,7 +122,6 @@
 
         #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
         
-        /* Blur effect for locked state */
         .locked { filter: blur(4px); pointer-events: none; opacity: 0.5; }
     </style>
 </head>
@@ -150,15 +144,8 @@
 
     <header id="drag-handle">
         <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
-        <div class="menu-container">
-            <button class="burger-btn" onclick="toggleMenu()">☰</button>
-            <div class="dropdown-menu" id="main-menu">
-                <div class="menu-item" onclick="toggleMini()">🗖 Mini Mode</div>
-                <div class="menu-item" onclick="forceResync()">🔄 Un-Sync Streak</div>
-            </div>
-        </div>
+        <button class="resync-btn" onclick="forceResync()" title="Force Resync">🔄</button>
         <button class="mini-mode-btn" onclick="toggleMini()">MINI</button>
-        
         <div class="header-title">CABBIE OPS</div>
         <div class="header-job">COLLINSCO TAXI</div>
         <span id="clock">00:00</span>
@@ -177,16 +164,13 @@
             <span>XP BREAKDOWN</span>
             <span style="font-size:0.7em; color:#aaa; cursor:pointer;" onclick="toggleBreakdown()">[CLOSE]</span>
         </div>
-        
         <div class="bd-row"><span class="label">Base Fare (Long Dist)</span><span class="bd-val">7.5 XP</span></div>
         <div class="bd-row"><span class="label">Streak Multiplier</span><span class="bd-val" id="bd-streak-mult">1.0x</span></div>
         <div class="bd-row"><span class="label">Time Bonus</span><span class="bd-val">2.0x</span></div>
-        
         <div class="bd-header" style="margin-top:10px; font-size:0.9em; color:#fff;">ACTIVE BONUSES</div>
         <div class="bd-sub-list" id="bd-bonus-list">
             <div style="font-style:italic; opacity:0.5;">Scan Identity tab to see...</div>
         </div>
-        
         <div class="bd-row" style="margin-top:10px; border-top:1px solid #444; padding-top:5px;">
             <span class="label">Est. XP / Fare</span>
             <span class="bd-val green" style="font-size:1.2em" id="bd-total">0 XP</span>
@@ -242,13 +226,8 @@
         </div>
 
         <div class="section" style="border:none;">
-            <div class="label">
-                XP Calculator 
-                <button class="breakdown-btn" onclick="toggleBreakdown()">📊 BREAKDOWN</button>
-            </div>
-            
+            <div class="label">XP Calculator <button class="breakdown-btn" onclick="toggleBreakdown()">📊 BREAKDOWN</button></div>
             <div id="sync-warning" style="text-align:center; margin-bottom:5px; color:var(--primary); font-weight:bold; font-size:0.9em; animation: flash 2s infinite;">⚠ OPEN IDENTITY TAB TO SYNC</div>
-            
             <div id="calc-container" class="locked">
                 <select id="calc-mode" onchange="runCalculator()">
                     <option value="biz">Business XP</option>
@@ -264,7 +243,6 @@
             </div>
         </div>
     </div>
-
     <div id="resize-handle"></div>
 </div>
 
@@ -275,37 +253,33 @@ function safeSetHTML(id, html) { const el = document.getElementById(id); if (el)
 
 // --- STATE ---
 let STATE = {
-    // Protected High Water Mark for fares
-    protectedFares: 0,
-    // Start Fares (Relative Session Start)
-    startFares: null,
+    internalFares: 0, // Master Session Counter
     
     bizXP: 0, startBizXP: null, 
     raceXP: 0, startRaceXP: null,
     
-    streak: 0, 
-    streakLocked: false, // THE KEY FLAG: True = Ignore Menu Scanning
+    streak: 0, streakSynced: false,
     
     activeBonuses: [], totalBonusPercent: 0,
+    
+    lastFareTime: 0 // Debounce
 };
 
 // --- UI LOGIC ---
-function toggleMini() { document.getElementById('tracker-app').classList.toggle('mini-mode'); document.getElementById('breakdown-panel').classList.remove('active'); document.getElementById('main-menu').classList.remove('show'); }
+function toggleMini() { document.getElementById('tracker-app').classList.toggle('mini-mode'); document.getElementById('breakdown-panel').classList.remove('active'); }
 function toggleBreakdown() { document.getElementById('breakdown-panel').classList.toggle('active'); updateBreakdownUI(); }
 function setCalc(val) { document.getElementById('target-input').value = val; runCalculator(); }
-function toggleMenu() { document.getElementById('main-menu').classList.toggle('show'); }
-window.onclick = function(e) { if (!e.target.matches('.burger-btn')) document.getElementById('main-menu').classList.remove('show'); }
 
 function forceResync() {
-    STATE.streakLocked = false;
+    STATE.streakSynced = false;
     STATE.streak = 0;
     document.getElementById('sync-warning').style.display = 'block';
     document.getElementById('calc-container').classList.add('locked');
     safeSetHTML('streak-status', '⚠ RESYNC REQUIRED');
+    let mainStreak = document.getElementById('main-streak-display');
+    mainStreak.innerText = "STREAK: ?";
+    mainStreak.classList.remove('synced');
     safeSetText('micro-streak', '?');
-    document.getElementById('main-streak-display').innerText = "STREAK: ?";
-    document.getElementById('main-streak-display').classList.remove('synced');
-    toggleMenu(); // Close menu
 }
 
 // --- HELPERS ---
@@ -345,62 +319,37 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    // 1. Status Parsing
+    // 1. Status Parsing (Only for display now)
     if(data.status) {
         try {
             let s = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
             if(s.lines) {
-                let status = "Idle", location = "--", distance = "", idle = "0 / 30", timer = "0", currentFares = 0;
-                let foundFaresLine = false;
-
+                let status = "Idle", location = "--", distance = "", idle = "0 / 30", timer = "0";
                 s.lines.forEach(line => {
                     let clean = cleanString(line);
                     if(clean.startsWith("Status:")) status = clean.replace("Status:", "").trim();
                     if(clean.startsWith("Area:")) location = clean.replace("Area:", "").trim();
                     if(clean.includes("Distance to destination:")) distance = clean;
-                    if(clean.startsWith("Fares This Session:")) {
-                        currentFares = parseInt(clean.replace("Fares This Session:", "").trim());
-                        foundFaresLine = true;
-                    }
                     if(clean.includes("Idle Cycles:")) idle = clean.replace("Idle Cycles:", "").trim();
                     if(clean.includes("Time Bonus:")) timer = clean.replace("Time Bonus:", "").trim();
                 });
                 
-                // HIGH WATER MARK LOGIC
-                if (foundFaresLine && !isNaN(currentFares)) {
-                    if (currentFares > 0) { // Ignore 0 glitches
-                        if (STATE.startFares === null) STATE.startFares = currentFares;
-
-                        // FARE INCREASE DETECTED
-                        if (currentFares > STATE.protectedFares) {
-                            // If we are LOCKED, auto-increment streak
-                            if (STATE.streakLocked && STATE.protectedFares > 0) {
-                                let diff = currentFares - STATE.protectedFares;
-                                STATE.streak += diff;
-                                updateStreakUI();
-                            }
-                            STATE.protectedFares = currentFares;
-                        } 
-                        else if (STATE.protectedFares === 0) STATE.protectedFares = currentFares;
-                    }
-                }
-                
                 safeSetText('disp-status', status); safeSetText('micro-status', status.substring(0, 10));
                 safeSetText('disp-loc', location); safeSetText('disp-dist', distance);
-                safeSetText('disp-fares', STATE.protectedFares); safeSetText('micro-fares', STATE.protectedFares);
                 safeSetText('disp-idle', idle); safeSetText('disp-bonus', timer); safeSetText('micro-bonus', timer);
             }
         } catch(e){}
     }
 
-    // 2. XP Parsing
+    // 2. XP Parsing (THE NEW FARE TRIGGER)
     let raceXP = parseXP(data, "exp_player_racing");
     let bizXP = parseXP(data, "exp_business_business");
-    if (raceXP > 0) updateRaceXP(raceXP);
-    if (bizXP > 0) updateBizXP(bizXP);
     
-    // 3. Menu Scanning (ONLY IF NOT LOCKED)
-    if (!STATE.streakLocked && data.menu_choices) {
+    if (raceXP > 0) checkXPUpdates(raceXP, 'race');
+    if (bizXP > 0) checkXPUpdates(bizXP, 'biz');
+    
+    // 3. Menu Scanning (Identity)
+    if (data.menu_choices) {
         try {
             let rawMenu = (typeof data.menu_choices === 'object') ? JSON.stringify(data.menu_choices) : data.menu_choices;
             parseIdentity(rawMenu);
@@ -411,20 +360,23 @@ window.addEventListener('message', (event) => {
     updateUI();
 });
 
-// INITIAL IDENTITY PARSER (Runs until locked)
+// v3.5 IDENTITY PARSER: "High Score" Logic
 function parseIdentity(rawString) {
     let match = rawString.match(/Cabbie:\s*(\d+)/i);
     if (match && match[1]) {
         let streakVal = parseInt(match[1]);
         if (!isNaN(streakVal)) {
-            // Lock it in!
-            STATE.streak = streakVal;
-            STATE.streakLocked = true;
-            
-            // UI Feedback for Lock
-            document.getElementById('sync-warning').style.display = 'none';
-            document.getElementById('calc-container').classList.remove('locked');
-            updateStreakUI();
+            // If new scanned streak is HIGHER than current tracking, Sync Up.
+            if (streakVal > STATE.streak || !STATE.streakSynced) {
+                STATE.streak = streakVal;
+                STATE.streakSynced = true;
+                
+                // Unlock UI
+                document.getElementById('sync-warning').style.display = 'none';
+                document.getElementById('calc-container').classList.remove('locked');
+                updateStreakUI();
+            }
+            // If lower, IGNORE (Lag Protection)
         }
     }
 }
@@ -465,6 +417,7 @@ function updateBreakdownUI() {
             container.appendChild(div);
         });
     }
+    
     let streakMult = (100 + STATE.streak) / 100;
     safeSetText('bd-streak-mult', streakMult.toFixed(2) + "x");
     let xpPerFare = calculateCabbieXP(STATE.streak);
@@ -481,25 +434,44 @@ function parseXP(data, key) {
     return (typeof val === 'number' && !isNaN(val)) ? val : 0;
 }
 
-function updateRaceXP(val) {
+// XP JUMP DETECTION = FARE COMPLETED
+function checkXPUpdates(val, type) {
     const newXP = Number(val);
     if (isNaN(newXP) || newXP <= 0) return;
-    if (STATE.startRaceXP === null) { STATE.startRaceXP = newXP; STATE.raceXP = newXP; return; }
-    STATE.raceXP = newXP;
+
+    if (type === 'race') {
+        if (STATE.startRaceXP === null) { STATE.startRaceXP = newXP; STATE.raceXP = newXP; return; }
+        // Simple Jump Check
+        if (newXP > STATE.raceXP) { registerFare(); }
+        STATE.raceXP = newXP;
+    } 
+    else if (type === 'biz') {
+        if (STATE.startBizXP === null) { STATE.startBizXP = newXP; STATE.bizXP = newXP; return; }
+        // Simple Jump Check
+        if (newXP > STATE.bizXP) { registerFare(); }
+        STATE.bizXP = newXP;
+    }
 }
 
-function updateBizXP(val) {
-    const newXP = Number(val);
-    if (isNaN(newXP) || newXP <= 0) return;
-    if (STATE.startBizXP === null) { STATE.startBizXP = newXP; STATE.bizXP = newXP; return; }
-    STATE.bizXP = newXP;
+function registerFare() {
+    const now = Date.now();
+    // 5 Second Debounce (To prevent double count if Race and Biz XP update at same time)
+    if (now - STATE.lastFareTime > 5000) {
+        STATE.internalFares++; // Always track session fares
+        
+        if (STATE.streakSynced) {
+            STATE.streak++; 
+            updateStreakUI();
+        }
+        STATE.lastFareTime = now;
+    }
 }
 
 function updateStreakUI() {
     let mainStreak = document.getElementById('main-streak-display');
     mainStreak.innerText = "STREAK: " + STATE.streak;
     
-    if (STATE.streakLocked) {
+    if (STATE.streakSynced) {
         mainStreak.classList.add('synced');
         safeSetText('micro-streak', STATE.streak);
         runCalculator(); 
@@ -509,11 +481,11 @@ function updateStreakUI() {
 }
 
 function updateUI() {
-    let sessionFares = 0;
-    if (STATE.protectedFares > 0 && STATE.startFares !== null) {
-        sessionFares = Math.max(0, STATE.protectedFares - STATE.startFares);
-    }
+    // Show Internal Session Count
+    safeSetText('disp-fares', STATE.internalFares);
+    safeSetText('micro-fares', STATE.internalFares);
 
+    // 1. Race UI
     if (STATE.raceXP > 0 && STATE.startRaceXP !== null) {
         let rData = getLevel(STATE.raceXP);
         safeSetText('disp-race-lvl', rData.level); safeSetText('disp-race-xp', STATE.raceXP.toLocaleString());
@@ -524,10 +496,11 @@ function updateUI() {
         safeSetText('sess-race', `+${gain.toLocaleString()} XP`);
         safeSetText('micro-race-lvl', rData.level); let mBar = document.getElementById('micro-race-bar'); if(mBar) mBar.style.width = rData.percent + "%";
         
-        if (sessionFares > 0) safeSetText('disp-avg-race', Math.round(gain / sessionFares));
+        if (STATE.internalFares > 0) safeSetText('disp-avg-race', Math.round(gain / STATE.internalFares));
         else safeSetText('disp-avg-race', 0);
     }
 
+    // 2. Biz UI
     if (STATE.bizXP > 0 && STATE.startBizXP !== null) {
         let bData = getLevel(STATE.bizXP);
         safeSetText('disp-biz-lvl', bData.level); safeSetText('disp-biz-xp', STATE.bizXP.toLocaleString());
@@ -538,7 +511,7 @@ function updateUI() {
         safeSetText('sess-biz', `+${gain.toLocaleString()} XP`);
         safeSetText('micro-biz-lvl', bData.level); let mbBar = document.getElementById('micro-biz-bar'); if(mbBar) mbBar.style.width = bData.percent + "%";
         
-        if (sessionFares > 0) safeSetText('disp-avg-biz', Math.round(gain / sessionFares));
+        if (STATE.internalFares > 0) safeSetText('disp-avg-biz', Math.round(gain / STATE.internalFares));
         else safeSetText('disp-avg-biz', 0);
     }
 
@@ -557,7 +530,7 @@ function runCalculator() {
     let t = parseInt(document.getElementById('target-input').value);
     let mode = document.getElementById('calc-mode').value;
     
-    if (!STATE.streakLocked) return;
+    if (!STATE.streakSynced) return;
     if (!t) { safeSetText('calc-result', "Enter XP amount above."); return; }
     
     let currentXP = (mode === 'race') ? STATE.raceXP : STATE.bizXP;
