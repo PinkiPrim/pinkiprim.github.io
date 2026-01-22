@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v2.8</title>
+    <title>TT Cabbie Ops v3.0</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -252,7 +252,7 @@ function safeSetHTML(id, html) { const el = document.getElementById(id); if (el)
 
 // --- STATE ---
 let STATE = {
-    // High Water Mark for fares (from game status)
+    // Protected High Water Mark for fares
     protectedFares: 0,
     // Start Fares (Relative Session Start)
     startFares: null,
@@ -261,7 +261,7 @@ let STATE = {
     raceXP: 0, startRaceXP: null,
     
     streak: 0, streakSynced: false,
-    streakOffset: 0, // THE FIX: (Streak - Fares)
+    streakOffset: 0, 
     
     activeBonuses: [], totalBonusPercent: 0
 };
@@ -370,7 +370,10 @@ window.addEventListener('message', (event) => {
     if (data.menu_choices) {
         try {
             let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
-            let identityItem = menu.find(m => m[0] === "Identity");
+            
+            // FUZZY SEARCH FOR IDENTITY
+            let identityItem = menu.find(m => m[0] && typeof m[0] === 'string' && m[0].toLowerCase().includes("identity"));
+            
             if (identityItem && identityItem[1]) {
                 parseIdentity(identityItem[1]);
                 parseBonuses(identityItem[1]); 
@@ -382,6 +385,7 @@ window.addEventListener('message', (event) => {
 });
 
 function parseIdentity(html) {
+    // REVERTED TO STRICT V2.7 PATTERN (Proven to work)
     let match = html.match(/Cabbie:\s*(\d+)/i);
     if (match && match[1]) {
         let streakVal = parseInt(match[1]);
@@ -402,15 +406,36 @@ function parseBonuses(html) {
     let newBonuses = [];
     let totalPct = 0;
     
+    // Check for "Base Experience Bonus" line first (Priority)
+    let baseBonusFound = false;
+    
     lines.forEach(line => {
         let decoded = line.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
         let text = decoded.replace(/<[^>]*>/g, '').trim();
-        if (text && (text.includes("Exp Bonus") || text.includes("Premium") || text.includes("Skill of the Day"))) {
-            let pctMatch = text.match(/(\d+)%/);
-            if(pctMatch) totalPct += parseInt(pctMatch[1]);
-            newBonuses.push(text);
+        
+        // Priority Check for Total Base
+        if (text.includes("Base Experience Bonus")) {
+             let pctMatch = text.match(/(\d+(\.\d+)?)%/); // Match decimals too
+             if(pctMatch) {
+                 totalPct = parseFloat(pctMatch[1]);
+                 baseBonusFound = true;
+                 newBonuses.push("TOTAL BASE: " + totalPct + "%");
+             }
         }
     });
+
+    // If no Base found, try to sum up individual lines (Fallback)
+    if (!baseBonusFound) {
+        lines.forEach(line => {
+            let decoded = line.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+            let text = decoded.replace(/<[^>]*>/g, '').trim();
+            if (text && (text.includes("Exp Bonus") || text.includes("Premium") || text.includes("Skill of the Day"))) {
+                let pctMatch = text.match(/(\d+)%/);
+                if(pctMatch) totalPct += parseInt(pctMatch[1]);
+                newBonuses.push(text);
+            }
+        });
+    }
     
     STATE.activeBonuses = newBonuses;
     STATE.totalBonusPercent = totalPct;
