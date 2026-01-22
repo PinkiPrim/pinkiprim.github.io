@@ -252,15 +252,17 @@ function safeSetHTML(id, html) { const el = document.getElementById(id); if (el)
 
 // --- STATE ---
 let STATE = {
-    // Protected High Water Mark for fares (from game status)
+    // High Water Mark for fares (from game status)
     protectedFares: 0,
-    // Start Fares (for relative average calc - only set once valid > 0)
+    // Start Fares (Relative Session Start)
     startFares: null,
     
     bizXP: 0, startBizXP: null, 
     raceXP: 0, startRaceXP: null,
     
     streak: 0, streakSynced: false,
+    streakOffset: 0, // THE FIX: (Streak - Fares)
+    
     activeBonuses: [], totalBonusPercent: 0
 };
 
@@ -275,7 +277,7 @@ function formatNumber(num) {
     if (num >= 1000) return (num / 1000).toFixed(1) + "K";
     return num.toLocaleString();
 }
-function cleanString(s) { return s ? s.replace(/~[a-z]~/g, "").trim() : ""; }
+function cleanString(s) { return s ? s.replace(/~[a-zA-Z]~/g, "").trim() : ""; }
 function getLevel(exp) {
     let level = 0, xpCap = 5;
     while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
@@ -327,28 +329,23 @@ window.addEventListener('message', (event) => {
                     if(clean.includes("Time Bonus:")) timer = clean.replace("Time Bonus:", "").trim();
                 });
                 
-                // HIGH WATER MARK LOGIC + START FARES
+                // HIGH WATER MARK & OFFSET LOGIC
                 if (foundFaresLine && !isNaN(currentFares)) {
                     if (currentFares > 0) { // Ignore 0 glitches
                         
-                        // Set Start Fares if null (must be > 0 to be valid start)
+                        // Set Start Fares if null (must be > 0)
                         if (STATE.startFares === null) {
                             STATE.startFares = currentFares;
                         }
 
-                        // Check for Increase
-                        if (currentFares > STATE.protectedFares) {
-                            if (STATE.protectedFares > 0) { // Only increment streak if not first load
-                                let increase = currentFares - STATE.protectedFares;
-                                if (STATE.streakSynced) {
-                                    STATE.streak += increase;
-                                    updateStreakUI();
-                                }
-                            }
-                            STATE.protectedFares = currentFares;
-                        } 
-                        else if (STATE.protectedFares === 0) {
-                            STATE.protectedFares = currentFares;
+                        // Update HWM
+                        if (currentFares > STATE.protectedFares) STATE.protectedFares = currentFares;
+                        else if (STATE.protectedFares === 0) STATE.protectedFares = currentFares;
+
+                        // SELF-CORRECTING STREAK LOGIC
+                        if (STATE.streakSynced) {
+                            STATE.streak = STATE.protectedFares + STATE.streakOffset;
+                            updateStreakUI();
                         }
                     }
                 }
@@ -365,7 +362,7 @@ window.addEventListener('message', (event) => {
     let raceXP = parseXP(data, "exp_player_racing");
     let bizXP = parseXP(data, "exp_business_business");
     
-    // Protection against 0/Blank packets
+    // Strict Init: Only accept > 0 to prevent "All XP as Session" bug
     if (raceXP > 0) updateRaceXP(raceXP);
     if (bizXP > 0) updateBizXP(bizXP);
     
@@ -389,9 +386,13 @@ function parseIdentity(html) {
     if (match && match[1]) {
         let streakVal = parseInt(match[1]);
         if (!isNaN(streakVal)) {
-            STATE.streak = streakVal;
-            STATE.streakSynced = true;
-            updateStreakUI();
+            // Establish the Offset based on CURRENT High Water Mark Fares
+            if (STATE.protectedFares > 0) {
+                STATE.streak = streakVal;
+                STATE.streakOffset = streakVal - STATE.protectedFares; // The Gap
+                STATE.streakSynced = true;
+                updateStreakUI();
+            }
         }
     }
 }
@@ -400,6 +401,7 @@ function parseBonuses(html) {
     const lines = html.split(/<br\s*\/?>/i);
     let newBonuses = [];
     let totalPct = 0;
+    
     lines.forEach(line => {
         let decoded = line.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
         let text = decoded.replace(/<[^>]*>/g, '').trim();
@@ -409,6 +411,7 @@ function parseBonuses(html) {
             newBonuses.push(text);
         }
     });
+    
     STATE.activeBonuses = newBonuses;
     STATE.totalBonusPercent = totalPct;
     updateBreakdownUI();
@@ -425,6 +428,7 @@ function updateBreakdownUI() {
             container.appendChild(div);
         });
     }
+    
     let streakMult = (100 + STATE.streak) / 100;
     safeSetText('bd-streak-mult', streakMult.toFixed(2) + "x");
     let xpPerFare = calculateCabbieXP(STATE.streak);
@@ -444,16 +448,16 @@ function parseXP(data, key) {
 function updateRaceXP(val) {
     const newXP = Number(val);
     if (isNaN(newXP) || newXP <= 0) return;
-    // START XP PROTECTION: Only set if null AND value is > 0
-    if (STATE.startRaceXP === null && newXP > 0) { STATE.startRaceXP = newXP; STATE.raceXP = newXP; return; }
+    // Strict Init: Must be > 0
+    if (STATE.startRaceXP === null) { STATE.startRaceXP = newXP; STATE.raceXP = newXP; return; }
     STATE.raceXP = newXP;
 }
 
 function updateBizXP(val) {
     const newXP = Number(val);
     if (isNaN(newXP) || newXP <= 0) return;
-    // START XP PROTECTION
-    if (STATE.startBizXP === null && newXP > 0) { STATE.startBizXP = newXP; STATE.bizXP = newXP; return; }
+    // Strict Init
+    if (STATE.startBizXP === null) { STATE.startBizXP = newXP; STATE.bizXP = newXP; return; }
     STATE.bizXP = newXP;
 }
 
@@ -468,8 +472,7 @@ function updateStreakUI() {
 }
 
 function updateUI() {
-    // Session Fares (Relative)
-    // Avoid division by zero
+    // Relative Session Fares
     let sessionFares = 0;
     if (STATE.protectedFares > 0 && STATE.startFares !== null) {
         sessionFares = Math.max(0, STATE.protectedFares - STATE.startFares);
@@ -486,7 +489,7 @@ function updateUI() {
         safeSetText('sess-race', `+${gain.toLocaleString()} XP`);
         safeSetText('micro-race-lvl', rData.level); let mBar = document.getElementById('micro-race-bar'); if(mBar) mBar.style.width = rData.percent + "%";
         
-        // Avg = Gain / Session Fares
+        // Avg = Gain / Relative Session Fares
         if (sessionFares > 0) safeSetText('disp-avg-race', Math.round(gain / sessionFares));
         else safeSetText('disp-avg-race', 0);
     }
@@ -502,7 +505,7 @@ function updateUI() {
         safeSetText('sess-biz', `+${gain.toLocaleString()} XP`);
         safeSetText('micro-biz-lvl', bData.level); let mbBar = document.getElementById('micro-biz-bar'); if(mbBar) mbBar.style.width = bData.percent + "%";
         
-        // Avg = Gain / Session Fares
+        // Avg = Gain / Relative Session Fares
         if (sessionFares > 0) safeSetText('disp-avg-biz', Math.round(gain / sessionFares));
         else safeSetText('disp-avg-biz', 0);
     }
