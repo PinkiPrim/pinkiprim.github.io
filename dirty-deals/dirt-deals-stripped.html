@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Grinder Vision v10.2</title>
+    <title>Dirty Deals - Rules v11.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -12,7 +12,6 @@
             --border: 1px solid #333; --text-main: #ffffff; --text-dim: #888888;
             --st-pending: #f1c40f; --st-accepted: #3498db; 
             --st-denied: #e74c3c; --st-completed: #2ecc71;
-            --gold: #f1c40f;
         }
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
@@ -29,6 +28,21 @@
         .login-btn { width: 100%; padding: 12px; background: var(--accent); border: none; color: white; font-weight: bold; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.2em; transition: 0.2s; }
         .login-btn:hover { background: var(--accent-hover); }
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
+
+        /* RULES MODAL */
+        #rules-modal { 
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(8px); z-index: 30000; 
+            justify-content: center; align-items: center; flex-direction: column;
+        }
+        .rules-box { 
+            width: 500px; padding: 30px; background: #1a1a1a; border: 2px solid #e74c3c; 
+            border-radius: 8px; text-align: center; box-shadow: 0 0 50px rgba(231, 76, 60, 0.2); 
+        }
+        .rules-header { color: #e74c3c; font-family: 'Rajdhani', sans-serif; font-size: 2.2em; font-weight: bold; margin-bottom: 15px; }
+        .rules-body { color: #ccc; margin-bottom: 25px; font-size: 1.1em; line-height: 1.5; }
+        .rules-btn { background: #e74c3c; border: none; color: white; padding: 12px 30px; font-weight: bold; font-size: 1.1em; cursor: pointer; }
+        .rules-btn:hover { background: #c0392b; }
 
         /* MAIN APP */
         #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; height: 650px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
@@ -170,6 +184,16 @@
 <body>
 
 <div id="side-dock" onclick="expandApp()"><span>OPEN SYSTEM</span></div>
+
+<div id="rules-modal">
+    <div class="rules-box">
+        <div class="rules-header" id="rules-title">RULES</div>
+        <div class="rules-body">
+            Rules to follow shortly...
+        </div>
+        <button class="rules-btn" onclick="confirmRules()">ACCEPET RULES / ACKNOWLEDGED</button>
+    </div>
+</div>
 
 <div id="login-overlay">
     <div class="login-box">
@@ -360,7 +384,7 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
+    var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
     
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
     var ADMIN_IDS = ["757858", "744622", "637174"];
@@ -373,8 +397,9 @@
         "Product": [ { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" }, { name: "Concrete", price: 850000, limit: 500, icon: "🧱" }, { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" }, { name: "Pills", price: 250000, limit: 250, icon: "💊" }, { name: "Fish", price: 650, limit: 250000, icon: "🐟" }, { name: "Meat", price: 1000, limit: 1000, icon: "🍖" } ]
     };
 
-    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false };
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false, genRules: "No", grindRules: "No" };
     var pollingInterval = null;
+    var pendingRulesType = ""; // 'general' or 'grinder'
 
     window.onload = function() {
         setCategory("Bonus EXP");
@@ -433,10 +458,20 @@
         .then(data => {
             if(data.result === 'success') {
                 state.userPin = pin;
-                document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('app-container').style.display = 'flex';
+                state.genRules = data.genRules || "No";
+                state.grindRules = data.grindRules || "No";
                 
-                // CHECK ROLE
+                // HIDE LOGIN
+                document.getElementById('login-overlay').style.display = 'none';
+                
+                // RULES CHECK
+                if (state.genRules !== "Yes") {
+                    showRulesModal("general");
+                } else {
+                    document.getElementById('app-container').style.display = 'flex';
+                }
+                
+                // ROLES
                 if (ADMIN_IDS.includes(String(state.userId))) {
                     state.isAdmin = true;
                     document.getElementById('nav-admin').style.display = 'inline-block';
@@ -446,11 +481,10 @@
                     document.getElementById('nav-grinder').style.display = 'inline-block';
                     document.getElementById('rank-display').innerText = state.grinderRank;
                 } else if (data.isStaff === "Yes") {
-                    state.isAdmin = true; // Staff acts as Admin in UI
+                    state.isAdmin = true; 
                     document.getElementById('nav-admin').style.display = 'inline-block';
                 }
                 
-                // Grinder check (Separate from Admin)
                 if (data.role && data.role !== "Customer" && data.role !== "") {
                     state.isGrinder = true;
                     state.grinderRank = data.role;
@@ -472,6 +506,48 @@
         });
     }
 
+    // --- RULES SYSTEM ---
+    function showRulesModal(type) {
+        pendingRulesType = type;
+        document.getElementById('rules-modal').style.display = 'flex';
+        var title = document.getElementById('rules-title');
+        
+        if (type === "general") {
+            title.innerText = "RULES OF DIRTY DEALS";
+        } else {
+            title.innerText = "GRINDER RULES FOR DIRTY DEALS";
+        }
+    }
+
+    function confirmRules() {
+        var btn = document.querySelector('.rules-btn');
+        btn.innerText = "SAVING...";
+        btn.disabled = true;
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                action: "acceptRules", 
+                userId: state.userId, 
+                pin: state.userPin, 
+                ruleType: pendingRulesType 
+            })
+        }).then(() => {
+            document.getElementById('rules-modal').style.display = 'none';
+            btn.innerText = "ACCEPET RULES / ACKNOWLEDGED";
+            btn.disabled = false;
+
+            if (pendingRulesType === "general") {
+                state.genRules = "Yes";
+                document.getElementById('app-container').style.display = 'flex';
+            } else if (pendingRulesType === "grinder") {
+                state.grindRules = "Yes";
+                switchView('grinder'); // Proceed to view
+            }
+            pendingRulesType = "";
+        });
+    }
+
     // --- HOUSEKEEPING ---
     function switchAdminTab(tab) {
         document.getElementById('admin-view-users').style.display = (tab === 'users') ? 'block' : 'none';
@@ -486,9 +562,8 @@
     function fetchAdminUsers(silent) {
         // Cache Busting
         fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(users=>{
-            // Store grinders globally
             availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id));
-            if (silent) return; // If called quietly (like on init), don't render table
+            if (silent) return;
 
             let c = document.getElementById('hk-user-list'); c.innerHTML = '';
             users.forEach(u => {
@@ -524,13 +599,10 @@
         document.getElementById('user-edit-modal').style.display = 'flex';
         document.getElementById('ue-id').value = id;
         
-        // 1. ATTEMPT TO SET ROLE
         let cleanRole = role ? role.trim() : "";
         let roleSelect = document.getElementById('ue-role');
         roleSelect.value = cleanRole;
         
-        // 2. SAFETY: If value didn't stick (e.g. role is not in dropdown), ADD IT DYNAMICALLY
-        // This ensures existing roles are never lost or wiped.
         if (roleSelect.value !== cleanRole && cleanRole !== "") {
             let newOpt = document.createElement('option');
             newOpt.text = cleanRole + " (Current)";
@@ -553,8 +625,7 @@
         let status = document.getElementById('ue-status').value;
         let staff = document.getElementById('ue-staff').value;
         
-        // FIX V9.9: REMOVED "Customer" CLEARING LOGIC.
-        // The value "Customer" is now sent directly to the sheet as a valid dropdown option.
+        if (role === "Customer") role = ""; 
 
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
@@ -679,7 +750,21 @@
         }
         var btns = document.querySelectorAll('.header-btn'); for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
         document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view)).classList.add('active');
-        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); if(view === 'housekeeping') switchAdminTab('users');
+        if(view === 'history') fetchMyOrders(); 
+        
+        // RULES CHECK FOR GRINDER
+        if(view === 'grinder') {
+            if (state.grindRules !== "Yes") {
+                showRulesModal("grinder");
+            } else {
+                fetchGlobalOrders();
+            }
+        }
+        
+        if(view === 'housekeeping') {
+            fetchAdminUsers(true); // Pre-fetch grinders for dropdown
+            switchAdminTab('users');
+        }
     }
 
     function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
@@ -694,19 +779,7 @@
 
     function submitRealOrder() {
         var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING...";
-        // Pass isCustom for commission calculation
-        var payload = { 
-            action: "placeOrder", 
-            username: state.username, 
-            userId: state.userId, 
-            pin: state.userPin, 
-            category: state.category, 
-            item: state.item.name, 
-            quantity: document.getElementById('input-qty').value, 
-            priority: document.getElementById('input-priority').value, 
-            totalPrice: document.getElementById('disp-total').innerText,
-            isCustom: state.customOrderMode
-        };
+        var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText, isCustom: state.customOrderMode };
         fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
     }
 
