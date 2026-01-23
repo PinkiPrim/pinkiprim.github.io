@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Admin Control v12.9</title>
+    <title>Dirty Deals - Grinder Fix v13.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -828,7 +828,7 @@
         if(!state.userPin) return;
         fetch(`${GOOGLE_SCRIPT_URL}?action=getTickets&userId=${state.userId}&pin=${state.userPin}&isStaff=${state.isStaff}&_t=${Date.now()}`)
         .then(r=>r.json()).then(data => {
-            if (!Array.isArray(data)) { console.warn("Poll Tickets Warning: API returned non-array", data); return; }
+            if (!Array.isArray(data)) { return; }
             
             ticketList = data;
             let totalUnread = 0;
@@ -1072,14 +1072,12 @@
     function fetchAdminOrders() { fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ let c = document.getElementById('hk-order-list'); c.innerHTML = ''; orders.forEach(o => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}', '${o.qty}', '${o.progress}')">EDIT</button></td></tr>`; }); }); }
     
     function openAdminEdit(ts, uid, status, grinder, qty, progress) { 
-        // Security: Block non-admins from editing special orders
         if(qty === "Bundle" && !state.isAdmin) {
-             alert("Access Denied: Only Admins can edit Special Orders.");
+             // ERROR: Only admins can edit special orders
+             // Instead of alert, we can just log or show nothing
+             console.log("Blocked: Staff tried to edit Special Order");
              return;
         }
-        
-        // If it IS a bundle and you ARE admin, show special order modal (future feature)
-        // For now, allow basic status edit on standard modal.
         
         document.getElementById('admin-edit-modal').style.display = 'flex'; 
         document.getElementById('ae-ts').value = ts; 
@@ -1105,41 +1103,27 @@
         let uid = document.getElementById('ae-uid').value; 
         let stat = document.getElementById('ae-status').value; 
         let grind = document.getElementById('ae-grinder').value; 
-        
-        // Save Progress too
         let prog = document.getElementById('ae-progress').value;
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: prog, userId: state.userId, pin: state.userPin }) });
 
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind }) }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); }); 
     }
     
-    // --- KEYDOWN LISTENER FOR ESC ---
-    window.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' || e.keyCode === 27) { 
-            if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-                document.activeElement.blur();
-                return;
-            }
-            closeApp();
-        }
-    });
-
-    // ... (Remaining Helper Functions same as before) ...
-    function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
-    function setCategory(cat, btnElement) { state.category = cat; document.querySelectorAll('.category-tabs .tab-btn').forEach(b => b.classList.remove('active')); if(btnElement) btnElement.classList.add('active'); renderGrid(); }
-    function renderGrid() { var container = document.getElementById('item-grid'); container.innerHTML = ''; var items = CATEGORIES[state.category]; for(var i=0; i<items.length; i++) { (function(item){ var div = document.createElement('div'); div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : ''); div.onclick = function() { selectItem(item); }; div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+item.price.toLocaleString()+'</span>'; if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>'; container.appendChild(div); })(items[i]); } }
-    function selectItem(item) { state.item = item; document.getElementById('disp-item-name').value = item.name; document.getElementById('limit-display').innerText = state.customOrderMode ? "(Unlimited)" : "(Max: " + item.limit.toLocaleString() + ")"; var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty'); var step = getStepSize(item.limit); rInput.step = step; var currentVal = parseInt(qInput.value) || 1; if (!state.customOrderMode) { if(currentVal > item.limit) currentVal = item.limit; qInput.max = item.limit; rInput.max = item.limit; rInput.disabled = false; rInput.min = step; qInput.readOnly = true; if (currentVal < step) currentVal = step; } else { qInput.max = 1000000; rInput.disabled = true; qInput.readOnly = false; rInput.min = 1; } qInput.value = currentVal; rInput.value = currentVal; document.getElementById('btn-submit').classList.add('active'); renderGrid(); updateCalc(); checkOrderCapability(); }
-    function updateCalc() { if(!state.item) return; var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty'); var val = parseInt(qInput.value); if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } else if (!state.customOrderMode) { rInput.value = val; } var total = state.item.price * val; var isHigh = (document.getElementById('input-priority').value === 'high'); var isCustom = state.customOrderMode; if (isHigh) total *= 1.05; if (isCustom) total *= 1.10; document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString(); }
-    function toggleCustomOrder() { state.customOrderMode = !state.customOrderMode; var btn = document.getElementById('btn-custom-toggle'); if (state.customOrderMode) { btn.classList.add('active'); btn.innerText = "🔓 Custom Order Active (+10% Fee)"; } else { btn.classList.remove('active'); btn.innerText = "🔓 Custom Order (Unlimited Qty)"; } if(state.item) selectItem(state.item); }
-    function toggleMiniMode() { document.body.classList.toggle('mini-mode'); if(document.body.classList.contains('mini-mode')) { if(!state.isGrinder) switchView('history'); else switchView(state.miniView); } }
-    function setMiniTab(view) { state.miniView = view; document.body.classList.remove('show-orders', 'show-jobs'); document.body.classList.add(view === 'orders' ? 'show-orders' : 'show-jobs'); document.getElementById('mt-orders').classList.toggle('active', view === 'orders'); document.getElementById('mt-jobs').classList.toggle('active', view === 'jobs'); }
-    function toggleMyHistoryDone() { state.showMyHistoryDone = !state.showMyHistoryDone; document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done"; fetchMyOrders(); }
-    function toggleGrinderDone() { state.showGrinderDone = !state.showGrinderDone; document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done"; fetchGlobalOrders(); }
-    function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
-    function checkOrderCapability() { var limit = calculateOrderLimit(); var pending = state.activeOrders; var warn = document.getElementById('limit-warning'); var custBtn = document.getElementById('btn-custom-toggle'); if(limit >= 8) custBtn.style.display = 'block'; if(pending >= limit) { document.getElementById('btn-submit').disabled = true; warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")"; } else { document.getElementById('btn-submit').disabled = false; warn.innerText = "Active Orders: " + pending + "/" + limit; } }
-    function openUserEdit(id, role, status, staff) { document.getElementById('user-edit-modal').style.display = 'flex'; document.getElementById('ue-id').value = id; let cleanRole = role ? role.trim() : ""; let roleSelect = document.getElementById('ue-role'); roleSelect.value = cleanRole; if (roleSelect.value !== cleanRole && cleanRole !== "") { let newOpt = document.createElement('option'); newOpt.text = cleanRole + " (Current)"; newOpt.value = cleanRole; roleSelect.add(newOpt); roleSelect.value = cleanRole; } else if (cleanRole === "") { roleSelect.value = "Customer"; } document.getElementById('ue-status').value = status; document.getElementById('ue-staff').value = staff || "No"; }
-    function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
-    function saveUserModification() { let id = document.getElementById('ue-id').value; let role = document.getElementById('ue-role').value; let status = document.getElementById('ue-status').value; let staff = document.getElementById('ue-staff').value; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role, newStaff: staff }) }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); }); }
+    // RESTORED MISSING FUNCTION
+    function fetchGlobalOrders() { 
+        var c = document.getElementById('grinder-container'); 
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
+        .then(r => r.json())
+        .then(data => { 
+            c.innerHTML = ''; 
+            if (!Array.isArray(data)) return;
+            for (var i = 0; i < data.length; i++) { 
+                if (!data[i].item) continue; 
+                if (!state.showGrinderDone && data[i].status === "Completed") continue; 
+                c.appendChild(createOrderItem(data[i], true)); 
+            } 
+        }); 
+    }
     
     var mainHeader = document.getElementById("main-header"); var miniStrip = document.getElementById("mini-drag-strip"); var elmnt = document.getElementById("app-container"); var pos1=0, pos2=0, pos3=0, pos4=0;
     function dragMouseDown(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elementDrag; }
