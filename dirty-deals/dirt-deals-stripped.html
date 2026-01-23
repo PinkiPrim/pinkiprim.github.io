@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Bulletproof v12.4</title>
+    <title>Dirty Deals - Automation v12.5</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -56,10 +56,10 @@
         /* Special Order Modal Specifics */
         .special-box { width: 600px; padding: 30px; background: #1a1a1a; border: 2px solid var(--gold); border-radius: 8px; box-shadow: 0 0 60px rgba(241, 196, 15, 0.2); display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow-y: auto; }
         .sp-header { color: var(--gold); font-family: 'Rajdhani', sans-serif; font-size: 1.8em; font-weight: bold; text-align: center; margin-bottom: 10px; text-transform: uppercase; }
-        .sp-row { display: flex; gap: 10px; }
-        .sp-list { background: #0f0f0f; border: 1px solid #333; height: 80px; overflow-y: auto; padding: 5px; text-align: left; font-size: 0.85em; color: #ccc; border-radius: 4px; }
-        .sp-item-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 2px; }
-
+        .sp-row { display: flex; gap: 10px; align-items:center; }
+        .sp-list { background: #0f0f0f; border: 1px solid #333; height: 100px; overflow-y: auto; padding: 5px; text-align: left; font-size: 0.85em; color: #ccc; border-radius: 4px; }
+        .sp-item-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 4px; }
+        
         .rules-header { color: #e74c3c; font-family: 'Rajdhani', sans-serif; font-size: 2.2em; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
         .rules-body { color: #ccc; margin-bottom: 25px; font-size: 1.1em; line-height: 1.5; }
         
@@ -75,7 +75,7 @@
         .btn-gold:hover { background: #d4ac0d; }
 
         .login-title { font-family: 'Rajdhani', sans-serif; font-size: 2em; margin-bottom: 20px; color: white; letter-spacing: 2px; }
-        .login-input { width: 100%; padding: 15px; background: #080808; border: 1px solid #333; color: white; font-size: 1.1em; text-align: center; letter-spacing: 5px; margin-bottom: 15px; font-family: monospace; border-radius: 4px; }
+        .login-input { width: 100%; padding: 15px; background: #080808; border: 1px solid #333; color: white; font-size: 1.1em; text-align: center; letter-spacing: 1px; margin-bottom: 15px; font-family: monospace; border-radius: 4px; }
         .login-btn { width: 100%; padding: 12px; background: var(--accent); border: none; color: white; font-weight: bold; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.2em; transition: 0.2s; }
         .login-btn:hover { background: var(--accent-hover); }
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
@@ -321,12 +321,16 @@
 
         <div class="sp-row">
             <div class="input-group" style="flex:1">
+                <label class="label">DISCOUNT %</label>
+                <input type="number" id="sp-discount" class="login-input" placeholder="0" oninput="calculateSpTotal()">
+            </div>
+            <div class="input-group" style="flex:1">
                 <label class="label">TOTAL PRICE</label>
-                <input type="text" id="sp-price" class="login-input" placeholder="$0">
+                <input type="text" id="sp-price" class="login-input" placeholder="$0" readonly>
             </div>
              <div class="input-group" style="flex:1">
-                <label class="label">COMMISSION TEXT</label>
-                <input type="text" id="sp-comm" class="login-input" placeholder="e.g. $5,000 (10%)">
+                <label class="label">COMMISSION</label>
+                <input type="text" id="sp-comm" class="login-input" placeholder="Auto-Calc" readonly>
             </div>
         </div>
 
@@ -457,7 +461,7 @@
             </div>
         </div>
 
-        <div id="view-history">
+        <div id="view-history" style="padding:20px;">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span>Recent Orders</span>
                 <div class="view-controls">
@@ -469,7 +473,7 @@
             <div class="history-list" id="history-container"></div>
         </div>
 
-        <div id="view-grinder">
+        <div id="view-grinder" style="padding:20px;">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span style="color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
@@ -510,7 +514,7 @@
     var ADMIN_IDS = ["757858", "744622", "637174"];
     var availableGrinders = [];
     var allUsersList = []; // For Special Order Requester List
-    var specialOrderItems = []; // Array of {name, qty}
+    var specialOrderItems = []; // Array of {name, qty, price}
     
     var CATEGORIES = {
         "Bonus EXP": [ { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" }, { name: "Business XP", price: 3900, limit: 20000, icon: "💼" }, { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" }, { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" }, { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" }, { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" }, { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" }, { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" }, { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" }, { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" }, { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" }, { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" }, { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" }, { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" }, { name: "Player XP", price: 500, limit: 50000, icon: "🧍" }, { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" }, { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" }, { name: "Strength XP", price: 500, limit: 50000, icon: "💪" }, { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" } ],
@@ -554,10 +558,12 @@
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
     
     function closeApp() {
+        // Double-Tap Logic to force focus back
         try {
             if(window.GetParentResourceName) {
                 fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
             }
+            window.parent.postMessage({ type: "close" }, "*");
         } catch(e) { console.log("Browser Mode: Close signal sent."); }
         
         document.getElementById('app-container').style.display = "none";
@@ -643,19 +649,22 @@
     // --- SPECIAL ORDER SYSTEM ---
     function openSpecialOrderModal() {
         document.getElementById('special-order-modal').style.display = 'flex';
-        // Populate Dropdowns
-        let reqSelect = document.getElementById('sp-requester');
-        reqSelect.innerHTML = '<option value="">Select Requester...</option>';
-        allUsersList.forEach(u => {
-            reqSelect.innerHTML += `<option value="${u.id}">${u.name} (${u.id})</option>`;
-        });
+        // Auto-fetch users if empty
+        if(allUsersList.length === 0) {
+            fetchAdminUsers(true);
+            setTimeout(() => {
+                populateSpRequester();
+            }, 1500); // Small delay to allow fetch
+        } else {
+            populateSpRequester();
+        }
 
         // Items
         let itemSelect = document.getElementById('sp-item-select');
         itemSelect.innerHTML = '<option value="">Select Item...</option>';
         for(let cat in CATEGORIES) {
             CATEGORIES[cat].forEach(i => {
-                itemSelect.innerHTML += `<option value="${i.name}">${i.name}</option>`;
+                itemSelect.innerHTML += `<option value="${i.name}" data-price="${i.price}">${i.name}</option>`;
             });
         }
 
@@ -672,14 +681,28 @@
         // Reset Arrays
         specialOrderItems = [];
         renderSpecialItems();
+        calculateSpTotal();
+    }
+
+    function populateSpRequester() {
+        let reqSelect = document.getElementById('sp-requester');
+        reqSelect.innerHTML = '<option value="">Select Requester...</option>';
+        allUsersList.forEach(u => {
+            reqSelect.innerHTML += `<option value="${u.id}">${u.name} (${u.id})</option>`;
+        });
     }
 
     function addSpItem() {
-        let name = document.getElementById('sp-item-select').value;
-        let qty = document.getElementById('sp-item-qty').value;
-        if(!name || !qty) return;
-        specialOrderItems.push({name: name, qty: qty});
+        let select = document.getElementById('sp-item-select');
+        let name = select.value;
+        let price = parseInt(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
+        let qty = parseInt(document.getElementById('sp-item-qty').value) || 0;
+        
+        if(!name || qty <= 0) return;
+        
+        specialOrderItems.push({name: name, qty: qty, price: price});
         renderSpecialItems();
+        calculateSpTotal();
     }
 
     function renderSpecialItems() {
@@ -690,13 +713,35 @@
         });
     }
 
+    function calculateSpTotal() {
+        let subtotal = 0;
+        specialOrderItems.forEach(i => {
+            subtotal += (i.price * i.qty);
+        });
+        
+        let discount = parseInt(document.getElementById('sp-discount').value) || 0;
+        let total = subtotal * ((100 - discount) / 100);
+        
+        document.getElementById('sp-price').value = "$" + Math.floor(total).toLocaleString();
+        
+        // Commission logic (5% standard for admin orders)
+        let comm = Math.floor(total * 0.05);
+        document.getElementById('sp-comm').value = "$" + comm.toLocaleString() + " (5%)";
+    }
+
     function submitSpecialOrder() {
         let reqId = document.getElementById('sp-requester').value;
         if(!reqId) return alert("Select a requester");
         
-        // BUG FIX: Check if user exists before accessing .name
+        // BUG FIX: Check if user exists
         let userObj = allUsersList.find(u => String(u.id) === String(reqId));
-        if (!userObj) { alert("Invalid Requester Selected"); return; }
+        if (!userObj) { 
+            // Attempt fallback to get name from dropdown text if object missing
+            let sel = document.getElementById('sp-requester');
+            let text = sel.options[sel.selectedIndex].text;
+            let name = text.split(' (')[0];
+            userObj = { name: name };
+        }
         let reqName = userObj.name;
         
         let itemsStr = specialOrderItems.map(i => `${i.name} (x${i.qty})`).join(", ");
@@ -738,7 +783,7 @@
         fetch(`${GOOGLE_SCRIPT_URL}?action=getTickets&userId=${state.userId}&pin=${state.userPin}&isStaff=${state.isStaff}&_t=${Date.now()}`)
         .then(r=>r.json()).then(data => {
             // BUG FIX: Ensure data is array
-            if (!Array.isArray(data)) { console.warn("Poll Tickets Error: Data not array", data); return; }
+            if (!Array.isArray(data)) { console.warn("Poll Tickets Warning: API returned non-array", data); return; }
             
             ticketList = data;
             let totalUnread = 0;
