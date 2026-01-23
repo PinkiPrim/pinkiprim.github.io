@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pinki Ops Hub v5.2</title>
+    <title>Pinki Ops Hub v5.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -136,6 +136,7 @@
             letter-spacing: 1px;
             opacity: 0.6;
             transition: all 0.3s ease;
+            cursor: pointer; /* Ensure pointer shows it's clickable */
         }
 
         .support-link:hover {
@@ -220,11 +221,23 @@
 
         </div>
 
-        <a href="https://www.paypal.com/paypalme/pinkiprim" target="_blank" class="support-link">
+        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
             Support PinkiPrim <span class="heart-spin">❤</span>
-        </a>
+        </div>
 
     </div>
+
+    <script>
+        function openExternal(url) {
+            try {
+                // Try the standard FiveM native command to open external URL
+                window.invokeNative('openUrl', url);
+            } catch(e) {
+                // Fallback for normal browsers (testing outside of game)
+                window.open(url, '_blank');
+            }
+        }
+    </script>
 
 </body>
 </html>
