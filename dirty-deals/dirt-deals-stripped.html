@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Visual Restoration v11.5</title>
+    <title>Dirty Deals - Ticket Padding Fix v11.6</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -119,9 +119,12 @@
 
         /* VIEW LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #view-order, #view-history, #view-grinder, #view-housekeeping, #view-tickets { display: none; width: 100%; height: 100%; }
+        #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
-        #view-history, #view-grinder, #view-tickets { padding: 20px; flex-direction: column; background: #141414; }
+        #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
+        
+        /* --- FIX: INCREASED PADDING SPECIFICALLY FOR TICKET VIEW --- */
+        #view-tickets { display: none; width: 100%; height: 100%; padding: 35px; flex-direction: column; background: #141414; }
         #view-housekeeping { padding: 20px; flex-direction: column; background: #0f0f0f; }
 
         /* --- RESTORED ORDER LAYOUT (v11.0) --- */
