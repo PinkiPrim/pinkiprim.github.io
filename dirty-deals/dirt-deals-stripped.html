@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Widescreen v11.7</title>
+    <title>Dirty Deals - Isolation Fix v11.8</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -71,8 +71,8 @@
         .login-btn:hover { background: var(--accent-hover); }
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
 
-        /* --- MAIN APP CONTAINER (INCREASED WIDTH) --- */
-        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 1050px; height: 680px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
+        /* --- MAIN APP CONTAINER --- */
+        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 1000px; height: 680px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
         
         body.mini-mode #app-container { width: 350px !important; height: 500px !important; background: rgba(18, 18, 18, 0.98); border: 1px solid var(--accent); }
         body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping, body.mini-mode #view-tickets { display: none !important; }
@@ -100,7 +100,9 @@
         .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 6px 14px; font-size: 0.8em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
+        .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
         .admin-btn { background: #4a0000; border: 1px solid #e74c3c; color: #ffaaaa; display: none; }
+        .admin-btn:hover, .admin-btn.active { background: #e74c3c; color: white; }
         
         .support-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #333; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid #555; position: relative; }
         .support-btn:hover { background: var(--accent); border-color: var(--accent); }
@@ -117,20 +119,22 @@
 
         /* VIEW LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #view-order, #view-history, #view-grinder { display: none; width: 100%; height: 100%; }
+        
+        /* THIS IS THE CRITICAL FIX: Hide Housekeeping by default so it doesn't squish Order View */
+        #view-order, #view-history, #view-grinder, #view-housekeeping { display: none; width: 100%; height: 100%; }
+        
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
         
-        /* --- TICKET VIEW (Shrunk via Padding) --- */
+        /* TICKET VIEW (Shrunk via Padding) */
         #view-tickets { display: none; width: 100%; height: 100%; padding: 40px; flex-direction: column; background: #141414; }
         
+        /* HOUSEKEEPING VIEW */
         #view-housekeeping { padding: 20px; flex-direction: column; background: #0f0f0f; }
 
-        /* --- RESTORED ORDER LAYOUT (UNSQUISHED) --- */
-        .selection-area { flex: 1; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
-        
-        /* Fixed Width Details Area to prevent squishing */
-        .details-area { width: 340px; min-width: 340px; flex-shrink: 0; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 18px; }
+        /* --- RESTORED ORDER LAYOUT --- */
+        .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
+        .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
         
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
         .tab-btn { flex: 1; background: #252525; border: 1px solid #333; color: #888; padding: 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center; }
@@ -377,9 +381,9 @@
 
         <div id="view-tickets">
             <div class="ticket-list-container">
-                <div class="ticket-list">
+                <div class="ticket-sidebar">
                     <div class="ticket-list-header">Your Tickets</div>
-                    <div id="ticket-list-box" style="flex:1;">
+                    <div class="ticket-items" id="ticket-list-box">
                         <div style="padding:20px;text-align:center;color:#555;">Loading...</div>
                     </div>
                     <div id="tc-new-btn" style="padding:15px; border-top:1px solid #333; text-align:center; display:none;">
@@ -403,7 +407,7 @@
             </div>
         </div>
 
-        <div id="view-history" style="padding:20px;">
+        <div id="view-history">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span>Recent Orders</span>
                 <div class="view-controls">
@@ -415,7 +419,7 @@
             <div class="history-list" id="history-container"></div>
         </div>
 
-        <div id="view-grinder" style="padding:20px;">
+        <div id="view-grinder">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span style="color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
@@ -462,7 +466,6 @@
     var pendingRulesType = "";
     var currentClosingTicketId = null;
 
-    // --- CORE STARTUP ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
@@ -530,7 +533,7 @@
 
                 renderGrid();
                 fetchMyOrders();
-                pollTickets(); // START POLLING
+                pollTickets();
                 setInterval(pollTickets, 5000); 
                 setInterval(checkForMail, 5000);
             } else {
@@ -541,7 +544,6 @@
         });
     }
 
-    // --- RULES & FEEDBACK ---
     function showRulesModal(type) {
         pendingRulesType = type;
         document.getElementById('rules-modal').style.display = 'flex';
@@ -563,7 +565,6 @@
         });
     }
 
-    // --- TICKET SYSTEM ---
     function openTickets() { switchView('tickets'); }
 
     function pollTickets() {
