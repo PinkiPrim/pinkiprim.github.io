@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Repair v13.2</title>
+    <title>Dirty Deals - Grinder Restoration v13.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -517,7 +517,33 @@
         </div>
     </div>
 
-    <div id="admin-edit-modal"><div class="admin-edit-box"><h3>EDIT ORDER</h3><input type="hidden" id="ae-ts"><input type="hidden" id="ae-uid"><div class="input-group"><label>Status</label><select id="ae-status"><option value="Pending">Pending</option><option value="Accepted">Accepted</option><option value="Completed">Completed</option><option value="Void">Void</option></select></div><div class="input-group"><label>Assigned Grinder</label><select id="ae-grinder"><option value="">None</option></select></div><div class="input-group"><label>Current Progress</label><input type="text" id="ae-progress" class="login-input" style="font-size:1em;" placeholder="0"></div><div style="display:flex; gap:10px; margin-top:15px;"><button class="login-btn" onclick="saveAdminOrder()">SAVE</button><button class="login-btn" style="background:#333;" onclick="closeAdminModal()">CANCEL</button></div></div></div>
+    <div id="admin-edit-modal">
+        <div class="admin-edit-box">
+            <h3>EDIT ORDER</h3>
+            <input type="hidden" id="ae-ts">
+            <input type="hidden" id="ae-uid">
+            
+            <div class="input-group"><label>Status</label>
+            <select id="ae-status">
+                <option value="Pending">Pending</option>
+                <option value="Accepted">Accepted</option>
+                <option value="Completed">Completed</option>
+                <option value="Void">Void</option>
+            </select></div>
+            
+            <div class="input-group"><label>Assigned Grinder</label>
+            <select id="ae-grinder"><option value="">None</option></select></div>
+            
+            <div class="input-group"><label>Current Progress</label>
+            <input type="text" id="ae-progress" class="login-input" style="font-size:1em;" placeholder="0"></div>
+
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="login-btn" onclick="saveAdminOrder()">SAVE</button>
+                <button class="login-btn" style="background:#333;" onclick="closeAdminModal()">CANCEL</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="user-edit-modal"><div class="admin-edit-box"><h3>USER MANAGER</h3><input type="hidden" id="ue-id"><div class="input-group"><label>Role</label><select id="ue-role"><option value="Customer">Customer (None)</option><option value="Trainee Grinder">Trainee Grinder</option><option value="Usual Grinder">Usual Grinder</option><option value="Top Grinder">Top Grinder</option></select></div><div class="input-group"><label>Staff?</label><select id="ue-staff"><option value="No">No</option><option value="Yes">Yes</option></select></div><div class="input-group"><label>Status</label><select id="ue-status"><option value="Accepted">Accepted</option><option value="Blocked">Blocked</option></select></div><div style="display:flex; gap:10px; margin-top:15px;"><button class="login-btn" onclick="saveUserModification()">SAVE</button><button class="login-btn" style="background:#333;" onclick="closeUserModal()">CANCEL</button></div></div></div>
 </div>
 
@@ -528,8 +554,8 @@
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
     var ADMIN_IDS = ["757858", "744622", "637174"];
     var availableGrinders = [];
-    var allUsersList = []; 
-    var specialOrderItems = []; 
+    var allUsersList = []; // For Special Order Requester List
+    var specialOrderItems = []; // Array of {name, qty, price}
     
     var CATEGORIES = {
         "Bonus EXP": [ { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" }, { name: "Business XP", price: 3900, limit: 20000, icon: "💼" }, { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" }, { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" }, { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" }, { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" }, { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" }, { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" }, { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" }, { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" }, { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" }, { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" }, { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" }, { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" }, { name: "Player XP", price: 500, limit: 50000, icon: "🧍" }, { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" }, { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" }, { name: "Strength XP", price: 500, limit: 50000, icon: "💪" }, { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" } ],
@@ -680,6 +706,76 @@
     
     function toggleMyHistoryDone() { state.showMyHistoryDone = !state.showMyHistoryDone; document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done"; fetchMyOrders(); }
     function toggleGrinderDone() { state.showGrinderDone = !state.showGrinderDone; document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done"; fetchGlobalOrders(); }
+
+    // --- GRINDER ACTION FUNCTIONS (RESTORED) ---
+    function updateOrderStatus(ts, uid, status) { 
+        var payload = { 
+            action: "updateOrder", 
+            orderTimestamp: ts, 
+            orderUserId: uid, 
+            newStatus: status, 
+            grinderName: state.username, 
+            grinderRank: state.grinderRank, 
+            userId: state.userId, 
+            pin: state.userPin 
+        }; 
+        fetch(GOOGLE_SCRIPT_URL, { 
+            method: "POST", 
+            mode: "no-cors", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify(payload) 
+        }).then(() => setTimeout(fetchGlobalOrders, 1000)); 
+    }
+
+    function updateProgress(ts, uid, amount) { 
+        fetch(GOOGLE_SCRIPT_URL, { 
+            method: "POST", 
+            mode: "no-cors", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ 
+                action: "updateProgress", 
+                orderTimestamp: ts, 
+                orderUserId: uid, 
+                progress: amount, 
+                userId: state.userId, 
+                pin: state.userPin 
+            }) 
+        }); 
+    }
+
+    function sendChatMessage(ts, uid, msg) { 
+        fetch(GOOGLE_SCRIPT_URL, { 
+            method: "POST", 
+            mode: "no-cors", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ 
+                action: "sendMessage", 
+                orderTimestamp: ts, 
+                orderUserId: uid, 
+                sender: state.username, 
+                message: msg, 
+                userId: state.userId, 
+                pin: state.userPin 
+            }) 
+        }).then(() => { 
+            if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); 
+            else fetchGlobalOrders(); 
+        }); 
+    }
+
+    function toggleChat(btn) { 
+        var area = btn.closest('.history-item').querySelector('.chat-area'); 
+        area.style.display = (area.style.display==='block'?'none':'block'); 
+        var badge = btn.querySelector('.unread-badge'); 
+        if(badge) badge.remove(); 
+    }
+
+    function sendChatFromBtn(btn, ts, uid) { 
+        var input = btn.previousElementSibling; 
+        if(!input.value) return; 
+        sendChatMessage(ts, uid, input.value); 
+        input.value = "Sending..."; 
+    }
 
     function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
     function updateCalc() { if(!state.item) return; var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty'); var val = parseInt(qInput.value); if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } else if (!state.customOrderMode) { rInput.value = val; } var total = state.item.price * val; var isHigh = (document.getElementById('input-priority').value === 'high'); var isCustom = state.customOrderMode; if (isHigh) total *= 1.05; if (isCustom) total *= 1.10; document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString(); }
@@ -987,6 +1083,7 @@
         
         let controls = document.getElementById('tc-controls');
         let claimBtn = document.getElementById('claim-btn');
+        let closeBtn = document.getElementById('close-btn'); 
         let inputArea = document.getElementById('tc-input-box');
         
         if (ticket.status === 'Closed') {
@@ -995,6 +1092,7 @@
         } else {
             controls.style.display = 'flex';
             inputArea.style.display = 'flex';
+            
             if (state.isStaff === "Yes" && ticket.status === "Open") claimBtn.style.display = "block";
             else claimBtn.style.display = "none";
         }
@@ -1184,10 +1282,6 @@
     function saveUserModification() { let id = document.getElementById('ue-id').value; let role = document.getElementById('ue-role').value; let status = document.getElementById('ue-status').value; let staff = document.getElementById('ue-staff').value; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role, newStaff: staff }) }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); }); }
     function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
     function openUserEdit(id, role, status, staff) { document.getElementById('user-edit-modal').style.display = 'flex'; document.getElementById('ue-id').value = id; let cleanRole = role ? role.trim() : ""; let roleSelect = document.getElementById('ue-role'); roleSelect.value = cleanRole; if (roleSelect.value !== cleanRole && cleanRole !== "") { let newOpt = document.createElement('option'); newOpt.text = cleanRole + " (Current)"; newOpt.value = cleanRole; roleSelect.add(newOpt); roleSelect.value = cleanRole; } else if (cleanRole === "") { roleSelect.value = "Customer"; } document.getElementById('ue-status').value = status; document.getElementById('ue-staff').value = staff || "No"; }
-    function toggleChat(btn) { var area = btn.closest('.history-item').querySelector('.chat-area'); area.style.display = (area.style.display==='block'?'none':'block'); var badge = btn.querySelector('.unread-badge'); if(badge) badge.remove(); }
-    function sendChatFromBtn(btn, ts, uid) { var input = btn.previousElementSibling; if(!input.value) return; sendChatMessage(ts, uid, input.value); input.value = "Sending..."; var badge = btn.closest('.history-item').querySelector('.unread-badge'); if(badge) badge.remove(); }
-    function updateProgress(ts, uid, amount) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount, userId: state.userId, pin: state.userPin }) }); }
-    function sendChatMessage(ts, uid, msg) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) }).then(() => { if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); else fetchGlobalOrders(); }); }
     
     var mainHeader = document.getElementById("main-header"); var miniStrip = document.getElementById("mini-drag-strip"); var elmnt = document.getElementById("app-container"); var pos1=0, pos2=0, pos3=0, pos4=0;
     function dragMouseDown(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elementDrag; }
@@ -1196,6 +1290,17 @@
     function initDrag() { if(mainHeader) mainHeader.onmousedown = dragMouseDown; if(miniStrip) miniStrip.onmousedown = dragMouseDown; }
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    // --- KEYDOWN LISTENER FOR ESC ---
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) { 
+            // PREVENT CLOSING IF TYPING
+            if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                document.activeElement.blur();
+                return;
+            }
+            closeApp();
+        }
+    });
 </script>
 </body>
 </html>
