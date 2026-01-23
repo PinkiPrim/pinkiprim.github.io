@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Automation v12.5</title>
+    <title>Dirty Deals - Admin Freedom v12.6</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -326,11 +326,11 @@
             </div>
             <div class="input-group" style="flex:1">
                 <label class="label">TOTAL PRICE</label>
-                <input type="text" id="sp-price" class="login-input" placeholder="$0" readonly>
+                <input type="text" id="sp-price" class="login-input" placeholder="$0" oninput="manualPriceUpdate()">
             </div>
              <div class="input-group" style="flex:1">
                 <label class="label">COMMISSION</label>
-                <input type="text" id="sp-comm" class="login-input" placeholder="Auto-Calc" readonly>
+                <input type="text" id="sp-comm" class="login-input" placeholder="Auto-Calc">
             </div>
         </div>
 
@@ -647,17 +647,13 @@
     }
 
     // --- SPECIAL ORDER SYSTEM ---
-    function openSpecialOrderModal() {
+    async function openSpecialOrderModal() {
         document.getElementById('special-order-modal').style.display = 'flex';
-        // Auto-fetch users if empty
-        if(allUsersList.length === 0) {
-            fetchAdminUsers(true);
-            setTimeout(() => {
-                populateSpRequester();
-            }, 1500); // Small delay to allow fetch
-        } else {
-            populateSpRequester();
-        }
+        
+        // Wait for users to be fetched
+        await fetchAdminUsers(true); 
+
+        populateSpRequester();
 
         // Items
         let itemSelect = document.getElementById('sp-item-select');
@@ -724,8 +720,21 @@
         
         document.getElementById('sp-price').value = "$" + Math.floor(total).toLocaleString();
         
-        // Commission logic (5% standard for admin orders)
+        // Commission logic (5% standard)
         let comm = Math.floor(total * 0.05);
+        document.getElementById('sp-comm').value = "$" + comm.toLocaleString() + " (5%)";
+    }
+
+    // Logic for Manual Price Override
+    function manualPriceUpdate() {
+        // If they type a custom price, clear discount because it's custom now
+        document.getElementById('sp-discount').value = "";
+        
+        let rawPrice = document.getElementById('sp-price').value.replace(/[^0-9]/g, '');
+        let price = parseInt(rawPrice) || 0;
+        
+        // Still auto-calculate commission for convenience
+        let comm = Math.floor(price * 0.05);
         document.getElementById('sp-comm').value = "$" + comm.toLocaleString() + " (5%)";
     }
 
@@ -733,10 +742,10 @@
         let reqId = document.getElementById('sp-requester').value;
         if(!reqId) return alert("Select a requester");
         
-        // BUG FIX: Check if user exists
+        // Check if user exists
         let userObj = allUsersList.find(u => String(u.id) === String(reqId));
         if (!userObj) { 
-            // Attempt fallback to get name from dropdown text if object missing
+            // Fallback
             let sel = document.getElementById('sp-requester');
             let text = sel.options[sel.selectedIndex].text;
             let name = text.split(' (')[0];
@@ -782,8 +791,8 @@
         if(!state.userPin) return;
         fetch(`${GOOGLE_SCRIPT_URL}?action=getTickets&userId=${state.userId}&pin=${state.userPin}&isStaff=${state.isStaff}&_t=${Date.now()}`)
         .then(r=>r.json()).then(data => {
-            // BUG FIX: Ensure data is array
-            if (!Array.isArray(data)) { console.warn("Poll Tickets Warning: API returned non-array", data); return; }
+            // Safety Check
+            if (!Array.isArray(data)) { return; }
             
             ticketList = data;
             let totalUnread = 0;
@@ -1040,7 +1049,19 @@
     function updateOrderStatus(ts, uid, status) { var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank, userId: state.userId, pin: state.userPin }; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(() => setTimeout(fetchGlobalOrders, 1000)); }
     function updateProgress(ts, uid, amount) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount, userId: state.userId, pin: state.userPin }) }); }
     function sendChatMessage(ts, uid, msg) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) }).then(() => { if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); else fetchGlobalOrders(); }); }
-    function fetchAdminUsers(silent) { fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(users=>{ availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); if (silent) return; let c = document.getElementById('hk-user-list'); c.innerHTML = ''; users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); }); }
+    function fetchAdminUsers(silent) { 
+        // PROMISE-BASED FETCH
+        return fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
+            .then(r => r.json())
+            .then(users => { 
+                allUsersList = users; 
+                availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); 
+                if (silent) return; 
+                let c = document.getElementById('hk-user-list'); 
+                c.innerHTML = ''; 
+                users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); 
+            }); 
+    }
     function fetchAdminOrders() { fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ let c = document.getElementById('hk-order-list'); c.innerHTML = ''; orders.forEach(o => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}')">EDIT</button></td></tr>`; }); }); }
     function openUserEdit(id, role, status, staff) { document.getElementById('user-edit-modal').style.display = 'flex'; document.getElementById('ue-id').value = id; let cleanRole = role ? role.trim() : ""; let roleSelect = document.getElementById('ue-role'); roleSelect.value = cleanRole; if (roleSelect.value !== cleanRole && cleanRole !== "") { let newOpt = document.createElement('option'); newOpt.text = cleanRole + " (Current)"; newOpt.value = cleanRole; roleSelect.add(newOpt); roleSelect.value = cleanRole; } else if (cleanRole === "") { roleSelect.value = "Customer"; } document.getElementById('ue-status').value = status; document.getElementById('ue-staff').value = staff || "No"; }
     function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
