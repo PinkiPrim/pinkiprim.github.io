@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Restoration v11.2</title>
+    <title>Dirty Deals - Final v11.4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -18,7 +18,7 @@
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-        /* --- RIGHT SIDE DOCK TAB --- */
+        /* --- DOCK SYSTEM --- */
         #side-dock {
             position: absolute; right: 0; top: 50%; transform: translateY(-50%);
             width: 40px; height: 220px; background: rgba(18, 18, 18, 0.95);
@@ -29,6 +29,18 @@
         #side-dock:hover { width: 55px; background: var(--accent); box-shadow: -5px 0 35px rgba(94, 107, 246, 0.6); }
         #side-dock span { writing-mode: vertical-rl; text-orientation: mixed; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 4px; font-size: 1.2em; color: white; text-transform: uppercase; white-space: nowrap; }
 
+        /* NOTIFICATION DOCK (Pop-out) */
+        #notif-dock {
+            position: absolute; right: 45px; top: 50%; transform: translateY(-50%) translateX(100px); /* Hidden by default */
+            width: 50px; height: 50px; background: #e74c3c; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 19999; box-shadow: -2px 0 15px rgba(231, 76, 60, 0.5);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        #notif-dock.visible { transform: translateY(-50%) translateX(-10px); }
+        #notif-count { font-family: 'Rajdhani', sans-serif; font-weight: bold; color: white; font-size: 1.2em; }
+
         /* --- MODALS (Replaced Alerts/Prompts) --- */
         #login-overlay, #rules-modal, #feedback-modal, #new-ticket-modal, #staff-close-modal, #admin-edit-modal, #user-edit-modal { 
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
@@ -36,7 +48,6 @@
             justify-content: center; align-items: center; flex-direction: column; 
         }
         
-        /* Modal Box Styles */
         .login-box, .rules-box, .feedback-box, .admin-edit-box { 
             width: 450px; padding: 30px; background: #1a1a1a; border: 2px solid var(--accent); 
             border-radius: 8px; text-align: center; box-shadow: 0 0 60px rgba(0,0,0,0.95); 
@@ -46,7 +57,6 @@
         .rules-header { color: #e74c3c; font-family: 'Rajdhani', sans-serif; font-size: 2.2em; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
         .rules-body { color: #ccc; margin-bottom: 25px; font-size: 1.1em; line-height: 1.5; }
         
-        /* Modal Buttons */
         .modal-btn-row { display: flex; gap: 10px; justify-content: center; width: 100%; margin-top: 15px; }
         .modal-btn { flex: 1; padding: 12px; border: none; font-weight: bold; font-family: 'Rajdhani', sans-serif; font-size: 1.1em; cursor: pointer; border-radius: 4px; text-transform: uppercase; transition: 0.2s; }
         .btn-confirm { background: var(--accent); color: white; }
@@ -63,7 +73,7 @@
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
 
         /* --- MAIN APP CONTAINER --- */
-        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; height: 650px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
+        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 950px; height: 680px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
         
         body.mini-mode #app-container { width: 350px !important; height: 500px !important; background: rgba(18, 18, 18, 0.98); border: 1px solid var(--accent); }
         body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping, body.mini-mode #view-tickets { display: none !important; }
@@ -88,16 +98,14 @@
         /* REGULAR HEADER */
         #main-header { background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 10px; }
-        .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
+        .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 6px 14px; font-size: 0.85em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
-        .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
         .admin-btn { background: #4a0000; border: 1px solid #e74c3c; color: #ffaaaa; display: none; }
-        .admin-btn:hover, .admin-btn.active { background: #e74c3c; color: white; }
         
-        .support-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #333; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid #555; position: relative; }
-        .support-btn:hover { background: var(--accent); border-color: var(--accent); }
-        .notif-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background: red; border-radius: 50%; display: none; border: 1px solid black; }
+        .support-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #222; color: #888; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid #333; position: relative; font-size: 1.2em; transition: 0.2s; }
+        .support-btn:hover { background: var(--accent); border-color: var(--accent); color: white; }
+        .notif-dot { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #e74c3c; border-radius: 50%; border: 2px solid #181818; display: none; box-shadow: 0 0 5px #e74c3c; }
 
         .status-wrapper { display: flex; align-items: center; gap: 15px; }
         .mail-icon { font-size: 1.4em; position: relative; cursor: pointer; display: none; margin-right: 10px; }
@@ -108,16 +116,16 @@
         .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
         .rank-tag { font-size: 0.65em; color: var(--accent); display: block; letter-spacing: 0.5px; }
 
-        /* LAYOUTS */
+        /* VIEW LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
         #view-order, #view-history, #view-grinder, #view-housekeeping, #view-tickets { display: none; width: 100%; height: 100%; }
         #view-order { display: flex; }
-        #view-history, #view-grinder, #view-tickets { padding: 20px; flex-direction: column; background: #141414; }
+        #view-history, #view-grinder, #view-tickets { padding: 0; flex-direction: column; background: #141414; }
         #view-housekeeping { padding: 20px; flex-direction: column; background: #0f0f0f; }
 
-        /* RESTORED V11.0 ORDER LAYOUT (2:1 Ratio) */
+        /* ORDER VIEW (Restored 2:1) */
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
-        .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
+        .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; min-width: 300px; }
 
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
         .tab-btn { flex: 1; background: #252525; border: 1px solid #333; color: #888; padding: 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center; }
@@ -149,30 +157,39 @@
         .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         .btn-order.active { opacity: 1; pointer-events: all; }
         
-        /* TICKET SYSTEM STYLES (Clean Sidebar) */
-        .ticket-list-container { flex: 1; display: flex; gap: 0; height: 100%; overflow: hidden; border: 1px solid #333; background: #111; }
-        .ticket-list { width: 250px; background: #0f0f0f; border-right: 1px solid #333; overflow-y: auto; display: flex; flex-direction: column; }
-        .ticket-list-header { padding: 15px; background: #181818; border-bottom: 1px solid #333; color: #888; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-weight: bold; }
-        .ticket-item { padding: 15px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.2s; }
-        .ticket-item:hover, .ticket-item.active { background: #222; border-left: 3px solid var(--accent); }
-        .t-id { font-size: 0.8em; color: #666; font-family: monospace; display:block; margin-bottom:3px; }
-        .t-user { font-weight: bold; color: white; margin: 0; display:block; font-size:0.95em; }
-        .t-status { font-size: 0.7em; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-top:5px; text-transform:uppercase; font-weight:bold; }
+        /* TICKET SYSTEM STYLES */
+        .ticket-list-container { display: flex; height: 100%; width: 100%; background: #111; }
+        .ticket-sidebar { width: 280px; background: #0f0f0f; border-right: 1px solid #333; display: flex; flex-direction: column; }
+        .ticket-list-header { padding: 15px; border-bottom: 1px solid #333; font-family: 'Rajdhani', sans-serif; font-size: 1.1em; color: #888; text-transform: uppercase; font-weight: bold; background: #141414; }
+        .ticket-items { flex: 1; overflow-y: auto; }
+        .ticket-item { padding: 15px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.2s; position: relative; }
+        .ticket-item:hover { background: #1a1a1a; }
+        .ticket-item.active { background: #1e1e1e; border-left: 3px solid var(--accent); }
+        .t-id { font-size: 0.75em; color: #555; font-family: monospace; display: block; margin-bottom: 3px; }
+        .t-user { font-weight: bold; color: white; font-size: 0.95em; display: block; margin-bottom: 5px; }
+        .t-status { font-size: 0.65em; padding: 3px 6px; border-radius: 2px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
         .t-open { background: rgba(39, 174, 96, 0.2); color: #2ecc71; border: 1px solid #27ae60; }
-        .t-closed { background: #333; color: #888; border: 1px solid #555; }
+        .t-inprogress { background: rgba(243, 156, 18, 0.2); color: #f39c12; border: 1px solid #f39c12; }
+        .t-closed { background: rgba(255, 255, 255, 0.05); color: #888; border: 1px solid #444; }
         
-        .ticket-chat-area { flex: 1; display: flex; flex-direction: column; background: #181818; }
-        .tc-header { padding: 15px; border-bottom: 1px solid #333; background: #111; display: flex; justify-content: space-between; align-items: center; }
-        .tc-title { font-weight: bold; color: white; font-family: 'Rajdhani', sans-serif; font-size: 1.2em; }
-        .tc-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg-bubble { max-width: 70%; padding: 10px 15px; border-radius: 12px; font-size: 0.9em; line-height: 1.4; position: relative; word-wrap: break-word; }
+        .ticket-chat-area { flex: 1; display: flex; flex-direction: column; background: #141414; }
+        .tc-header { padding: 15px 20px; border-bottom: 1px solid #333; background: #181818; display: flex; justify-content: space-between; align-items: center; height: 60px; flex-shrink: 0; }
+        .tc-title { font-weight: bold; color: white; font-family: 'Rajdhani', sans-serif; font-size: 1.3em; letter-spacing: 0.5px; }
+        .tc-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; background-image: radial-gradient(#1a1a1a 1px, transparent 1px); background-size: 20px 20px; }
+        
+        /* IMPROVED CHAT BUBBLES */
+        .msg-bubble { max-width: 75%; padding: 12px 16px; border-radius: 12px; font-size: 0.92em; line-height: 1.5; position: relative; word-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: 5px; }
         .msg-me { align-self: flex-end; background: var(--msg-user); color: white; border-bottom-right-radius: 2px; }
-        .msg-them { align-self: flex-start; background: var(--msg-staff); color: #ddd; border-bottom-left-radius: 2px; border: 1px solid #333; }
-        .msg-time { font-size: 0.65em; opacity: 0.6; margin-top: 4px; display: block; text-align: right; }
+        .msg-them { align-self: flex-start; background: var(--msg-staff); color: #eee; border-bottom-left-radius: 2px; border: 1px solid #333; }
+        .msg-sender { font-size: 0.7em; font-weight: bold; margin-bottom: 4px; display: block; opacity: 0.7; letter-spacing: 0.5px; color: #ddd; text-transform: uppercase; }
+        .msg-text { display: block; }
+        .msg-time { font-size: 0.65em; opacity: 0.5; margin-top: 6px; display: block; text-align: right; }
         
-        .tc-input-area { padding: 15px; background: #111; border-top: 1px solid #333; display: flex; gap: 10px; }
-        .tc-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; }
-        .tc-send { background: var(--accent); border: none; color: white; padding: 0 20px; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        .tc-input-area { padding: 15px 20px; background: #181818; border-top: 1px solid #333; display: flex; gap: 12px; align-items: center; }
+        .tc-input { flex: 1; background: #0f0f0f; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; font-family: 'Roboto', sans-serif; }
+        .tc-input:focus { outline: none; border-color: var(--accent); }
+        .tc-send { background: var(--accent); border: none; color: white; width: 45px; height: 45px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2em; transition: 0.2s; }
+        .tc-send:hover { background: var(--accent-hover); }
 
         /* History & Grinder Styles */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
@@ -197,6 +214,12 @@
         .gb-chat { background: #555; flex: 1; position: relative; }
         .progress-strip { width: 100%; background: #000; border: 1px solid #333; color: #2ecc71; text-align: center; font-size: 0.85em; font-weight: bold; padding: 4px; cursor: text; border-radius: 3px; }
 
+        .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
+        .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; word-wrap: break-word; }
+        .chat-input-row { display: flex; gap: 5px; }
+        .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
+        .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+
         /* Housekeeping */
         .admin-tab-container { display: flex; gap: 10px; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
         .user-table, .order-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
@@ -211,7 +234,11 @@
 </head>
 <body>
 
-<div id="side-dock" onclick="expandApp()"><span id="dock-text">OPEN SYSTEM</span></div>
+<div id="side-dock" onclick="expandApp()"><span>OPEN SYSTEM</span></div>
+
+<div id="notif-dock" onclick="expandApp()">
+    <span id="notif-count">📩 1</span>
+</div>
 
 <div id="rules-modal">
     <div class="rules-box">
@@ -338,9 +365,9 @@
 
         <div id="view-tickets">
             <div class="ticket-list-container">
-                <div class="ticket-list">
+                <div class="ticket-sidebar">
                     <div class="ticket-list-header">Your Tickets</div>
-                    <div id="ticket-list-box" style="flex:1;">
+                    <div class="ticket-items" id="ticket-list-box">
                         <div style="padding:20px;text-align:center;color:#555;">Loading...</div>
                     </div>
                     <div id="tc-new-btn" style="padding:15px; border-top:1px solid #333; text-align:center; display:none;">
@@ -350,7 +377,8 @@
                 <div class="ticket-chat-area">
                     <div class="tc-header">
                         <span class="tc-title" id="tc-title">Select a Ticket</span>
-                        <div id="tc-controls" style="display:none;">
+                        <div id="tc-controls" style="display:none; display:flex; gap:10px;">
+                            <button id="claim-btn" class="header-btn" style="border-color:#f1c40f; color:#f1c40f; display:none;" onclick="claimTicket()">CLAIM</button>
                             <button class="header-btn" style="border-color:#e74c3c; color:#e74c3c;" onclick="closeTicketAction()">CLOSE TICKET</button>
                         </div>
                     </div>
@@ -363,7 +391,7 @@
             </div>
         </div>
 
-        <div id="view-history">
+        <div id="view-history" style="padding:20px;">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span>Recent Orders</span>
                 <div class="view-controls">
@@ -375,7 +403,7 @@
             <div class="history-list" id="history-container"></div>
         </div>
 
-        <div id="view-grinder">
+        <div id="view-grinder" style="padding:20px;">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span style="color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
@@ -451,8 +479,8 @@
     };
 
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
-    function expandApp() { document.getElementById('side-dock').style.display = 'none'; if(!state.userPin) document.getElementById('login-overlay').style.display = 'flex'; else document.getElementById('app-container').style.display = 'flex'; }
-    function minimizeApp() { document.getElementById('app-container').style.display = 'none'; document.getElementById('side-dock').style.display = 'flex'; }
+    function expandApp() { document.getElementById('side-dock').style.display = 'none'; document.getElementById('notif-dock').classList.remove('visible'); if(!state.userPin) document.getElementById('login-overlay').style.display = 'flex'; else document.getElementById('app-container').style.display = 'flex'; }
+    function minimizeApp() { document.getElementById('app-container').style.display = 'none'; document.getElementById('side-dock').style.display = 'flex'; if(state.isStaff==="Yes") pollTickets(); }
     function initializeConnection() { document.getElementById('btn-init').innerText = "SCANNING..."; if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*"); }
 
     function attemptLogin() {
@@ -531,21 +559,46 @@
         fetch(`${GOOGLE_SCRIPT_URL}?action=getTickets&userId=${state.userId}&pin=${state.userPin}&isStaff=${state.isStaff}&_t=${Date.now()}`)
         .then(r=>r.json()).then(data => {
             ticketList = data;
-            let unreadCount = 0;
+            let totalUnread = 0;
             let myNewMsg = false;
+            
             data.forEach(t => {
-                if(t.status === "Open") unreadCount++;
-                if(t.userId === state.userId && t.status === "Open") {
-                    let logs = JSON.parse(t.chatLog || "[]");
-                    if(logs.length > 0 && logs[logs.length-1].type === 'staff') myNewMsg = true;
+                let logs = JSON.parse(t.chatLog || "[]");
+                let lastMsg = logs.length > 0 ? logs[logs.length-1] : null;
+                
+                // NOTIFICATION LOGIC:
+                // 1. OPEN Ticket (Staff): ALL Staff see alert
+                if(state.isStaff === "Yes" && t.status === "Open") {
+                    totalUnread++;
+                }
+                // 2. IN PROGRESS (Staff): Only alert if USER replied last
+                if(state.isStaff === "Yes" && t.status === "In Progress" && lastMsg && lastMsg.type === 'user') {
+                    totalUnread++;
+                }
+                // 3. USER: Only alert if STAFF replied last
+                if(state.isStaff === "No" && (t.status === "Open" || t.status === "In Progress") && lastMsg && lastMsg.type === 'staff') {
+                    myNewMsg = true;
                 }
             });
-            let dockTxt = "OPEN SYSTEM";
-            if(state.isStaff === "Yes" && unreadCount > 0) dockTxt = `⚠️ ${unreadCount} SUPPORT TICKETS`;
-            document.getElementById('dock-text').innerText = dockTxt;
-            document.getElementById('support-dot').style.display = (myNewMsg || (state.isStaff==="Yes" && unreadCount>0)) ? "block" : "none";
+
+            // Update Side Dock Tab
+            let dockNotif = document.getElementById('notif-dock');
+            let dockCount = document.getElementById('notif-count');
             
-            if(document.getElementById('view-tickets').style.display === 'flex' || (document.getElementById('view-housekeeping').style.display === 'flex' && document.getElementById('tab-tickets').classList.contains('active'))) {
+            if (state.isStaff === "Yes" && totalUnread > 0) {
+                dockNotif.classList.add('visible');
+                dockCount.innerText = "📩 " + totalUnread;
+                document.getElementById('support-dot').style.display = "block";
+            } else if (state.isStaff === "No" && myNewMsg) {
+                dockNotif.classList.add('visible');
+                dockCount.innerText = "📩 1";
+                document.getElementById('support-dot').style.display = "block";
+            } else {
+                dockNotif.classList.remove('visible');
+                document.getElementById('support-dot').style.display = "none";
+            }
+            
+            if(document.getElementById('view-tickets').style.display === 'flex' || (document.getElementById('view-housekeeping').style.display === 'flex' && document.getElementById('tab-tickets')?.classList.contains('active'))) {
                 renderTicketList();
                 if(activeTicketId) renderChat(activeTicketId);
             }
@@ -563,8 +616,25 @@
         ticketList.forEach(t => {
             let div = document.createElement('div');
             div.className = 'ticket-item' + (activeTicketId === t.ticketId ? ' active' : '');
+            
+            // Check Unread Status for RED DOT in list
+            let logs = JSON.parse(t.chatLog || "[]");
+            let lastMsg = logs.length > 0 ? logs[logs.length-1] : null;
+            let isUnread = false;
+            if (state.isStaff === "Yes") {
+                if (t.status === "Open" || (t.status === "In Progress" && lastMsg && lastMsg.type === 'user')) isUnread = true;
+            } else {
+                if (lastMsg && lastMsg.type === 'staff') isUnread = true;
+            }
+            
+            let statusClass = t.status.toLowerCase().replace(' ', '');
+            
             div.onclick = () => { activeTicketId = t.ticketId; renderChat(t.ticketId); };
-            div.innerHTML = `<span class="t-id">${t.ticketId}</span><span class="t-user">${t.userName}</span><span class="t-status t-${t.status.toLowerCase()}">${t.status}</span>`;
+            div.innerHTML = `
+                <span class="t-id">${t.ticketId} ${isUnread ? '<span style="color:red; font-size:1.5em; line-height:0; position:relative; top:3px;">•</span>' : ''}</span>
+                <span class="t-user">${t.userName}</span>
+                <span class="t-status t-${statusClass}">${t.status}</span>
+            `;
             c.appendChild(div);
         });
         document.getElementById('tc-new-btn').style.display = 'block';
@@ -574,8 +644,25 @@
         var ticket = ticketList.find(t => t.ticketId === tid);
         if(!ticket) return;
         document.getElementById('tc-title').innerText = `${ticket.userName} (${ticket.ticketId})`;
-        document.getElementById('tc-controls').style.display = (ticket.status === 'Open') ? 'block' : 'none';
-        document.getElementById('tc-input-box').style.display = (ticket.status === 'Open') ? 'flex' : 'none';
+        
+        // Controls Logic
+        let controls = document.getElementById('tc-controls');
+        let claimBtn = document.getElementById('claim-btn');
+        let inputArea = document.getElementById('tc-input-box');
+        
+        if (ticket.status === 'Closed') {
+            controls.style.display = 'none';
+            inputArea.style.display = 'none';
+        } else {
+            controls.style.display = 'flex';
+            inputArea.style.display = 'flex';
+            // Show CLAIM button only for STAFF on OPEN tickets
+            if (state.isStaff === "Yes" && ticket.status === "Open") {
+                claimBtn.style.display = "block";
+            } else {
+                claimBtn.style.display = "none";
+            }
+        }
         
         var chatBox = document.getElementById('tc-msgs');
         chatBox.innerHTML = '';
@@ -584,7 +671,7 @@
             let bubble = document.createElement('div');
             let isMe = (state.isStaff === "Yes" && msg.type === 'staff') || (state.isStaff === "No" && msg.type === 'user');
             bubble.className = `msg-bubble ${isMe ? 'msg-me' : 'msg-them'}`;
-            bubble.innerHTML = `<span class="msg-sender">${msg.sender}</span>${msg.msg}<span class="msg-time">${msg.time.split('T')[1].substring(0,5)}</span>`;
+            bubble.innerHTML = `<span class="msg-sender">${msg.sender}</span><span class="msg-text">${msg.msg}</span><span class="msg-time">${msg.time.split('T')[1].substring(0,5)}</span>`;
             chatBox.appendChild(bubble);
         });
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -612,6 +699,14 @@
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "ticketChat", ticketId: activeTicketId, userId: state.userId, pin: state.userPin, senderName: state.username, message: txt, senderType: type })
+        }).then(() => setTimeout(pollTickets, 1000));
+    }
+
+    function claimTicket() {
+        if(!activeTicketId) return;
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "claimTicket", ticketId: activeTicketId, userId: state.userId, pin: state.userPin })
         }).then(() => setTimeout(pollTickets, 1000));
     }
 
@@ -654,11 +749,15 @@
             fetchAdminUsers(true);
             switchAdminTab('users');
         } else if (view === 'tickets') {
+            // SAFETY EJECT: If user is Customer, ensure they get the Customer View
             if(state.isStaff === "Yes") {
                 switchView('housekeeping');
                 switchAdminTab('tickets');
             } else {
-                document.getElementById('view-tickets').style.display = 'flex';
+                // Ensure View is in Main Content
+                var tkView = document.getElementById('view-tickets');
+                document.getElementById('main-content').appendChild(tkView);
+                tkView.style.display = 'flex';
                 pollTickets();
             }
         } else if (view === 'grinder') {
@@ -686,7 +785,8 @@
             pollTickets();
         } else {
             document.getElementById('view-tickets').style.display = 'none';
-            document.getElementById('main-content').appendChild(document.getElementById('view-tickets')); // Move back to main
+            // Safety: Move back to main content to prevent logic errors
+            document.getElementById('main-content').appendChild(document.getElementById('view-tickets')); 
             if(tab==='users') fetchAdminUsers();
             if(tab==='orders') fetchAdminOrders();
         }
@@ -698,7 +798,7 @@
 
     // --- OTHER FUNCTIONS (Existing) ---
     function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
-    function setCategory(cat, btnElement) { state.category = cat; document.querySelectorAll('.selection-area .tab-btn').forEach(b => b.classList.remove('active')); if(btnElement) btnElement.classList.add('active'); renderGrid(); }
+    function setCategory(cat, btnElement) { state.category = cat; document.querySelectorAll('.category-tabs .tab-btn').forEach(b => b.classList.remove('active')); if(btnElement) btnElement.classList.add('active'); renderGrid(); }
     function renderGrid() { var container = document.getElementById('item-grid'); container.innerHTML = ''; var items = CATEGORIES[state.category]; for(var i=0; i<items.length; i++) { (function(item){ var div = document.createElement('div'); div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : ''); div.onclick = function() { selectItem(item); }; div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+item.price.toLocaleString()+'</span>'; if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>'; container.appendChild(div); })(items[i]); } }
     function selectItem(item) { state.item = item; document.getElementById('disp-item-name').value = item.name; document.getElementById('limit-display').innerText = state.customOrderMode ? "(Unlimited)" : "(Max: " + item.limit.toLocaleString() + ")"; var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty'); var step = getStepSize(item.limit); rInput.step = step; var currentVal = parseInt(qInput.value) || 1; if (!state.customOrderMode) { if(currentVal > item.limit) currentVal = item.limit; qInput.max = item.limit; rInput.max = item.limit; rInput.disabled = false; rInput.min = step; qInput.readOnly = true; if (currentVal < step) currentVal = step; } else { qInput.max = 1000000; rInput.disabled = true; qInput.readOnly = false; rInput.min = 1; } qInput.value = currentVal; rInput.value = currentVal; document.getElementById('btn-submit').classList.add('active'); renderGrid(); updateCalc(); checkOrderCapability(); }
     function updateCalc() { if(!state.item) return; var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty'); var val = parseInt(qInput.value); if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } else if (!state.customOrderMode) { rInput.value = val; } var total = state.item.price * val; var isHigh = (document.getElementById('input-priority').value === 'high'); var isCustom = state.customOrderMode; if (isHigh) total *= 1.05; if (isCustom) total *= 1.10; document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString(); }
