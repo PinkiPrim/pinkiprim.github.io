@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Perfection v11.9</title>
+    <title>Dirty Deals - Final Deployment v11.9</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -402,7 +402,7 @@
             </div>
         </div>
 
-        <div id="view-history">
+        <div id="view-history" style="padding:20px;">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span>Recent Orders</span>
                 <div class="view-controls">
@@ -414,7 +414,7 @@
             <div class="history-list" id="history-container"></div>
         </div>
 
-        <div id="view-grinder">
+        <div id="view-grinder" style="padding:20px;">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span style="color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
@@ -641,7 +641,7 @@
         
         let controls = document.getElementById('tc-controls');
         let claimBtn = document.getElementById('claim-btn');
-        let closeBtn = document.getElementById('close-btn'); // Add ID to close btn HTML if missing, or use selector
+        let closeBtn = document.getElementById('close-btn'); 
         let inputArea = document.getElementById('tc-input-box');
         
         if (ticket.status === 'Closed') {
@@ -651,17 +651,8 @@
             controls.style.display = 'flex';
             inputArea.style.display = 'flex';
             
-            // CLAIM LOGIC
             if (state.isStaff === "Yes" && ticket.status === "Open") claimBtn.style.display = "block";
             else claimBtn.style.display = "none";
-
-            // CLOSE LOGIC (Super Admin OR Claimed By Me OR User)
-            let isClaimedByMe = (ticket.claimedBy === state.username);
-            if (state.isAdmin || isClaimedByMe || state.isStaff === "No") {
-                 // Show close button
-                 // Note: In HTML, the close button is static. We might need to hide/show it.
-                 // For v11.9 simplicity, let's assume it shows, but backend validates action.
-            }
         }
         
         var chatBox = document.getElementById('tc-msgs');
@@ -794,6 +785,21 @@
         document.getElementById('tab-orders').classList.toggle('active', tab === 'orders');
         document.getElementById('tab-tickets')?.classList.toggle('active', tab === 'tickets');
     }
+    
+    document.onkeydown = function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) { 
+            fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+            document.getElementById('app-container').style.display = "none";
+            document.getElementById('login-overlay').style.display = "none";
+            document.getElementById('rules-modal').style.display = "none";
+            document.getElementById('new-ticket-modal').style.display = "none";
+            document.getElementById('staff-close-modal').style.display = "none";
+            document.getElementById('feedback-modal').style.display = "none";
+            document.getElementById('admin-edit-modal').style.display = "none";
+            document.getElementById('user-edit-modal').style.display = "none";
+            document.getElementById('side-dock').style.display = "flex"; 
+        }
+    };
 
     // --- OTHER FUNCTIONS ---
     function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
