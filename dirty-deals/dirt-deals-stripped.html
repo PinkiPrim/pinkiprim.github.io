@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Final Deployment v11.9</title>
+    <title>Dirty Deals - Final v12.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -72,7 +72,7 @@
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
 
         /* --- MAIN APP CONTAINER --- */
-        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 1000px; height: 680px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
+        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 1050px; height: 680px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
         
         body.mini-mode #app-container { width: 350px !important; height: 500px !important; background: rgba(18, 18, 18, 0.98); border: 1px solid var(--accent); }
         body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping, body.mini-mode #view-tickets { display: none !important; }
@@ -333,6 +333,7 @@
         </div>
         <div class="status-wrapper">
             <div class="support-btn" title="Support" onclick="openTickets()">?<div class="notif-dot" id="support-dot"></div></div>
+            <button class="header-btn" style="border-color:#e74c3c; color:#e74c3c;" onclick="closeApp()">EXIT</button>
             <button class="header-btn" onclick="minimizeApp()">[ DOCK ]</button>
             <div class="mail-icon" id="mail-alert" title="New Message!">📩<div class="mail-badge"></div></div>
             <div class="status-box" id="status-box">
@@ -402,7 +403,7 @@
             </div>
         </div>
 
-        <div id="view-history" style="padding:20px;">
+        <div id="view-history">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span>Recent Orders</span>
                 <div class="view-controls">
@@ -414,7 +415,7 @@
             <div class="history-list" id="history-container"></div>
         </div>
 
-        <div id="view-grinder" style="padding:20px;">
+        <div id="view-grinder">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span style="color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
@@ -461,6 +462,7 @@
     var pendingRulesType = "";
     var currentClosingTicketId = null;
 
+    // --- CORE STARTUP ---
     window.onload = function() {
         setCategory("Bonus EXP");
         initDrag();
@@ -489,6 +491,17 @@
     };
 
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
+    
+    // --- CLOSE APP FUNCTION ---
+    function closeApp() {
+        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+        document.getElementById('app-container').style.display = "none";
+        document.getElementById('login-overlay').style.display = "none";
+        // Hide all modals
+        document.querySelectorAll('[id$="-modal"]').forEach(el => el.style.display = 'none');
+        document.getElementById('side-dock').style.display = "flex";
+    }
+
     function expandApp() { document.getElementById('side-dock').style.display = 'none'; document.getElementById('notif-tab').classList.remove('visible'); if(!state.userPin) document.getElementById('login-overlay').style.display = 'flex'; else document.getElementById('app-container').style.display = 'flex'; }
     function minimizeApp() { document.getElementById('app-container').style.display = 'none'; document.getElementById('side-dock').style.display = 'flex'; if(state.isStaff==="Yes") pollTickets(); }
     function initializeConnection() { document.getElementById('btn-init').innerText = "SCANNING..."; if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*"); }
@@ -641,7 +654,6 @@
         
         let controls = document.getElementById('tc-controls');
         let claimBtn = document.getElementById('claim-btn');
-        let closeBtn = document.getElementById('close-btn'); 
         let inputArea = document.getElementById('tc-input-box');
         
         if (ticket.status === 'Closed') {
@@ -786,18 +798,10 @@
         document.getElementById('tab-tickets')?.classList.toggle('active', tab === 'tickets');
     }
     
+    // --- KEYDOWN LISTENER FOR ESC ---
     document.onkeydown = function(e) {
         if (e.key === 'Escape' || e.keyCode === 27) { 
-            fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
-            document.getElementById('app-container').style.display = "none";
-            document.getElementById('login-overlay').style.display = "none";
-            document.getElementById('rules-modal').style.display = "none";
-            document.getElementById('new-ticket-modal').style.display = "none";
-            document.getElementById('staff-close-modal').style.display = "none";
-            document.getElementById('feedback-modal').style.display = "none";
-            document.getElementById('admin-edit-modal').style.display = "none";
-            document.getElementById('user-edit-modal').style.display = "none";
-            document.getElementById('side-dock').style.display = "flex"; 
+            closeApp();
         }
     };
 
@@ -840,7 +844,6 @@
     function initDrag() { if(mainHeader) mainHeader.onmousedown = dragMouseDown; if(miniStrip) miniStrip.onmousedown = dragMouseDown; }
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-    document.onkeydown = function(e) { if(e.keyCode==27) { fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err=>{}); document.getElementById('app-container').style.display = "none"; document.getElementById('login-overlay').style.display = "none"; document.getElementById('side-dock').style.display = "flex"; } }
 </script>
 </body>
 </html>
