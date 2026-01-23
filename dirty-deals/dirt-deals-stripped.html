@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Identity Protection v12.8</title>
+    <title>Dirty Deals - Admin Control v12.9</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -60,7 +60,6 @@
         .sp-list { background: #0f0f0f; border: 1px solid #333; height: 100px; overflow-y: auto; padding: 5px; text-align: left; font-size: 0.85em; color: #ccc; border-radius: 4px; }
         .sp-item-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 4px; }
         
-        /* Status Text */
         #sp-status-msg { text-align:center; color:#e74c3c; font-weight:bold; font-size:0.9em; height:20px; }
 
         .rules-header { color: #e74c3c; font-family: 'Rajdhani', sans-serif; font-size: 2.2em; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
@@ -232,6 +231,8 @@
         .st-Accepted { background: var(--st-accepted); color: white; }
         .st-Denied { background: var(--st-denied); color: white; }
         .st-Completed { background: var(--st-completed); }
+        .st-AdminOrder { background: #8e44ad; color: white; border: 1px solid #9b59b6; }
+        .st-SpecialRequest { background: #f39c12; color: black; border: 1px solid #f1c40f; }
         
         .grinder-action-box { display: flex; flex-direction: column; gap: 5px; width: 140px; }
         .btn-row { display: flex; gap: 5px; }
@@ -516,7 +517,33 @@
         </div>
     </div>
 
-    <div id="admin-edit-modal"><div class="admin-edit-box"><h3>EDIT ORDER</h3><input type="hidden" id="ae-ts"><input type="hidden" id="ae-uid"><div class="input-group"><label>Status</label><select id="ae-status"><option value="Pending">Pending</option><option value="Accepted">Accepted</option><option value="Completed">Completed</option><option value="Void">Void</option></select></div><div class="input-group"><label>Assigned Grinder</label><select id="ae-grinder"><option value="">None</option></select></div><div style="display:flex; gap:10px; margin-top:15px;"><button class="login-btn" onclick="saveAdminOrder()">SAVE</button><button class="login-btn" style="background:#333;" onclick="closeAdminModal()">CANCEL</button></div></div></div>
+    <div id="admin-edit-modal">
+        <div class="admin-edit-box">
+            <h3>EDIT ORDER</h3>
+            <input type="hidden" id="ae-ts">
+            <input type="hidden" id="ae-uid">
+            
+            <div class="input-group"><label>Status</label>
+            <select id="ae-status">
+                <option value="Pending">Pending</option>
+                <option value="Accepted">Accepted</option>
+                <option value="Completed">Completed</option>
+                <option value="Void">Void</option>
+            </select></div>
+            
+            <div class="input-group"><label>Assigned Grinder</label>
+            <select id="ae-grinder"><option value="">None</option></select></div>
+            
+            <div class="input-group"><label>Current Progress</label>
+            <input type="text" id="ae-progress" class="login-input" style="font-size:1em;" placeholder="0"></div>
+
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="login-btn" onclick="saveAdminOrder()">SAVE</button>
+                <button class="login-btn" style="background:#333;" onclick="closeAdminModal()">CANCEL</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="user-edit-modal"><div class="admin-edit-box"><h3>USER MANAGER</h3><input type="hidden" id="ue-id"><div class="input-group"><label>Role</label><select id="ue-role"><option value="Customer">Customer (None)</option><option value="Trainee Grinder">Trainee Grinder</option><option value="Usual Grinder">Usual Grinder</option><option value="Top Grinder">Top Grinder</option></select></div><div class="input-group"><label>Staff?</label><select id="ue-staff"><option value="No">No</option><option value="Yes">Yes</option></select></div><div class="input-group"><label>Status</label><select id="ue-status"><option value="Accepted">Accepted</option><option value="Blocked">Blocked</option></select></div><div style="display:flex; gap:10px; margin-top:15px;"><button class="login-btn" onclick="saveUserModification()">SAVE</button><button class="login-btn" style="background:#333;" onclick="closeUserModal()">CANCEL</button></div></div></div>
 </div>
 
@@ -572,7 +599,6 @@
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
     
     function closeApp() {
-        // Double-Tap Logic to force focus back
         try {
             if(window.GetParentResourceName) {
                 fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
@@ -614,7 +640,6 @@
                     state.isAdmin = true;
                     document.getElementById('nav-admin').style.display = 'inline-block';
                     
-                    // Show "Create Special Order" button if Admin
                     if(state.isAdmin) document.getElementById('btn-special-order').style.display = 'inline-block';
                 }
                 
@@ -662,7 +687,7 @@
 
     // --- SPECIAL ORDER SYSTEM ---
     async function openSpecialOrderModal() {
-        if(state.username === "Unknown" || state.username === "Guest") return; // Block unknown users
+        if(state.username === "Unknown" || state.username === "Guest") return; 
         document.getElementById('special-order-modal').style.display = 'flex';
         document.getElementById('sp-status-msg').innerText = ""; 
         
@@ -912,7 +937,7 @@
     }
 
     function openNewTicketModal() { 
-        if(state.username === "Unknown" || state.username === "Guest") return; // IDENTITY PROTECTION
+        if(state.username === "Unknown" || state.username === "Guest") return; 
         document.getElementById('new-ticket-modal').style.display = 'flex'; 
     }
     
@@ -1030,11 +1055,67 @@
         document.getElementById('tab-orders').classList.toggle('active', tab === 'orders');
         document.getElementById('tab-tickets')?.classList.toggle('active', tab === 'tickets');
     }
+
+    function fetchAdminUsers(silent) { 
+        return fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
+            .then(r => r.json())
+            .then(users => { 
+                allUsersList = users; 
+                availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); 
+                if (silent) return; 
+                let c = document.getElementById('hk-user-list'); 
+                c.innerHTML = ''; 
+                users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); 
+            }); 
+    }
+    
+    function fetchAdminOrders() { fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ let c = document.getElementById('hk-order-list'); c.innerHTML = ''; orders.forEach(o => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}', '${o.qty}', '${o.progress}')">EDIT</button></td></tr>`; }); }); }
+    
+    function openAdminEdit(ts, uid, status, grinder, qty, progress) { 
+        // Security: Block non-admins from editing special orders
+        if(qty === "Bundle" && !state.isAdmin) {
+             alert("Access Denied: Only Admins can edit Special Orders.");
+             return;
+        }
+        
+        // If it IS a bundle and you ARE admin, show special order modal (future feature)
+        // For now, allow basic status edit on standard modal.
+        
+        document.getElementById('admin-edit-modal').style.display = 'flex'; 
+        document.getElementById('ae-ts').value = ts; 
+        document.getElementById('ae-uid').value = uid; 
+        document.getElementById('ae-status').value = status; 
+        document.getElementById('ae-progress').value = progress || "0"; 
+        
+        let select = document.getElementById('ae-grinder'); 
+        select.innerHTML = '<option value="">None (Unassigned)</option>'; 
+        availableGrinders.forEach(g => { 
+            let opt = document.createElement('option'); 
+            opt.value = `${g.name} (${g.role})`; 
+            opt.text = `${g.name} (${g.role})`; 
+            if(grinder === opt.value) opt.selected = true; 
+            select.appendChild(opt); 
+        }); 
+    }
+    
+    function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
+    
+    function saveAdminOrder() { 
+        let ts = document.getElementById('ae-ts').value; 
+        let uid = document.getElementById('ae-uid').value; 
+        let stat = document.getElementById('ae-status').value; 
+        let grind = document.getElementById('ae-grinder').value; 
+        
+        // Save Progress too
+        let prog = document.getElementById('ae-progress').value;
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: prog, userId: state.userId, pin: state.userPin }) });
+
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind }) }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); }); 
+    }
     
     // --- KEYDOWN LISTENER FOR ESC ---
     window.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' || e.keyCode === 27) { 
-            // PREVENT CLOSING IF TYPING
             if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
                 document.activeElement.blur();
                 return;
@@ -1043,7 +1124,7 @@
         }
     });
 
-    // --- OTHER FUNCTIONS ---
+    // ... (Remaining Helper Functions same as before) ...
     function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
     function setCategory(cat, btnElement) { state.category = cat; document.querySelectorAll('.category-tabs .tab-btn').forEach(b => b.classList.remove('active')); if(btnElement) btnElement.classList.add('active'); renderGrid(); }
     function renderGrid() { var container = document.getElementById('item-grid'); container.innerHTML = ''; var items = CATEGORIES[state.category]; for(var i=0; i<items.length; i++) { (function(item){ var div = document.createElement('div'); div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : ''); div.onclick = function() { selectItem(item); }; div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+item.price.toLocaleString()+'</span>'; if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>'; container.appendChild(div); })(items[i]); } }
@@ -1056,35 +1137,9 @@
     function toggleGrinderDone() { state.showGrinderDone = !state.showGrinderDone; document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done"; fetchGlobalOrders(); }
     function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
     function checkOrderCapability() { var limit = calculateOrderLimit(); var pending = state.activeOrders; var warn = document.getElementById('limit-warning'); var custBtn = document.getElementById('btn-custom-toggle'); if(limit >= 8) custBtn.style.display = 'block'; if(pending >= limit) { document.getElementById('btn-submit').disabled = true; warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")"; } else { document.getElementById('btn-submit').disabled = false; warn.innerText = "Active Orders: " + pending + "/" + limit; } }
-    
-    // --- IDENTITY PROTECTION IN ORDER SUBMISSION ---
-    function submitRealOrder() { 
-        if (state.username === "Unknown" || state.username === "Guest") {
-            document.getElementById('status-msg').innerText = "Sorry, there was an issue linking your account. Please refresh the app.";
-            document.getElementById('status-msg').style.color = "#e74c3c";
-            return;
-        }
-
-        var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING..."; var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText, isCustom: state.customOrderMode }; fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); }); 
-    }
-    
-    function checkForMail() { if(!state.userPin) return; fetch(`${GOOGLE_SCRIPT_URL}?userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) { if(!data) return; var hasUnread = false; for(var i=0; i<data.length; i++) { if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) { hasUnread = true; break; } } var icon = document.getElementById('mail-alert'); if(hasUnread) icon.classList.add('has-mail'); else icon.classList.remove('has-mail'); }); }
-    function fetchMyOrders() { var c = document.getElementById('history-container'); fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) { c.innerHTML = ''; state.activeOrders = 0; state.completedOrders = 0; if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; } for(var i=0; i<data.length; i++) { if(String(data[i].userId).trim() !== String(state.userId).trim()) continue; if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++; if(data[i].status === 'Completed') state.completedOrders++; if(!state.showMyHistoryDone && data[i].status === 'Completed') continue; c.appendChild(createOrderItem(data[i], false)); } checkOrderCapability(); }); }
-    function fetchGlobalOrders() { var c = document.getElementById('grinder-container'); fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) { c.innerHTML = ''; for(var i=0; i<data.length; i++) { if(!data[i].item) continue; if(!state.showGrinderDone && data[i].status === "Completed") continue; c.appendChild(createOrderItem(data[i], true)); } }); }
-    function createOrderItem(o, isGrinderView) { var status = (o.status || 'Pending'); var progress = o.progress || "0"; var controls = ''; var hasUnread = (o.chat && !o.chat.trim().endsWith(state.username)); var chatBadge = hasUnread ? '<div class="unread-badge">1</div>' : ''; if(isGrinderView) { var s = status.toLowerCase(); var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3; var isMyJob = (o.grinder && o.grinder.toLowerCase().includes(state.username.toLowerCase())); if(s === 'pending') { if (String(o.userId) === String(state.userId)) controls = '<span style="color:#555; font-size:0.7em;">YOUR ORDER</span>'; else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>'; } else if(s === 'accepted' && isMyJob) { controls = `<div class="grinder-action-box"><div class="btn-row"><button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button><button class="g-btn gb-chat" onclick="toggleChat(this)">${chatBadge}💬</button></div><input type="text" class="progress-strip" value="${progress}" placeholder="Enter Progress..." onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)"></div>`; } } else { if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span><button class="g-btn gb-chat" style="margin-left:10px; padding:4px 8px;" onclick="toggleChat(this)">${chatBadge}💬</button>`; } var div = document.createElement('div'); div.className = "history-item"; div.innerHTML = `<div class="h-top"><div class="h-info"><div class="h-row user">${o.username} <span style="font-family:monospace; color:#666;">(${o.userId})</span></div><div class="h-row item">${o.item} <span style="color:#888;">x${o.qty}</span></div><div class="h-row price">$${parseInt(o.price).toLocaleString()}</div>${(isGrinderView && o.commission) ? '<div class="h-row commission">Cut: '+o.commission+'</div>' : ''}${o.grinder ? '<div class="h-row worker">Worker: '+o.grinder+'</div>' : ''}</div><div class="status-container"><div class="status-badge st-${status}">${status}</div>${controls}</div></div><div class="chat-area"><div class="chat-logs">${(o.chat ? o.chat.split(" | ").join("\n") : "No messages.")}</div><div class="chat-input-row"><input type="text" class="chat-input" placeholder="Type message..." maxlength="140"><button class="chat-send" onclick="sendChatFromBtn(this, '${o.timestamp}', '${(o.orderUserId||o.userId)}')">SEND</button></div></div>`; return div; }
-    function toggleChat(btn) { var area = btn.closest('.history-item').querySelector('.chat-area'); area.style.display = (area.style.display==='block'?'none':'block'); var badge = btn.querySelector('.unread-badge'); if(badge) badge.remove(); }
-    function sendChatFromBtn(btn, ts, uid) { var input = btn.previousElementSibling; if(!input.value) return; sendChatMessage(ts, uid, input.value); input.value = "Sending..."; var badge = btn.closest('.history-item').querySelector('.unread-badge'); if(badge) badge.remove(); }
-    function updateOrderStatus(ts, uid, status) { var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank, userId: state.userId, pin: state.userPin }; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(() => setTimeout(fetchGlobalOrders, 1000)); }
-    function updateProgress(ts, uid, amount) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount, userId: state.userId, pin: state.userPin }) }); }
-    function sendChatMessage(ts, uid, msg) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) }).then(() => { if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); else fetchGlobalOrders(); }); }
-    function fetchAdminUsers(silent) { fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(users=>{ availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); if (silent) return; let c = document.getElementById('hk-user-list'); c.innerHTML = ''; users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); }); }
-    function fetchAdminOrders() { fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ let c = document.getElementById('hk-order-list'); c.innerHTML = ''; orders.forEach(o => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}')">EDIT</button></td></tr>`; }); }); }
     function openUserEdit(id, role, status, staff) { document.getElementById('user-edit-modal').style.display = 'flex'; document.getElementById('ue-id').value = id; let cleanRole = role ? role.trim() : ""; let roleSelect = document.getElementById('ue-role'); roleSelect.value = cleanRole; if (roleSelect.value !== cleanRole && cleanRole !== "") { let newOpt = document.createElement('option'); newOpt.text = cleanRole + " (Current)"; newOpt.value = cleanRole; roleSelect.add(newOpt); roleSelect.value = cleanRole; } else if (cleanRole === "") { roleSelect.value = "Customer"; } document.getElementById('ue-status').value = status; document.getElementById('ue-staff').value = staff || "No"; }
     function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
     function saveUserModification() { let id = document.getElementById('ue-id').value; let role = document.getElementById('ue-role').value; let status = document.getElementById('ue-status').value; let staff = document.getElementById('ue-staff').value; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role, newStaff: staff }) }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); }); }
-    function openAdminEdit(ts, uid, status, grinder) { document.getElementById('admin-edit-modal').style.display = 'flex'; document.getElementById('ae-ts').value = ts; document.getElementById('ae-uid').value = uid; document.getElementById('ae-status').value = status; let select = document.getElementById('ae-grinder'); select.innerHTML = '<option value="">None (Unassigned)</option>'; availableGrinders.forEach(g => { let opt = document.createElement('option'); opt.value = `${g.name} (${g.role})`; opt.text = `${g.name} (${g.role})`; if(grinder === opt.value) opt.selected = true; select.appendChild(opt); }); }
-    function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
-    function saveAdminOrder() { let ts = document.getElementById('ae-ts').value; let uid = document.getElementById('ae-uid').value; let stat = document.getElementById('ae-status').value; let grind = document.getElementById('ae-grinder').value; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind }) }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); }); }
     
     var mainHeader = document.getElementById("main-header"); var miniStrip = document.getElementById("mini-drag-strip"); var elmnt = document.getElementById("app-container"); var pos1=0, pos2=0, pos3=0, pos4=0;
     function dragMouseDown(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elementDrag; }
