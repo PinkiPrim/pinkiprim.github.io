@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Grinder Fix v13.0</title>
+    <title>Dirty Deals - Connection Fix v13.1</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -614,7 +614,43 @@
 
     function expandApp() { document.getElementById('side-dock').style.display = 'none'; document.getElementById('notif-tab').classList.remove('visible'); if(!state.userPin) document.getElementById('login-overlay').style.display = 'flex'; else document.getElementById('app-container').style.display = 'flex'; }
     function minimizeApp() { document.getElementById('app-container').style.display = 'none'; document.getElementById('side-dock').style.display = 'flex'; if(state.isStaff==="Yes") pollTickets(); }
-    function initializeConnection() { document.getElementById('btn-init').innerText = "SCANNING..."; if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*"); }
+    
+    // --- UPDATED INITIALIZE CONNECTION ---
+    function initializeConnection() { 
+        document.getElementById('btn-init').innerText = "SCANNING..."; 
+        // Send both standard requests to ensure response
+        if(window.parent) {
+            window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*"); 
+            window.parent.postMessage({ type: "getData" }, "*");
+        }
+    }
+
+    // --- UPDATED MESSAGE LISTENER ---
+    window.addEventListener('message', function(event) {
+        try {
+            var item = event.data;
+            // Handle Tycoon/Doggo style wrapper
+            if (item.fromTycoonScript === true && item.data) {
+                item = item.data;
+            }
+
+            if (item.type === "data" || item.user_id || item.player_id) {
+                let d = item.data || item;
+                if(d.user_id || d.player_id || d.id) {
+                    state.username = d.name || d.player || "Unknown";
+                    state.userId = cleanID(d.user_id || d.player_id || d.id);
+                    document.getElementById('username-display').innerText = state.username;
+                    document.getElementById('userid-display').innerText = "ID: " + state.userId;
+                    document.getElementById('loading-txt').innerText = "IDENTITY CONFIRMED: " + state.username;
+                    document.getElementById('btn-init').style.display = 'none';
+                    document.getElementById('auth-fields').style.display = 'block';
+                    document.getElementById('login-name').value = state.username;
+                    document.getElementById('login-id').value = state.userId;
+                    document.getElementById('pin-input').focus();
+                }
+            }
+        } catch(e) { console.warn("Message Listener Error:", e); }
+    });
 
     function attemptLogin() {
         var pin = document.getElementById('pin-input').value;
@@ -828,7 +864,7 @@
         if(!state.userPin) return;
         fetch(`${GOOGLE_SCRIPT_URL}?action=getTickets&userId=${state.userId}&pin=${state.userPin}&isStaff=${state.isStaff}&_t=${Date.now()}`)
         .then(r=>r.json()).then(data => {
-            if (!Array.isArray(data)) { return; }
+            if (!Array.isArray(data)) { console.warn("Poll Tickets Warning: API returned non-array", data); return; }
             
             ticketList = data;
             let totalUnread = 0;
@@ -1073,8 +1109,6 @@
     
     function openAdminEdit(ts, uid, status, grinder, qty, progress) { 
         if(qty === "Bundle" && !state.isAdmin) {
-             // ERROR: Only admins can edit special orders
-             // Instead of alert, we can just log or show nothing
              console.log("Blocked: Staff tried to edit Special Order");
              return;
         }
