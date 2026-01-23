@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Special Ops v12.2</title>
+    <title>Dirty Deals - Bulletproof v12.4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -59,7 +59,7 @@
         .sp-row { display: flex; gap: 10px; }
         .sp-list { background: #0f0f0f; border: 1px solid #333; height: 80px; overflow-y: auto; padding: 5px; text-align: left; font-size: 0.85em; color: #ccc; border-radius: 4px; }
         .sp-item-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 2px; }
-        
+
         .rules-header { color: #e74c3c; font-family: 'Rajdhani', sans-serif; font-size: 2.2em; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
         .rules-body { color: #ccc; margin-bottom: 25px; font-size: 1.1em; line-height: 1.5; }
         
@@ -75,8 +75,7 @@
         .btn-gold:hover { background: #d4ac0d; }
 
         .login-title { font-family: 'Rajdhani', sans-serif; font-size: 2em; margin-bottom: 20px; color: white; letter-spacing: 2px; }
-        .login-input { width: 100%; padding: 12px; background: #080808; border: 1px solid #333; color: white; font-size: 1.1em; text-align: center; margin-bottom: 5px; font-family: monospace; border-radius: 4px; }
-        .login-input:focus { border-color: var(--accent); outline: none; }
+        .login-input { width: 100%; padding: 15px; background: #080808; border: 1px solid #333; color: white; font-size: 1.1em; text-align: center; letter-spacing: 5px; margin-bottom: 15px; font-family: monospace; border-radius: 4px; }
         .login-btn { width: 100%; padding: 12px; background: var(--accent); border: none; color: white; font-weight: bold; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.2em; transition: 0.2s; }
         .login-btn:hover { background: var(--accent-hover); }
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
@@ -129,12 +128,15 @@
 
         /* VIEW LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #view-order, #view-history, #view-grinder, #view-housekeeping { display: none; width: 100%; height: 100%; }
+        
+        /* HIDE ALL BY DEFAULT */
+        #view-order, #view-history, #view-grinder, #view-housekeeping, #view-tickets { display: none; width: 100%; height: 100%; }
+        
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
         
         /* TICKET VIEW (Shrunk via Padding) */
-        #view-tickets { display: none; width: 100%; height: 100%; padding: 40px; flex-direction: column; background: #141414; }
+        #view-tickets { padding: 40px; flex-direction: column; background: #141414; }
         #view-housekeeping { padding: 20px; flex-direction: column; background: #0f0f0f; }
 
         /* ORDER LAYOUT */
@@ -455,7 +457,7 @@
             </div>
         </div>
 
-        <div id="view-history" style="padding:20px;">
+        <div id="view-history">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span>Recent Orders</span>
                 <div class="view-controls">
@@ -467,7 +469,7 @@
             <div class="history-list" id="history-container"></div>
         </div>
 
-        <div id="view-grinder" style="padding:20px;">
+        <div id="view-grinder">
             <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <span style="color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
@@ -552,7 +554,12 @@
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
     
     function closeApp() {
-        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+        try {
+            if(window.GetParentResourceName) {
+                fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+            }
+        } catch(e) { console.log("Browser Mode: Close signal sent."); }
+        
         document.getElementById('app-container').style.display = "none";
         document.getElementById('login-overlay').style.display = "none";
         document.querySelectorAll('[id$="-modal"]').forEach(el => el.style.display = 'none');
@@ -686,7 +693,11 @@
     function submitSpecialOrder() {
         let reqId = document.getElementById('sp-requester').value;
         if(!reqId) return alert("Select a requester");
-        let reqName = allUsersList.find(u => u.id === reqId).name;
+        
+        // BUG FIX: Check if user exists before accessing .name
+        let userObj = allUsersList.find(u => String(u.id) === String(reqId));
+        if (!userObj) { alert("Invalid Requester Selected"); return; }
+        let reqName = userObj.name;
         
         let itemsStr = specialOrderItems.map(i => `${i.name} (x${i.qty})`).join(", ");
         if(!itemsStr) return alert("Add items");
@@ -726,6 +737,9 @@
         if(!state.userPin) return;
         fetch(`${GOOGLE_SCRIPT_URL}?action=getTickets&userId=${state.userId}&pin=${state.userPin}&isStaff=${state.isStaff}&_t=${Date.now()}`)
         .then(r=>r.json()).then(data => {
+            // BUG FIX: Ensure data is array
+            if (!Array.isArray(data)) { console.warn("Poll Tickets Error: Data not array", data); return; }
+            
             ticketList = data;
             let totalUnread = 0;
             let myNewMsg = false;
@@ -947,7 +961,7 @@
     }
     
     // --- KEYDOWN LISTENER FOR ESC ---
-    document.onkeydown = function(e) {
+    window.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' || e.keyCode === 27) { 
             // PREVENT CLOSING IF TYPING
             if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
@@ -956,7 +970,7 @@
             }
             closeApp();
         }
-    };
+    });
 
     // --- OTHER FUNCTIONS ---
     function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
@@ -981,14 +995,7 @@
     function updateOrderStatus(ts, uid, status) { var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank, userId: state.userId, pin: state.userPin }; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(() => setTimeout(fetchGlobalOrders, 1000)); }
     function updateProgress(ts, uid, amount) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount, userId: state.userId, pin: state.userPin }) }); }
     function sendChatMessage(ts, uid, msg) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) }).then(() => { if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); else fetchGlobalOrders(); }); }
-    function fetchAdminUsers(silent) { fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(users=>{ 
-        allUsersList = users; 
-        availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); 
-        if (silent) return; 
-        let c = document.getElementById('hk-user-list'); 
-        c.innerHTML = ''; 
-        users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); 
-    }); }
+    function fetchAdminUsers(silent) { fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(users=>{ availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); if (silent) return; let c = document.getElementById('hk-user-list'); c.innerHTML = ''; users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); }); }
     function fetchAdminOrders() { fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ let c = document.getElementById('hk-order-list'); c.innerHTML = ''; orders.forEach(o => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}')">EDIT</button></td></tr>`; }); }); }
     function openUserEdit(id, role, status, staff) { document.getElementById('user-edit-modal').style.display = 'flex'; document.getElementById('ue-id').value = id; let cleanRole = role ? role.trim() : ""; let roleSelect = document.getElementById('ue-role'); roleSelect.value = cleanRole; if (roleSelect.value !== cleanRole && cleanRole !== "") { let newOpt = document.createElement('option'); newOpt.text = cleanRole + " (Current)"; newOpt.value = cleanRole; roleSelect.add(newOpt); roleSelect.value = cleanRole; } else if (cleanRole === "") { roleSelect.value = "Customer"; } document.getElementById('ue-status').value = status; document.getElementById('ue-staff').value = staff || "No"; }
     function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
