@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pinki Smart Stash v2.0</title>
+    <title>Pinki Smart Stash v2.1</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -44,7 +44,6 @@
             min-height: 420px;
         }
 
-        /* HEADER */
         header {
             background: linear-gradient(90deg, var(--bg-header), #000);
             height: 50px; padding: 0 10px; cursor: move;
@@ -61,7 +60,6 @@
         }
         .close-btn:hover { color: white; }
 
-        /* CONTENT */
         #content { padding: 15px; display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; }
 
         .search-group { display: flex; flex-direction: column; gap: 5px; }
@@ -75,11 +73,8 @@
         }
         #search-input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(213, 0, 249, 0.2); }
 
-        #match-status {
-            text-align: center; font-size: 0.8em; color: var(--text-dim); font-style: italic; min-height: 1.2em;
-        }
+        #match-status { text-align: center; font-size: 0.8em; color: var(--text-dim); font-style: italic; min-height: 1.2em; }
 
-        /* BINDING BOX */
         .bind-box {
             background: rgba(255,255,255,0.05); border: 1px dashed var(--primary-dim);
             padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;
@@ -90,7 +85,6 @@
         }
         .bind-btn:hover { filter: brightness(1.2); }
 
-        /* ACTION BUTTONS */
         .btn-row { display: flex; gap: 10px; }
         .action-btn {
             flex: 1; padding: 15px; border-radius: 6px; border: none; cursor: pointer;
@@ -104,7 +98,6 @@
         .btn-take { background: linear-gradient(135deg, #2e7d32, #1b5e20); border: 1px solid #43a047; }
         .btn-take:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(67, 160, 71, 0.4); }
 
-        /* LOG */
         .log-box {
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
             border-radius: 6px; padding: 10px; height: 100px; overflow-y: auto;
@@ -116,13 +109,11 @@
         .log-info { color: var(--primary); }
         .log-err { color: var(--red); }
 
-        /* STORAGE INDICATOR */
         #storage-name {
             font-size: 0.7em; color: #888; text-align: center; margin-top: -5px; margin-bottom: 5px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        /* MODAL */
         #modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); display: none; z-index: 1000;
@@ -133,7 +124,6 @@
             padding: 20px; border-radius: 8px; width: 250px; text-align: center;
         }
 
-        /* FOOTER */
         .support-footer {
             margin-top: auto; padding: 10px; text-align: center;
             border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);
@@ -247,13 +237,11 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    // Trigger Handling (Keybind press from Game)
-    // We check if the trigger name matches our registered bind
+    // Trigger Handling
     for(let key in data) {
         if(key.startsWith("trigger_stash_trigger") && data[key] !== lastTriggerTime) {
             lastTriggerTime = data[key];
-            // AUTO-EXECUTE LOGIC
-            log("Keybind Detected! Auto-Stashing...", "info");
+            log("Keybind Detected! Executing Stash...", "info");
             executeMove('stash'); 
         }
     }
@@ -317,7 +305,7 @@ function updateMatchCount() {
     el.innerHTML = `Found: <span style="color:white">${invMatches}</span> Pockets | <span style="color:white">${storageMatches}</span> Storage`;
 }
 
-// --- EXECUTION LOGIC (PROXY) ---
+// --- EXECUTION LOGIC (SHOTGUN METHOD) ---
 async function executeMove(direction) {
     if(isRunning) return;
     const term = document.getElementById('search-input').value.trim().toLowerCase();
@@ -326,11 +314,7 @@ async function executeMove(direction) {
 
     let source = (direction === 'stash') ? MEMORY.inventory : MEMORY.storage;
     let actionName = (direction === 'stash') ? "Stashing" : "Taking";
-    // Using generic endpoints often mapped in these frameworks
-    let endpoints = [
-        `https://cfx-nui-inventory/NUI_${direction === 'stash' ? 'Put' : 'Take'}Item`,
-        `https://cfx-nui-tycoon-inventory/NUI_${direction === 'stash' ? 'Put' : 'Take'}Item`
-    ];
+    let endpointAction = (direction === 'stash') ? "PutItem" : "TakeItem";
     
     if(!source || Object.keys(source).length === 0) {
         log(`Source empty or closed.`, "error");
@@ -354,18 +338,30 @@ async function executeMove(direction) {
         return;
     }
 
+    // LIST OF LIKELY ENDPOINTS (The Shotgun)
+    const targets = [
+        `https://cfx-nui-inventory/NUI_${endpointAction}`,
+        `https://cfx-nui-inventory/${endpointAction}`,
+        `https://cfx-nui-tycoon-inventory/NUI_${endpointAction}`,
+        `https://cfx-nui-tycoon-inventory/${endpointAction}`
+    ];
+
     for (const item of itemsToMove) {
         if(item.count <= 0) continue;
+
         log(`${actionName}: ${item.id.substring(0,25)}...`, "info");
 
+        // Construct standard payload
         const payload = {
-            item: { name: item.id, amount: item.count },
-            number: parseInt(item.count)
+            item: { name: item.id, label: item.id, type: "item_standard", amount: parseInt(item.count) },
+            number: parseInt(item.count),
+            count: parseInt(item.count), // Some inventories use count instead of number
+            type: "item_standard"
         };
 
         if(window.parent) {
-            // Try sending to BOTH known likely endpoint structures
-            endpoints.forEach(url => {
+            // Fire to ALL potential endpoints
+            targets.forEach(url => {
                 window.parent.postMessage({
                     type: "POST",
                     url: url,
@@ -385,7 +381,6 @@ function openBindModal() {
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('bind-display').value = "Press key...";
     
-    // One-time listener
     const handler = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -404,7 +399,6 @@ function saveBind() {
         localStorage.setItem("stash_bind", key);
         document.getElementById('bind-btn').innerText = key;
         
-        // REGISTER TRIGGER WITH GAME
         if(window.parent) {
             window.parent.postMessage({ 
                 type: "registerTrigger", 
@@ -435,8 +429,10 @@ head.addEventListener("mousedown", e => {
 
 function dragMove(e) {
     if(!isDragging) return;
-    elm.style.left = (initLeft + e.clientX - startX) + "px";
-    elm.style.top = (initTop + e.clientY - startY) + "px";
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    elm.style.left = (initLeft + dx) + "px";
+    elm.style.top = (initTop + dy) + "px";
 }
 
 function dragEnd() {
