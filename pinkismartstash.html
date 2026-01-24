@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pinki Smart Stash v1.0</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --primary: #d500f9; /* Pinki Purple */
+            --primary-dim: #9e00c5;
+            --bg-glass: rgba(20, 10, 25, 0.96);
+            --text-main: #ffffff;
+            --text-dim: #e1bee7;
+            --border: 1px solid rgba(213, 0, 249, 0.4);
+            --green: #00e676;
+            --red: #ff1744;
+            --heart-color: #ff4081;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        #app-container {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 380px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.95);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            min-height: 350px;
+        }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(90deg, #4a148c, #000);
+            height: 50px; padding: 0 10px; cursor: move;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .header-title {
+            font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.2em;
+            letter-spacing: 1px; color: var(--primary);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .close-btn {
+            background: transparent; border: none; color: #aaa; cursor: pointer; font-size: 1.2em;
+        }
+        .close-btn:hover { color: white; }
+
+        /* CONTENT */
+        #content { padding: 15px; display: flex; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; }
+
+        .search-group { display: flex; flex-direction: column; gap: 5px; }
+        .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+        
+        #search-input {
+            background: rgba(0,0,0,0.5); border: 1px solid var(--primary-dim);
+            color: white; padding: 12px; border-radius: 6px; font-size: 1.1em;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold;
+            outline: none; transition: 0.2s; text-align: center;
+        }
+        #search-input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(213, 0, 249, 0.2); }
+
+        .btn-row { display: flex; gap: 10px; }
+        .action-btn {
+            flex: 1; padding: 15px; border-radius: 6px; border: none; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1em;
+            color: white; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-stash { background: linear-gradient(135deg, #7b1fa2, #4a148c); border: 1px solid #8e24aa; }
+        .btn-stash:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(123, 31, 162, 0.4); }
+        .btn-stash:active { transform: translateY(2px); }
+
+        .btn-take { background: linear-gradient(135deg, #2e7d32, #1b5e20); border: 1px solid #43a047; }
+        .btn-take:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(67, 160, 71, 0.4); }
+
+        /* STATUS LOG */
+        .log-box {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px; padding: 10px; height: 120px; overflow-y: auto;
+            font-size: 0.8em; font-family: monospace; color: #ccc;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .log-item { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom: 2px; }
+        .log-success { color: var(--green); }
+        .log-info { color: var(--primary); }
+        .log-err { color: var(--red); }
+
+        /* FOOTER */
+        .support-footer {
+            margin-top: auto; padding: 10px; text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);
+        }
+        .support-link {
+            font-size: 0.7em; color: var(--text-dim); text-decoration: none;
+            font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: 1px;
+            opacity: 0.6; transition: 0.3s; cursor: pointer;
+        }
+        .support-link:hover { opacity: 1; color: white; }
+        .heart-spin { display: inline-block; color: var(--heart-color); animation: spinHeart 2.5s infinite linear; }
+        @keyframes spinHeart { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary-dim); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header id="drag-handle" onmousedown="dragStart(event)">
+        <div class="header-title"><i class="fas fa-boxes"></i> SMART STASH</div>
+        <button class="close-btn" onclick="closeApp()">✕</button>
+    </header>
+
+    <div id="content">
+        <div class="search-group">
+            <div class="label">FILTER KEYWORD</div>
+            <input type="text" id="search-input" placeholder="e.g. Card, Meat, Plastic...">
+        </div>
+
+        <div class="btn-row">
+            <button class="action-btn btn-stash" onclick="executeMove('stash')">
+                <i class="fas fa-arrow-right"></i> STASH
+            </button>
+            <button class="action-btn btn-take" onclick="executeMove('take')">
+                <i class="fas fa-arrow-left"></i> TAKE
+            </button>
+        </div>
+
+        <div class="label" style="margin-top:10px;">OPERATION LOG</div>
+        <div class="log-box" id="log-console">
+            <div class="log-item" style="color:#666;">Waiting for input...</div>
+        </div>
+    </div>
+
+    <div class="support-footer">
+        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
+            Support PinkiPrim <span class="heart-spin">❤</span>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- STATE ---
+let MEMORY = { 
+    inventory: {}, // Player Pockets
+    storage: {}    // Open Chest/Trunk
+};
+let isRunning = false;
+
+// --- INIT ---
+function openExternal(url) {
+    try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); }
+}
+function closeApp() {
+    if(window.parent) window.parent.postMessage({type: 'close'}, '*');
+    document.body.style.display = 'none';
+}
+
+// --- LOGGING ---
+function log(msg, type='info') {
+    const box = document.getElementById('log-console');
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    
+    let colorClass = 'log-info';
+    if(type === 'success') colorClass = 'log-success';
+    if(type === 'error') colorClass = 'log-err';
+    
+    div.innerHTML = `<span class="${colorClass}">${msg}</span> <span style="font-size:0.8em; opacity:0.5">${new Date().toLocaleTimeString()}</span>`;
+    box.prepend(div); // Add to top
+    if(box.children.length > 20) box.lastChild.remove();
+}
+
+// --- DATA ENGINE ---
+function requestData() {
+    if(window.parent) {
+        // Request inventory and ALL chest data to find the open storage
+        window.parent.postMessage({ type: "getData" }, "*");
+    }
+}
+setInterval(requestData, 1000);
+
+window.addEventListener('message', (event) => {
+    let data = event.data.type === 'data' ? event.data.data : event.data;
+    if (!data) return;
+    
+    // Parse Player Inventory
+    if(data.inventory) {
+        try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
+    }
+
+    // Find Open Storage (Trunk/Chest/Storage)
+    // We look for keys starting with "chest_" or "storage_" that aren't empty
+    for(let key in data) {
+        if((key.startsWith("chest_") || key.startsWith("storage_") || key.startsWith("trunk")) && data[key]) {
+            try {
+                let sData = (typeof data[key] === 'string') ? JSON.parse(data[key]) : data[key];
+                if(sData && Object.keys(sData).length > 0) {
+                    MEMORY.storage = sData; // Found the active secondary storage
+                }
+            } catch(e){}
+        }
+    }
+});
+
+// --- EXECUTION LOGIC ---
+async function executeMove(direction) {
+    if(isRunning) return;
+    const term = document.getElementById('search-input').value.trim().toLowerCase();
+    
+    if(!term) {
+        log("Please enter a keyword first.", "error");
+        return;
+    }
+
+    // Determine Source and Target
+    let source = (direction === 'stash') ? MEMORY.inventory : MEMORY.storage;
+    let actionName = (direction === 'stash') ? "Stashing" : "Taking";
+    let targetInvName = (direction === 'stash') ? "secondary" : "main"; // Used for NUI call
+    
+    if(!source || Object.keys(source).length === 0) {
+        log(`Source is empty or not loaded.`, "error");
+        return;
+    }
+
+    log(`Scanning for "${term}"...`, "info");
+    isRunning = true;
+    let moveCount = 0;
+
+    // Convert Source Object to Array for processing
+    // Inventory structure: { "water": { amount: 5, label: "Water" }, ... }
+    let itemsToMove = [];
+
+    for (let key in source) {
+        let item = source[key];
+        let itemName = item.label || item.name || key;
+        let itemAmount = item.amount || item.count || item; // Handle simple number format too
+        
+        // Strict Check: Name or ID contains search term
+        if (itemName.toLowerCase().includes(term) || key.toLowerCase().includes(term)) {
+            itemsToMove.push({
+                id: key,
+                count: itemAmount,
+                label: itemName
+            });
+        }
+    }
+
+    if (itemsToMove.length === 0) {
+        log("No matching items found.", "error");
+        isRunning = false;
+        return;
+    }
+
+    // EXECUTE MOVES SEQUENTIALLY
+    for (const item of itemsToMove) {
+        log(`${actionName}: ${item.label} (x${item.count})`, "info");
+        
+        // NUI CALL
+        // This attempts to replicate the standard inventory move call
+        // 'number' is amount, 'item' is the item object/ID
+        
+        if (direction === 'stash') {
+            // Player -> Storage
+            $.post('https://inventory/NUI_PutItem', JSON.stringify({
+                item: { name: item.id, label: item.label, amount: item.count, type: "item_standard" }, // Mock full object
+                number: parseInt(item.count),
+                target: "secondary" // Usually means the open trunk/chest
+            }));
+        } else {
+            // Storage -> Player
+            $.post('https://inventory/NUI_TakeItem', JSON.stringify({
+                item: { name: item.id, label: item.label, amount: item.count, type: "item_standard" },
+                number: parseInt(item.count),
+                target: "secondary" // Taking FROM secondary
+            }));
+        }
+
+        moveCount++;
+        // Small delay to be safe
+        await new Promise(r => setTimeout(r, 150));
+    }
+
+    log(`Operation Complete. Moved ${moveCount} stacks.`, "success");
+    isRunning = false;
+}
+
+// --- DRAG LOGIC ---
+const elm = document.getElementById("app-container");
+const head = document.getElementById("drag-handle");
+let isDragging = false, startX, startY, initLeft, initTop;
+
+head.addEventListener("mousedown", e => {
+    if(e.target.closest('button')) return;
+    e.preventDefault();
+    isDragging = true;
+    startX = e.clientX; startY = e.clientY;
+    const r = elm.getBoundingClientRect();
+    initLeft = r.left; initTop = r.top;
+    document.addEventListener("mousemove", dragMove);
+    document.addEventListener("mouseup", dragEnd);
+});
+
+function dragMove(e) {
+    if(!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    elm.style.left = (initLeft + dx) + "px";
+    elm.style.top = (initTop + dy) + "px";
+}
+
+function dragEnd() {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragMove);
+    document.removeEventListener("mouseup", dragEnd);
+}
+</script>
+</body>
+</html>
