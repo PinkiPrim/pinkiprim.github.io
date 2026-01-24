@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pinki Smart Stash v1.3</title>
+    <title>Pinki Smart Stash v2.0</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -12,6 +12,7 @@
             --primary: #d500f9;
             --primary-dim: #9e00c5;
             --bg-glass: rgba(20, 10, 25, 0.96);
+            --bg-header: #4a148c;
             --text-main: #ffffff;
             --text-dim: #e1bee7;
             --border: 1px solid rgba(213, 0, 249, 0.4);
@@ -40,11 +41,12 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.95);
             display: flex; flex-direction: column;
             overflow: hidden;
-            min-height: 380px;
+            min-height: 420px;
         }
 
+        /* HEADER */
         header {
-            background: linear-gradient(90deg, #4a148c, #000);
+            background: linear-gradient(90deg, var(--bg-header), #000);
             height: 50px; padding: 0 10px; cursor: move;
             display: flex; align-items: center; justify-content: space-between;
             border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -59,7 +61,8 @@
         }
         .close-btn:hover { color: white; }
 
-        #content { padding: 15px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; }
+        /* CONTENT */
+        #content { padding: 15px; display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; }
 
         .search-group { display: flex; flex-direction: column; gap: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
@@ -76,6 +79,18 @@
             text-align: center; font-size: 0.8em; color: var(--text-dim); font-style: italic; min-height: 1.2em;
         }
 
+        /* BINDING BOX */
+        .bind-box {
+            background: rgba(255,255,255,0.05); border: 1px dashed var(--primary-dim);
+            padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .bind-btn {
+            background: var(--primary); color: #000; border: none; padding: 5px 10px;
+            border-radius: 4px; font-weight: bold; cursor: pointer; font-family: 'Rajdhani', sans-serif;
+        }
+        .bind-btn:hover { filter: brightness(1.2); }
+
+        /* ACTION BUTTONS */
         .btn-row { display: flex; gap: 10px; }
         .action-btn {
             flex: 1; padding: 15px; border-radius: 6px; border: none; cursor: pointer;
@@ -89,9 +104,10 @@
         .btn-take { background: linear-gradient(135deg, #2e7d32, #1b5e20); border: 1px solid #43a047; }
         .btn-take:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(67, 160, 71, 0.4); }
 
+        /* LOG */
         .log-box {
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 6px; padding: 10px; height: 140px; overflow-y: auto;
+            border-radius: 6px; padding: 10px; height: 100px; overflow-y: auto;
             font-size: 0.8em; font-family: monospace; color: #ccc;
             display: flex; flex-direction: column; gap: 4px;
         }
@@ -100,9 +116,21 @@
         .log-info { color: var(--primary); }
         .log-err { color: var(--red); }
 
+        /* STORAGE INDICATOR */
         #storage-name {
             font-size: 0.7em; color: #888; text-align: center; margin-top: -5px; margin-bottom: 5px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* MODAL */
+        #modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: none; z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: var(--bg-header); border: 1px solid var(--primary);
+            padding: 20px; border-radius: 8px; width: 250px; text-align: center;
         }
 
         /* FOOTER */
@@ -126,6 +154,15 @@
 <body>
 
 <div id="app-container">
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <div style="font-weight:bold; color:var(--primary); margin-bottom:10px;">SET TRIGGER KEY</div>
+            <div style="font-size:0.8em; color:#ccc; margin-bottom:10px;">Press any key to bind...</div>
+            <input type="text" id="bind-display" readonly style="width:100%; padding:8px; text-align:center; background:#222; border:1px solid #444; color:white; margin-bottom:10px;">
+            <button class="action-btn" onclick="saveBind()" style="padding:8px;">SAVE</button>
+        </div>
+    </div>
+
     <header id="drag-handle" onmousedown="dragStart(event)">
         <div class="header-title"><i class="fas fa-boxes"></i> SMART STASH</div>
         <button class="close-btn" onclick="closeApp()">✕</button>
@@ -137,6 +174,11 @@
         <div class="search-group">
             <div class="label">FILTER KEYWORD</div>
             <input type="text" id="search-input" placeholder="e.g. RTS, Meat, Plastic..." oninput="updateMatchCount()">
+        </div>
+
+        <div class="bind-box">
+            <div class="label" style="margin:0;">AUTO-EXECUTE KEY</div>
+            <button id="bind-btn" class="bind-btn" onclick="openBindModal()">NONE</button>
         </div>
 
         <div id="match-status"></div>
@@ -166,13 +208,17 @@
 <script>
 // --- STATE ---
 let MEMORY = { 
-    inventory: {}, // Player Pockets
-    storage: {},   // Open Chest/Trunk
-    storageId: ""  // ID of the open storage
+    inventory: {}, // Pockets
+    storage: {},   // Chest/Trunk
+    storageId: "" 
 };
 let isRunning = false;
+let currentBind = localStorage.getItem("stash_bind") || null;
+let lastTriggerTime = 0;
 
 // --- INIT ---
+if(currentBind) document.getElementById('bind-btn').innerText = currentBind;
+
 function openExternal(url) {
     try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); }
 }
@@ -193,10 +239,7 @@ function log(msg, type='info') {
 
 // --- DATA ENGINE ---
 function requestData() {
-    if(window.parent) {
-        // Request FULL payload
-        window.parent.postMessage({ type: "getData" }, "*");
-    }
+    if(window.parent) window.parent.postMessage({ type: "getData" }, "*");
 }
 setInterval(requestData, 1000);
 
@@ -204,20 +247,28 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    // Filter "Blank Packets"
-    if(Object.keys(data).length < 5) return; 
+    // Trigger Handling (Keybind press from Game)
+    // We check if the trigger name matches our registered bind
+    for(let key in data) {
+        if(key.startsWith("trigger_stash_trigger") && data[key] !== lastTriggerTime) {
+            lastTriggerTime = data[key];
+            // AUTO-EXECUTE LOGIC
+            log("Keybind Detected! Auto-Stashing...", "info");
+            executeMove('stash'); 
+        }
+    }
 
-    // 1. Parse Player Inventory
+    if(Object.keys(data).length < 5) return; // Anti-Flicker
+
+    // Inventory Parse
     if(data.inventory) {
         try { 
             const inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; 
-            if(inv && Object.keys(inv).length > 0) {
-                MEMORY.inventory = inv;
-            }
+            if(inv && Object.keys(inv).length > 0) MEMORY.inventory = inv;
         } catch(e) {}
     }
 
-    // 2. Find Open Storage
+    // Storage Detection
     let foundStorageKey = null;
     let foundStorageData = null;
 
@@ -255,7 +306,6 @@ window.addEventListener('message', (event) => {
     updateMatchCount();
 });
 
-// --- HELPER: Count matches ---
 function updateMatchCount() {
     const term = document.getElementById('search-input').value.trim().toLowerCase();
     const el = document.getElementById('match-status');
@@ -267,7 +317,7 @@ function updateMatchCount() {
     el.innerHTML = `Found: <span style="color:white">${invMatches}</span> Pockets | <span style="color:white">${storageMatches}</span> Storage`;
 }
 
-// --- EXECUTION LOGIC (PROXY METHOD) ---
+// --- EXECUTION LOGIC (PROXY) ---
 async function executeMove(direction) {
     if(isRunning) return;
     const term = document.getElementById('search-input').value.trim().toLowerCase();
@@ -276,7 +326,11 @@ async function executeMove(direction) {
 
     let source = (direction === 'stash') ? MEMORY.inventory : MEMORY.storage;
     let actionName = (direction === 'stash') ? "Stashing" : "Taking";
-    let endpoint = (direction === 'stash') ? "NUI_PutItem" : "NUI_TakeItem";
+    // Using generic endpoints often mapped in these frameworks
+    let endpoints = [
+        `https://cfx-nui-inventory/NUI_${direction === 'stash' ? 'Put' : 'Take'}Item`,
+        `https://cfx-nui-tycoon-inventory/NUI_${direction === 'stash' ? 'Put' : 'Take'}Item`
+    ];
     
     if(!source || Object.keys(source).length === 0) {
         log(`Source empty or closed.`, "error");
@@ -291,10 +345,7 @@ async function executeMove(direction) {
     for (let key in source) {
         let item = source[key];
         let count = (typeof item === 'object') ? (item.amount || item.count || 0) : item;
-        
-        if (key.toLowerCase().includes(term)) {
-            itemsToMove.push({ id: key, count: count });
-        }
+        if (key.toLowerCase().includes(term)) itemsToMove.push({ id: key, count: count });
     }
 
     if (itemsToMove.length === 0) {
@@ -305,46 +356,71 @@ async function executeMove(direction) {
 
     for (const item of itemsToMove) {
         if(item.count <= 0) continue;
-
         log(`${actionName}: ${item.id.substring(0,25)}...`, "info");
 
-        // --- THE MAGIC FIX: PARENT PROXY ---
-        // We ask the parent (Game) to send the NUI request for us.
-        // This bypasses the CORS/DNS error in the iframe.
-        
         const payload = {
             item: { name: item.id, amount: item.count },
             number: parseInt(item.count)
         };
 
         if(window.parent) {
-            // Method 1: Generic Proxy (Standard)
-            window.parent.postMessage({
-                type: "POST",
-                url: `http://inventory/${endpoint}`,
-                data: JSON.stringify(payload)
-            }, "*");
-
-            // Method 2: Fallback (Modern CFX)
-            window.parent.postMessage({
-                type: "POST",
-                url: `https://cfx-nui-inventory/${endpoint}`,
-                data: JSON.stringify(payload)
-            }, "*");
+            // Try sending to BOTH known likely endpoint structures
+            endpoints.forEach(url => {
+                window.parent.postMessage({
+                    type: "POST",
+                    url: url,
+                    data: JSON.stringify(payload)
+                }, "*");
+            });
         }
-
         moveCount++;
-        await new Promise(r => setTimeout(r, 200)); // Delay for stability
+        await new Promise(r => setTimeout(r, 200)); 
     }
-
-    log(`Sent ${moveCount} commands.`, "success");
+    log(`Done. Processed ${moveCount} stacks.`, "success");
     isRunning = false;
 }
 
-// --- DRAG LOGIC ---
+// --- BINDING LOGIC ---
+function openBindModal() {
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('bind-display').value = "Press key...";
+    
+    // One-time listener
+    const handler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let key = e.key.toUpperCase();
+        if(key === " ") key = "SPACE";
+        document.getElementById('bind-display').value = key;
+        document.removeEventListener('keydown', handler);
+    };
+    document.addEventListener('keydown', handler);
+}
+
+function saveBind() {
+    let key = document.getElementById('bind-display').value;
+    if(key && key !== "Press key...") {
+        currentBind = key;
+        localStorage.setItem("stash_bind", key);
+        document.getElementById('bind-btn').innerText = key;
+        
+        // REGISTER TRIGGER WITH GAME
+        if(window.parent) {
+            window.parent.postMessage({ 
+                type: "registerTrigger", 
+                trigger: "stash_trigger", 
+                name: "Smart Stash Execute",
+                key: key 
+            }, "*");
+        }
+    }
+    document.getElementById('modal-overlay').style.display = 'none';
+}
+
+// --- DRAG ---
 const elm = document.getElementById("app-container");
 const head = document.getElementById("drag-handle");
-let isDragging = false, startX, startY, initialLeft, initialTop;
+let isDragging = false, startX, startY, initLeft, initTop;
 
 head.addEventListener("mousedown", e => {
     if(e.target.closest('button')) return;
@@ -359,10 +435,8 @@ head.addEventListener("mousedown", e => {
 
 function dragMove(e) {
     if(!isDragging) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    elm.style.left = (initLeft + dx) + "px";
-    elm.style.top = (initTop + dy) + "px";
+    elm.style.left = (initLeft + e.clientX - startX) + "px";
+    elm.style.top = (initTop + e.clientY - startY) + "px";
 }
 
 function dragEnd() {
