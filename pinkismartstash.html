@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pinki Smart Stash v1.0</title>
+    <title>Pinki Smart Stash v1.1</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -40,7 +40,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.95);
             display: flex; flex-direction: column;
             overflow: hidden;
-            min-height: 350px;
+            min-height: 380px;
         }
 
         /* HEADER */
@@ -61,7 +61,7 @@
         .close-btn:hover { color: white; }
 
         /* CONTENT */
-        #content { padding: 15px; display: flex; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; }
+        #content { padding: 15px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; }
 
         .search-group { display: flex; flex-direction: column; gap: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
@@ -73,6 +73,10 @@
             outline: none; transition: 0.2s; text-align: center;
         }
         #search-input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(213, 0, 249, 0.2); }
+
+        #match-status {
+            text-align: center; font-size: 0.8em; color: var(--text-dim); font-style: italic; min-height: 1.2em;
+        }
 
         .btn-row { display: flex; gap: 10px; }
         .action-btn {
@@ -90,7 +94,7 @@
         /* STATUS LOG */
         .log-box {
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 6px; padding: 10px; height: 120px; overflow-y: auto;
+            border-radius: 6px; padding: 10px; height: 140px; overflow-y: auto;
             font-size: 0.8em; font-family: monospace; color: #ccc;
             display: flex; flex-direction: column; gap: 4px;
         }
@@ -98,6 +102,11 @@
         .log-success { color: var(--green); }
         .log-info { color: var(--primary); }
         .log-err { color: var(--red); }
+
+        /* STORAGE INDICATOR */
+        #storage-name {
+            font-size: 0.7em; color: #888; text-align: center; margin-top: -5px; margin-bottom: 5px;
+        }
 
         /* FOOTER */
         .support-footer {
@@ -127,10 +136,14 @@
     </header>
 
     <div id="content">
+        <div id="storage-name">Storage: Scanning...</div>
+        
         <div class="search-group">
             <div class="label">FILTER KEYWORD</div>
-            <input type="text" id="search-input" placeholder="e.g. Card, Meat, Plastic...">
+            <input type="text" id="search-input" placeholder="e.g. RTS, Meat, Plastic..." oninput="updateMatchCount()">
         </div>
+
+        <div id="match-status"></div>
 
         <div class="btn-row">
             <button class="action-btn btn-stash" onclick="executeMove('stash')">
@@ -141,9 +154,9 @@
             </button>
         </div>
 
-        <div class="label" style="margin-top:10px;">OPERATION LOG</div>
+        <div class="label" style="margin-top:5px;">OPERATION LOG</div>
         <div class="log-box" id="log-console">
-            <div class="log-item" style="color:#666;">Waiting for input...</div>
+            <div class="log-item" style="color:#666;">Ready...</div>
         </div>
     </div>
 
@@ -158,7 +171,8 @@
 // --- STATE ---
 let MEMORY = { 
     inventory: {}, // Player Pockets
-    storage: {}    // Open Chest/Trunk
+    storage: {},   // Open Chest/Trunk
+    storageId: ""  // ID of the open storage (e.g. chest_u123backpack)
 };
 let isRunning = false;
 
@@ -182,14 +196,14 @@ function log(msg, type='info') {
     if(type === 'error') colorClass = 'log-err';
     
     div.innerHTML = `<span class="${colorClass}">${msg}</span> <span style="font-size:0.8em; opacity:0.5">${new Date().toLocaleTimeString()}</span>`;
-    box.prepend(div); // Add to top
+    box.prepend(div); 
     if(box.children.length > 20) box.lastChild.remove();
 }
 
 // --- DATA ENGINE ---
 function requestData() {
     if(window.parent) {
-        // Request inventory and ALL chest data to find the open storage
+        // Request generic data to catch dynamic keys
         window.parent.postMessage({ type: "getData" }, "*");
     }
 }
@@ -199,24 +213,76 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
     
-    // Parse Player Inventory
+    // 1. Parse Player Inventory
     if(data.inventory) {
-        try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
-    }
-
-    // Find Open Storage (Trunk/Chest/Storage)
-    // We look for keys starting with "chest_" or "storage_" that aren't empty
-    for(let key in data) {
-        if((key.startsWith("chest_") || key.startsWith("storage_") || key.startsWith("trunk")) && data[key]) {
-            try {
-                let sData = (typeof data[key] === 'string') ? JSON.parse(data[key]) : data[key];
-                if(sData && Object.keys(sData).length > 0) {
-                    MEMORY.storage = sData; // Found the active secondary storage
-                }
-            } catch(e){}
+        try { 
+            MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; 
+        } catch(e) {
+            MEMORY.inventory = {};
         }
     }
+
+    // 2. Find Open Storage (The complex part)
+    // We look for ANY key starting with chest_, trunk, or storage that HAS DATA
+    let foundStorage = false;
+    
+    for(let key in data) {
+        if(key === "inventory") continue; // Skip self
+
+        // Check for chest/storage/trunk keys
+        if(key.startsWith("chest_") || key.startsWith("storage_") || key.startsWith("trunk") || key.startsWith("veh_")) {
+            let rawVal = data[key];
+            
+            // Ignore "none" or empty/null
+            if(rawVal && rawVal !== "none" && rawVal !== "{}") {
+                try {
+                    let sData = (typeof rawVal === 'string') ? JSON.parse(rawVal) : rawVal;
+                    // If it parsed and has keys, we assume this is the active storage
+                    if(sData && typeof sData === 'object') {
+                        MEMORY.storage = sData;
+                        MEMORY.storageId = key;
+                        document.getElementById('storage-name').innerText = `Target: ${key}`;
+                        document.getElementById('storage-name').style.color = "#00e676";
+                        foundStorage = true;
+                        break; // Stop after finding first valid storage
+                    }
+                } catch(e){}
+            }
+        }
+    }
+
+    if(!foundStorage) {
+        document.getElementById('storage-name').innerText = `Target: None / Closed`;
+        document.getElementById('storage-name').style.color = "#ff4444";
+        MEMORY.storage = {};
+    }
+
+    updateMatchCount();
 });
+
+// --- HELPER: Count matches without moving ---
+function updateMatchCount() {
+    const term = document.getElementById('search-input').value.trim().toLowerCase();
+    const el = document.getElementById('match-status');
+    
+    if(!term) {
+        el.innerText = "";
+        return;
+    }
+
+    // Check Matches in BOTH directions just to show info
+    let invMatches = 0;
+    for(let key in MEMORY.inventory) {
+        if(key.toLowerCase().includes(term)) invMatches++;
+    }
+
+    let storageMatches = 0;
+    for(let key in MEMORY.storage) {
+        if(key.toLowerCase().includes(term)) storageMatches++;
+    }
+
+    el.innerHTML = `Found: <span style="color:white">${invMatches}</span> in Pockets | <span style="color:white">${storageMatches}</span> in Storage`;
+}
 
 // --- EXECUTION LOGIC ---
 async function executeMove(direction) {
@@ -231,32 +297,30 @@ async function executeMove(direction) {
     // Determine Source and Target
     let source = (direction === 'stash') ? MEMORY.inventory : MEMORY.storage;
     let actionName = (direction === 'stash') ? "Stashing" : "Taking";
-    let targetInvName = (direction === 'stash') ? "secondary" : "main"; // Used for NUI call
+    let targetInvName = (direction === 'stash') ? "secondary" : "main"; 
     
     if(!source || Object.keys(source).length === 0) {
-        log(`Source is empty or not loaded.`, "error");
+        log(`Source is empty. Open storage?`, "error");
         return;
     }
 
-    log(`Scanning for "${term}"...`, "info");
+    log(`Processing "${term}"...`, "info");
     isRunning = true;
     let moveCount = 0;
 
-    // Convert Source Object to Array for processing
-    // Inventory structure: { "water": { amount: 5, label: "Water" }, ... }
     let itemsToMove = [];
 
+    // Filter Items
     for (let key in source) {
         let item = source[key];
-        let itemName = item.label || item.name || key;
-        let itemAmount = item.amount || item.count || item; // Handle simple number format too
+        // Ensure we handle object vs number (Tycoon inventory structure)
+        let count = (typeof item === 'object') ? (item.amount || item.count || 0) : item;
         
-        // Strict Check: Name or ID contains search term
-        if (itemName.toLowerCase().includes(term) || key.toLowerCase().includes(term)) {
+        // Match Check
+        if (key.toLowerCase().includes(term)) {
             itemsToMove.push({
-                id: key,
-                count: itemAmount,
-                label: itemName
+                id: key,     // The actual Key ID (e.g., "rts_card|...")
+                count: count
             });
         }
     }
@@ -267,36 +331,42 @@ async function executeMove(direction) {
         return;
     }
 
-    // EXECUTE MOVES SEQUENTIALLY
+    // EXECUTE MOVES
     for (const item of itemsToMove) {
-        log(`${actionName}: ${item.label} (x${item.count})`, "info");
+        // Don't move 0 amount
+        if(item.count <= 0) continue;
+
+        log(`${actionName}: ${item.id.substring(0,20)}... (x${item.count})`, "info");
         
-        // NUI CALL
-        // This attempts to replicate the standard inventory move call
-        // 'number' is amount, 'item' is the item object/ID
-        
+        // NUI CALL STRUCTURE
+        // For Tycoon, usually passing the ID as 'item' string or object name works
+        let payload = {
+            item: item.id, // Send the full key string
+            number: parseInt(item.count)
+        };
+
         if (direction === 'stash') {
             // Player -> Storage
+             // Often "secondary" is the keyword for the open trunk/chest
+            payload.type = "item_standard"; 
             $.post('https://inventory/NUI_PutItem', JSON.stringify({
-                item: { name: item.id, label: item.label, amount: item.count, type: "item_standard" }, // Mock full object
-                number: parseInt(item.count),
-                target: "secondary" // Usually means the open trunk/chest
+                item: { name: item.id, label: item.id, type: "item_standard" }, // Mock full object structure often required
+                number: parseInt(item.count)
             }));
         } else {
             // Storage -> Player
             $.post('https://inventory/NUI_TakeItem', JSON.stringify({
-                item: { name: item.id, label: item.label, amount: item.count, type: "item_standard" },
-                number: parseInt(item.count),
-                target: "secondary" // Taking FROM secondary
+                 item: { name: item.id, label: item.id, type: "item_standard" },
+                 number: parseInt(item.count)
             }));
         }
 
         moveCount++;
-        // Small delay to be safe
+        // Delay to prevent NUI flood
         await new Promise(r => setTimeout(r, 150));
     }
 
-    log(`Operation Complete. Moved ${moveCount} stacks.`, "success");
+    log(`Done. Processed ${moveCount} items.`, "success");
     isRunning = false;
 }
 
