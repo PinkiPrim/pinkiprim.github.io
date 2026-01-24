@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cargo Pilot Helper</title>
+    <title>TT Cargo Pilot Helper v1.7</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,6 +16,7 @@
             --green: #00e676;
             --orange: #ff9800;
             --accent: #ffc107;
+            --heart-color: #ff4081; /* Pinki Pink */
         }
 
         body {
@@ -55,7 +56,8 @@
 
         #tracker-app.mini-mode header, 
         #tracker-app.mini-mode #sky-container,
-        #tracker-app.mini-mode #content { display: none !important; }
+        #tracker-app.mini-mode #content,
+        #tracker-app.mini-mode .support-footer { display: none !important; }
 
         #micro-view {
             display: none;
@@ -219,6 +221,38 @@
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         #settings-panel, #job-list, #summary-table { display: none !important; }
+
+        #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
+
+        /* --- SUPPORT FOOTER --- */
+        .support-footer {
+            width: 100%;
+            text-align: center;
+            padding: 4px 0;
+            background: rgba(0,0,0,0.3);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .support-link {
+            font-size: 0.65em;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .support-link:hover { opacity: 1; color: #fff; }
+        .heart-spin {
+            display: inline-block;
+            color: var(--heart-color);
+            margin-left: 2px;
+            font-size: 1.1em;
+            animation: spinHeart 2.5s infinite linear;
+        }
+        @keyframes spinHeart { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+
     </style>
 </head>
 <body>
@@ -355,6 +389,13 @@
         </div>
 
     </div>
+    
+    <div class="support-footer">
+        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
+            Support PinkiPrim <span class="heart-spin">❤</span>
+        </div>
+    </div>
+    
     <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
 
@@ -368,6 +409,14 @@
 <table id="summary-table" style="display:none;"></table>
 
 <script>
+function openExternal(url) {
+    try {
+        window.invokeNative('openUrl', url);
+    } catch(e) {
+        window.open(url, '_blank');
+    }
+}
+
 // --- AIRPORT DATABASE ---
 const AIRPORTS = {
     "LSIA": "Los Santos INTL.", "SSIA": "Sandy Sh. INTL. Airport", "ZMA": "Zancudo Military Airport",
@@ -686,7 +735,11 @@ function formatNumber(num) {
 
 function getLevelInfo(exp) {
     let level = 0, xpCap = 5;
-    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    while (exp >= xpCap) {
+        exp -= xpCap;
+        level++;
+        xpCap = (level + 1) * 5;
+    }
     return { level, expInLevel: exp, expForNext: xpCap };
 }
 
