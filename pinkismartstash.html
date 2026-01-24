@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pinki Smart Stash v1.2</title>
+    <title>Pinki Smart Stash v1.3</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -43,7 +43,6 @@
             min-height: 380px;
         }
 
-        /* HEADER */
         header {
             background: linear-gradient(90deg, #4a148c, #000);
             height: 50px; padding: 0 10px; cursor: move;
@@ -60,7 +59,6 @@
         }
         .close-btn:hover { color: white; }
 
-        /* CONTENT */
         #content { padding: 15px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; }
 
         .search-group { display: flex; flex-direction: column; gap: 5px; }
@@ -91,7 +89,6 @@
         .btn-take { background: linear-gradient(135deg, #2e7d32, #1b5e20); border: 1px solid #43a047; }
         .btn-take:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(67, 160, 71, 0.4); }
 
-        /* STATUS LOG */
         .log-box {
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
             border-radius: 6px; padding: 10px; height: 140px; overflow-y: auto;
@@ -103,7 +100,6 @@
         .log-info { color: var(--primary); }
         .log-err { color: var(--red); }
 
-        /* STORAGE INDICATOR */
         #storage-name {
             font-size: 0.7em; color: #888; text-align: center; margin-top: -5px; margin-bottom: 5px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -175,7 +171,6 @@ let MEMORY = {
     storageId: ""  // ID of the open storage
 };
 let isRunning = false;
-let lastUpdate = 0;
 
 // --- INIT ---
 function openExternal(url) {
@@ -186,7 +181,6 @@ function closeApp() {
     document.body.style.display = 'none';
 }
 
-// --- LOGGING ---
 function log(msg, type='info') {
     const box = document.getElementById('log-console');
     const div = document.createElement('div');
@@ -210,8 +204,7 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    // Filter "Blank Packets" - heuristic check
-    // Real data usually has at least 'inventory', 'job', 'source' etc.
+    // Filter "Blank Packets"
     if(Object.keys(data).length < 5) return; 
 
     // 1. Parse Player Inventory
@@ -225,24 +218,20 @@ window.addEventListener('message', (event) => {
     }
 
     // 2. Find Open Storage
-    // We prioritize looking for a complex key (chest_...) before falling back to checking "chest": "none"
     let foundStorageKey = null;
     let foundStorageData = null;
 
     for(let key in data) {
         if(key === "inventory") continue; 
-
-        // Look for keys starting with chest_, trunk, veh_ AND have non-empty data
         if(key.startsWith("chest_") || key.startsWith("storage_") || key.startsWith("trunk") || key.startsWith("veh_")) {
             let rawVal = data[key];
             if(rawVal && rawVal !== "none" && rawVal !== "{}" && rawVal !== "") {
                 try {
                     let sData = (typeof rawVal === 'string') ? JSON.parse(rawVal) : rawVal;
-                    // Ensure it parsed to a valid object with contents (or at least valid empty object)
                     if(sData && typeof sData === 'object') {
                         foundStorageKey = key;
                         foundStorageData = sData;
-                        break; // Stop at first valid storage found
+                        break; 
                     }
                 } catch(e){}
             }
@@ -256,11 +245,6 @@ window.addEventListener('message', (event) => {
         document.getElementById('storage-name').innerText = `Target: ${dispName}`;
         document.getElementById('storage-name').style.color = "#00e676";
     } else {
-        // Only clear storage if we don't find one AND the packet seems valid
-        // But to avoid flickering, we only update to "None" if we haven't seen a valid one recently?
-        // For now, let's just update, but the "Blank Packet" filter above helps massive amounts.
-        
-        // Check if data.chest explicitly says "none"
         if(data.chest === "none" && !foundStorageKey) {
              MEMORY.storage = {};
              MEMORY.storageId = "";
@@ -268,75 +252,53 @@ window.addEventListener('message', (event) => {
              document.getElementById('storage-name').style.color = "#ff4444";
         }
     }
-
     updateMatchCount();
 });
 
-// --- HELPER: Count matches without moving ---
+// --- HELPER: Count matches ---
 function updateMatchCount() {
     const term = document.getElementById('search-input').value.trim().toLowerCase();
     const el = document.getElementById('match-status');
-    
-    if(!term) {
-        el.innerText = "";
-        return;
-    }
-
+    if(!term) { el.innerText = ""; return; }
     let invMatches = 0;
-    for(let key in MEMORY.inventory) {
-        // Check key name itself (e.g. rts_card|annins...)
-        if(key.toLowerCase().includes(term)) invMatches++;
-    }
-
+    for(let key in MEMORY.inventory) { if(key.toLowerCase().includes(term)) invMatches++; }
     let storageMatches = 0;
-    for(let key in MEMORY.storage) {
-        if(key.toLowerCase().includes(term)) storageMatches++;
-    }
-
+    for(let key in MEMORY.storage) { if(key.toLowerCase().includes(term)) storageMatches++; }
     el.innerHTML = `Found: <span style="color:white">${invMatches}</span> Pockets | <span style="color:white">${storageMatches}</span> Storage`;
 }
 
-// --- EXECUTION LOGIC ---
+// --- EXECUTION LOGIC (PROXY METHOD) ---
 async function executeMove(direction) {
     if(isRunning) return;
     const term = document.getElementById('search-input').value.trim().toLowerCase();
     
-    if(!term) {
-        log("Please enter a keyword first.", "error");
-        return;
-    }
+    if(!term) { log("Please enter a keyword.", "error"); return; }
 
     let source = (direction === 'stash') ? MEMORY.inventory : MEMORY.storage;
     let actionName = (direction === 'stash') ? "Stashing" : "Taking";
+    let endpoint = (direction === 'stash') ? "NUI_PutItem" : "NUI_TakeItem";
     
     if(!source || Object.keys(source).length === 0) {
-        log(`Source is empty or not loaded.`, "error");
+        log(`Source empty or closed.`, "error");
         return;
     }
 
-    log(`Scanning for "${term}"...`, "info");
+    log(`Processing "${term}"...`, "info");
     isRunning = true;
     let moveCount = 0;
 
     let itemsToMove = [];
-
     for (let key in source) {
         let item = source[key];
-        // Handle Tycoon's mixed number/object structure
         let count = (typeof item === 'object') ? (item.amount || item.count || 0) : item;
         
-        // Strict Check: Does the KEY string contain the term?
-        // e.g. "rts_card|le7b|Annis RE-7B" contains "annis"
         if (key.toLowerCase().includes(term)) {
-            itemsToMove.push({
-                id: key, 
-                count: count
-            });
+            itemsToMove.push({ id: key, count: count });
         }
     }
 
     if (itemsToMove.length === 0) {
-        log("No matching items found.", "error");
+        log("No matches found.", "error");
         isRunning = false;
         return;
     }
@@ -345,32 +307,44 @@ async function executeMove(direction) {
         if(item.count <= 0) continue;
 
         log(`${actionName}: ${item.id.substring(0,25)}...`, "info");
+
+        // --- THE MAGIC FIX: PARENT PROXY ---
+        // We ask the parent (Game) to send the NUI request for us.
+        // This bypasses the CORS/DNS error in the iframe.
         
-        // Move payload
-        if (direction === 'stash') {
-            $.post('https://inventory/NUI_PutItem', JSON.stringify({
-                item: { name: item.id, label: item.id, type: "item_standard" },
-                number: parseInt(item.count)
-            }));
-        } else {
-            $.post('https://inventory/NUI_TakeItem', JSON.stringify({
-                 item: { name: item.id, label: item.id, type: "item_standard" },
-                 number: parseInt(item.count)
-            }));
+        const payload = {
+            item: { name: item.id, amount: item.count },
+            number: parseInt(item.count)
+        };
+
+        if(window.parent) {
+            // Method 1: Generic Proxy (Standard)
+            window.parent.postMessage({
+                type: "POST",
+                url: `http://inventory/${endpoint}`,
+                data: JSON.stringify(payload)
+            }, "*");
+
+            // Method 2: Fallback (Modern CFX)
+            window.parent.postMessage({
+                type: "POST",
+                url: `https://cfx-nui-inventory/${endpoint}`,
+                data: JSON.stringify(payload)
+            }, "*");
         }
 
         moveCount++;
-        await new Promise(r => setTimeout(r, 150)); // Delay to prevent flooding
+        await new Promise(r => setTimeout(r, 200)); // Delay for stability
     }
 
-    log(`Done. Processed ${moveCount} stacks.`, "success");
+    log(`Sent ${moveCount} commands.`, "success");
     isRunning = false;
 }
 
 // --- DRAG LOGIC ---
 const elm = document.getElementById("app-container");
 const head = document.getElementById("drag-handle");
-let isDragging = false, startX, startY, initLeft, initTop;
+let isDragging = false, startX, startY, initialLeft, initialTop;
 
 head.addEventListener("mousedown", e => {
     if(e.target.closest('button')) return;
