@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Bus Ops v2.4 (Focus Fix)</title>
+    <title>TT Bus Ops v2.5 (Focus Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     
     <style>
@@ -505,6 +505,7 @@ window.addEventListener('keydown', function(e) {
     }
 });
 
+// --- RELEASE FOCUS FUNCTION ---
 function releaseFocus() {
     if(window.GetParentResourceName) {
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
@@ -742,7 +743,11 @@ function formatNumber(num) {
 
 function getLevelInfo(exp) {
     let level = 0, xpCap = 5;
-    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
+    while (exp >= xpCap) {
+        exp -= xpCap;
+        level++;
+        xpCap = (level + 1) * 5;
+    }
     return { level, expInLevel: exp, expForNext: xpCap };
 }
 
