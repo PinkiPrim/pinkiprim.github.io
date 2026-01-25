@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cargo Pilot Helper v1.8 (Focus Fix)</title>
+    <title>TT Cargo Pilot Helper v1.9</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,7 +16,7 @@
             --green: #00e676;
             --orange: #ff9800;
             --accent: #ffc107;
-            --heart-color: #ff4081; /* Pinki Pink */
+            --heart-color: #ff4081;
         }
 
         body {
@@ -43,7 +43,6 @@
             transition: width 0.2s ease, height 0.2s ease;
         }
 
-        /* --- MINI MODE --- */
         #tracker-app.mini-mode {
             width: 420px !important;
             height: 74px !important;
@@ -88,10 +87,9 @@
         }
         .micro-btn:hover { background: var(--primary); color: white; }
 
-        /* --- HEADER & ANIMATION --- */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(2, 119, 189, 0.2));
-            height: 70px; /* Taller for drops */
+            height: 70px;
             padding: 0 10px;
             cursor: move;
             position: relative;
@@ -112,7 +110,6 @@
             z-index: 10;
         }
 
-        /* ANIMATION CONTAINER */
         #sky-container {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -121,48 +118,34 @@
             z-index: 5;
         }
 
-        /* PARACHUTE & CRATE GROUP */
         .drop-group {
             position: absolute;
-            top: -90px; /* Start higher up due to larger size */
+            top: -90px;
             display: flex; flex-direction: column; align-items: center;
             opacity: 0.8;
         }
 
-        .parachute {
-            font-size: 2.2em; /* Increased size further */
-            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
-            z-index: 6;
-        }
-
+        .parachute { font-size: 2.2em; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); z-index: 6; }
         .crate {
-            font-size: 1.8em; /* Increased size further */
-            margin-top: -5px; /* Connect visually */
+            font-size: 1.8em; margin-top: -5px;
             animation: crateWiggle 2s ease-in-out infinite alternate;
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
-            transform-origin: top center; /* Swing from top */
+            transform-origin: top center;
         }
 
-        /* ANIMATIONS */
         @keyframes dropFall {
             0% { top: -90px; opacity: 0; }
             10% { opacity: 1; }
             90% { opacity: 1; }
-            100% { top: 110px; opacity: 0; } /* Fall past bottom */
+            100% { top: 110px; opacity: 0; }
         }
+        @keyframes crateWiggle { from { transform: rotate(-15deg); } to { transform: rotate(15deg); } }
 
-        @keyframes crateWiggle {
-            from { transform: rotate(-15deg); }
-            to { transform: rotate(15deg); }
-        }
-
-        /* 5 UNIQUE DROPS */
         .drop-1 { left: 10%; animation: dropFall 8s linear infinite; transform: scale(0.8); }
         .drop-2 { left: 30%; animation: dropFall 6s linear infinite 2s; transform: scale(1); }
         .drop-3 { left: 50%; animation: dropFall 9s linear infinite 1s; transform: scale(0.7); }
         .drop-4 { left: 70%; animation: dropFall 7s linear infinite 4s; transform: scale(0.9); }
         .drop-5 { left: 90%; animation: dropFall 10s linear infinite 0.5s; transform: scale(0.6); }
-
 
         .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
         .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
@@ -173,7 +156,6 @@
         
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
 
-        /* --- CONTENT --- */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
         .destination-display { background: rgba(255, 193, 7, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 10px; margin-bottom: 15px; text-align: center; transition: all 0.3s ease; }
@@ -479,7 +461,7 @@ setInterval(() => {
 // --- KEYDOWN LISTENER FOR ESC ---
 window.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' || e.keyCode === 27) { 
-        // 1. CHECK IF TYPING: If inside a text box, just unfocus it
+        // 1. CHECK IF TYPING
         if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
             document.activeElement.blur();
             return;
@@ -492,14 +474,19 @@ window.addEventListener('keydown', function(e) {
 
 // --- RELEASE FOCUS FUNCTION ---
 function releaseFocus() {
+    // 1. Unfocus any active element in the DOM
+    if (document.activeElement) {
+        document.activeElement.blur();
+    }
+
+    // 2. Remove focus from the window itself
+    window.blur();
+
+    // 3. Tell the game resource to turn off NUI focus
+    // We intentionally DO NOT send a "close" message that might destroy the iframe.
     if(window.GetParentResourceName) {
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
     }
-    
-    // Legacy/Alternative callback method
-    try {
-        window.parent.postMessage({ type: "close" }, "*");
-    } catch(e) {}
 }
 
 
