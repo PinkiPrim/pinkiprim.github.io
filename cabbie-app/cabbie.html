@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v5.0</title>
+    <title>TT Cabbie Ops v5.1 (Focus Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -610,6 +610,39 @@ setInterval(() => {
     if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
     let d = new Date(); safeSetText('clock', d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
 }, 1000);
+
+// --- KEYDOWN LISTENER FOR ESC ---
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) { 
+        // 1. CHECK IF TYPING: If inside a text box, just unfocus it
+        if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+            document.activeElement.blur();
+            return;
+        }
+
+        // 2. CHECK FOR MODALS: If a modal/menu is open, close IT
+        const breakdownPanel = document.getElementById('breakdown-panel');
+        if (breakdownPanel && breakdownPanel.classList.contains('active')) {
+            breakdownPanel.classList.remove('active');
+            return;
+        }
+
+        // 3. RETURN FOCUS TO GAME (Keep UI Visible)
+        releaseFocus();
+    }
+});
+
+// --- RELEASE FOCUS FUNCTION ---
+function releaseFocus() {
+    if(window.GetParentResourceName) {
+        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+    }
+    
+    // Legacy/Alternative callback method
+    try {
+        window.parent.postMessage({ type: "close" }, "*");
+    } catch(e) {}
+}
 
 const rh = document.getElementById('resize-handle');
 if(rh) { rh.onmousedown = e => { e.preventDefault(); window.addEventListener('mousemove', rs); window.addEventListener('mouseup', rsEnd); }; }
