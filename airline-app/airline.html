@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Airline Ops v2.2</title>
+    <title>TT Airline Ops v2.2 (Focus Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     
     <style>
@@ -537,6 +537,45 @@ startNameCycle();
 setInterval(() => {
     safeSetText('clock', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
 }, 1000);
+
+// --- KEYDOWN LISTENER FOR ESC ---
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) { 
+        // 1. CHECK IF TYPING: If inside a text box, just unfocus it
+        if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+            document.activeElement.blur();
+            return;
+        }
+
+        // 2. CHECK FOR MODALS: If a modal/menu is open, close IT, not the whole app
+        const mainMenu = document.getElementById('main-menu');
+        if (mainMenu && mainMenu.classList.contains('show')) {
+            mainMenu.classList.remove('show');
+            return;
+        }
+        
+        const grinder = document.getElementById('grinder-panel');
+        if (grinder && grinder.classList.contains('active')) {
+            grinder.classList.remove('active');
+            return;
+        }
+
+        // 3. RETURN FOCUS TO GAME (Keep UI Visible)
+        releaseFocus();
+    }
+});
+
+// --- RELEASE FOCUS FUNCTION ---
+function releaseFocus() {
+    if(window.GetParentResourceName) {
+        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+    }
+    
+    // Legacy/Alternative callback method
+    try {
+        window.parent.postMessage({ type: "close" }, "*");
+    } catch(e) {}
+}
 
 // --- ENGINE ---
 function requestData() {
