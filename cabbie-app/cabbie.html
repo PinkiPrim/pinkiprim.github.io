@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v5.1 (Focus Fix)</title>
+    <title>TT Cabbie Ops v4.9</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -18,7 +18,6 @@
             --border: 1px solid rgba(251, 192, 45, 0.5);
             --green: #76ff03;
             --red: #ff1744;
-            --heart-color: #ff4081; /* Pinki Pink */
         }
 
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background-color: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; user-select: none; }
@@ -31,10 +30,7 @@
         }
 
         #tracker-app.mini-mode { width: 420px !important; height: 90px !important; min-height: 90px !important; border-radius: 12px; background: #1a1a00; border: 1px solid var(--accent); resize: none; }
-        #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #content, 
-        #tracker-app.mini-mode #breakdown-panel,
-        #tracker-app.mini-mode .support-footer { display: none !important; }
+        #tracker-app.mini-mode header, #tracker-app.mini-mode #content, #tracker-app.mini-mode #breakdown-panel { display: none !important; }
 
         #micro-view { display: none; flex-direction: column; justify-content: center; height: 100%; padding: 0 10px; font-family: 'Rajdhani', sans-serif; cursor: move; }
         #tracker-app.mini-mode #micro-view { display: flex; }
@@ -130,36 +126,6 @@
         #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
         
         .locked { filter: blur(4px); pointer-events: none; opacity: 0.5; }
-
-        /* --- SUPPORT FOOTER --- */
-        .support-footer {
-            width: 100%;
-            text-align: center;
-            padding: 4px 0;
-            background: rgba(0,0,0,0.3);
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .support-link {
-            font-size: 0.65em;
-            color: var(--text-dim);
-            text-decoration: none;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 600;
-            letter-spacing: 1px;
-            opacity: 0.6;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .support-link:hover { opacity: 1; color: #fff; }
-        .heart-spin {
-            display: inline-block;
-            color: var(--heart-color);
-            margin-left: 2px;
-            font-size: 1.1em;
-            animation: spinHeart 2.5s infinite linear;
-        }
-        @keyframes spinHeart { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
-
     </style>
 </head>
 <body>
@@ -286,13 +252,6 @@
             </div>
         </div>
     </div>
-    
-    <div class="support-footer">
-        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
-            Support PinkiPrim <span class="heart-spin">❤</span>
-        </div>
-    </div>
-    
     <div id="resize-handle"></div>
 </div>
 
@@ -300,14 +259,6 @@
 // --- HELPERS ---
 function safeSetText(id, text) { const el = document.getElementById(id); if (el) el.innerText = text; }
 function safeSetHTML(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
-
-function openExternal(url) {
-    try {
-        window.invokeNative('openUrl', url);
-    } catch(e) {
-        window.open(url, '_blank');
-    }
-}
 
 // --- STATE ---
 let STATE = {
@@ -610,39 +561,6 @@ setInterval(() => {
     if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
     let d = new Date(); safeSetText('clock', d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
 }, 1000);
-
-// --- KEYDOWN LISTENER FOR ESC ---
-window.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' || e.keyCode === 27) { 
-        // 1. CHECK IF TYPING: If inside a text box, just unfocus it
-        if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-            document.activeElement.blur();
-            return;
-        }
-
-        // 2. CHECK FOR MODALS: If a modal/menu is open, close IT
-        const breakdownPanel = document.getElementById('breakdown-panel');
-        if (breakdownPanel && breakdownPanel.classList.contains('active')) {
-            breakdownPanel.classList.remove('active');
-            return;
-        }
-
-        // 3. RETURN FOCUS TO GAME (Keep UI Visible)
-        releaseFocus();
-    }
-});
-
-// --- RELEASE FOCUS FUNCTION ---
-function releaseFocus() {
-    if(window.GetParentResourceName) {
-        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
-    }
-    
-    // Legacy/Alternative callback method
-    try {
-        window.parent.postMessage({ type: "close" }, "*");
-    } catch(e) {}
-}
 
 const rh = document.getElementById('resize-handle');
 if(rh) { rh.onmousedown = e => { e.preventDefault(); window.addEventListener('mousemove', rs); window.addEventListener('mouseup', rsEnd); }; }
