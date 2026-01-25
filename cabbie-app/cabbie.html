@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v5.2 (Bonus Fix)</title>
+    <title>TT Cabbie Ops v5.3 (HTML Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -287,13 +287,6 @@
             </div>
         </div>
     </div>
-    
-    <div class="support-footer">
-        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
-            Support PinkiPrim <span class="heart-spin">❤</span>
-        </div>
-    </div>
-    
     <div id="resize-handle"></div>
 </div>
 
@@ -440,37 +433,30 @@ function parseIdentity(rawString) {
     }
 }
 
-// v5.2 Bonus Parser with HTML Decoding
+// v5.3 Bonus Parser with HTML Entity Fix
 function parseBonuses(rawString) {
-    // 1. Decode HTML entities
+    // 1. Decode HTML entities (e.g. &#37; -> %)
+    // This allows the regex to match "Base Experience Bonus: 117.5%" correctly
     let decodedString = rawString.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
-    // Also handle specific &#37; explicitly just in case regex didn't catch it
-    decodedString = decodedString.replace(/&#37;/g, "%");
-
+    // Fallback for hex if needed, but decimal usually covers it
+    
     let newBonuses = [];
-    let base = 100; // Default 100%
+    let base = 100; // Default
 
-    // 2. Find Base Experience Bonus
-    // Matches: "Base Experience Bonus: 117.5%"
-    let baseMatch = decodedString.match(/Base Experience Bonus:\s*([\d.]+)%/i);
+    // 2. Find Base Experience Bonus (Global Multiplier)
+    // Matches "<em>Base Experience Bonus:</em> 117.5%" or just "Base Experience Bonus: 117.5%"
+    let baseMatch = decodedString.match(/Base Experience Bonus:.*?([\d.]+)%/i);
     if (baseMatch && baseMatch[1]) {
         base = parseFloat(baseMatch[1]);
     }
 
     // 3. Find other active bonuses for display list
-    // Matches: "Linked Discord Account (5% EXP Bonus...)" or "5% Exp Bonus (Faction)"
-    // We scan lines that contain "% Exp Bonus" or "% EXP Bonus"
-    
-    // Split by <br> or newlines to process line by line
     let lines = decodedString.split(/<br\s*\/?>|\\n/);
     
     lines.forEach(line => {
-        // Strip HTML tags for clean text
         let plainText = line.replace(/<[^>]*>/g, "").trim();
-        
-        // Check if line mentions a bonus
+        // Look for lines like "Linked Discord Account (5% EXP Bonus...)"
         if (plainText.match(/\d+%\s*EXP\s*Bonus/i)) {
-             // Avoid adding the "Base Experience Bonus" line itself to the sub-list
              if (!plainText.includes("Base Experience Bonus")) {
                  newBonuses.push(plainText);
              }
@@ -592,8 +578,7 @@ function calculateCabbieXP(streak) {
     const timeBonus = 2.0; 
     const streakMult = (100 + streak) / 100;
     
-    // STATE.baseBonus is already a percentage like 117.5
-    // Convert to multiplier (e.g. 117.5 / 100 = 1.175)
+    // Convert 117.5% to 1.175
     const globalMult = STATE.baseBonus / 100; 
 
     return (distanceXP * streakMult * timeBonus) * globalMult;
