@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cabbie Ops v5.0 (Clean)</title>
+    <title>TT Cabbie Ops v5.1 (Fixed & Enhanced)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -18,7 +18,7 @@
             --border: 1px solid rgba(251, 192, 45, 0.5);
             --green: #76ff03;
             --red: #ff1744;
-            --heart-color: #ff4081; /* Pinki Pink */
+            --heart-color: #ff4081;
         }
 
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background-color: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; user-select: none; }
@@ -286,6 +286,13 @@
             </div>
         </div>
     </div>
+    
+    <div class="support-footer">
+        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
+            Support PinkiPrim <span class="heart-spin">❤</span>
+        </div>
+    </div>
+    
     <div id="resize-handle"></div>
 </div>
 
@@ -304,17 +311,13 @@ function openExternal(url) {
 
 // --- STATE ---
 let STATE = {
-    internalFares: 0, // Master Session Counter
-    
+    internalFares: 0, 
     bizXP: 0, startBizXP: null, 
     raceXP: 0, startRaceXP: null,
-    
     streak: 0, streakSynced: false,
-    
     activeBonuses: [], totalBonusPercent: 0,
-    
     lastFareTime: 0,
-    lastRaceXP: 0, lastBizXP: 0 // Store previous XP to calculate delta
+    lastRaceXP: 0, lastBizXP: 0 
 };
 
 // --- UI LOGIC ---
@@ -390,7 +393,6 @@ window.addEventListener('message', (event) => {
                     if(clean.includes("Time Bonus:")) timer = clean.replace("Time Bonus:", "").trim();
                 });
                 
-                // Display Fares from Game Logic (Pure Display)
                 safeSetText('disp-fares', currentFares); safeSetText('micro-fares', currentFares);
                 
                 safeSetText('disp-status', status); safeSetText('micro-status', status.substring(0, 10));
@@ -454,16 +456,14 @@ function parseBonuses(rawString) {
     // 2. Look for any other individual % Exp Bonuses (like Linked Discord, etc.)
     let expBonusMatches = rawString.matchAll(/([A-Za-z0-9\s]+)\s*\((\d+)%\s*EXP\s*Bonus\)/gi);
     for (const match of expBonusMatches) {
-        // match[1] is the name (e.g. "Linked Discord"), match[2] is the percentage (e.g. "5")
-        // If we already found a "Base Experience Bonus", usually that SUMS everything up.
-        // If not, we sum them manually.
+        // Add to list, and sum if not already covered by Base
         if (!baseBonusFound) {
              totalPct += parseFloat(match[2]);
         }
         newBonuses.push(`${match[1].trim()}: ${match[2]}%`);
     }
 
-    // Fallback regex for standard "5% Exp Bonus" lines without parentheses if the above misses
+    // Fallback regex for standard "5% Exp Bonus" lines without parentheses
     if(newBonuses.length === 0 && !baseBonusFound) {
          let simpleMatches = rawString.matchAll(/(\d+)%\s+Exp\s+Bonus/gi);
          for (const match of simpleMatches) {
@@ -511,14 +511,12 @@ function checkXPUpdates(val, type) {
 
     if (type === 'race') {
         if (STATE.startRaceXP === null) { STATE.startRaceXP = newXP; STATE.raceXP = newXP; STATE.lastRaceXP = newXP; return; }
-        // Simple Jump Check (> 5 XP difference)
         if (newXP > (STATE.lastRaceXP + 5)) { registerFare(); }
         STATE.raceXP = newXP;
         STATE.lastRaceXP = newXP;
     } 
     else if (type === 'biz') {
         if (STATE.startBizXP === null) { STATE.startBizXP = newXP; STATE.bizXP = newXP; STATE.lastBizXP = newXP; return; }
-        // Simple Jump Check
         if (newXP > (STATE.lastBizXP + 5)) { registerFare(); }
         STATE.bizXP = newXP;
         STATE.lastBizXP = newXP;
@@ -527,9 +525,9 @@ function checkXPUpdates(val, type) {
 
 function registerFare() {
     const now = Date.now();
-    // 8 Second Debounce (To prevent double count if Race and Biz XP update at same time)
+    // 8 Second Debounce
     if (now - STATE.lastFareTime > 8000) {
-        STATE.internalFares++; // Tracks session fares for average calculation
+        STATE.internalFares++; 
         
         if (STATE.streakSynced) {
             STATE.streak++; 
@@ -550,7 +548,6 @@ function updateStreakUI() {
 }
 
 function updateUI() {
-    // USE INTERNAL COUNTER FOR AVERAGES
     let sessionFares = Math.max(1, STATE.internalFares);
 
     if (STATE.raceXP > 0 && STATE.startRaceXP !== null) {
@@ -563,7 +560,6 @@ function updateUI() {
         safeSetText('sess-race', `+${gain.toLocaleString()} XP`);
         safeSetText('micro-race-lvl', rData.level); let mBar = document.getElementById('micro-race-bar'); if(mBar) mBar.style.width = rData.percent + "%";
         
-        // Only show average if we have actually done a fare internally
         if (STATE.internalFares > 0) safeSetText('disp-avg-race', Math.round(gain / sessionFares));
         else safeSetText('disp-avg-race', 0);
     }
@@ -589,7 +585,11 @@ function calculateCabbieXP(streak) {
     const distanceXP = 7.5; 
     const timeBonus = 2; 
     const streakMult = (100 + streak) / 100;
-    const globalMult = 1 + (STATE.totalBonusPercent / 100);
+    const globalMult = STATE.totalBonusPercent > 0 ? (STATE.totalBonusPercent / 100) : 1; 
+    // Wait, Base Experience Bonus usually implies TOTAL multiplier (e.g. 117.5% means 1.175x)
+    // If it says "117.5%", that typically means 117.5% OF the base (so 1.175x).
+    // If it says "100%", that's normal (1.0x).
+    
     return (distanceXP * streakMult * timeBonus) * globalMult;
 }
 
