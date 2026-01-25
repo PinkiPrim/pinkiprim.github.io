@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cargo Pilot Helper v1.7</title>
+    <title>TT Cargo Pilot Helper v1.8 (Focus Fix)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -475,6 +475,33 @@ function toggleMini() {
 setInterval(() => {
     document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }, 1000);
+
+// --- KEYDOWN LISTENER FOR ESC ---
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) { 
+        // 1. CHECK IF TYPING: If inside a text box, just unfocus it
+        if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+            document.activeElement.blur();
+            return;
+        }
+
+        // 3. RETURN FOCUS TO GAME (Keep UI Visible)
+        releaseFocus();
+    }
+});
+
+// --- RELEASE FOCUS FUNCTION ---
+function releaseFocus() {
+    if(window.GetParentResourceName) {
+        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+    }
+    
+    // Legacy/Alternative callback method
+    try {
+        window.parent.postMessage({ type: "close" }, "*");
+    } catch(e) {}
+}
+
 
 // --- ENGINE ---
 function requestData() {
