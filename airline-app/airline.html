@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Airline Ops v2.2 (Focus Fix)</title>
+    <title>TT Airline Ops v2.3 (Focus Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     
     <style>
@@ -547,7 +547,7 @@ window.addEventListener('keydown', function(e) {
             return;
         }
 
-        // 2. CHECK FOR MODALS: If a modal/menu is open, close IT, not the whole app
+        // 2. CHECK FOR MODALS: If a modal/menu is open, close IT
         const mainMenu = document.getElementById('main-menu');
         if (mainMenu && mainMenu.classList.contains('show')) {
             mainMenu.classList.remove('show');
