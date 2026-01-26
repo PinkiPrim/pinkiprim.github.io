@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Paramedic & Heli Helper v2.5</title>
+    <title>TT Paramedic & Heli Helper v2.6 (Anti-Flicker)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -326,30 +326,40 @@ setInterval(requestData, 1000);
 window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
+    
+    // Anti-Flicker: Ignore completely empty data or data with 0 keys if possible
+    if(Object.keys(data).length < 2) return;
+
     processPayload(data);
 });
 
 function processPayload(data) {
     if(data.name) document.getElementById('user-name-drop').innerText = "Paramedic " + data.name;
 
-    // --- EMS DATA ---
-    let emsXP = data[KEYS.EMS_XP] || data.exp_paramedic || 0;
-    if (typeof emsXP === 'number') {
+    // --- EMS DATA (Anti-Flicker: Only update if > 0) ---
+    let emsXP = data[KEYS.EMS_XP] || data.exp_paramedic;
+    if (typeof emsXP === 'number' && emsXP > 0) {
         STATE.emsXP = emsXP;
         trackEMSProgress(emsXP);
     }
 
     let emsBXP = data[KEYS.EMS_BXP];
     if(!emsBXP && data.inventory) emsBXP = findInInventory(data.inventory, KEYS.EMS_BXP);
-    if(emsBXP) STATE.emsBXP = (typeof emsBXP === 'object') ? emsBXP.amount : emsBXP;
+    if(emsBXP) {
+        let val = (typeof emsBXP === 'object') ? emsBXP.amount : emsBXP;
+        if(val > 0) STATE.emsBXP = val;
+    }
 
-    // --- HELI DATA ---
-    let heliXP = data[KEYS.HELI_XP] || 0;
-    if (typeof heliXP === 'number') STATE.heliXP = heliXP;
+    // --- HELI DATA (Anti-Flicker: Only update if > 0) ---
+    let heliXP = data[KEYS.HELI_XP];
+    if (typeof heliXP === 'number' && heliXP > 0) STATE.heliXP = heliXP;
 
     let heliBXP = data[KEYS.HELI_BXP];
     if(!heliBXP && data.inventory) heliBXP = findInInventory(data.inventory, KEYS.HELI_BXP);
-    if(heliBXP) STATE.heliBXP = (typeof heliBXP === 'object') ? heliBXP.amount : heliBXP;
+    if(heliBXP) {
+         let val = (typeof heliBXP === 'object') ? heliBXP.amount : heliBXP;
+         if(val > 0) STATE.heliBXP = val;
+    }
 
     // --- INVENTORY (Defibs) ---
     if(data.inventory) processInventory(data.inventory);
@@ -482,7 +492,7 @@ function runCalculator(avg) {
     if (inputVal < 200) { 
          targetXP = getXPFromLevel(inputVal);
          // Safety: only switch to level logic if input is reasonably a level target
-         if (targetXP < currentXP) targetXP = inputVal; // Revert if level logic makes no sense
+         if (targetXP < currentXP) targetXP = inputVal; 
     }
 
     if (targetXP > currentXP) {
@@ -575,13 +585,6 @@ function stopResize() {
     window.removeEventListener('mousemove', Resize, false);
     window.removeEventListener('mouseup', stopResize, false);
 }
-
-// Remove Focus on ESC (No close)
-window.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        if (document.activeElement) document.activeElement.blur();
-    }
-});
 </script>
 </body>
 </html>
