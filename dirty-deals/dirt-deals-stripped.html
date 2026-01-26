@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Grinder Restoration v13.3</title>
+    <title>Dirty Deals - God Mode v14.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -86,7 +86,7 @@
         #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 1050px; height: 680px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
         
         body.mini-mode #app-container { width: 350px !important; height: 500px !important; background: rgba(18, 18, 18, 0.98); border: 1px solid var(--accent); }
-        body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping, body.mini-mode #view-tickets { display: none !important; }
+        body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping, body.mini-mode #view-tickets, body.mini-mode #view-godmode { display: none !important; }
 
         /* MINI HEADER */
         #mini-header { display: none; flex-direction: column; }
@@ -115,11 +115,11 @@
         .admin-btn { background: #4a0000; border: 1px solid #e74c3c; color: #ffaaaa; display: none; }
         .admin-btn:hover, .admin-btn.active { background: #e74c3c; color: white; }
         
-        .support-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #333; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid #555; position: relative; }
+        .support-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #333; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid #555; position: relative; margin-right: 5px; }
         .support-btn:hover { background: var(--accent); border-color: var(--accent); }
         .notif-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background: red; border-radius: 50%; display: none; border: 1px solid black; }
 
-        .status-wrapper { display: flex; align-items: center; gap: 15px; }
+        .status-wrapper { display: flex; align-items: center; gap: 10px; }
         .mail-icon { font-size: 1.4em; position: relative; cursor: pointer; display: none; margin-right: 10px; }
         .mail-icon.has-mail { display: block; animation: bounce 1s infinite; }
         .mail-badge { position: absolute; top: 0; right: -2px; width: 10px; height: 10px; background: #e74c3c; border-radius: 50%; border: 1px solid #181818; }
@@ -128,18 +128,31 @@
         .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
         .rank-tag { font-size: 0.65em; color: var(--accent); display: block; letter-spacing: 0.5px; }
 
+        /* GOD MODE BTN */
+        #god-mode-btn { border-color: var(--gold); color: var(--gold); display: none; } 
+        #god-mode-btn:hover { background: var(--gold); color: black; }
+
         /* VIEW LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
         
-        /* HIDE ALL BY DEFAULT */
-        #view-order, #view-history, #view-grinder, #view-housekeeping, #view-tickets { display: none; width: 100%; height: 100%; }
+        #view-order, #view-history, #view-grinder, #view-housekeeping, #view-tickets, #view-godmode { display: none; width: 100%; height: 100%; }
         
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
-        
-        /* TICKET VIEW (Shrunk via Padding) */
         #view-tickets { padding: 40px; flex-direction: column; background: #141414; }
         #view-housekeeping { padding: 20px; flex-direction: column; background: #0f0f0f; }
+        
+        /* GOD MODE LAYOUT */
+        #view-godmode { padding: 20px; flex-direction: column; background: #111; }
+        .god-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; overflow: hidden; }
+        .god-panel { background: #1a1a1a; border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; overflow: hidden; }
+        .god-title { color: var(--gold); font-family: 'Rajdhani'; font-size: 1.5em; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .god-list { flex: 1; overflow-y: auto; }
+        .god-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #222; font-size: 0.9em; }
+        .god-item:hover { background: #222; }
+        .god-input { background: #000; border: 1px solid #444; color: white; padding: 4px; width: 80px; text-align: center; }
+        .god-btn { background: #333; border: 1px solid #555; color: #ccc; padding: 4px 8px; cursor: pointer; font-size: 0.8em; }
+        .god-btn:hover { background: var(--accent); color: white; }
 
         /* ORDER LAYOUT */
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
@@ -401,6 +414,7 @@
             <button class="header-btn admin-btn" id="nav-admin" onclick="switchView('housekeeping')">⚠️ Housekeeping</button>
         </div>
         <div class="status-wrapper">
+            <div class="support-btn" id="god-mode-btn" title="God Mode" onclick="switchView('godmode')">⚙️</div>
             <div class="support-btn" title="Support" onclick="openTickets()">?<div class="notif-dot" id="support-dot"></div></div>
             <button class="header-btn" style="border-color:#e74c3c; color:#e74c3c;" onclick="closeApp()">EXIT</button>
             <button class="header-btn" onclick="minimizeApp()">[ DOCK ]</button>
@@ -414,6 +428,20 @@
     </header>
 
     <div id="main-content">
+        <div id="view-godmode">
+            <div class="god-grid">
+                <div class="god-panel">
+                    <div class="god-title">GLOBAL SETTINGS</div>
+                    <div class="god-list" id="god-settings-list"></div>
+                </div>
+                <div class="god-panel">
+                    <div class="god-title">ITEM MANAGER</div>
+                    <input type="text" id="god-item-search" class="login-input" placeholder="Search Items..." style="margin-bottom:10px;" oninput="renderGodItems()">
+                    <div class="god-list" id="god-items-list"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="view-order">
             <div class="selection-area">
                 <div class="category-tabs">
@@ -551,19 +579,15 @@
     // --- CONFIGURATION ---
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
     
+    // Initial Fallback Defaults (Will be overwritten by God Mode fetch)
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
     var ADMIN_IDS = ["757858", "744622", "637174"];
     var availableGrinders = [];
-    var allUsersList = []; // For Special Order Requester List
-    var specialOrderItems = []; // Array of {name, qty, price}
+    var allUsersList = []; 
+    var specialOrderItems = []; 
+    var CATEGORIES = {}; // Populated by God Mode
     
-    var CATEGORIES = {
-        "Bonus EXP": [ { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" }, { name: "Business XP", price: 3900, limit: 20000, icon: "💼" }, { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" }, { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" }, { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" }, { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" }, { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" }, { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" }, { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" }, { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" }, { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" }, { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" }, { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" }, { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" }, { name: "Player XP", price: 500, limit: 50000, icon: "🧍" }, { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" }, { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" }, { name: "Strength XP", price: 500, limit: 50000, icon: "💪" }, { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" } ],
-        "Raw Materials": [ { name: "Acid", price: 12000, limit: 1500, icon: "🧪" }, { name: "Batteries", price: 160000, limit: 500, icon: "🔋" }, { name: "Bronze Alloy", price: 45000, limit: 500, icon: "🥉" }, { name: "Cement Mix", price: 95000, limit: 2000, icon: "🏗️" }, { name: "Ceramic Tiles", price: 85000, limit: 500, icon: "⬜" }, { name: "Copper Vouchers", price: 22000, limit: 1000, icon: "🎫" }, { name: "Explosives", price: 1000000, limit: 50, icon: "💣" }, { name: "Flint", price: 12000, limit: 2500, icon: "🪨" }, { name: "Iron Vouchers", price: 18000, limit: 1000, icon: "🎫" }, { name: "Kerosene", price: 100000, limit: 500, icon: "🛢️" }, { name: "Planks", price: 55000, limit: 1000, icon: "🪵" }, { name: "Raw Ore Mix", price: 2500, limit: 1000, icon: "⛰️" }, { name: "Refined Amalgam", price: 174000, limit: 1000, icon: "💎" }, { name: "Refined Copper", price: 20000, limit: 800, icon: "🟧" }, { name: "Refined Solder", price: 60000, limit: 500, icon: "🔌" }, { name: "Refined Tin", price: 65000, limit: 500, icon: "🥫" }, { name: "Refined Zinc", price: 14000, limit: 800, icon: "🔋" }, { name: "Rubber", price: 168000, limit: 250, icon: "⚫" }, { name: "Sand", price: 13000, limit: 10000, icon: "⏳" }, { name: "Sawdust", price: 3000, limit: 10000, icon: "🪚" }, { name: "Scrap Aluminum", price: 8000, limit: 500, icon: "🗑️" }, { name: "Scrap Copper", price: 11200, limit: 1000, icon: "🗑️" }, { name: "Scrap Gold", price: 55000, limit: 500, icon: "🗑️" }, { name: "Scrap Lead", price: 13000, limit: 800, icon: "🗑️" }, { name: "Scrap Mercury", price: 65000, limit: 500, icon: "🗑️" }, { name: "Scrap Plastic", price: 5000, limit: 2000, icon: "🥤" }, { name: "Scrap Tin", price: 32000, limit: 1000, icon: "🗑️" }, { name: "Sulfur", price: 30000, limit: 1000, icon: "🔥" }, { name: "Treated Water", price: 130000, limit: 500, icon: "💧" }, { name: "Waste Water", price: 70000, limit: 500, icon: "🚽" } ],
-        "Product": [ { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" }, { name: "Concrete", price: 850000, limit: 500, icon: "🧱" }, { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" }, { name: "Pills", price: 250000, limit: 250, icon: "💊" }, { name: "Fish", price: 650, limit: 250000, icon: "🐟" }, { name: "Meat", price: 1000, limit: 1000, icon: "🍖" } ]
-    };
-
-    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false, genRules: "No", grindRules: "No", isStaff: "No" };
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false, genRules: "No", grindRules: "No", isStaff: "No", config: {}, items: [] };
     var activeTicketId = null;
     var ticketList = [];
     var pendingRulesType = "";
@@ -571,7 +595,6 @@
 
     // --- CORE STARTUP ---
     window.onload = function() {
-        setCategory("Bonus EXP");
         initDrag();
         document.getElementById('app-container').style.display = 'none';
         document.getElementById('login-overlay').style.display = 'none';
@@ -623,7 +646,93 @@
         document.getElementById('side-dock').style.display = "flex";
     }
 
-    // --- GLOBAL FUNCTIONS (RESTORED) ---
+    // --- GOD MODE FUNCTIONS ---
+    function fetchAppConfig() {
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAppConfig&userId=${state.userId}&pin=${state.userPin}`)
+        .then(r => r.json())
+        .then(data => {
+            state.config = data.settings;
+            state.items = data.items;
+            
+            // Rebuild Categories
+            CATEGORIES = {};
+            data.items.forEach(i => {
+                if(!CATEGORIES[i.category]) CATEGORIES[i.category] = [];
+                CATEGORIES[i.category].push(i);
+            });
+            
+            // Refresh Limits based on config
+            GRINDER_LIMITS["Trainee Grinder"] = parseInt(state.config["limit_grinder_trainee"] || 3);
+            GRINDER_LIMITS["Usual Grinder"] = parseInt(state.config["limit_grinder_usual"] || 5);
+            GRINDER_LIMITS["Top Grinder"] = parseInt(state.config["limit_grinder_top"] || 9999);
+            
+            // Re-render UI if visible
+            if(document.getElementById('view-godmode').style.display === 'flex') {
+                renderGodMode();
+            }
+            
+            // Refresh Grid with new data
+            setCategory("Bonus EXP");
+        });
+    }
+
+    function renderGodMode() {
+        // Settings Panel
+        let setList = document.getElementById('god-settings-list');
+        setList.innerHTML = '';
+        for (let key in state.config) {
+            let val = state.config[key];
+            let row = document.createElement('div');
+            row.className = 'god-item';
+            row.innerHTML = `<span>${key}</span> 
+                <div style="display:flex; gap:5px;">
+                    <input type="text" class="god-input" id="god-set-${key}" value="${val}">
+                    <button class="god-btn" onclick="saveSetting('${key}')">SAVE</button>
+                </div>`;
+            setList.appendChild(row);
+        }
+
+        renderGodItems();
+    }
+
+    function renderGodItems() {
+        let search = document.getElementById('god-item-search').value.toLowerCase();
+        let itemList = document.getElementById('god-items-list');
+        itemList.innerHTML = '';
+        
+        state.items.forEach(i => {
+            if(search && !i.name.toLowerCase().includes(search)) return;
+            
+            let row = document.createElement('div');
+            row.className = 'god-item';
+            row.innerHTML = `
+                <span style="flex:1">${i.name}</span>
+                <input type="text" class="god-input" id="god-price-${i.name}" value="${i.price}" placeholder="Price">
+                <input type="text" class="god-input" id="god-limit-${i.name}" value="${i.limit}" placeholder="Limit">
+                <button class="god-btn" onclick="saveItem('${i.name}')">SAVE</button>
+            `;
+            itemList.appendChild(row);
+        });
+    }
+
+    function saveSetting(key) {
+        let val = document.getElementById(`god-set-${key}`).value;
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateGlobalSetting", userId: state.userId, pin: state.userPin, key: key, value: val })
+        }).then(() => alert("Setting Saved"));
+    }
+
+    function saveItem(name) {
+        let price = document.getElementById(`god-price-${name}`).value;
+        let limit = document.getElementById(`god-limit-${name}`).value;
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateItemConfig", userId: state.userId, pin: state.userPin, itemName: name, newPrice: price, newLimit: limit })
+        }).then(() => alert("Item Saved"));
+    }
+
+    // --- GLOBAL FUNCTIONS ---
     function setCategory(cat, btnElement) { 
         state.category = cat; 
         document.querySelectorAll('.category-tabs .tab-btn').forEach(b => b.classList.remove('active')); 
@@ -634,13 +743,14 @@
     function renderGrid() { 
         var container = document.getElementById('item-grid'); 
         container.innerHTML = ''; 
+        if (!CATEGORIES[state.category]) return;
         var items = CATEGORIES[state.category]; 
         for(var i=0; i<items.length; i++) { 
             (function(item){ 
                 var div = document.createElement('div'); 
                 div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : ''); 
                 div.onclick = function() { selectItem(item); }; 
-                div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+item.price.toLocaleString()+'</span>'; 
+                div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+parseInt(item.price).toLocaleString()+'</span>'; 
                 if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>'; 
                 container.appendChild(div); 
             })(items[i]); 
@@ -650,7 +760,7 @@
     function selectItem(item) { 
         state.item = item; 
         document.getElementById('disp-item-name').value = item.name; 
-        document.getElementById('limit-display').innerText = state.customOrderMode ? "(Unlimited)" : "(Max: " + item.limit.toLocaleString() + ")"; 
+        document.getElementById('limit-display').innerText = state.customOrderMode ? "(Unlimited)" : "(Max: " + parseInt(item.limit).toLocaleString() + ")"; 
         var qInput = document.getElementById('input-qty'); 
         var rInput = document.getElementById('range-qty'); 
         var step = getStepSize(item.limit); 
@@ -707,56 +817,24 @@
     function toggleMyHistoryDone() { state.showMyHistoryDone = !state.showMyHistoryDone; document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done"; fetchMyOrders(); }
     function toggleGrinderDone() { state.showGrinderDone = !state.showGrinderDone; document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done"; fetchGlobalOrders(); }
 
-    // --- GRINDER ACTION FUNCTIONS (RESTORED) ---
     function updateOrderStatus(ts, uid, status) { 
         var payload = { 
-            action: "updateOrder", 
-            orderTimestamp: ts, 
-            orderUserId: uid, 
-            newStatus: status, 
-            grinderName: state.username, 
-            grinderRank: state.grinderRank, 
-            userId: state.userId, 
-            pin: state.userPin 
+            action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank, userId: state.userId, pin: state.userPin 
         }; 
         fetch(GOOGLE_SCRIPT_URL, { 
-            method: "POST", 
-            mode: "no-cors", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify(payload) 
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) 
         }).then(() => setTimeout(fetchGlobalOrders, 1000)); 
     }
 
     function updateProgress(ts, uid, amount) { 
         fetch(GOOGLE_SCRIPT_URL, { 
-            method: "POST", 
-            mode: "no-cors", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify({ 
-                action: "updateProgress", 
-                orderTimestamp: ts, 
-                orderUserId: uid, 
-                progress: amount, 
-                userId: state.userId, 
-                pin: state.userPin 
-            }) 
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount, userId: state.userId, pin: state.userPin }) 
         }); 
     }
 
     function sendChatMessage(ts, uid, msg) { 
         fetch(GOOGLE_SCRIPT_URL, { 
-            method: "POST", 
-            mode: "no-cors", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify({ 
-                action: "sendMessage", 
-                orderTimestamp: ts, 
-                orderUserId: uid, 
-                sender: state.username, 
-                message: msg, 
-                userId: state.userId, 
-                pin: state.userPin 
-            }) 
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) 
         }).then(() => { 
             if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); 
             else fetchGlobalOrders(); 
@@ -778,11 +856,35 @@
     }
 
     function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
-    function updateCalc() { if(!state.item) return; var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty'); var val = parseInt(qInput.value); if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } else if (!state.customOrderMode) { rInput.value = val; } var total = state.item.price * val; var isHigh = (document.getElementById('input-priority').value === 'high'); var isCustom = state.customOrderMode; if (isHigh) total *= 1.05; if (isCustom) total *= 1.10; document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString(); }
+    
+    function updateCalc() { 
+        if(!state.item) return; 
+        var qInput = document.getElementById('input-qty'); 
+        var rInput = document.getElementById('range-qty'); 
+        var val = parseInt(qInput.value); 
+        if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } 
+        else if (!state.customOrderMode) { rInput.value = val; } 
+        
+        var total = state.item.price * val; 
+        var isHigh = (document.getElementById('input-priority').value === 'high'); 
+        var isCustom = state.customOrderMode; 
+        
+        if (isHigh) total *= (1 + parseFloat(state.config["priority_fee_high"] || 0.05)); 
+        if (isCustom) total *= (1 + parseFloat(state.config["commission_custom"] || 0.10)); 
+        
+        document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString(); 
+    }
+    
     function toggleCustomOrder() { state.customOrderMode = !state.customOrderMode; var btn = document.getElementById('btn-custom-toggle'); if (state.customOrderMode) { btn.classList.add('active'); btn.innerText = "🔓 Custom Order Active (+10% Fee)"; } else { btn.classList.remove('active'); btn.innerText = "🔓 Custom Order (Unlimited Qty)"; } if(state.item) selectItem(state.item); }
     function toggleMiniMode() { document.body.classList.toggle('mini-mode'); if(document.body.classList.contains('mini-mode')) { if(!state.isGrinder) switchView('history'); else switchView(state.miniView); } }
     function setMiniTab(view) { state.miniView = view; document.body.classList.remove('show-orders', 'show-jobs'); document.body.classList.add(view === 'orders' ? 'show-orders' : 'show-jobs'); document.getElementById('mt-orders').classList.toggle('active', view === 'orders'); document.getElementById('mt-jobs').classList.toggle('active', view === 'jobs'); }
-    function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
+    
+    function calculateOrderLimit() { 
+        if(state.completedOrders >= 5) return parseInt(state.config["limit_customer_vip"] || 8); 
+        if(state.completedOrders >= 1) return parseInt(state.config["limit_customer_trusted"] || 3); 
+        return parseInt(state.config["limit_customer_new"] || 1); 
+    }
+    
     function checkOrderCapability() { var limit = calculateOrderLimit(); var pending = state.activeOrders; var warn = document.getElementById('limit-warning'); var custBtn = document.getElementById('btn-custom-toggle'); if(limit >= 8) custBtn.style.display = 'block'; if(pending >= limit) { document.getElementById('btn-submit').disabled = true; warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")"; } else { document.getElementById('btn-submit').disabled = false; warn.innerText = "Active Orders: " + pending + "/" + limit; } }
     function submitRealOrder() { 
         if (state.username === "Unknown" || state.username === "Guest") {
@@ -819,6 +921,7 @@
                     state.isAdmin = true;
                     document.getElementById('nav-admin').style.display = 'inline-block';
                     if(state.isAdmin) document.getElementById('btn-special-order').style.display = 'inline-block';
+                    if(state.isAdmin) document.getElementById('god-mode-btn').style.display = 'flex'; // Show God Mode
                 }
                 
                 if (data.role && data.role !== "Customer" && data.role !== "") {
@@ -829,7 +932,9 @@
                     document.getElementById('rank-display').innerText = state.grinderRank;
                 }
 
-                renderGrid();
+                // Fetch App Config Immediately
+                fetchAppConfig();
+                
                 fetchMyOrders();
                 pollTickets();
                 setInterval(pollTickets, 5000); 
@@ -1006,7 +1111,7 @@
         if(!state.userPin) return;
         fetch(`${GOOGLE_SCRIPT_URL}?action=getTickets&userId=${state.userId}&pin=${state.userPin}&isStaff=${state.isStaff}&_t=${Date.now()}`)
         .then(r=>r.json()).then(data => {
-            if (!Array.isArray(data)) { console.warn("Poll Tickets Warning: API returned non-array", data); return; }
+            if (!Array.isArray(data)) { return; }
             
             ticketList = data;
             let totalUnread = 0;
@@ -1184,6 +1289,7 @@
 
     function switchView(view) {
         document.querySelectorAll('#main-content > div').forEach(el => el.style.display = 'none');
+        
         if(view === 'housekeeping') {
             document.getElementById('view-housekeeping').style.display = 'flex';
             fetchAdminUsers(true);
@@ -1203,15 +1309,18 @@
             else { document.getElementById('view-grinder').style.display = 'flex'; fetchGlobalOrders(); }
         } else {
             document.getElementById('view-' + view).style.display = 'flex';
+            if(view === 'godmode') renderGodMode(); // Render God Mode on view switch
         }
+        
         document.querySelectorAll('.header-btn').forEach(b => b.classList.remove('active'));
-        if(view !== 'tickets') document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view))?.classList.add('active');
+        if(view !== 'tickets' && view !== 'godmode') document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view))?.classList.add('active');
         if(view === 'history') fetchMyOrders();
     }
 
     function switchAdminTab(tab) {
         document.getElementById('admin-view-users').style.display = (tab === 'users') ? 'block' : 'none';
         document.getElementById('admin-view-orders').style.display = (tab === 'orders') ? 'block' : 'none';
+        
         if(tab === 'tickets') {
             var container = document.getElementById('view-housekeeping');
             var tkView = document.getElementById('view-tickets');
@@ -1224,64 +1333,11 @@
             if(tab==='users') fetchAdminUsers();
             if(tab==='orders') fetchAdminOrders();
         }
+
         document.getElementById('tab-users').classList.toggle('active', tab === 'users');
         document.getElementById('tab-orders').classList.toggle('active', tab === 'orders');
         document.getElementById('tab-tickets')?.classList.toggle('active', tab === 'tickets');
     }
-
-    function fetchAdminUsers(silent) { 
-        return fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
-            .then(r => r.json())
-            .then(users => { 
-                allUsersList = users; 
-                availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); 
-                if (silent) return; 
-                let c = document.getElementById('hk-user-list'); 
-                c.innerHTML = ''; 
-                users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); 
-            }); 
-    }
-    
-    function fetchAdminOrders() { fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ let c = document.getElementById('hk-order-list'); c.innerHTML = ''; orders.forEach(o => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}', '${o.qty}', '${o.progress}')">EDIT</button></td></tr>`; }); }); }
-    
-    function openAdminEdit(ts, uid, status, grinder, qty, progress) { 
-        if(qty === "Bundle" && !state.isAdmin) {
-             console.log("Blocked: Staff tried to edit Special Order");
-             return;
-        }
-        document.getElementById('admin-edit-modal').style.display = 'flex'; 
-        document.getElementById('ae-ts').value = ts; 
-        document.getElementById('ae-uid').value = uid; 
-        document.getElementById('ae-status').value = status; 
-        document.getElementById('ae-progress').value = progress || "0"; 
-        
-        let select = document.getElementById('ae-grinder'); 
-        select.innerHTML = '<option value="">None (Unassigned)</option>'; 
-        availableGrinders.forEach(g => { 
-            let opt = document.createElement('option'); 
-            opt.value = `${g.name} (${g.role})`; 
-            opt.text = `${g.name} (${g.role})`; 
-            if(grinder === opt.value) opt.selected = true; 
-            select.appendChild(opt); 
-        }); 
-    }
-    
-    function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
-    
-    function saveAdminOrder() { 
-        let ts = document.getElementById('ae-ts').value; 
-        let uid = document.getElementById('ae-uid').value; 
-        let stat = document.getElementById('ae-status').value; 
-        let grind = document.getElementById('ae-grinder').value; 
-        let prog = document.getElementById('ae-progress').value;
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: prog, userId: state.userId, pin: state.userPin }) });
-
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind }) }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); }); 
-    }
-    
-    function saveUserModification() { let id = document.getElementById('ue-id').value; let role = document.getElementById('ue-role').value; let status = document.getElementById('ue-status').value; let staff = document.getElementById('ue-staff').value; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role, newStaff: staff }) }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); }); }
-    function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
-    function openUserEdit(id, role, status, staff) { document.getElementById('user-edit-modal').style.display = 'flex'; document.getElementById('ue-id').value = id; let cleanRole = role ? role.trim() : ""; let roleSelect = document.getElementById('ue-role'); roleSelect.value = cleanRole; if (roleSelect.value !== cleanRole && cleanRole !== "") { let newOpt = document.createElement('option'); newOpt.text = cleanRole + " (Current)"; newOpt.value = cleanRole; roleSelect.add(newOpt); roleSelect.value = cleanRole; } else if (cleanRole === "") { roleSelect.value = "Customer"; } document.getElementById('ue-status').value = status; document.getElementById('ue-staff').value = staff || "No"; }
     
     var mainHeader = document.getElementById("main-header"); var miniStrip = document.getElementById("mini-drag-strip"); var elmnt = document.getElementById("app-container"); var pos1=0, pos2=0, pos3=0, pos4=0;
     function dragMouseDown(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elementDrag; }
@@ -1293,7 +1349,6 @@
     // --- KEYDOWN LISTENER FOR ESC ---
     window.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' || e.keyCode === 27) { 
-            // PREVENT CLOSING IF TYPING
             if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
                 document.activeElement.blur();
                 return;
