@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - God Mode v14.1</title>
+    <title>Dirty Deals - God Mode Refined v14.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -146,13 +146,15 @@
         #view-godmode { padding: 20px; flex-direction: column; background: #111; }
         .god-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; overflow: hidden; }
         .god-panel { background: #1a1a1a; border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; overflow: hidden; }
-        .god-title { color: var(--gold); font-family: 'Rajdhani'; font-size: 1.5em; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .god-list { flex: 1; overflow-y: auto; }
+        .god-title { color: var(--gold); font-family: 'Rajdhani'; font-size: 1.5em; margin-bottom: 10px; display:flex; justify-content:space-between; }
+        #god-status-msg { font-size:0.8em; font-weight:bold; color:#2ecc71; align-self:center; }
+        .god-list { flex: 1; overflow-y: auto; padding-right:5px; }
         .god-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #222; font-size: 0.9em; }
         .god-item:hover { background: #222; }
         .god-input { background: #000; border: 1px solid #444; color: white; padding: 4px; width: 80px; text-align: center; font-family: monospace; }
-        .god-btn { background: #333; border: 1px solid #555; color: #ccc; padding: 4px 8px; cursor: pointer; font-size: 0.8em; }
-        .god-btn:hover { background: var(--accent); color: white; }
+        .god-btn { background: #333; border: 1px solid #555; color: #ccc; padding: 4px 10px; cursor: pointer; font-size: 0.8em; font-weight:bold; }
+        .god-btn:hover { background: var(--accent); color: white; border-color:var(--accent); }
+        .god-header-row { display:flex; padding:5px 8px; color:#888; font-size:0.7em; text-transform:uppercase; border-bottom:1px solid #444; margin-bottom:5px; font-weight:bold; }
 
         /* ORDER LAYOUT */
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
@@ -431,12 +433,21 @@
         <div id="view-godmode">
             <div class="god-grid">
                 <div class="god-panel">
-                    <div class="god-title">GLOBAL SETTINGS</div>
+                    <div class="god-title">
+                        <span>GLOBAL SETTINGS</span>
+                        <div id="god-status-msg"></div>
+                    </div>
                     <div class="god-list" id="god-settings-list"></div>
                 </div>
                 <div class="god-panel">
                     <div class="god-title">ITEM MANAGER</div>
                     <input type="text" id="god-item-search" class="login-input" placeholder="Search Items..." style="margin-bottom:10px;" oninput="renderGodItems()">
+                    <div class="god-header-row">
+                        <span style="flex:1">ITEM NAME</span>
+                        <span style="width:80px; text-align:center;">PRICE</span>
+                        <span style="width:80px; text-align:center;">LIMIT</span>
+                        <span style="width:60px;">ACTION</span>
+                    </div>
                     <div class="god-list" id="god-items-list"></div>
                 </div>
             </div>
@@ -719,29 +730,38 @@
             row.className = 'god-item';
             row.innerHTML = `
                 <span style="flex:1">${i.name}</span>
-                <input type="text" class="god-input" id="god-price-${i.name}" value="${i.price}" placeholder="Price">
-                <input type="text" class="god-input" id="god-limit-${i.name}" value="${i.limit}" placeholder="Limit">
+                <input type="text" class="god-input" id="god-price-${i.name}" value="${i.price}">
+                <input type="text" class="god-input" id="god-limit-${i.name}" value="${i.limit}">
                 <button class="god-btn" onclick="saveItem('${i.name}')">SAVE</button>
             `;
             itemList.appendChild(row);
         });
     }
 
+    function showGodMsg(text, color) {
+        let el = document.getElementById('god-status-msg');
+        el.innerText = text;
+        el.style.color = color;
+        setTimeout(() => el.innerText = "", 3000);
+    }
+
     function saveSetting(key) {
         let val = document.getElementById(`god-set-${key}`).value;
+        showGodMsg("Saving...", "orange");
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "updateGlobalSetting", userId: state.userId, pin: state.userPin, key: key, value: val })
-        }).then(() => alert("Setting Saved"));
+        }).then(() => showGodMsg("Setting Saved!", "#2ecc71"));
     }
 
     function saveItem(name) {
         let price = document.getElementById(`god-price-${name}`).value;
         let limit = document.getElementById(`god-limit-${name}`).value;
+        showGodMsg("Saving...", "orange");
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "updateItemConfig", userId: state.userId, pin: state.userPin, itemName: name, newPrice: price, newLimit: limit })
-        }).then(() => alert("Item Saved"));
+        }).then(() => showGodMsg("Item Saved!", "#2ecc71"));
     }
 
     // --- GLOBAL FUNCTIONS ---
@@ -1107,7 +1127,7 @@
                 action: "placeSpecialOrder", 
                 userId: state.userId, 
                 pin: state.userPin, 
-                targetName: reqName,
+                targetName: reqName, 
                 targetId: reqId,
                 items: itemsStr,
                 priority: "Special",
