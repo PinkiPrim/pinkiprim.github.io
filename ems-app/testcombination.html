@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT Paramedic & Heli Helper v2.5</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+
+        /* --- THEME --- */
+        :root {
+            --primary: #e53935; /* EMS Red */
+            --primary-dim: #b71c1c;
+            --heli-primary: #ff9800; /* Heli Orange */
+            --bg-glass: rgba(15, 15, 15, 0.95);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(229, 57, 53, 0.3);
+            --green: #00e676;
+            --alert: #ff9100;
+            --heart-color: #ff4081;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        #tracker-app {
+            position: absolute;
+            top: 50px; left: 50px;
+            width: 320px;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column;
+            resize: both; overflow: hidden;
+            min-height: 200px;
+            transition: width 0.2s ease, height 0.2s ease;
+        }
+
+        /* MINI MODE */
+        #tracker-app.mini-mode {
+            width: 420px !important;
+            height: 74px !important;
+            min-height: 74px !important;
+            border-radius: 12px;
+            background: rgba(10, 10, 10, 0.98);
+            border: 1px solid var(--primary);
+            resize: none;
+        }
+        #tracker-app.mini-mode header, 
+        #tracker-app.mini-mode #content,
+        #tracker-app.mini-mode .support-footer { display: none !important; }
+        
+        #micro-view { display: none; flex-direction: column; justify-content: center; height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move; }
+        #tracker-app.mini-mode #micro-view { display: flex; }
+
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
+        .micro-group { display: flex; align-items: center; gap: 8px; }
+        .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
+        .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
+        .micro-val.highlight { color: var(--primary); }
+        .micro-val.active { color: var(--green); }
+        .micro-val.urgent { color: var(--alert); }
+        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
+        .micro-btn { position: absolute; top: 4px; right: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 0px 4px; border-radius: 3px; font-size: 0.6em; cursor: pointer; text-transform: uppercase; }
+        .micro-btn:hover { background: var(--primary); color: white; }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(180deg, var(--primary-dim), rgba(229, 57, 53, 0.2));
+            height: 60px; padding: 0 10px; cursor: move; position: relative;
+            display: flex; align-items: flex-start; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.15); overflow: hidden; padding-top: 5px;
+        }
+        .header-title { position: absolute; left: 50%; top: 20%; transform: translate(-50%, -50%); font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10; }
+        #street-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 45px; overflow: hidden; pointer-events: none; z-index: 6; }
+        #ambulance-img { position: absolute; bottom: 0px; left: -120px; height: 45px; width: auto; z-index: 5; transform: scaleX(-1); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); animation: driveCycle 15s ease-in-out infinite; }
+        @keyframes driveCycle { 0% { left: -120px; } 15% { left: 50%; transform: translateX(-50%) scaleX(-1); } 35% { left: 50%; transform: translateX(-50%) scaleX(-1); } 45% { left: 120%; transform: translateX(0) scaleX(-1); } 100% { left: 120%; transform: scaleX(-1); } }
+        #user-name-drop { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: #fff; white-space: nowrap; opacity: 0; z-index: 4; animation: nameCycle 15s linear infinite; }
+        @keyframes nameCycle { 0%, 35% { opacity: 0; } 38% { opacity: 1; color: #fff; } 40% { color: var(--primary); text-shadow: 0 0 10px var(--primary); } 45% { color: #fff; text-shadow: none; } 50% { color: var(--primary); text-shadow: 0 0 10px var(--primary); } 55% { color: #fff; text-shadow: none; } 60% { color: var(--primary); text-shadow: 0 0 10px var(--primary); } 65% { color: #fff; text-shadow: none; } 85% { opacity: 1; } 90% { opacity: 0; } 100% { opacity: 0; } }
+
+        .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
+        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
+        .nav-icon:hover { color: #fff; }
+        #mini-btn { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+        #mini-btn:hover { background: var(--primary); color: white; border-color: var(--alert); }
+        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
+
+        /* CONTENT */
+        #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
+        .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .section:last-child { border-bottom: none; }
+        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
+        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
+        .value.highlight { color: var(--primary); }
+        .value.bxp { color: var(--green); }
+        
+        /* PROGRESS BARS */
+        .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
+        
+        /* HELI SECTION (Hidden by default) */
+        #heli-section { 
+            display: none; 
+            margin-top: 10px; 
+            padding-top: 10px; 
+            border-top: 1px dashed var(--heli-primary);
+            animation: expandHeli 0.3s ease-out;
+        }
+        @keyframes expandHeli { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .heli-bar { background: var(--heli-primary) !important; }
+        .heli-text { color: var(--heli-primary); }
+
+        .toggle-btn {
+            width: 100%; padding: 4px; margin-top: 5px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: #ccc; font-size: 0.7em; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover { background: rgba(255, 152, 0, 0.2); border-color: var(--heli-primary); color: white; }
+
+        .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
+        .xp-remaining-text b { color: var(--primary); }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 4px; text-align: center; }
+
+        .inv-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; border-left: 3px solid var(--text-dim); }
+        .inv-name { font-size: 0.8em; }
+        .inv-stats { font-size: 0.8em; font-weight: bold; text-align: right; }
+        .low-stock { border-left-color: var(--alert); }
+
+        input[type="number"], select { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.9em; }
+        select { width: 100%; cursor: pointer; }
+        option { background: #222; color: white; }
+        input:focus, select:focus { outline: 1px solid var(--primary); }
+
+        .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
+        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
+        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
+        
+        .support-footer { width: 100%; text-align: center; padding: 4px 0; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.1); }
+        .support-link { font-size: 0.65em; color: var(--text-dim); text-decoration: none; font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: 1px; opacity: 0.6; transition: all 0.3s ease; cursor: pointer; }
+        .support-link:hover { opacity: 1; color: #fff; }
+        .heart-spin { display: inline-block; color: var(--heart-color); margin-left: 2px; font-size: 1.1em; animation: spinHeart 2.5s infinite linear; }
+        @keyframes spinHeart { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="tracker-app">
+    <div id="micro-view" onmousedown="dragStart(event)">
+        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div class="micro-group"><span style="font-size:1.2em">🚑</span><span class="micro-val highlight">EMS OPS</span></div>
+            <div class="micro-group"><span class="micro-label">Revives:</span><span class="micro-val active" id="micro-revives">0</span></div>
+            <div class="micro-group"><span class="micro-label">⚡ Defib:</span><span class="micro-val" id="micro-defib">--</span></div>
+        </div>
+        <div class="micro-row">
+            <div class="micro-group" style="min-width: 90px;"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
+            <div class="micro-sep"></div>
+            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
+        </div>
+    </div>
+
+    <header id="drag-handle" onmousedown="dragStart(event)">
+        <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
+        <div class="header-title">EMS OPS</div>
+        <div id="street-container">
+            <img id="ambulance-img" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f691.png" alt="Ambulance">
+            <div id="user-name-drop">Paramedic ...</div>
+        </div>
+        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
+            <button id="mini-btn" onclick="toggleMini()">MINI</button>
+            <span id="clock">00:00</span>
+        </div>
+    </header>
+
+    <div id="content">
+        <div class="section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div><div class="label">Paramedic Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
+            </div>
+            <div class="progress-container"><div class="progress-bar" id="level-bar"></div><div class="progress-text" id="level-text">Waiting for data...</div></div>
+            <div class="xp-remaining-text" id="disp-xp-remaining">Waiting for data...</div>
+            
+            <button class="toggle-btn" onclick="toggleHeliSection()">[ TOGGLE HELI XP ]</button>
+
+            <div id="heli-section">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                    <div><div class="label" style="color:var(--heli-primary)">Heli Pilot Level</div><div class="value heli-text" style="font-size:1.6em" id="heli-level">...</div></div>
+                    <div style="text-align:right;"><div class="label">Heli XP</div><div class="value" id="heli-xp" style="font-size:0.9em">0</div></div>
+                </div>
+                <div class="progress-container" style="border-color:var(--heli-primary)">
+                    <div class="progress-bar heli-bar" id="heli-bar"></div>
+                    <div class="progress-text" id="heli-text">...</div>
+                </div>
+                <div class="stat-grid" style="margin-top:5px;">
+                    <div class="stat-box"><div class="label">Heli BXP</div><div class="value" style="color:var(--heli-primary)" id="heli-bxp">0</div></div>
+                </div>
+            </div>
+
+            <div class="stat-grid" style="margin-top:10px;">
+                <div class="stat-box"><div class="label">EMS BXP</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
+                <div class="stat-box"><div class="label">Revives/Heals</div><div class="value" id="disp-callouts">0</div></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="label">Inventory</div>
+            <div class="inv-row" id="row-defib">
+                <div class="inv-name">⚡ Defib Kit</div>
+                <div class="inv-stats">Stock: <span id="stock-defib">--</span></div>
+            </div>
+        </div>
+
+        <div class="section" style="border:none;">
+            <div class="label">Target Calculator</div>
+            <select id="calc-mode" onchange="runCalculator()" style="margin-top:2px;">
+                <option value="ems">Paramedic XP</option>
+                <option value="heli">Heli Pilot XP</option>
+            </select>
+            <input type="number" id="target-input" placeholder="Enter Target XP" oninput="runCalculator()">
+            <div class="quick-btn-row">
+                <button class="quick-btn" onclick="setCalc(100000)">100K</button>
+                <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
+                <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
+            </div>
+            <div class="calc-output" id="calc-result">Start working to enable calculator...</div>
+        </div>
+    </div>
+    
+    <div class="support-footer">
+        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
+            Support PinkiPrim <span class="heart-spin">❤</span>
+        </div>
+    </div>
+    <div id="resize-handle"></div>
+</div>
+
+<script>
+// --- KEYS ---
+const KEYS = {
+    EMS_XP: "exp_ems_ems",
+    EMS_BXP: "exp_token_a|ems|ems",
+    HELI_XP: "exp_piloting_heli",
+    HELI_BXP: "exp_token_a|piloting|heli"
+};
+
+// --- STATE ---
+let STATE = {
+    emsXP: 0,
+    heliXP: 0,
+    emsBXP: 0,
+    heliBXP: 0,
+    
+    // Tracking
+    startXP: null,
+    sessionXP: 0,
+    revives: 0,
+    lastKnownXP: -1
+};
+
+let heliVisible = false;
+
+// --- CLOCK ---
+function updateClock() { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }
+setInterval(updateClock, 1000);
+
+function openExternal(url) { try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); } }
+
+// --- UI LOGIC ---
+function toggleMini() {
+    const app = document.getElementById('tracker-app');
+    app.classList.toggle('mini-mode');
+    document.getElementById('mini-btn').innerText = app.classList.contains('mini-mode') ? "FULL" : "MINI";
+}
+
+function toggleHeliSection() {
+    heliVisible = !heliVisible;
+    document.getElementById('heli-section').style.display = heliVisible ? 'block' : 'none';
+}
+
+function setCalc(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator();
+}
+
+// --- ENGINE ---
+function requestData() {
+    if(window.parent) {
+        try { 
+            let keys = [
+                KEYS.EMS_XP, KEYS.EMS_BXP, 
+                KEYS.HELI_XP, KEYS.HELI_BXP, 
+                "inventory", "exp_paramedic", "name"
+            ];
+            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+            window.parent.postMessage({ type: "getData" }, "*"); 
+        } catch(e) {}
+    }
+}
+setInterval(requestData, 1000); 
+
+window.addEventListener('message', (event) => {
+    let data = event.data.type === 'data' ? event.data.data : event.data;
+    if (!data) return;
+    processPayload(data);
+});
+
+function processPayload(data) {
+    if(data.name) document.getElementById('user-name-drop').innerText = "Paramedic " + data.name;
+
+    // --- EMS DATA ---
+    let emsXP = data[KEYS.EMS_XP] || data.exp_paramedic || 0;
+    if (typeof emsXP === 'number') {
+        STATE.emsXP = emsXP;
+        trackEMSProgress(emsXP);
+    }
+
+    let emsBXP = data[KEYS.EMS_BXP];
+    if(!emsBXP && data.inventory) emsBXP = findInInventory(data.inventory, KEYS.EMS_BXP);
+    if(emsBXP) STATE.emsBXP = (typeof emsBXP === 'object') ? emsBXP.amount : emsBXP;
+
+    // --- HELI DATA ---
+    let heliXP = data[KEYS.HELI_XP] || 0;
+    if (typeof heliXP === 'number') STATE.heliXP = heliXP;
+
+    let heliBXP = data[KEYS.HELI_BXP];
+    if(!heliBXP && data.inventory) heliBXP = findInInventory(data.inventory, KEYS.HELI_BXP);
+    if(heliBXP) STATE.heliBXP = (typeof heliBXP === 'object') ? heliBXP.amount : heliBXP;
+
+    // --- INVENTORY (Defibs) ---
+    if(data.inventory) processInventory(data.inventory);
+
+    renderUI();
+}
+
+function findInInventory(inv, key) {
+    try {
+        const i = (typeof inv === 'string') ? JSON.parse(inv) : inv;
+        return i[key];
+    } catch(e) { return null; }
+}
+
+function processInventory(inv) {
+    try {
+        const i = (typeof inv === 'string') ? JSON.parse(inv) : inv;
+        let defibCount = 0;
+        for (let k in i) {
+            if (k.toLowerCase().includes('defib')) {
+                defibCount += (i[k].amount || i[k].count || i[k] || 0);
+            }
+        }
+        
+        const el = document.getElementById('stock-defib');
+        const microEl = document.getElementById('micro-defib');
+        if(el) {
+            el.innerText = defibCount;
+            microEl.innerText = defibCount;
+            let color = defibCount < 2 ? "var(--alert)" : "white";
+            el.style.color = color;
+            microEl.className = defibCount < 2 ? "micro-val urgent" : "micro-val";
+        }
+    } catch(e){}
+}
+
+function trackEMSProgress(current) {
+    if (STATE.startXP === null && current > 0) {
+        STATE.startXP = current;
+        STATE.lastKnownXP = current;
+    }
+    
+    if (STATE.lastKnownXP > -1 && current > STATE.lastKnownXP) {
+        const diff = current - STATE.lastKnownXP;
+        // Basic filter to ignore tiny passive gains vs big revive gains
+        if (diff > 5) {
+            STATE.sessionXP += diff;
+            STATE.revives++;
+        }
+        STATE.lastKnownXP = current;
+    }
+}
+
+// --- RENDER ---
+function renderUI() {
+    // EMS UI
+    const emsLvl = getLevelInfo(STATE.emsXP);
+    document.getElementById('disp-xp').innerText = formatNumber(STATE.emsXP);
+    document.getElementById('disp-level').innerText = emsLvl.level;
+    document.getElementById('level-bar').style.width = emsLvl.percent + "%";
+    document.getElementById('level-text').innerText = emsLvl.percent + "%";
+    document.getElementById('disp-bxp').innerText = formatNumber(STATE.emsBXP);
+    
+    // Micro UI
+    document.getElementById('micro-xp').innerText = formatNumber(STATE.emsXP);
+    document.getElementById('micro-level').innerText = emsLvl.level;
+    document.getElementById('micro-bar').style.width = emsLvl.percent + "%";
+    document.getElementById('micro-tokens').innerText = formatNumber(STATE.emsBXP);
+    document.getElementById('micro-revives').innerText = STATE.revives;
+
+    // Stats
+    document.getElementById('disp-callouts').innerText = STATE.revives;
+    const avg = STATE.revives > 0 ? (STATE.sessionXP / STATE.revives) : 0;
+    document.getElementById('disp-avg').innerText = Math.round(avg);
+    
+    const needed = Math.round(emsLvl.next - STATE.emsXP);
+    let remText = `<b>${formatNumber(needed)}</b> XP to Next Level`;
+    if (avg > 0) {
+        const est = Math.ceil(needed / avg);
+        remText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(est)} revives)</span>`;
+    }
+    document.getElementById('disp-xp-remaining').innerHTML = remText;
+
+    // HELI UI
+    const heliLvl = getLevelInfo(STATE.heliXP);
+    document.getElementById('heli-xp').innerText = formatNumber(STATE.heliXP);
+    document.getElementById('heli-level').innerText = heliLvl.level;
+    document.getElementById('heli-bar').style.width = heliLvl.percent + "%";
+    document.getElementById('heli-text').innerText = heliLvl.percent + "%";
+    document.getElementById('heli-bxp').innerText = formatNumber(STATE.heliBXP);
+
+    runCalculator(avg);
+}
+
+// --- UTILS ---
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return Math.round(num).toLocaleString();
+}
+
+function getLevelInfo(exp) {
+    let level = 0, cap = 5;
+    while (exp >= cap) { exp -= cap; level++; cap = (level + 1) * 5; }
+    return { 
+        level: level, 
+        percent: ((exp / cap) * 100).toFixed(1), 
+        next: cap 
+    };
+}
+
+// --- CALCULATOR ---
+function runCalculator(avg) {
+    const val = document.getElementById('target-input').value;
+    const mode = document.getElementById('calc-mode').value;
+    const el = document.getElementById('calc-result');
+    const microEl = document.getElementById('micro-calc');
+    
+    if (!val) {
+        el.innerText = "Enter target above.";
+        microEl.innerText = "Set..";
+        return;
+    }
+
+    let inputVal = parseInt(val.replace(/,/g, ''));
+    let currentXP = (mode === 'heli') ? STATE.heliXP : STATE.emsXP;
+    
+    // Auto-detect if user entered a Level instead of XP
+    let targetXP = inputVal;
+    if (inputVal < 200) { 
+         targetXP = getXPFromLevel(inputVal);
+         // Safety: only switch to level logic if input is reasonably a level target
+         if (targetXP < currentXP) targetXP = inputVal; // Revert if level logic makes no sense
+    }
+
+    if (targetXP > currentXP) {
+        const diff = targetXP - currentXP;
+        let msg = `Remaining: <b>${formatNumber(diff)} XP</b>`;
+        
+        // Add estimate only for EMS mode if we have data
+        if (mode === 'ems' && avg > 0) {
+            const est = Math.ceil(diff / avg);
+            msg += `<br><span style="color:var(--primary)">Est. Revives: <b>${formatNumber(est)}</b></span>`;
+            microEl.innerText = formatNumber(est);
+        } else {
+            microEl.innerText = formatNumber(diff);
+        }
+        
+        el.innerHTML = msg;
+    } else {
+        el.innerHTML = `Target reached.`;
+        microEl.innerText = "Done";
+    }
+}
+
+function getXPFromLevel(targetLvl) {
+    let xp = 0;
+    let level = 0;
+    let cap = 5;
+    while(level < targetLvl) {
+        xp += cap;
+        level++;
+        cap = (level + 1) * 5;
+    }
+    return xp;
+}
+
+// --- DRAG ---
+let dragItem = document.getElementById("tracker-app");
+let header = document.getElementById("drag-handle");
+let micro = document.getElementById("micro-view");
+let active = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+
+header.addEventListener("mousedown", dragStart);
+micro.addEventListener("mousedown", dragStart);
+
+function dragStart(e) {
+    if(e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+    initialX = e.clientX - xOffset;
+    initialY = e.clientY - yOffset;
+    if (e.target === header || header.contains(e.target) || e.target === micro || micro.contains(e.target)) {
+        active = true;
+    }
+}
+
+document.addEventListener("mousemove", drag);
+document.addEventListener("mouseup", dragEnd);
+
+function drag(e) {
+    if (active) {
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        xOffset = currentX;
+        yOffset = currentY;
+        setTranslate(currentX, currentY, dragItem);
+    }
+}
+
+function setTranslate(xPos, yPos, el) {
+    el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+}
+
+function dragEnd() {
+    initialX = currentX;
+    initialY = currentY;
+    active = false;
+}
+
+// Resizer
+const resizeHandle = document.getElementById('resize-handle');
+resizeHandle.addEventListener('mousedown', initResize, false);
+function initResize(e) {
+   window.addEventListener('mousemove', Resize, false);
+   window.addEventListener('mouseup', stopResize, false);
+}
+function Resize(e) {
+   if(dragItem.classList.contains('mini-mode')) return;
+   dragItem.style.width = (e.clientX - dragItem.getBoundingClientRect().left) + 'px';
+   dragItem.style.height = (e.clientY - dragItem.getBoundingClientRect().top) + 'px';
+}
+function stopResize() {
+    window.removeEventListener('mousemove', Resize, false);
+    window.removeEventListener('mouseup', stopResize, false);
+}
+
+// Remove Focus on ESC (No close)
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (document.activeElement) document.activeElement.blur();
+    }
+});
+</script>
+</body>
+</html>
