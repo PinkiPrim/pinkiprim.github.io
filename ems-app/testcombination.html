@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Paramedic & Heli Helper v2.6 (Anti-Flicker)</title>
+    <title>TT Paramedic & Heli Helper v2.7</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -12,10 +12,10 @@
             --primary: #e53935; /* EMS Red */
             --primary-dim: #b71c1c;
             --heli-primary: #ff9800; /* Heli Orange */
-            --bg-glass: rgba(15, 15, 15, 0.95);
+            --bg-glass: rgba(15, 15, 15, 0.96);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
-            --border: 1px solid rgba(229, 57, 53, 0.3);
+            --border: 1px solid rgba(229, 57, 53, 0.4);
             --green: #00e676;
             --alert: #ff9100;
             --heart-color: #ff4081;
@@ -38,20 +38,20 @@
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             resize: both; overflow: hidden;
             min-height: 200px;
             transition: width 0.2s ease, height 0.2s ease;
         }
 
-        /* MINI MODE */
+        /* --- MINI MODE --- */
         #tracker-app.mini-mode {
-            width: 420px !important;
-            height: 74px !important;
-            min-height: 74px !important;
+            width: 440px !important;
+            height: auto !important; /* Allow expansion */
+            min-height: 74px;
             border-radius: 12px;
-            background: rgba(10, 10, 10, 0.98);
+            background: rgba(10, 10, 10, 0.99);
             border: 1px solid var(--primary);
             resize: none;
         }
@@ -59,21 +59,35 @@
         #tracker-app.mini-mode #content,
         #tracker-app.mini-mode .support-footer { display: none !important; }
         
-        #micro-view { display: none; flex-direction: column; justify-content: center; height: 100%; padding: 0 12px; font-family: 'Rajdhani', sans-serif; cursor: move; }
+        #micro-view { display: none; flex-direction: column; padding: 5px 12px; font-family: 'Rajdhani', sans-serif; cursor: move; }
         #tracker-app.mini-mode #micro-view { display: flex; }
 
-        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; }
+        .micro-section { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-bottom: 4px; }
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 30px; }
         .micro-group { display: flex; align-items: center; gap: 8px; }
         .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
         .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
         .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
         .micro-val.highlight { color: var(--primary); }
+        .micro-val.heli { color: var(--heli-primary); }
         .micro-val.active { color: var(--green); }
         .micro-val.urgent { color: var(--alert); }
+        
         .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
-        .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
+        .micro-progress-fill { height: 100%; width: 0%; transition: width 0.3s; }
+        .fill-ems { background: var(--primary); }
+        .fill-heli { background: var(--heli-primary); }
+
         .micro-btn { position: absolute; top: 4px; right: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 0px 4px; border-radius: 3px; font-size: 0.6em; cursor: pointer; text-transform: uppercase; }
         .micro-btn:hover { background: var(--primary); color: white; }
+
+        .micro-toggle {
+            text-align: center; font-size: 0.65em; color: #888; cursor: pointer; 
+            border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2px; margin-top: 2px;
+            transition: color 0.2s;
+        }
+        .micro-toggle:hover { color: white; }
+        #micro-heli-section { display: none; margin-top: 5px; border-top: 1px dashed var(--heli-primary); padding-top: 5px; }
 
         /* HEADER */
         header {
@@ -107,10 +121,10 @@
         
         /* PROGRESS BARS */
         .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
-        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-bar { height: 100%; width: 0%; transition: width 0.3s ease; }
         .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
         
-        /* HELI SECTION (Hidden by default) */
+        /* HELI SECTION */
         #heli-section { 
             display: none; 
             margin-top: 10px; 
@@ -120,13 +134,10 @@
         }
         @keyframes expandHeli { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .heli-bar { background: var(--heli-primary) !important; }
-        .heli-text { color: var(--heli-primary); }
-
         .toggle-btn {
-            width: 100%; padding: 4px; margin-top: 5px;
+            width: 100%; padding: 6px; margin-top: 5px;
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            color: #ccc; font-size: 0.7em; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+            color: #ccc; font-size: 0.8em; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
             transition: all 0.2s;
         }
         .toggle-btn:hover { background: rgba(255, 152, 0, 0.2); border-color: var(--heli-primary); color: white; }
@@ -166,19 +177,32 @@
 <div id="tracker-app">
     <div id="micro-view" onmousedown="dragStart(event)">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
-        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="micro-group"><span style="font-size:1.2em">🚑</span><span class="micro-val highlight">EMS OPS</span></div>
-            <div class="micro-group"><span class="micro-label">Revives:</span><span class="micro-val active" id="micro-revives">0</span></div>
-            <div class="micro-group"><span class="micro-label">⚡ Defib:</span><span class="micro-val" id="micro-defib">--</span></div>
+        
+        <div class="micro-section">
+            <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div class="micro-group"><span style="font-size:1.2em">🚑</span><span class="micro-val highlight">EMS</span></div>
+                <div class="micro-group"><span class="micro-label">Revives:</span><span class="micro-val active" id="micro-revives">0</span></div>
+                <div class="micro-group"><span class="micro-label">⚡</span><span class="micro-val" id="micro-defib">--</span></div>
+            </div>
+            <div class="micro-row">
+                <div class="micro-group" style="min-width: 90px;"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg"><div class="micro-progress-fill fill-ems" id="micro-bar"></div></div></div>
+                <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
+                <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
+            </div>
         </div>
-        <div class="micro-row">
-            <div class="micro-group" style="min-width: 90px;"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
-            <div class="micro-sep"></div>
-            <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
-            <div class="micro-sep"></div>
-            <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
-            <div class="micro-sep"></div>
-            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
+
+        <div class="micro-toggle" onclick="toggleMicroHeli()">▼ SHOW HELI DETAILS</div>
+
+        <div id="micro-heli-section" class="micro-section">
+            <div class="micro-row" style="border-bottom: 1px solid rgba(255,152,0,0.2);">
+                <div class="micro-group"><span style="font-size:1.2em">🚁</span><span class="micro-val heli">HELI</span></div>
+                <div class="micro-group"><span class="micro-label">Flights:</span><span class="micro-val active" id="micro-flights">0</span></div>
+            </div>
+            <div class="micro-row">
+                <div class="micro-group" style="min-width: 90px;"><span class="micro-label">Lvl</span><span class="micro-val heli" id="micro-heli-level">0</span><div class="micro-progress-bg"><div class="micro-progress-fill fill-heli" id="micro-heli-bar"></div></div></div>
+                <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-heli-tokens">0</span></div>
+                <div class="micro-group"><span class="micro-label">Avg:</span><span class="micro-val heli" id="micro-heli-avg">0</span></div>
+            </div>
         </div>
     </div>
 
@@ -201,29 +225,33 @@
                 <div><div class="label">Paramedic Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
                 <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
             </div>
-            <div class="progress-container"><div class="progress-bar" id="level-bar"></div><div class="progress-text" id="level-text">Waiting for data...</div></div>
+            <div class="progress-container"><div class="progress-bar fill-ems" id="level-bar"></div><div class="progress-text" id="level-text">Waiting...</div></div>
             <div class="xp-remaining-text" id="disp-xp-remaining">Waiting for data...</div>
             
+            <div class="stat-grid" style="margin-top:10px;">
+                <div class="stat-box"><div class="label">EMS BXP</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">EMS Avg</div><div class="value" id="disp-avg">0</div></div>
+                <div class="stat-box"><div class="label">Revives/Heals</div><div class="value" id="disp-callouts">0</div></div>
+            </div>
+
             <button class="toggle-btn" onclick="toggleHeliSection()">[ TOGGLE HELI XP ]</button>
 
             <div id="heli-section">
-                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                    <div><div class="label" style="color:var(--heli-primary)">Heli Pilot Level</div><div class="value heli-text" style="font-size:1.6em" id="heli-level">...</div></div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:5px;">
+                    <div><div class="label" style="color:var(--heli-primary)">Heli Pilot Level</div><div class="value heli" style="font-size:1.6em; color:var(--heli-primary)" id="heli-level">...</div></div>
                     <div style="text-align:right;"><div class="label">Heli XP</div><div class="value" id="heli-xp" style="font-size:0.9em">0</div></div>
                 </div>
-                <div class="progress-container" style="border-color:var(--heli-primary)">
-                    <div class="progress-bar heli-bar" id="heli-bar"></div>
+                <div class="progress-container" style="border:1px solid var(--heli-primary)">
+                    <div class="progress-bar fill-heli" id="heli-bar"></div>
                     <div class="progress-text" id="heli-text">...</div>
                 </div>
-                <div class="stat-grid" style="margin-top:5px;">
-                    <div class="stat-box"><div class="label">Heli BXP</div><div class="value" style="color:var(--heli-primary)" id="heli-bxp">0</div></div>
-                </div>
-            </div>
+                <div class="xp-remaining-text" id="heli-xp-remaining" style="color:#ccc;">Waiting for data...</div>
 
-            <div class="stat-grid" style="margin-top:10px;">
-                <div class="stat-box"><div class="label">EMS BXP</div><div class="value bxp" id="disp-bxp">0</div></div>
-                <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg">0</div></div>
-                <div class="stat-box"><div class="label">Revives/Heals</div><div class="value" id="disp-callouts">0</div></div>
+                <div class="stat-grid" style="margin-top:5px;">
+                    <div class="stat-box"><div class="label">Heli BXP</div><div class="value bxp" id="heli-bxp">0</div></div>
+                    <div class="stat-box"><div class="label">Heli Avg</div><div class="value" style="color:var(--heli-primary)" id="heli-avg">0</div></div>
+                    <div class="stat-box"><div class="label">Flights</div><div class="value" style="color:var(--heli-primary)" id="heli-flights">0</div></div>
+                </div>
             </div>
         </div>
 
@@ -275,14 +303,21 @@ let STATE = {
     emsBXP: 0,
     heliBXP: 0,
     
-    // Tracking
-    startXP: null,
-    sessionXP: 0,
+    // Tracking EMS
+    emsStartXP: null,
+    emsSessionXP: 0,
     revives: 0,
-    lastKnownXP: -1
+    emsLastKnownXP: -1,
+
+    // Tracking Heli
+    heliStartXP: null,
+    heliSessionXP: 0,
+    flights: 0,
+    heliLastKnownXP: -1
 };
 
 let heliVisible = false;
+let microHeliVisible = false;
 
 // --- CLOCK ---
 function updateClock() { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }
@@ -300,6 +335,12 @@ function toggleMini() {
 function toggleHeliSection() {
     heliVisible = !heliVisible;
     document.getElementById('heli-section').style.display = heliVisible ? 'block' : 'none';
+}
+
+function toggleMicroHeli() {
+    microHeliVisible = !microHeliVisible;
+    document.getElementById('micro-heli-section').style.display = microHeliVisible ? 'block' : 'none';
+    document.querySelector('.micro-toggle').innerText = microHeliVisible ? "▲ HIDE HELI DETAILS" : "▼ SHOW HELI DETAILS";
 }
 
 function setCalc(amount) {
@@ -327,7 +368,7 @@ window.addEventListener('message', (event) => {
     let data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
     
-    // Anti-Flicker: Ignore completely empty data or data with 0 keys if possible
+    // Anti-Flicker check
     if(Object.keys(data).length < 2) return;
 
     processPayload(data);
@@ -336,8 +377,8 @@ window.addEventListener('message', (event) => {
 function processPayload(data) {
     if(data.name) document.getElementById('user-name-drop').innerText = "Paramedic " + data.name;
 
-    // --- EMS DATA (Anti-Flicker: Only update if > 0) ---
-    let emsXP = data[KEYS.EMS_XP] || data.exp_paramedic;
+    // --- EMS DATA ---
+    let emsXP = data[KEYS.EMS_XP] || data.exp_paramedic || 0;
     if (typeof emsXP === 'number' && emsXP > 0) {
         STATE.emsXP = emsXP;
         trackEMSProgress(emsXP);
@@ -350,9 +391,12 @@ function processPayload(data) {
         if(val > 0) STATE.emsBXP = val;
     }
 
-    // --- HELI DATA (Anti-Flicker: Only update if > 0) ---
-    let heliXP = data[KEYS.HELI_XP];
-    if (typeof heliXP === 'number' && heliXP > 0) STATE.heliXP = heliXP;
+    // --- HELI DATA ---
+    let heliXP = data[KEYS.HELI_XP] || 0;
+    if (typeof heliXP === 'number' && heliXP > 0) {
+        STATE.heliXP = heliXP;
+        trackHeliProgress(heliXP);
+    }
 
     let heliBXP = data[KEYS.HELI_BXP];
     if(!heliBXP && data.inventory) heliBXP = findInInventory(data.inventory, KEYS.HELI_BXP);
@@ -361,7 +405,7 @@ function processPayload(data) {
          if(val > 0) STATE.heliBXP = val;
     }
 
-    // --- INVENTORY (Defibs) ---
+    // --- INVENTORY ---
     if(data.inventory) processInventory(data.inventory);
 
     renderUI();
@@ -397,25 +441,38 @@ function processInventory(inv) {
 }
 
 function trackEMSProgress(current) {
-    if (STATE.startXP === null && current > 0) {
-        STATE.startXP = current;
-        STATE.lastKnownXP = current;
+    if (STATE.emsStartXP === null && current > 0) {
+        STATE.emsStartXP = current;
+        STATE.emsLastKnownXP = current;
     }
-    
-    if (STATE.lastKnownXP > -1 && current > STATE.lastKnownXP) {
-        const diff = current - STATE.lastKnownXP;
-        // Basic filter to ignore tiny passive gains vs big revive gains
-        if (diff > 5) {
-            STATE.sessionXP += diff;
+    if (STATE.emsLastKnownXP > -1 && current > STATE.emsLastKnownXP) {
+        const diff = current - STATE.emsLastKnownXP;
+        if (diff > 5) { // Filter small noise
+            STATE.emsSessionXP += diff;
             STATE.revives++;
         }
-        STATE.lastKnownXP = current;
+        STATE.emsLastKnownXP = current;
+    }
+}
+
+function trackHeliProgress(current) {
+    if (STATE.heliStartXP === null && current > 0) {
+        STATE.heliStartXP = current;
+        STATE.heliLastKnownXP = current;
+    }
+    if (STATE.heliLastKnownXP > -1 && current > STATE.heliLastKnownXP) {
+        const diff = current - STATE.heliLastKnownXP;
+        if (diff > 5) {
+            STATE.heliSessionXP += diff;
+            STATE.flights++;
+        }
+        STATE.heliLastKnownXP = current;
     }
 }
 
 // --- RENDER ---
 function renderUI() {
-    // EMS UI
+    // 1. EMS STATS
     const emsLvl = getLevelInfo(STATE.emsXP);
     document.getElementById('disp-xp').innerText = formatNumber(STATE.emsXP);
     document.getElementById('disp-level').innerText = emsLvl.level;
@@ -423,35 +480,57 @@ function renderUI() {
     document.getElementById('level-text').innerText = emsLvl.percent + "%";
     document.getElementById('disp-bxp').innerText = formatNumber(STATE.emsBXP);
     
-    // Micro UI
+    // EMS Mini
     document.getElementById('micro-xp').innerText = formatNumber(STATE.emsXP);
     document.getElementById('micro-level').innerText = emsLvl.level;
     document.getElementById('micro-bar').style.width = emsLvl.percent + "%";
     document.getElementById('micro-tokens').innerText = formatNumber(STATE.emsBXP);
     document.getElementById('micro-revives').innerText = STATE.revives;
 
-    // Stats
+    // EMS Calc
     document.getElementById('disp-callouts').innerText = STATE.revives;
-    const avg = STATE.revives > 0 ? (STATE.sessionXP / STATE.revives) : 0;
-    document.getElementById('disp-avg').innerText = Math.round(avg);
+    const emsAvg = STATE.revives > 0 ? (STATE.emsSessionXP / STATE.revives) : 0;
+    document.getElementById('disp-avg').innerText = Math.round(emsAvg);
     
-    const needed = Math.round(emsLvl.next - STATE.emsXP);
-    let remText = `<b>${formatNumber(needed)}</b> XP to Next Level`;
-    if (avg > 0) {
-        const est = Math.ceil(needed / avg);
-        remText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(est)} revives)</span>`;
+    const emsNeeded = Math.round(emsLvl.cap - emsLvl.expInLevel); // Correct calculation
+    let emsRemText = `<b>${formatNumber(emsNeeded)}</b> XP to Next Level`;
+    if (emsAvg > 0) {
+        const est = Math.ceil(emsNeeded / emsAvg);
+        emsRemText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(est)} revives)</span>`;
     }
-    document.getElementById('disp-xp-remaining').innerHTML = remText;
+    document.getElementById('disp-xp-remaining').innerHTML = emsRemText;
 
-    // HELI UI
+
+    // 2. HELI STATS
     const heliLvl = getLevelInfo(STATE.heliXP);
     document.getElementById('heli-xp').innerText = formatNumber(STATE.heliXP);
     document.getElementById('heli-level').innerText = heliLvl.level;
     document.getElementById('heli-bar').style.width = heliLvl.percent + "%";
     document.getElementById('heli-text').innerText = heliLvl.percent + "%";
     document.getElementById('heli-bxp').innerText = formatNumber(STATE.heliBXP);
+    
+    // Heli Mini
+    document.getElementById('micro-heli-level').innerText = heliLvl.level;
+    document.getElementById('micro-heli-bar').style.width = heliLvl.percent + "%";
+    document.getElementById('micro-heli-tokens').innerText = formatNumber(STATE.heliBXP);
+    document.getElementById('micro-flights').innerText = STATE.flights;
 
-    runCalculator(avg);
+    // Heli Calc
+    document.getElementById('heli-flights').innerText = STATE.flights;
+    const heliAvg = STATE.flights > 0 ? (STATE.heliSessionXP / STATE.flights) : 0;
+    document.getElementById('heli-avg').innerText = Math.round(heliAvg);
+    document.getElementById('micro-heli-avg').innerText = Math.round(heliAvg);
+
+    const heliNeeded = Math.round(heliLvl.cap - heliLvl.expInLevel);
+    let heliRemText = `<b>${formatNumber(heliNeeded)}</b> XP to Next Level`;
+    if (heliAvg > 0) {
+        const estH = Math.ceil(heliNeeded / heliAvg);
+        heliRemText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(estH)} flights)</span>`;
+    }
+    document.getElementById('heli-xp-remaining').innerHTML = heliRemText;
+
+    // Update Calculator at bottom based on selection
+    runCalculator(emsAvg, heliAvg);
 }
 
 // --- UTILS ---
@@ -463,16 +542,27 @@ function formatNumber(num) {
 
 function getLevelInfo(exp) {
     let level = 0, cap = 5;
-    while (exp >= cap) { exp -= cap; level++; cap = (level + 1) * 5; }
+    let expInLevel = exp;
+    
+    // Tycoon Logic: Levels are progressive steps (5, 10, 15...)
+    // Total XP required for level N is approx 2.5 * N^2
+    // Iterative subtraction to find current progress
+    while (expInLevel >= cap) { 
+        expInLevel -= cap; 
+        level++; 
+        cap = (level + 1) * 5; 
+    }
+    
     return { 
         level: level, 
-        percent: ((exp / cap) * 100).toFixed(1), 
-        next: cap 
+        expInLevel: expInLevel, // Current progress into this level
+        cap: cap, // Total XP needed for next level
+        percent: ((expInLevel / cap) * 100).toFixed(1)
     };
 }
 
 // --- CALCULATOR ---
-function runCalculator(avg) {
+function runCalculator(emsAvg, heliAvg) {
     const val = document.getElementById('target-input').value;
     const mode = document.getElementById('calc-mode').value;
     const el = document.getElementById('calc-result');
@@ -486,23 +576,22 @@ function runCalculator(avg) {
 
     let inputVal = parseInt(val.replace(/,/g, ''));
     let currentXP = (mode === 'heli') ? STATE.heliXP : STATE.emsXP;
-    
-    // Auto-detect if user entered a Level instead of XP
+    let currentAvg = (mode === 'heli') ? heliAvg : emsAvg;
+    let unit = (mode === 'heli') ? "Flights" : "Revives";
+
     let targetXP = inputVal;
     if (inputVal < 200) { 
          targetXP = getXPFromLevel(inputVal);
-         // Safety: only switch to level logic if input is reasonably a level target
-         if (targetXP < currentXP) targetXP = inputVal; 
+         if (targetXP < currentXP) targetXP = inputVal; // Fallback
     }
 
     if (targetXP > currentXP) {
         const diff = targetXP - currentXP;
         let msg = `Remaining: <b>${formatNumber(diff)} XP</b>`;
         
-        // Add estimate only for EMS mode if we have data
-        if (mode === 'ems' && avg > 0) {
-            const est = Math.ceil(diff / avg);
-            msg += `<br><span style="color:var(--primary)">Est. Revives: <b>${formatNumber(est)}</b></span>`;
+        if (currentAvg > 0) {
+            const est = Math.ceil(diff / currentAvg);
+            msg += `<br><span style="color:var(--primary)">Est. ${unit}: <b>${formatNumber(est)}</b></span>`;
             microEl.innerText = formatNumber(est);
         } else {
             microEl.innerText = formatNumber(diff);
@@ -569,7 +658,6 @@ function dragEnd() {
     active = false;
 }
 
-// Resizer
 const resizeHandle = document.getElementById('resize-handle');
 resizeHandle.addEventListener('mousedown', initResize, false);
 function initResize(e) {
