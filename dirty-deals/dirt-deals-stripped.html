@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - God Mode Refined v14.2</title>
+    <title>Dirty Deals - Ultimate Fix v14.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -730,8 +730,8 @@
             row.className = 'god-item';
             row.innerHTML = `
                 <span style="flex:1">${i.name}</span>
-                <input type="text" class="god-input" id="god-price-${i.name}" value="${i.price}">
-                <input type="text" class="god-input" id="god-limit-${i.name}" value="${i.limit}">
+                <input type="text" class="god-input" id="god-price-${i.name}" value="${i.price}" placeholder="Price">
+                <input type="text" class="god-input" id="god-limit-${i.name}" value="${i.limit}" placeholder="Limit">
                 <button class="god-btn" onclick="saveItem('${i.name}')">SAVE</button>
             `;
             itemList.appendChild(row);
@@ -872,6 +872,8 @@
             else fetchGlobalOrders(); 
         }); 
     }
+    
+    function checkForMail() { if(!state.userPin) return; fetch(`${GOOGLE_SCRIPT_URL}?userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) { if(!data) return; var hasUnread = false; for(var i=0; i<data.length; i++) { if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) { hasUnread = true; break; } } var icon = document.getElementById('mail-alert'); if(hasUnread) icon.classList.add('has-mail'); else icon.classList.remove('has-mail'); }); }
 
     function toggleChat(btn) { 
         var area = btn.closest('.history-item').querySelector('.chat-area'); 
@@ -1374,6 +1376,61 @@
         document.getElementById('tab-orders').classList.toggle('active', tab === 'orders');
         document.getElementById('tab-tickets')?.classList.toggle('active', tab === 'tickets');
     }
+
+    function fetchAdminUsers(silent) { 
+        return fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
+            .then(r => r.json())
+            .then(users => { 
+                allUsersList = users; 
+                availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); 
+                if (silent) return; 
+                let c = document.getElementById('hk-user-list'); 
+                c.innerHTML = ''; 
+                users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); 
+            }); 
+    }
+    
+    function fetchAdminOrders() { fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ let c = document.getElementById('hk-order-list'); c.innerHTML = ''; orders.forEach(o => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}', '${o.qty}', '${o.progress}')">EDIT</button></td></tr>`; }); }); }
+    
+    function openAdminEdit(ts, uid, status, grinder, qty, progress) { 
+        if(qty === "Bundle" && !state.isAdmin) {
+             console.log("Blocked: Staff tried to edit Special Order");
+             return;
+        }
+        
+        document.getElementById('admin-edit-modal').style.display = 'flex'; 
+        document.getElementById('ae-ts').value = ts; 
+        document.getElementById('ae-uid').value = uid; 
+        document.getElementById('ae-status').value = status; 
+        document.getElementById('ae-progress').value = progress || "0"; 
+        
+        let select = document.getElementById('ae-grinder'); 
+        select.innerHTML = '<option value="">None (Unassigned)</option>'; 
+        availableGrinders.forEach(g => { 
+            let opt = document.createElement('option'); 
+            opt.value = `${g.name} (${g.role})`; 
+            opt.text = `${g.name} (${g.role})`; 
+            if(grinder === opt.value) opt.selected = true; 
+            select.appendChild(opt); 
+        }); 
+    }
+    
+    function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
+    
+    function saveAdminOrder() { 
+        let ts = document.getElementById('ae-ts').value; 
+        let uid = document.getElementById('ae-uid').value; 
+        let stat = document.getElementById('ae-status').value; 
+        let grind = document.getElementById('ae-grinder').value; 
+        let prog = document.getElementById('ae-progress').value;
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: prog, userId: state.userId, pin: state.userPin }) });
+
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind }) }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); }); 
+    }
+    
+    function saveUserModification() { let id = document.getElementById('ue-id').value; let role = document.getElementById('ue-role').value; let status = document.getElementById('ue-status').value; let staff = document.getElementById('ue-staff').value; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role, newStaff: staff }) }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); }); }
+    function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
+    function openUserEdit(id, role, status, staff) { document.getElementById('user-edit-modal').style.display = 'flex'; document.getElementById('ue-id').value = id; let cleanRole = role ? role.trim() : ""; let roleSelect = document.getElementById('ue-role'); roleSelect.value = cleanRole; if (roleSelect.value !== cleanRole && cleanRole !== "") { let newOpt = document.createElement('option'); newOpt.text = cleanRole + " (Current)"; newOpt.value = cleanRole; roleSelect.add(newOpt); roleSelect.value = cleanRole; } else if (cleanRole === "") { roleSelect.value = "Customer"; } document.getElementById('ue-status').value = status; document.getElementById('ue-staff').value = staff || "No"; }
     
     var mainHeader = document.getElementById("main-header"); var miniStrip = document.getElementById("mini-drag-strip"); var elmnt = document.getElementById("app-container"); var pos1=0, pos2=0, pos3=0, pos4=0;
     function dragMouseDown(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elementDrag; }
