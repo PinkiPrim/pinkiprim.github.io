@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Commission v10.0</title>
+    <title>Dirty Deals - Ultimate Fix v14.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -12,29 +12,83 @@
             --border: 1px solid #333; --text-main: #ffffff; --text-dim: #888888;
             --st-pending: #f1c40f; --st-accepted: #3498db; 
             --st-denied: #e74c3c; --st-completed: #2ecc71;
+            --gold: #f1c40f;
+            --msg-user: #3498db; --msg-staff: #333;
         }
         * { box-sizing: border-box; user-select: none; }
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: transparent; color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-        /* DOCK & LOGIN */
-        #side-dock { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 40px; height: 220px; background: rgba(18, 18, 18, 0.95); border: 2px solid var(--accent); border-right: none; border-radius: 12px 0 0 12px; cursor: pointer; z-index: 20000; display: flex; align-items: center; justify-content: center; box-shadow: -5px 0 25px rgba(0, 0, 0, 0.8); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        /* --- DOCK SYSTEM --- */
+        #side-dock {
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+            width: 40px; height: 220px; background: rgba(18, 18, 18, 0.95);
+            border: 2px solid var(--accent); border-right: none; border-radius: 12px 0 0 12px;
+            cursor: pointer; z-index: 20000; display: flex; align-items: center; justify-content: center;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.8); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
         #side-dock:hover { width: 55px; background: var(--accent); box-shadow: -5px 0 35px rgba(94, 107, 246, 0.6); }
-        #side-dock span { writing-mode: vertical-rl; text-orientation: mixed; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 4px; font-size: 1.2em; color: white; text-transform: uppercase; }
+        #side-dock span { writing-mode: vertical-rl; text-orientation: mixed; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 4px; font-size: 1.2em; color: white; text-transform: uppercase; white-space: nowrap; }
 
-        #login-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 10000; justify-content: center; align-items: center; flex-direction: column; }
-        .login-box { width: 350px; padding: 30px; background: #1a1a1a; border: 2px solid var(--accent); border-radius: 8px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
+        /* NOTIFICATION SIDE TAB */
+        #notif-tab {
+            position: absolute; right: 38px; top: 45%; 
+            width: 35px; height: 35px; background: #e74c3c; border-radius: 8px 0 0 8px;
+            display: none; align-items: center; justify-content: center;
+            z-index: 19999; box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+            font-weight: bold; font-family: 'Rajdhani', sans-serif; color: white;
+            cursor: pointer;
+        }
+        #notif-tab.visible { display: flex; }
+
+        /* --- MODALS --- */
+        #login-overlay, #rules-modal, #feedback-modal, #new-ticket-modal, #staff-close-modal, #admin-edit-modal, #user-edit-modal, #special-order-modal { 
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(8px); z-index: 30000; 
+            justify-content: center; align-items: center; flex-direction: column; 
+        }
+        
+        .login-box, .rules-box, .feedback-box, .admin-edit-box { 
+            width: 450px; padding: 30px; background: #1a1a1a; border: 2px solid var(--accent); 
+            border-radius: 8px; text-align: center; box-shadow: 0 0 60px rgba(0,0,0,0.95); 
+        }
+        .rules-box { width: 500px; border-color: #e74c3c; } 
+        
+        /* Special Order Modal Specifics */
+        .special-box { width: 600px; padding: 30px; background: #1a1a1a; border: 2px solid var(--gold); border-radius: 8px; box-shadow: 0 0 60px rgba(241, 196, 15, 0.2); display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow-y: auto; }
+        .sp-header { color: var(--gold); font-family: 'Rajdhani', sans-serif; font-size: 1.8em; font-weight: bold; text-align: center; margin-bottom: 10px; text-transform: uppercase; }
+        .sp-row { display: flex; gap: 10px; align-items:center; }
+        .sp-list { background: #0f0f0f; border: 1px solid #333; height: 100px; overflow-y: auto; padding: 5px; text-align: left; font-size: 0.85em; color: #ccc; border-radius: 4px; }
+        .sp-item-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 4px; }
+        
+        #sp-status-msg { text-align:center; color:#e74c3c; font-weight:bold; font-size:0.9em; height:20px; }
+
+        .rules-header { color: #e74c3c; font-family: 'Rajdhani', sans-serif; font-size: 2.2em; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        .rules-body { color: #ccc; margin-bottom: 25px; font-size: 1.1em; line-height: 1.5; white-space: pre-wrap; text-align: left; }
+        
+        .modal-btn-row { display: flex; gap: 10px; justify-content: center; width: 100%; margin-top: 15px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; font-weight: bold; font-family: 'Rajdhani', sans-serif; font-size: 1.1em; cursor: pointer; border-radius: 4px; text-transform: uppercase; transition: 0.2s; }
+        .btn-confirm { background: var(--accent); color: white; }
+        .btn-confirm:hover { background: var(--accent-hover); }
+        .btn-cancel { background: #333; color: #ccc; }
+        .btn-cancel:hover { background: #444; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-gold { background: var(--gold); color: black; }
+        .btn-gold:hover { background: #d4ac0d; }
+
         .login-title { font-family: 'Rajdhani', sans-serif; font-size: 2em; margin-bottom: 20px; color: white; letter-spacing: 2px; }
-        .login-input { width: 100%; padding: 15px; background: #000; border: 1px solid #333; color: var(--accent); font-size: 1.5em; text-align: center; letter-spacing: 5px; margin-bottom: 15px; font-family: monospace; }
+        .login-input { width: 100%; padding: 15px; background: #080808; border: 1px solid #333; color: white; font-size: 1.1em; text-align: center; letter-spacing: 1px; margin-bottom: 15px; font-family: monospace; border-radius: 4px; }
         .login-btn { width: 100%; padding: 12px; background: var(--accent); border: none; color: white; font-weight: bold; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.2em; transition: 0.2s; }
         .login-btn:hover { background: var(--accent-hover); }
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
 
-        /* MAIN APP */
-        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; height: 650px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
+        /* --- MAIN APP CONTAINER --- */
+        #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 1050px; height: 680px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
         
         body.mini-mode #app-container { width: 350px !important; height: 500px !important; background: rgba(18, 18, 18, 0.98); border: 1px solid var(--accent); }
-        body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping { display: none !important; }
+        body.mini-mode #main-header, body.mini-mode #view-order, body.mini-mode .selection-area, body.mini-mode .details-area, body.mini-mode #view-housekeeping, body.mini-mode #view-tickets, body.mini-mode #view-godmode { display: none !important; }
 
+        /* MINI HEADER */
         #mini-header { display: none; flex-direction: column; }
         body.mini-mode #mini-header { display: flex; }
         #mini-drag-strip { height: 28px; background: #000; cursor: move; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #333; flex-shrink: 0; }
@@ -54,14 +108,18 @@
         /* REGULAR HEADER */
         #main-header { background: #181818; padding: 0 20px; cursor: move; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; height: 60px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 10px; }
-        .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 5px 12px; font-size: 0.8em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
+        .header-btn { background: #252525; border: 1px solid #333; color: #ccc; padding: 6px 14px; font-size: 0.8em; cursor: pointer; margin-left: 5px; border-radius: 4px; transition: 0.2s; }
         .header-btn:hover, .header-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .grinder-btn { background: #4a1c1c; border: 1px solid #e74c3c; color: #ffadad; display: none; }
         .grinder-btn:hover, .grinder-btn.active { background: #e74c3c; color: white; }
         .admin-btn { background: #4a0000; border: 1px solid #e74c3c; color: #ffaaaa; display: none; }
         .admin-btn:hover, .admin-btn.active { background: #e74c3c; color: white; }
+        
+        .support-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #333; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid #555; position: relative; margin-right: 5px; }
+        .support-btn:hover { background: var(--accent); border-color: var(--accent); }
+        .notif-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background: red; border-radius: 50%; display: none; border: 1px solid black; }
 
-        .status-wrapper { display: flex; align-items: center; gap: 15px; }
+        .status-wrapper { display: flex; align-items: center; gap: 10px; }
         .mail-icon { font-size: 1.4em; position: relative; cursor: pointer; display: none; margin-right: 10px; }
         .mail-icon.has-mail { display: block; animation: bounce 1s infinite; }
         .mail-badge { position: absolute; top: 0; right: -2px; width: 10px; height: 10px; background: #e74c3c; border-radius: 50%; border: 1px solid #181818; }
@@ -70,14 +128,38 @@
         .user-id { font-size: 0.7em; color: #555; font-family: monospace; }
         .rank-tag { font-size: 0.65em; color: var(--accent); display: block; letter-spacing: 0.5px; }
 
-        /* LAYOUTS */
+        /* GOD MODE BTN */
+        #god-mode-btn { border-color: var(--gold); color: var(--gold); display: none; } 
+        #god-mode-btn:hover { background: var(--gold); color: black; }
+
+        /* VIEW LAYOUTS */
         #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #view-order, #view-history, #view-grinder, #view-housekeeping { display: none; width: 100%; height: 100%; }
+        
+        #view-order, #view-history, #view-grinder, #view-housekeeping, #view-tickets, #view-godmode { display: none; width: 100%; height: 100%; }
+        
         #view-order { display: flex; }
         #view-history, #view-grinder { padding: 20px; flex-direction: column; background: #141414; }
+        #view-tickets { padding: 40px; flex-direction: column; background: #141414; }
         #view-housekeeping { padding: 20px; flex-direction: column; background: #0f0f0f; }
+        
+        /* GOD MODE LAYOUT */
+        #view-godmode { padding: 20px; flex-direction: column; background: #111; }
+        .god-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; overflow: hidden; }
+        .god-panel { background: #1a1a1a; border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; overflow: hidden; }
+        .god-title { color: var(--gold); font-family: 'Rajdhani'; font-size: 1.5em; margin-bottom: 10px; display:flex; justify-content:space-between; }
+        #god-status-msg { font-size:0.8em; font-weight:bold; color:#2ecc71; align-self:center; }
+        .god-list { flex: 1; overflow-y: auto; padding-right:5px; }
+        .god-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #222; font-size: 0.9em; }
+        .god-item:hover { background: #222; }
+        .god-input { background: #000; border: 1px solid #444; color: white; padding: 4px; width: 80px; text-align: center; font-family: monospace; }
+        .god-btn { background: #333; border: 1px solid #555; color: #ccc; padding: 4px 10px; cursor: pointer; font-size: 0.8em; font-weight:bold; }
+        .god-btn:hover { background: var(--accent); color: white; border-color:var(--accent); }
+        .god-header-row { display:flex; padding:5px 8px; color:#888; font-size:0.7em; text-transform:uppercase; border-bottom:1px solid #444; margin-bottom:5px; font-weight:bold; }
 
+        /* ORDER LAYOUT */
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
+        .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; min-width: 340px; }
+        
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
         .tab-btn { flex: 1; background: #252525; border: 1px solid #333; color: #888; padding: 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center; }
         .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 10px rgba(94, 107, 246, 0.3); }
@@ -95,7 +177,6 @@
         .check-mark { position: absolute; top: 5px; right: 5px; color: var(--accent); font-size: 12px; opacity: 0; }
         .grid-item.active .check-mark { opacity: 1; }
 
-        .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; }
         .input-group { margin-bottom: 5px; }
         .label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
         input[type="text"], input[type="number"], select { width: 100%; background: #252525; border: 1px solid #383838; color: white; padding: 12px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.95em; }
@@ -109,6 +190,44 @@
         .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         .btn-order.active { opacity: 1; pointer-events: all; }
         
+        /* TICKET SYSTEM STYLES */
+        .ticket-list-container { flex: 1; display: flex; gap: 20px; height: 100%; overflow: hidden; }
+        .ticket-list { width: 250px; background: #111; border: 1px solid #333; overflow-y: auto; display: flex; flex-direction: column; }
+        .ticket-list-header { padding: 15px; background: #181818; border-bottom: 1px solid #333; color: #888; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-weight: bold; }
+        .ticket-item { padding: 15px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.2s; position: relative; }
+        .ticket-item:hover, .ticket-item.active { background: #222; border-left: 3px solid var(--accent); }
+        .t-id { font-size: 0.75em; color: #666; font-family: monospace; display: block; margin-bottom: 3px; }
+        .t-user { font-weight: bold; color: white; font-size: 0.95em; display: block; margin-bottom: 5px; }
+        .t-status { font-size: 0.65em; padding: 3px 6px; border-radius: 2px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
+        .t-open { background: rgba(39, 174, 96, 0.2); color: #2ecc71; border: 1px solid #27ae60; }
+        .t-inprogress { background: rgba(243, 156, 18, 0.2); color: #f39c12; border: 1px solid #f39c12; }
+        .t-closed { background: rgba(255, 255, 255, 0.05); color: #888; border: 1px solid #444; }
+        
+        .ticket-chat-area { flex: 1; background: #181818; border: 1px solid #333; display: flex; flex-direction: column; }
+        .tc-header { padding: 15px 20px; border-bottom: 1px solid #333; background: #111; display: flex; justify-content: space-between; align-items: center; height: 60px; flex-shrink: 0; }
+        .tc-title { font-weight: bold; color: white; font-family: 'Rajdhani', sans-serif; font-size: 1.3em; letter-spacing: 0.5px; }
+        .tc-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; background-image: radial-gradient(#1a1a1a 1px, transparent 1px); background-size: 20px 20px; }
+        
+        /* CHAT BUBBLES REDESIGNED */
+        .msg-wrapper { display: flex; flex-direction: column; max-width: 75%; }
+        .msg-wrapper.me { align-self: flex-end; align-items: flex-end; }
+        .msg-wrapper.them { align-self: flex-start; align-items: flex-start; }
+        
+        .msg-name { font-size: 0.75em; font-weight: bold; color: #888; margin-bottom: 4px; margin-left: 5px; margin-right: 5px; }
+        
+        .msg-bubble { padding: 12px 16px; border-radius: 12px; font-size: 0.95em; line-height: 1.5; position: relative; word-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .msg-wrapper.me .msg-bubble { background: var(--msg-user); color: white; border-bottom-right-radius: 2px; }
+        .msg-wrapper.them .msg-bubble { background: var(--msg-staff); color: #eee; border-bottom-left-radius: 2px; border: 1px solid #333; }
+        
+        .msg-time { font-size: 0.65em; opacity: 0.5; margin-top: 5px; display: block; text-align: right; }
+        
+        .tc-input-area { padding: 15px 20px; background: #181818; border-top: 1px solid #333; display: flex; gap: 10px; align-items: center; }
+        .tc-input { flex: 1; background: #0f0f0f; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; font-family: 'Roboto', sans-serif; }
+        .tc-input:focus { outline: none; border-color: var(--accent); }
+        .tc-send { background: var(--accent); border: none; color: white; width: 45px; height: 45px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2em; transition: 0.2s; }
+        .tc-send:hover { background: var(--accent-hover); }
+
+        /* History & Grinder Styles */
         .history-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: #1a1a1a; border-radius: 4px; }
         .history-item { display: flex; flex-direction: column; padding: 12px 15px; border-bottom: 1px solid #2a2a2a; }
         .history-item:hover { background: #222; }
@@ -119,6 +238,7 @@
         .h-row.item { color: white; font-weight: bold; font-size: 1.1em; }
         .h-row.item span { color: #888; font-size: 0.8em; }
         .h-row.price { color: #2ecc71; font-weight: bold; font-family: 'Rajdhani', sans-serif; font-size: 1em; }
+        .h-row.commission { color: var(--gold); font-size: 0.85em; font-weight: bold; margin-top: -2px; }
         .h-row.worker { color: #e67e22; font-size: 0.8em; font-weight: bold; }
         .status-container { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
         .status-badge { padding: 4px 8px; border-radius: 3px; font-size: 0.7em; font-weight: bold; text-transform: uppercase; color: #000; display: inline-block; }
@@ -126,6 +246,8 @@
         .st-Accepted { background: var(--st-accepted); color: white; }
         .st-Denied { background: var(--st-denied); color: white; }
         .st-Completed { background: var(--st-completed); }
+        .st-AdminOrder { background: #8e44ad; color: white; border: 1px solid #9b59b6; }
+        .st-SpecialRequest { background: #f39c12; color: black; border: 1px solid #f1c40f; }
         
         .grinder-action-box { display: flex; flex-direction: column; gap: 5px; width: 140px; }
         .btn-row { display: flex; gap: 5px; }
@@ -133,32 +255,21 @@
         .gb-accept { background: var(--accent); width: 100%; }
         .gb-complete { background: #27ae60; flex: 2; }
         .gb-chat { background: #555; flex: 1; position: relative; }
-        .gb-accept:hover { background: #4b56c4; }
-        .gb-complete:hover { background: #2ecc71; }
         .progress-strip { width: 100%; background: #000; border: 1px solid #333; color: #2ecc71; text-align: center; font-size: 0.85em; font-weight: bold; padding: 4px; cursor: text; border-radius: 3px; }
-        .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; justify-content: center; align-items: center; border: 1px solid #111; }
-        
+
         .chat-area { display: none; margin-top: 10px; background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; }
-        .chat-logs { 
-            max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; 
-            white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; word-break: break-all;
-        }
+        .chat-logs { max-height: 100px; overflow-y: auto; font-size: 0.8em; margin-bottom: 5px; color: #ccc; white-space: pre-wrap; word-wrap: break-word; }
         .chat-input-row { display: flex; gap: 5px; }
         .chat-input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 5px; border-radius: 3px; }
         .chat-send { background: var(--accent); border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; }
         .view-controls { display: flex; gap: 10px; }
 
-        /* HOUSEKEEPING STYLES */
+        /* Housekeeping */
         .admin-tab-container { display: flex; gap: 10px; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
         .user-table, .order-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
         .user-table th, .order-table th { background: #222; padding: 10px; text-align: left; color: #888; }
         .user-table td, .order-table td { padding: 8px 10px; border-bottom: 1px solid #222; }
         .hk-action-btn { border: 1px solid #444; background: #111; color: white; cursor: pointer; padding: 3px 8px; font-size: 0.8em; border-radius: 3px; }
-        .hk-action-btn:hover { background: #333; }
-        
-        #admin-edit-modal, #user-edit-modal { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index: 5000; align-items:center; justify-content:center; }
-        .admin-edit-box { width: 300px; background:#1a1a1a; border:1px solid #555; padding:20px; }
-        .admin-edit-box h3 { margin-top:0; color: #e74c3c; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -168,6 +279,105 @@
 <body>
 
 <div id="side-dock" onclick="expandApp()"><span>OPEN SYSTEM</span></div>
+
+<div id="notif-tab" onclick="expandApp()">1</div>
+
+<div id="rules-modal">
+    <div class="rules-box">
+        <div class="rules-header" id="rules-title">RULES</div>
+        <div class="rules-body">Rules to follow shortly...</div>
+        <div class="modal-btn-row">
+            <button class="modal-btn btn-confirm" onclick="confirmRules()">ACKNOWLEDGED</button>
+        </div>
+    </div>
+</div>
+
+<div id="new-ticket-modal">
+    <div class="rules-box">
+        <div class="rules-header">NEW SUPPORT TICKET</div>
+        <input type="text" id="new-ticket-reason" class="login-input" placeholder="Describe your issue..." maxlength="60">
+        
+        <div id="ticket-error-msg" style="color:#e74c3c; font-size:0.9em; margin-bottom:10px; display:none;">
+            Sorry, there was an issue linking your account. Please refresh the app.
+        </div>
+        
+        <div class="modal-btn-row">
+            <button class="modal-btn btn-confirm" id="btn-create-ticket" onclick="submitNewTicket()">CREATE</button>
+            <button class="modal-btn btn-cancel" onclick="closeNewTicketModal()">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="staff-close-modal">
+    <div class="rules-box">
+        <div class="rules-header">CLOSE TICKET</div>
+        <div class="rules-body">Are you sure you want to mark this ticket as resolved?</div>
+        <div class="modal-btn-row">
+            <button class="modal-btn btn-danger" onclick="confirmStaffClose()">YES, CLOSE IT</button>
+            <button class="modal-btn btn-cancel" onclick="document.getElementById('staff-close-modal').style.display='none'">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="special-order-modal">
+    <div class="special-box">
+        <div class="sp-header">SPECIAL REQUEST OPS</div>
+        
+        <div class="input-group">
+            <label class="label">REQUESTER</label>
+            <select id="sp-requester"><option>Loading...</option></select>
+        </div>
+
+        <div class="input-group">
+            <label class="label">ITEMS BUNDLE</label>
+            <div class="sp-row">
+                <select id="sp-item-select"></select>
+                <input type="number" id="sp-item-qty" placeholder="Qty" style="width:80px;" class="login-input">
+                <button class="modal-btn btn-confirm" onclick="addSpItem()">ADD</button>
+            </div>
+            <div id="sp-item-list" class="sp-list"></div>
+        </div>
+
+        <div class="input-group">
+            <label class="label">ASSIGN GRINDERS</label>
+            <div id="sp-grinder-list" class="sp-list" style="height:100px;"></div>
+        </div>
+
+        <div class="sp-row">
+            <div class="input-group" style="flex:1">
+                <label class="label">DISCOUNT %</label>
+                <input type="number" id="sp-discount" class="login-input" placeholder="0" oninput="calculateSpTotal()">
+            </div>
+            <div class="input-group" style="flex:1">
+                <label class="label">TOTAL PRICE</label>
+                <input type="text" id="sp-price" class="login-input" placeholder="$0" oninput="manualPriceUpdate()">
+            </div>
+             <div class="input-group" style="flex:1">
+                <label class="label">COMMISSION</label>
+                <input type="text" id="sp-comm" class="login-input" placeholder="Auto-Calc">
+            </div>
+        </div>
+        
+        <div id="sp-status-msg" style="height:20px; color:#e74c3c; font-weight:bold; font-size:0.9em;"></div>
+
+        <div class="modal-btn-row">
+            <button class="modal-btn btn-gold" id="btn-submit-sp" onclick="submitSpecialOrder()">SUBMIT SPECIAL ORDER</button>
+            <button class="modal-btn btn-cancel" onclick="document.getElementById('special-order-modal').style.display='none'">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="feedback-modal">
+    <div class="feedback-box">
+        <div class="rules-header">FEEDBACK</div>
+        <div class="rules-body">Would you like to leave feedback for this ticket?</div>
+        <input type="text" id="fb-input" class="login-input" placeholder="Your feedback..." style="font-size:1em; margin-bottom:20px;">
+        <div class="modal-btn-row">
+            <button class="modal-btn btn-confirm" style="background:#27ae60;" onclick="submitFeedback(true)">SEND</button>
+            <button class="modal-btn btn-cancel" onclick="submitFeedback(false)">NO THANKS</button>
+        </div>
+    </div>
+</div>
 
 <div id="login-overlay">
     <div class="login-box">
@@ -188,7 +398,7 @@
     <div id="mini-header">
         <div id="mini-drag-strip">
             <span id="mini-title">DIRTY DEALS</span>
-            <button id="max-btn" id="expand-btn" onclick="toggleMiniMode()">[ EXPAND ]</button>
+            <button id="expand-btn" onclick="toggleMiniMode()">[ EXPAND ]</button>
         </div>
         <div id="mini-grinder-tabs">
             <button class="mini-tab-btn active" id="mt-orders" onclick="setMiniTab('orders')">MY ORDERS</button>
@@ -206,6 +416,9 @@
             <button class="header-btn admin-btn" id="nav-admin" onclick="switchView('housekeeping')">⚠️ Housekeeping</button>
         </div>
         <div class="status-wrapper">
+            <div class="support-btn" id="god-mode-btn" title="God Mode" onclick="switchView('godmode')">⚙️</div>
+            <div class="support-btn" title="Support" onclick="openTickets()">?<div class="notif-dot" id="support-dot"></div></div>
+            <button class="header-btn" style="border-color:#e74c3c; color:#e74c3c;" onclick="closeApp()">EXIT</button>
             <button class="header-btn" onclick="minimizeApp()">[ DOCK ]</button>
             <div class="mail-icon" id="mail-alert" title="New Message!">📩<div class="mail-badge"></div></div>
             <div class="status-box" id="status-box">
@@ -217,6 +430,29 @@
     </header>
 
     <div id="main-content">
+        <div id="view-godmode">
+            <div class="god-grid">
+                <div class="god-panel">
+                    <div class="god-title">
+                        <span>GLOBAL SETTINGS</span>
+                        <div id="god-status-msg"></div>
+                    </div>
+                    <div class="god-list" id="god-settings-list"></div>
+                </div>
+                <div class="god-panel">
+                    <div class="god-title">ITEM MANAGER</div>
+                    <input type="text" id="god-item-search" class="login-input" placeholder="Search Items..." style="margin-bottom:10px;" oninput="renderGodItems()">
+                    <div class="god-header-row">
+                        <span style="flex:1">ITEM NAME</span>
+                        <span style="width:80px; text-align:center;">PRICE</span>
+                        <span style="width:80px; text-align:center;">LIMIT</span>
+                        <span style="width:60px;">ACTION</span>
+                    </div>
+                    <div class="god-list" id="god-items-list"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="view-order">
             <div class="selection-area">
                 <div class="category-tabs">
@@ -243,54 +479,79 @@
                     </select>
                 </div>
                 <div class="total-box"><div class="label">Total Price</div><div class="total-price" id="disp-total">$0</div></div>
-                <div><button class="btn-order" id="btn-submit" onclick="submitRealOrder()">CONFIRM ORDER</button><div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;">Waiting for item selection...</div><div id="limit-warning" style="text-align:center; font-size:0.7em; color:#e74c3c; margin-top:5px;"></div></div>
+                <div>
+                    <button class="btn-order" id="btn-submit" onclick="submitRealOrder()">CONFIRM ORDER</button>
+                    <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;">Waiting for item selection...</div>
+                    <div id="limit-warning" style="text-align:center; font-size:0.7em; color:#e74c3c; margin-top:5px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-tickets">
+            <div class="ticket-list-container">
+                <div class="ticket-sidebar">
+                    <div class="ticket-list-header">Your Tickets</div>
+                    <div class="ticket-items" id="ticket-list-box">
+                        <div style="padding:20px;text-align:center;color:#555;">Loading...</div>
+                    </div>
+                    <div id="tc-new-btn" style="padding:15px; border-top:1px solid #333; text-align:center; display:none;">
+                        <button class="modal-btn btn-confirm" style="width:100%; font-size:0.9em;" onclick="openNewTicketModal()">+ NEW TICKET</button>
+                    </div>
+                </div>
+                <div class="ticket-chat-area">
+                    <div class="tc-header">
+                        <span class="tc-title" id="tc-title">Select a Ticket</span>
+                        <div id="tc-controls" style="display:none; display:flex; gap:10px;">
+                            <button id="claim-btn" class="header-btn" style="border-color:#f1c40f; color:#f1c40f; display:none;" onclick="claimTicket()">CLAIM</button>
+                            <button class="header-btn" style="border-color:#e74c3c; color:#e74c3c;" onclick="closeTicketAction()">CLOSE TICKET</button>
+                        </div>
+                    </div>
+                    <div class="tc-messages" id="tc-msgs"></div>
+                    <div class="tc-input-area" id="tc-input-box" style="display:none;">
+                        <input type="text" class="tc-input" id="chat-msg-in" placeholder="Type message... (Enter)" onkeypress="if(event.key==='Enter') sendTicketMsg()">
+                        <button class="tc-send" onclick="sendTicketMsg()">➤</button>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div id="view-history">
-            <div class="mini-label">MY ORDERS</div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;" class="section-title">
-                <span style="margin:0;">Recent Orders</span>
+            <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <span>Recent Orders</span>
                 <div class="view-controls">
                     <button class="header-btn" id="btn-toggle-my-done" onclick="toggleMyHistoryDone()">Show Done</button>
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchMyOrders()">↻ Refresh</button>
                 </div>
             </div>
-            <div class="history-list" id="history-container"><div style="padding:20px; text-align:center; color:#555;">History will appear here...</div></div>
+            <div class="history-list" id="history-container"></div>
         </div>
 
         <div id="view-grinder">
-            <div class="mini-label">PENDING JOBS</div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;" class="section-title">
-                <span style="margin:0; color:#e74c3c;">Pending Jobs (Global)</span>
+            <div class="section-title" style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <span style="color:#e74c3c;">Pending Jobs (Global)</span>
                 <div class="view-controls">
                     <button class="header-btn" id="btn-toggle-grinder-done" onclick="toggleGrinderDone()">Show Done</button>
                     <button class="header-btn" onclick="toggleMiniMode()">↘ Mini</button>
                     <button class="header-btn" onclick="fetchGlobalOrders()">↻ Refresh Jobs</button>
                 </div>
             </div>
-            <div class="history-list" id="grinder-container"><div style="padding:20px; text-align:center; color:#555;">Loading jobs...</div></div>
+            <div class="history-list" id="grinder-container"></div>
         </div>
-
+        
         <div id="view-housekeeping">
             <div class="admin-tab-container">
                 <button id="tab-users" class="tab-btn active" onclick="switchAdminTab('users')">User Management</button>
                 <button id="tab-orders" class="tab-btn" onclick="switchAdminTab('orders')">Order Management</button>
+                <button id="tab-tickets" class="tab-btn" onclick="switchAdminTab('tickets')">Ticket Management</button>
             </div>
+            <div id="admin-view-users" style="flex:1; overflow-y:auto;"><table class="user-table"><thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Staff</th><th>Status</th><th>Action</th></tr></thead><tbody id="hk-user-list"></tbody></table></div>
             
-            <div id="admin-view-users" style="flex:1; overflow-y:auto;">
-                <table class="user-table">
-                    <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Staff</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody id="hk-user-list"></tbody>
-                </table>
-            </div>
-
-            <div id="admin-view-orders" style="display:none; flex:1; overflow-y:auto;">
-                <table class="order-table">
-                    <thead><tr><th>Item</th><th>Customer</th><th>Status</th><th>Grinder</th><th>5% Cut</th><th>Edit</th></tr></thead>
-                    <tbody id="hk-order-list"></tbody>
-                </table>
+            <div id="admin-view-orders" style="display:none; flex:1; overflow-y:auto; flex-direction:column;">
+                <div style="padding:10px; text-align:right; border-bottom:1px solid #333;">
+                     <button id="btn-special-order" class="modal-btn btn-gold" style="width:auto; display:none;" onclick="openSpecialOrderModal()">CREATE SPECIAL ORDER</button>
+                </div>
+                <table class="order-table"><thead><tr><th>Item</th><th>Customer</th><th>Status</th><th>Grinder</th><th>Commission</th><th>Edit</th></tr></thead><tbody id="hk-order-list"></tbody></table>
             </div>
         </div>
     </div>
@@ -298,84 +559,53 @@
     <div id="admin-edit-modal">
         <div class="admin-edit-box">
             <h3>EDIT ORDER</h3>
-            <input type="hidden" id="ae-ts"><input type="hidden" id="ae-uid">
-            <div class="input-group">
-                <label>Status</label>
-                <select id="ae-status">
-                    <option value="Pending">Pending</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Void">Void</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label>Assigned Grinder</label>
-                <select id="ae-grinder">
-                    <option value="">None (Unassigned)</option>
-                </select>
-            </div>
+            <input type="hidden" id="ae-ts">
+            <input type="hidden" id="ae-uid">
+            
+            <div class="input-group"><label>Status</label>
+            <select id="ae-status">
+                <option value="Pending">Pending</option>
+                <option value="Accepted">Accepted</option>
+                <option value="Completed">Completed</option>
+                <option value="Void">Void</option>
+            </select></div>
+            
+            <div class="input-group"><label>Assigned Grinder</label>
+            <select id="ae-grinder"><option value="">None</option></select></div>
+            
+            <div class="input-group"><label>Current Progress</label>
+            <input type="text" id="ae-progress" class="login-input" style="font-size:1em;" placeholder="0"></div>
+
             <div style="display:flex; gap:10px; margin-top:15px;">
                 <button class="login-btn" onclick="saveAdminOrder()">SAVE</button>
                 <button class="login-btn" style="background:#333;" onclick="closeAdminModal()">CANCEL</button>
             </div>
         </div>
     </div>
-
-    <div id="user-edit-modal">
-        <div class="admin-edit-box">
-            <h3>USER MANAGER</h3>
-            <input type="hidden" id="ue-id">
-            <div class="input-group">
-                <label>Role</label>
-                <select id="ue-role">
-                    <option value="Customer">Customer (None)</option>
-                    <option value="Trainee Grinder">Trainee Grinder</option>
-                    <option value="Usual Grinder">Usual Grinder</option>
-                    <option value="Top Grinder">Top Grinder</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label>Staff?</label>
-                <select id="ue-staff">
-                    <option value="No">No</option>
-                    <option value="Yes">Yes</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label>Status</label>
-                <select id="ue-status">
-                    <option value="Accepted">Accepted</option>
-                    <option value="Blocked">Blocked</option>
-                </select>
-            </div>
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <button class="login-btn" onclick="saveUserModification()">SAVE</button>
-                <button class="login-btn" style="background:#333;" onclick="closeUserModal()">CANCEL</button>
-            </div>
-        </div>
-    </div>
+    
+    <div id="user-edit-modal"><div class="admin-edit-box"><h3>USER MANAGER</h3><input type="hidden" id="ue-id"><div class="input-group"><label>Role</label><select id="ue-role"><option value="Customer">Customer (None)</option><option value="Trainee Grinder">Trainee Grinder</option><option value="Usual Grinder">Usual Grinder</option><option value="Top Grinder">Top Grinder</option></select></div><div class="input-group"><label>Staff?</label><select id="ue-staff"><option value="No">No</option><option value="Yes">Yes</option></select></div><div class="input-group"><label>Status</label><select id="ue-status"><option value="Accepted">Accepted</option><option value="Blocked">Blocked</option></select></div><div style="display:flex; gap:10px; margin-top:15px;"><button class="login-btn" onclick="saveUserModification()">SAVE</button><button class="login-btn" style="background:#333;" onclick="closeUserModal()">CANCEL</button></div></div></div>
 </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
+    // --- CONFIGURATION ---
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
     
+    // Initial Fallback Defaults (Will be overwritten by God Mode fetch)
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
     var ADMIN_IDS = ["757858", "744622", "637174"];
-    var availableGrinders = []; // Store grinder list for dropdown
+    var availableGrinders = [];
+    var allUsersList = []; 
+    var specialOrderItems = []; 
+    var CATEGORIES = {}; // Populated by God Mode
+    
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false, genRules: "No", grindRules: "No", isStaff: "No", config: {}, items: [] };
+    var activeTicketId = null;
+    var ticketList = [];
+    var pendingRulesType = "";
+    var currentClosingTicketId = null;
 
-    // --- DATA ---
-    var CATEGORIES = {
-        "Bonus EXP": [ { name: "Airline XP", price: 8500, limit: 15000, icon: "✈️" }, { name: "Business XP", price: 3900, limit: 20000, icon: "💼" }, { name: "Bus XP", price: 6500, limit: 20000, icon: "🚌" }, { name: "Cargo XP", price: 7500, limit: 15000, icon: "📦" }, { name: "Conductor XP", price: 3500, limit: 15000, icon: "🎫" }, { name: "EMS XP", price: 3000, limit: 20000, icon: "🚑" }, { name: "Farming XP", price: 3200, limit: 20000, icon: "🚜" }, { name: "Fire XP", price: 5000, limit: 20000, icon: "🔥" }, { name: "Fishing XP", price: 10000, limit: 2500, icon: "🎣" }, { name: "Garbage XP", price: 3750, limit: 15000, icon: "🗑️" }, { name: "Hunting XP", price: 7250, limit: 15000, icon: "🏹" }, { name: "Heli XP", price: 7000, limit: 15000, icon: "🚁" }, { name: "Mechanic XP", price: 6400, limit: 15000, icon: "🔧" }, { name: "Mining XP", price: 3000, limit: 20000, icon: "⛏️" }, { name: "Player XP", price: 500, limit: 50000, icon: "🧍" }, { name: "PostOP XP", price: 8000, limit: 15000, icon: "📨" }, { name: "Racing XP", price: 6500, limit: 15000, icon: "🏎️" }, { name: "Strength XP", price: 500, limit: 50000, icon: "💪" }, { name: "Trucking XP", price: 700, limit: 50000, icon: "🚚" } ],
-        "Raw Materials": [ { name: "Acid", price: 12000, limit: 1500, icon: "🧪" }, { name: "Batteries", price: 160000, limit: 500, icon: "🔋" }, { name: "Bronze Alloy", price: 45000, limit: 500, icon: "🥉" }, { name: "Cement Mix", price: 95000, limit: 2000, icon: "🏗️" }, { name: "Ceramic Tiles", price: 85000, limit: 500, icon: "⬜" }, { name: "Copper Vouchers", price: 22000, limit: 1000, icon: "🎫" }, { name: "Explosives", price: 1000000, limit: 50, icon: "💣" }, { name: "Flint", price: 12000, limit: 2500, icon: "🪨" }, { name: "Iron Vouchers", price: 18000, limit: 1000, icon: "🎫" }, { name: "Kerosene", price: 100000, limit: 500, icon: "🛢️" }, { name: "Planks", price: 55000, limit: 1000, icon: "🪵" }, { name: "Raw Ore Mix", price: 2500, limit: 1000, icon: "⛰️" }, { name: "Refined Amalgam", price: 174000, limit: 1000, icon: "💎" }, { name: "Refined Copper", price: 20000, limit: 800, icon: "🟧" }, { name: "Refined Solder", price: 60000, limit: 500, icon: "🔌" }, { name: "Refined Tin", price: 65000, limit: 500, icon: "🥫" }, { name: "Refined Zinc", price: 14000, limit: 800, icon: "🔋" }, { name: "Rubber", price: 168000, limit: 250, icon: "⚫" }, { name: "Sand", price: 13000, limit: 10000, icon: "⏳" }, { name: "Sawdust", price: 3000, limit: 10000, icon: "🪚" }, { name: "Scrap Aluminum", price: 8000, limit: 500, icon: "🗑️" }, { name: "Scrap Copper", price: 11200, limit: 1000, icon: "🗑️" }, { name: "Scrap Gold", price: 55000, limit: 500, icon: "🗑️" }, { name: "Scrap Lead", price: 13000, limit: 800, icon: "🗑️" }, { name: "Scrap Mercury", price: 65000, limit: 500, icon: "🗑️" }, { name: "Scrap Plastic", price: 5000, limit: 2000, icon: "🥤" }, { name: "Scrap Tin", price: 32000, limit: 1000, icon: "🗑️" }, { name: "Sulfur", price: 30000, limit: 1000, icon: "🔥" }, { name: "Treated Water", price: 130000, limit: 500, icon: "💧" }, { name: "Waste Water", price: 70000, limit: 500, icon: "🚽" } ],
-        "Product": [ { name: "Airline Meals", price: 40000, limit: 500, icon: "🍱" }, { name: "Concrete", price: 850000, limit: 500, icon: "🧱" }, { name: "Defib Kits", price: 43000, limit: 200, icon: "⚡" }, { name: "Pills", price: 250000, limit: 250, icon: "💊" }, { name: "Fish", price: 650, limit: 250000, icon: "🐟" }, { name: "Meat", price: 1000, limit: 1000, icon: "🍖" } ]
-    };
-
-    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false };
-    var pollingInterval = null;
-
+    // --- CORE STARTUP ---
     window.onload = function() {
-        setCategory("Bonus EXP");
         initDrag();
         document.getElementById('app-container').style.display = 'none';
         document.getElementById('login-overlay').style.display = 'none';
@@ -402,24 +632,305 @@
     };
 
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
-
-    // --- ACTIONS ---
-    function expandApp() {
-        document.getElementById('side-dock').style.display = 'none';
-        if (!state.userPin) document.getElementById('login-overlay').style.display = 'flex';
-        else document.getElementById('app-container').style.display = 'flex';
+    function expandApp() { document.getElementById('side-dock').style.display = 'none'; document.getElementById('notif-tab').classList.remove('visible'); if(!state.userPin) document.getElementById('login-overlay').style.display = 'flex'; else document.getElementById('app-container').style.display = 'flex'; }
+    function minimizeApp() { document.getElementById('app-container').style.display = 'none'; document.getElementById('side-dock').style.display = 'flex'; if(state.isStaff==="Yes") pollTickets(); }
+    
+    function initializeConnection() { 
+        document.getElementById('btn-init').innerText = "SCANNING..."; 
+        if(window.parent) {
+            window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*"); 
+            window.parent.postMessage({ type: "getData" }, "*");
+        }
     }
 
-    function minimizeApp() {
-        document.getElementById('app-container').style.display = 'none';
-        document.getElementById('side-dock').style.display = 'flex';
+    function closeApp() {
+        try {
+            if(window.GetParentResourceName) {
+                fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+            }
+            window.parent.postMessage({ type: "close" }, "*");
+        } catch(e) { console.log("Browser Mode: Close signal sent."); }
+        
+        document.getElementById('app-container').style.display = "none";
+        document.getElementById('login-overlay').style.display = "none";
+        document.querySelectorAll('[id$="-modal"]').forEach(el => el.style.display = 'none');
+        document.getElementById('side-dock').style.display = "flex";
     }
 
-    function initializeConnection() {
-        document.getElementById('btn-init').innerText = "SCANNING...";
-        if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id"] }, "*");
+    // --- GOD MODE FUNCTIONS ---
+    function fetchAppConfig() {
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAppConfig&userId=${state.userId}&pin=${state.userPin}`)
+        .then(r => r.json())
+        .then(data => {
+            state.config = data.settings;
+            state.items = data.items;
+            
+            // Rebuild Categories
+            CATEGORIES = {};
+            data.items.forEach(i => {
+                if(!CATEGORIES[i.category]) CATEGORIES[i.category] = [];
+                CATEGORIES[i.category].push(i);
+            });
+            
+            // Refresh Limits based on config
+            GRINDER_LIMITS["Trainee Grinder"] = parseInt(state.config["limit_grinder_trainee"] || 3);
+            GRINDER_LIMITS["Usual Grinder"] = parseInt(state.config["limit_grinder_usual"] || 5);
+            GRINDER_LIMITS["Top Grinder"] = parseInt(state.config["limit_grinder_top"] || 9999);
+            
+            // Re-render UI if visible
+            if(document.getElementById('view-godmode').style.display === 'flex') {
+                renderGodMode();
+            }
+            
+            // Refresh Grid with new data
+            setCategory("Bonus EXP");
+        });
     }
 
+    function renderGodMode() {
+        // Settings Panel
+        let setList = document.getElementById('god-settings-list');
+        setList.innerHTML = '';
+        for (let key in state.config) {
+            let val = state.config[key];
+            let row = document.createElement('div');
+            row.className = 'god-item';
+            
+            // Check if it's a rule (Long text)
+            if (key.startsWith('rules_')) {
+                 row.innerHTML = `
+                    <div style="width:100%">
+                        <div style="margin-bottom:5px; color:#888;">${key}</div>
+                        <textarea class="god-input" id="god-set-${key}" style="width:100%; height:100px; text-align:left;">${val}</textarea>
+                        <button class="god-btn" style="width:100%; margin-top:5px;" onclick="saveSetting('${key}')">SAVE CONTENT</button>
+                    </div>`;
+            } else {
+                // Standard input
+                row.innerHTML = `<span>${key}</span> 
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" class="god-input" id="god-set-${key}" value="${val}">
+                        <button class="god-btn" onclick="saveSetting('${key}')">SAVE</button>
+                    </div>`;
+            }
+            setList.appendChild(row);
+        }
+
+        renderGodItems();
+    }
+
+    function renderGodItems() {
+        let search = document.getElementById('god-item-search').value.toLowerCase();
+        let itemList = document.getElementById('god-items-list');
+        itemList.innerHTML = '';
+        
+        state.items.forEach(i => {
+            if(search && !i.name.toLowerCase().includes(search)) return;
+            
+            let row = document.createElement('div');
+            row.className = 'god-item';
+            row.innerHTML = `
+                <span style="flex:1">${i.name}</span>
+                <input type="text" class="god-input" id="god-price-${i.name}" value="${i.price}" placeholder="Price">
+                <input type="text" class="god-input" id="god-limit-${i.name}" value="${i.limit}" placeholder="Limit">
+                <button class="god-btn" onclick="saveItem('${i.name}')">SAVE</button>
+            `;
+            itemList.appendChild(row);
+        });
+    }
+
+    function showGodMsg(text, color) {
+        let el = document.getElementById('god-status-msg');
+        el.innerText = text;
+        el.style.color = color;
+        setTimeout(() => el.innerText = "", 3000);
+    }
+
+    function saveSetting(key) {
+        let val = document.getElementById(`god-set-${key}`).value;
+        showGodMsg("Saving...", "orange");
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateGlobalSetting", userId: state.userId, pin: state.userPin, key: key, value: val })
+        }).then(() => showGodMsg("Setting Saved!", "#2ecc71"));
+    }
+
+    function saveItem(name) {
+        let price = document.getElementById(`god-price-${name}`).value;
+        let limit = document.getElementById(`god-limit-${name}`).value;
+        showGodMsg("Saving...", "orange");
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateItemConfig", userId: state.userId, pin: state.userPin, itemName: name, newPrice: price, newLimit: limit })
+        }).then(() => showGodMsg("Item Saved!", "#2ecc71"));
+    }
+
+    // --- GLOBAL FUNCTIONS ---
+    function setCategory(cat, btnElement) { 
+        state.category = cat; 
+        document.querySelectorAll('.category-tabs .tab-btn').forEach(b => b.classList.remove('active')); 
+        if(btnElement) btnElement.classList.add('active'); 
+        renderGrid(); 
+    }
+
+    function renderGrid() { 
+        var container = document.getElementById('item-grid'); 
+        container.innerHTML = ''; 
+        if (!CATEGORIES[state.category]) return;
+        var items = CATEGORIES[state.category]; 
+        for(var i=0; i<items.length; i++) { 
+            (function(item){ 
+                var div = document.createElement('div'); 
+                div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : ''); 
+                div.onclick = function() { selectItem(item); }; 
+                div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+parseInt(item.price).toLocaleString()+'</span>'; 
+                if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>'; 
+                container.appendChild(div); 
+            })(items[i]); 
+        } 
+    }
+
+    function selectItem(item) { 
+        state.item = item; 
+        document.getElementById('disp-item-name').value = item.name; 
+        document.getElementById('limit-display').innerText = state.customOrderMode ? "(Unlimited)" : "(Max: " + parseInt(item.limit).toLocaleString() + ")"; 
+        var qInput = document.getElementById('input-qty'); 
+        var rInput = document.getElementById('range-qty'); 
+        var step = getStepSize(item.limit); 
+        rInput.step = step; 
+        var currentVal = parseInt(qInput.value) || 1; 
+        if (!state.customOrderMode) { 
+            if(currentVal > item.limit) currentVal = item.limit; 
+            qInput.max = item.limit; rInput.max = item.limit; 
+            rInput.disabled = false; rInput.min = step; qInput.readOnly = true; 
+            if (currentVal < step) currentVal = step; 
+        } else { 
+            qInput.max = 1000000; rInput.disabled = true; 
+            qInput.readOnly = false; rInput.min = 1; 
+        } 
+        qInput.value = currentVal; rInput.value = currentVal; 
+        document.getElementById('btn-submit').classList.add('active'); 
+        renderGrid(); updateCalc(); checkOrderCapability(); 
+    }
+
+    function fetchMyOrders() { 
+        var c = document.getElementById('history-container'); 
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
+        .then(function(r){ return r.json(); })
+        .then(function(data) { 
+            c.innerHTML = ''; 
+            state.activeOrders = 0; state.completedOrders = 0; 
+            if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; } 
+            for(var i=0; i<data.length; i++) { 
+                if(String(data[i].userId).trim() !== String(state.userId).trim()) continue; 
+                if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++; 
+                if(data[i].status === 'Completed') state.completedOrders++; 
+                if(!state.showMyHistoryDone && data[i].status === 'Completed') continue; 
+                c.appendChild(createOrderItem(data[i], false)); 
+            } 
+            checkOrderCapability(); 
+        }); 
+    }
+    
+    function fetchGlobalOrders() { 
+        var c = document.getElementById('grinder-container'); 
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
+        .then(r => r.json())
+        .then(data => { 
+            c.innerHTML = ''; 
+            if (!Array.isArray(data)) return;
+            for (var i = 0; i < data.length; i++) { 
+                if (!data[i].item) continue; 
+                if (!state.showGrinderDone && data[i].status === "Completed") continue; 
+                c.appendChild(createOrderItem(data[i], true)); 
+            } 
+        }); 
+    }
+    
+    function toggleMyHistoryDone() { state.showMyHistoryDone = !state.showMyHistoryDone; document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done"; fetchMyOrders(); }
+    function toggleGrinderDone() { state.showGrinderDone = !state.showGrinderDone; document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done"; fetchGlobalOrders(); }
+
+    function updateOrderStatus(ts, uid, status) { 
+        var payload = { 
+            action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank, userId: state.userId, pin: state.userPin 
+        }; 
+        fetch(GOOGLE_SCRIPT_URL, { 
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) 
+        }).then(() => setTimeout(fetchGlobalOrders, 1000)); 
+    }
+
+    function updateProgress(ts, uid, amount) { 
+        fetch(GOOGLE_SCRIPT_URL, { 
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount, userId: state.userId, pin: state.userPin }) 
+        }); 
+    }
+
+    function sendChatMessage(ts, uid, msg) { 
+        fetch(GOOGLE_SCRIPT_URL, { 
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) 
+        }).then(() => { 
+            if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); 
+            else fetchGlobalOrders(); 
+        }); 
+    }
+    
+    function checkForMail() { if(!state.userPin) return; fetch(`${GOOGLE_SCRIPT_URL}?userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) { if(!data) return; var hasUnread = false; for(var i=0; i<data.length; i++) { if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) { hasUnread = true; break; } } var icon = document.getElementById('mail-alert'); if(hasUnread) icon.classList.add('has-mail'); else icon.classList.remove('has-mail'); }); }
+
+    function toggleChat(btn) { 
+        var area = btn.closest('.history-item').querySelector('.chat-area'); 
+        area.style.display = (area.style.display==='block'?'none':'block'); 
+        var badge = btn.querySelector('.unread-badge'); 
+        if(badge) badge.remove(); 
+    }
+
+    function sendChatFromBtn(btn, ts, uid) { 
+        var input = btn.previousElementSibling; 
+        if(!input.value) return; 
+        sendChatMessage(ts, uid, input.value); 
+        input.value = "Sending..."; 
+    }
+
+    function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
+    
+    function updateCalc() { 
+        if(!state.item) return; 
+        var qInput = document.getElementById('input-qty'); 
+        var rInput = document.getElementById('range-qty'); 
+        var val = parseInt(qInput.value); 
+        if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } 
+        else if (!state.customOrderMode) { rInput.value = val; } 
+        
+        var total = state.item.price * val; 
+        var isHigh = (document.getElementById('input-priority').value === 'high'); 
+        var isCustom = state.customOrderMode; 
+        
+        if (isHigh) total *= (1 + parseFloat(state.config["priority_fee_high"] || 0.05)); 
+        if (isCustom) total *= (1 + parseFloat(state.config["commission_custom"] || 0.10)); 
+        
+        document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString(); 
+    }
+    
+    function toggleCustomOrder() { state.customOrderMode = !state.customOrderMode; var btn = document.getElementById('btn-custom-toggle'); if (state.customOrderMode) { btn.classList.add('active'); btn.innerText = "🔓 Custom Order Active (+10% Fee)"; } else { btn.classList.remove('active'); btn.innerText = "🔓 Custom Order (Unlimited Qty)"; } if(state.item) selectItem(state.item); }
+    function toggleMiniMode() { document.body.classList.toggle('mini-mode'); if(document.body.classList.contains('mini-mode')) { if(!state.isGrinder) switchView('history'); else switchView(state.miniView); } }
+    function setMiniTab(view) { state.miniView = view; document.body.classList.remove('show-orders', 'show-jobs'); document.body.classList.add(view === 'orders' ? 'show-orders' : 'show-jobs'); document.getElementById('mt-orders').classList.toggle('active', view === 'orders'); document.getElementById('mt-jobs').classList.toggle('active', view === 'jobs'); }
+    
+    function calculateOrderLimit() { 
+        if(state.completedOrders >= 5) return parseInt(state.config["limit_customer_vip"] || 8); 
+        if(state.completedOrders >= 1) return parseInt(state.config["limit_customer_trusted"] || 3); 
+        return parseInt(state.config["limit_customer_new"] || 1); 
+    }
+    
+    function checkOrderCapability() { var limit = calculateOrderLimit(); var pending = state.activeOrders; var warn = document.getElementById('limit-warning'); var custBtn = document.getElementById('btn-custom-toggle'); if(limit >= 8) custBtn.style.display = 'block'; if(pending >= limit) { document.getElementById('btn-submit').disabled = true; warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")"; } else { document.getElementById('btn-submit').disabled = false; warn.innerText = "Active Orders: " + pending + "/" + limit; } }
+    function submitRealOrder() { 
+        if (state.username === "Unknown" || state.username === "Guest") {
+            document.getElementById('status-msg').innerText = "Sorry, there was an issue linking your account. Please refresh the app.";
+            document.getElementById('status-msg').style.color = "#e74c3c";
+            return;
+        }
+        var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING..."; var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText, isCustom: state.customOrderMode }; fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); }); 
+    }
+    
+    function createOrderItem(o, isGrinderView) { var status = (o.status || 'Pending'); var progress = o.progress || "0"; var controls = ''; var hasUnread = (o.chat && !o.chat.trim().endsWith(state.username)); var chatBadge = hasUnread ? '<div class="unread-badge">1</div>' : ''; if(isGrinderView) { var s = status.toLowerCase(); var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3; var isMyJob = (o.grinder && o.grinder.toLowerCase().includes(state.username.toLowerCase())); if(s === 'pending') { if (String(o.userId) === String(state.userId)) controls = '<span style="color:#555; font-size:0.7em;">YOUR ORDER</span>'; else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>'; } else if(s === 'accepted' && isMyJob) { controls = `<div class="grinder-action-box"><div class="btn-row"><button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button><button class="g-btn gb-chat" onclick="toggleChat(this)">${chatBadge}💬</button></div><input type="text" class="progress-strip" value="${progress}" placeholder="Enter Progress..." onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)"></div>`; } } else { if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span><button class="g-btn gb-chat" style="margin-left:10px; padding:4px 8px;" onclick="toggleChat(this)">${chatBadge}💬</button>`; } var div = document.createElement('div'); div.className = "history-item"; div.innerHTML = `<div class="h-top"><div class="h-info"><div class="h-row user">${o.username} <span style="font-family:monospace; color:#666;">(${o.userId})</span></div><div class="h-row item">${o.item} <span style="color:#888;">x${o.qty}</span></div><div class="h-row price">$${parseInt(o.price).toLocaleString()}</div>${(isGrinderView && o.commission) ? '<div class="h-row commission">Cut: '+o.commission+'</div>' : ''}${o.grinder ? '<div class="h-row worker">Worker: '+o.grinder+'</div>' : ''}</div><div class="status-container"><div class="status-badge st-${status}">${status}</div>${controls}</div></div><div class="chat-area"><div class="chat-logs">${(o.chat ? o.chat.split(" | ").join("\n") : "No messages.")}</div><div class="chat-input-row"><input type="text" class="chat-input" placeholder="Type message..." maxlength="140"><button class="chat-send" onclick="sendChatFromBtn(this, '${o.timestamp}', '${(o.orderUserId||o.userId)}')">SEND</button></div></div>`; return div; }
+    
     function attemptLogin() {
         var pin = document.getElementById('pin-input').value;
         if(pin.length < 4) return;
@@ -431,24 +942,22 @@
         .then(data => {
             if(data.result === 'success') {
                 state.userPin = pin;
-                document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('app-container').style.display = 'flex';
+                state.genRules = data.genRules || "No";
+                state.grindRules = data.grindRules || "No";
+                state.isStaff = data.isStaff || "No";
                 
-                // CHECK ROLE
-                if (ADMIN_IDS.includes(String(state.userId))) {
+                document.getElementById('login-overlay').style.display = 'none';
+                
+                if (state.genRules !== "Yes") showRulesModal("general");
+                else document.getElementById('app-container').style.display = 'flex';
+                
+                if (ADMIN_IDS.includes(String(state.userId)) || state.isStaff === "Yes") {
                     state.isAdmin = true;
                     document.getElementById('nav-admin').style.display = 'inline-block';
-                    state.isGrinder = true;
-                    state.grinderRank = "Top Grinder";
-                    document.body.classList.add('role-grinder');
-                    document.getElementById('nav-grinder').style.display = 'inline-block';
-                    document.getElementById('rank-display').innerText = state.grinderRank;
-                } else if (data.isStaff === "Yes") {
-                    state.isAdmin = true; // Staff acts as Admin in UI
-                    document.getElementById('nav-admin').style.display = 'inline-block';
+                    if(state.isAdmin) document.getElementById('btn-special-order').style.display = 'inline-block';
+                    if(state.isAdmin) document.getElementById('god-mode-btn').style.display = 'flex'; // Show God Mode
                 }
                 
-                // Grinder check (Separate from Admin)
                 if (data.role && data.role !== "Customer" && data.role !== "") {
                     state.isGrinder = true;
                     state.grinderRank = data.role;
@@ -457,324 +966,472 @@
                     document.getElementById('rank-display').innerText = state.grinderRank;
                 }
 
-                renderGrid();
+                // Fetch App Config Immediately
+                fetchAppConfig();
+                
                 fetchMyOrders();
+                pollTickets();
+                setInterval(pollTickets, 5000); 
                 setInterval(checkForMail, 5000);
             } else {
-                var errorMsg = data.message || "LOGIN FAILED";
-                document.getElementById('login-status').innerText = errorMsg;
-                document.getElementById('login-status').style.color = "#e74c3c";
+                document.getElementById('login-status').innerText = data.message || "LOGIN FAILED";
                 document.getElementById('btn-login').disabled = false;
                 document.getElementById('btn-login').innerText = "LOGIN";
             }
         });
     }
 
-    // --- HOUSEKEEPING ---
+    function showRulesModal(type) {
+        pendingRulesType = type;
+        document.getElementById('rules-modal').style.display = 'flex';
+        document.getElementById('rules-title').innerText = (type === "general") ? "RULES OF DIRTY DEALS" : "GRINDER RULES";
+        
+        // NEW: Load from config
+        let ruleText = state.config["rules_" + type] || "Rules to follow shortly...";
+        document.querySelector('#rules-modal .rules-body').innerText = ruleText;
+    }
+
+    function confirmRules() {
+        var btn = document.querySelector('#rules-modal .btn-confirm');
+        btn.innerText = "SAVING..."; btn.disabled = true;
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "acceptRules", userId: state.userId, pin: state.userPin, ruleType: pendingRulesType })
+        }).then(() => {
+            document.getElementById('rules-modal').style.display = 'none';
+            btn.innerText = "ACKNOWLEDGED"; btn.disabled = false;
+            if (pendingRulesType === "general") { state.genRules = "Yes"; document.getElementById('app-container').style.display = 'flex'; }
+            else if (pendingRulesType === "grinder") { state.grindRules = "Yes"; switchView('grinder'); }
+            pendingRulesType = "";
+        });
+    }
+
+    // --- SPECIAL ORDER SYSTEM ---
+    async function openSpecialOrderModal() {
+        if(state.username === "Unknown" || state.username === "Guest") return; 
+        document.getElementById('special-order-modal').style.display = 'flex';
+        document.getElementById('sp-status-msg').innerText = ""; 
+        
+        await fetchAdminUsers(true); 
+
+        populateSpRequester();
+
+        let itemSelect = document.getElementById('sp-item-select');
+        itemSelect.innerHTML = '<option value="">Select Item...</option>';
+        for(let cat in CATEGORIES) {
+            CATEGORIES[cat].forEach(i => {
+                itemSelect.innerHTML += `<option value="${i.name}" data-price="${i.price}">${i.name}</option>`;
+            });
+        }
+
+        let grindBox = document.getElementById('sp-grinder-list');
+        grindBox.innerHTML = '';
+        availableGrinders.forEach(g => {
+            let div = document.createElement('div');
+            div.className = 'sp-item-row';
+            div.innerHTML = `<span>${g.name}</span> <input type="checkbox" class="sp-grind-chk" value="${g.name} (${g.role})">`;
+            grindBox.appendChild(div);
+        });
+        
+        specialOrderItems = [];
+        renderSpecialItems();
+        calculateSpTotal();
+    }
+
+    function populateSpRequester() {
+        let reqSelect = document.getElementById('sp-requester');
+        reqSelect.innerHTML = '<option value="">Select Requester...</option>';
+        allUsersList.forEach(u => {
+            reqSelect.innerHTML += `<option value="${u.id}">${u.name} (${u.id})</option>`;
+        });
+    }
+
+    function addSpItem() {
+        let select = document.getElementById('sp-item-select');
+        let name = select.value;
+        let price = parseInt(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
+        let qty = parseInt(document.getElementById('sp-item-qty').value) || 0;
+        
+        if(!name || qty <= 0) return;
+        
+        specialOrderItems.push({name: name, qty: qty, price: price});
+        renderSpecialItems();
+        calculateSpTotal();
+    }
+
+    function renderSpecialItems() {
+        let list = document.getElementById('sp-item-list');
+        list.innerHTML = '';
+        specialOrderItems.forEach(i => {
+            list.innerHTML += `<div class="sp-item-row"><span>${i.name}</span><span>x${i.qty}</span></div>`;
+        });
+    }
+
+    function calculateSpTotal() {
+        let subtotal = 0;
+        specialOrderItems.forEach(i => {
+            subtotal += (i.price * i.qty);
+        });
+        
+        let discount = parseInt(document.getElementById('sp-discount').value) || 0;
+        let total = subtotal * ((100 - discount) / 100);
+        
+        document.getElementById('sp-price').value = "$" + Math.floor(total).toLocaleString();
+        
+        let comm = Math.floor(total * 0.05);
+        document.getElementById('sp-comm').value = "$" + comm.toLocaleString() + " (5%)";
+    }
+
+    function manualPriceUpdate() {
+        document.getElementById('sp-discount').value = "";
+        let rawPrice = document.getElementById('sp-price').value.replace(/[^0-9]/g, '');
+        let price = parseInt(rawPrice) || 0;
+        let comm = Math.floor(price * 0.05);
+        document.getElementById('sp-comm').value = "$" + comm.toLocaleString() + " (5%)";
+    }
+
+    function submitSpecialOrder() {
+        if(state.username === "Unknown") {
+             document.getElementById('sp-status-msg').innerText = "Identity Unknown. Cannot submit.";
+             return;
+        }
+
+        let msg = document.getElementById('sp-status-msg');
+        msg.innerText = ""; 
+
+        let reqId = document.getElementById('sp-requester').value;
+        if(!reqId) { msg.innerText = "Select a requester"; return; }
+        
+        let userObj = allUsersList.find(u => String(u.id) === String(reqId));
+        if (!userObj) { 
+            let sel = document.getElementById('sp-requester');
+            let text = sel.options[sel.selectedIndex].text;
+            let name = text.split(' (')[0];
+            userObj = { name: name };
+        }
+        let reqName = userObj.name;
+        
+        let itemsStr = specialOrderItems.map(i => `${i.name} (x${i.qty})`).join(", ");
+        if(!itemsStr) { msg.innerText = "Add items to bundle"; return; }
+        
+        let price = document.getElementById('sp-price').value;
+        let comm = document.getElementById('sp-comm').value;
+        
+        let grinders = [];
+        document.querySelectorAll('.sp-grind-chk:checked').forEach(c => grinders.push(c.value));
+        let grinderStr = grinders.join(", ");
+        
+        msg.innerText = "Sending...";
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                action: "placeSpecialOrder", 
+                userId: state.userId, 
+                pin: state.userPin, 
+                targetName: reqName, 
+                targetId: reqId,
+                items: itemsStr,
+                priority: "Special",
+                price: price,
+                commission: comm,
+                assignedGrinders: grinderStr
+            })
+        }).then(() => { 
+            document.getElementById('special-order-modal').style.display = 'none';
+            fetchAdminOrders();
+        });
+    }
+
+    function openTickets() { switchView('tickets'); }
+
+    function pollTickets() {
+        if(!state.userPin) return;
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getTickets&userId=${state.userId}&pin=${state.userPin}&isStaff=${state.isStaff}&_t=${Date.now()}`)
+        .then(r=>r.json()).then(data => {
+            if (!Array.isArray(data)) { return; }
+            
+            ticketList = data;
+            let totalUnread = 0;
+            let myNewMsg = false;
+            
+            data.forEach(t => {
+                let logs = JSON.parse(t.chatLog || "[]");
+                let lastMsg = logs.length > 0 ? logs[logs.length-1] : null;
+                if(state.isStaff === "Yes" && t.status === "Open") totalUnread++;
+                if(state.isStaff === "Yes" && t.status === "In Progress" && lastMsg && lastMsg.type === 'user') totalUnread++;
+                if(state.isStaff === "No" && (t.status === "Open" || t.status === "In Progress") && lastMsg && lastMsg.type === 'staff') myNewMsg = true;
+            });
+
+            let tab = document.getElementById('notif-tab');
+            if ((state.isStaff === "Yes" && totalUnread > 0)) {
+                tab.classList.add('visible');
+                tab.innerText = totalUnread;
+                document.getElementById('support-dot').style.display = "block";
+            } else if (state.isStaff === "No" && myNewMsg) {
+                tab.classList.add('visible');
+                tab.innerText = "1";
+                document.getElementById('support-dot').style.display = "block";
+            } else {
+                tab.classList.remove('visible');
+                document.getElementById('support-dot').style.display = "none";
+            }
+            
+            if(document.getElementById('view-tickets').style.display === 'flex' || (document.getElementById('view-housekeeping').style.display === 'flex' && document.getElementById('tab-tickets')?.classList.contains('active'))) {
+                renderTicketList();
+                if(activeTicketId) renderChat(activeTicketId);
+            }
+        });
+    }
+
+    function renderTicketList() {
+        var c = document.getElementById('ticket-list-box');
+        c.innerHTML = '';
+        if(ticketList.length === 0) {
+            c.innerHTML = '<div style="padding:20px; text-align:center; color:#555;">No tickets found.</div>';
+            document.getElementById('tc-new-btn').style.display = 'block';
+            return;
+        }
+        ticketList.forEach(t => {
+            let div = document.createElement('div');
+            div.className = 'ticket-item' + (activeTicketId === t.ticketId ? ' active' : '');
+            
+            let logs = JSON.parse(t.chatLog || "[]");
+            let lastMsg = logs.length > 0 ? logs[logs.length-1] : null;
+            let isUnread = false;
+            if (state.isStaff === "Yes") {
+                if (t.status === "Open" || (t.status === "In Progress" && lastMsg && lastMsg.type === 'user')) isUnread = true;
+            } else {
+                if (lastMsg && lastMsg.type === 'staff') isUnread = true;
+            }
+            let statusClass = t.status.toLowerCase().replace(' ', '');
+            div.onclick = () => { activeTicketId = t.ticketId; renderChat(t.ticketId); };
+            div.innerHTML = `
+                <span class="t-id">${t.ticketId} ${isUnread ? '<span style="color:red; font-size:1.5em; line-height:0; position:relative; top:3px;">•</span>' : ''}</span>
+                <span class="t-user">${t.userName}</span>
+                <span class="t-status t-${statusClass}">${t.status}</span>
+            `;
+            c.appendChild(div);
+        });
+        document.getElementById('tc-new-btn').style.display = 'block';
+    }
+
+    function renderChat(tid) {
+        var ticket = ticketList.find(t => t.ticketId === tid);
+        if(!ticket) return;
+        
+        let titleText = `${ticket.userName} (${ticket.ticketId})`;
+        if(ticket.claimedBy) titleText += ` <span style="font-size:0.7em; color:#f1c40f; margin-left:10px;">(Taken by: ${ticket.claimedBy})</span>`;
+        document.getElementById('tc-title').innerHTML = titleText;
+        
+        let controls = document.getElementById('tc-controls');
+        let claimBtn = document.getElementById('claim-btn');
+        let closeBtn = document.getElementById('close-btn'); 
+        let inputArea = document.getElementById('tc-input-box');
+        
+        if (ticket.status === 'Closed') {
+            controls.style.display = 'none';
+            inputArea.style.display = 'none';
+        } else {
+            controls.style.display = 'flex';
+            inputArea.style.display = 'flex';
+            
+            if (state.isStaff === "Yes" && ticket.status === "Open") claimBtn.style.display = "block";
+            else claimBtn.style.display = "none";
+        }
+        
+        var chatBox = document.getElementById('tc-msgs');
+        chatBox.innerHTML = '';
+        var logs = JSON.parse(ticket.chatLog || "[]");
+        logs.forEach(msg => {
+            let wrapper = document.createElement('div');
+            let isMe = (msg.sender === state.username);
+            
+            wrapper.className = `msg-wrapper ${isMe ? 'me' : 'them'}`;
+            wrapper.innerHTML = `
+                <span class="msg-name">${msg.sender}</span>
+                <div class="msg-bubble">${msg.msg}<span class="msg-time">${msg.time.split('T')[1].substring(0,5)}</span></div>
+            `;
+            chatBox.appendChild(wrapper);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function openNewTicketModal() { 
+        if(state.username === "Unknown" || state.username === "Guest") return; 
+        document.getElementById('new-ticket-modal').style.display = 'flex'; 
+    }
+    
+    function closeNewTicketModal() { document.getElementById('new-ticket-modal').style.display = 'none'; }
+
+    function submitNewTicket() {
+        if(state.username === "Unknown") return; 
+        var txt = document.getElementById('new-ticket-reason').value;
+        if(!txt) return;
+        closeNewTicketModal();
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "createTicket", userId: state.userId, username: state.username, pin: state.userPin, message: txt })
+        }).then(() => { setTimeout(pollTickets, 1000); document.getElementById('new-ticket-reason').value = ""; });
+    }
+
+    function sendTicketMsg() {
+        var input = document.getElementById('chat-msg-in');
+        var txt = input.value;
+        if(!txt || !activeTicketId) return;
+        input.value = "";
+        let type = (state.isStaff === "Yes") ? 'staff' : 'user';
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "ticketChat", ticketId: activeTicketId, userId: state.userId, pin: state.userPin, senderName: state.username, message: txt, senderType: type })
+        }).then(() => setTimeout(pollTickets, 1000));
+    }
+
+    function claimTicket() {
+        if(!activeTicketId) return;
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "claimTicket", ticketId: activeTicketId, userId: state.userId, pin: state.userPin, staffName: state.username })
+        }).then(() => setTimeout(pollTickets, 1000));
+    }
+
+    function closeTicketAction() {
+        if(!activeTicketId) return;
+        currentClosingTicketId = activeTicketId;
+        if(state.isStaff === "Yes") {
+            document.getElementById('staff-close-modal').style.display = 'flex';
+        } else {
+            document.getElementById('feedback-modal').style.display = 'flex';
+        }
+    }
+
+    function confirmStaffClose() {
+        document.getElementById('staff-close-modal').style.display = 'none';
+        submitClose(currentClosingTicketId, "Closed by Staff");
+    }
+
+    function submitFeedback(hasFeedback) {
+        let feedback = "No feedback given";
+        if(hasFeedback) feedback = document.getElementById('fb-input').value || "No feedback given";
+        submitClose(currentClosingTicketId, feedback);
+        document.getElementById('feedback-modal').style.display = 'none';
+        document.getElementById('fb-input').value = "";
+    }
+
+    function submitClose(tid, feedback) {
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "closeTicket", ticketId: tid, userId: state.userId, pin: state.userPin, feedback: feedback })
+        }).then(() => setTimeout(pollTickets, 1000));
+    }
+
+    function switchView(view) {
+        document.querySelectorAll('#main-content > div').forEach(el => el.style.display = 'none');
+        
+        if(view === 'housekeeping') {
+            document.getElementById('view-housekeeping').style.display = 'flex';
+            fetchAdminUsers(true);
+            switchAdminTab('users');
+        } else if (view === 'tickets') {
+            if(state.isStaff === "Yes") {
+                switchView('housekeeping');
+                switchAdminTab('tickets');
+            } else {
+                var tkView = document.getElementById('view-tickets');
+                document.getElementById('main-content').appendChild(tkView);
+                tkView.style.display = 'flex';
+                pollTickets();
+            }
+        } else if (view === 'grinder') {
+            if(state.grindRules !== "Yes") showRulesModal("grinder");
+            else { document.getElementById('view-grinder').style.display = 'flex'; fetchGlobalOrders(); }
+        } else {
+            document.getElementById('view-' + view).style.display = 'flex';
+            if(view === 'godmode') renderGodMode(); // Render God Mode on view switch
+        }
+        
+        document.querySelectorAll('.header-btn').forEach(b => b.classList.remove('active'));
+        if(view !== 'tickets' && view !== 'godmode') document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view))?.classList.add('active');
+        if(view === 'history') fetchMyOrders();
+    }
+
     function switchAdminTab(tab) {
         document.getElementById('admin-view-users').style.display = (tab === 'users') ? 'block' : 'none';
         document.getElementById('admin-view-orders').style.display = (tab === 'orders') ? 'block' : 'none';
+        
+        if(tab === 'tickets') {
+            var container = document.getElementById('view-housekeeping');
+            var tkView = document.getElementById('view-tickets');
+            tkView.style.display = 'flex';
+            container.appendChild(tkView);
+            pollTickets();
+        } else {
+            document.getElementById('view-tickets').style.display = 'none';
+            document.getElementById('main-content').appendChild(document.getElementById('view-tickets')); 
+            if(tab==='users') fetchAdminUsers();
+            if(tab==='orders') fetchAdminOrders();
+        }
+
         document.getElementById('tab-users').classList.toggle('active', tab === 'users');
         document.getElementById('tab-orders').classList.toggle('active', tab === 'orders');
-        
-        if(tab === 'users') fetchAdminUsers();
-        if(tab === 'orders') fetchAdminOrders();
+        document.getElementById('tab-tickets')?.classList.toggle('active', tab === 'tickets');
     }
 
-    function fetchAdminUsers(silent) {
-        // Cache Busting
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(users=>{
-            // Store grinders globally
-            availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id));
-            if (silent) return; // If called quietly (like on init), don't render table
-
-            let c = document.getElementById('hk-user-list'); c.innerHTML = '';
-            users.forEach(u => {
-                c.innerHTML += `<tr>
-                    <td>${u.id}</td><td>${u.name}</td>
-                    <td>${u.role || '-'}</td>
-                    <td>${u.isStaff || 'No'}</td>
-                    <td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td>
-                    <td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td>
-                </tr>`;
-            });
-        });
-    }
-
-    function fetchAdminOrders() {
-        // Cache Busting
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{
-            let c = document.getElementById('hk-order-list'); c.innerHTML = '';
-            orders.forEach(o => {
-                c.innerHTML += `<tr>
-                    <td>${o.item}</td><td>${o.username}</td>
-                    <td class="st-${o.status}">${o.status}</td>
-                    <td>${o.grinder || '-'}</td>
-                    <td style="color:#2ecc71; font-weight:bold;">${o.commission}</td>
-                    <td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}')">EDIT</button></td>
-                </tr>`;
-            });
-        });
-    }
-
-    // NEW USER MODAL FUNCTIONS
-    function openUserEdit(id, role, status, staff) {
-        document.getElementById('user-edit-modal').style.display = 'flex';
-        document.getElementById('ue-id').value = id;
-        
-        // 1. ATTEMPT TO SET ROLE
-        let cleanRole = role ? role.trim() : "";
-        let roleSelect = document.getElementById('ue-role');
-        roleSelect.value = cleanRole;
-        
-        // 2. SAFETY: If value didn't stick (e.g. role is not in dropdown), ADD IT DYNAMICALLY
-        // This ensures existing roles are never lost or wiped.
-        if (roleSelect.value !== cleanRole && cleanRole !== "") {
-            let newOpt = document.createElement('option');
-            newOpt.text = cleanRole + " (Current)";
-            newOpt.value = cleanRole;
-            roleSelect.add(newOpt);
-            roleSelect.value = cleanRole;
-        } else if (cleanRole === "") {
-             roleSelect.value = "Customer";
-        }
-
-        document.getElementById('ue-status').value = status;
-        document.getElementById('ue-staff').value = staff || "No";
-    }
-
-    function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
-
-    function saveUserModification() {
-        let id = document.getElementById('ue-id').value;
-        let role = document.getElementById('ue-role').value;
-        let status = document.getElementById('ue-status').value;
-        let staff = document.getElementById('ue-staff').value;
-        
-        // FIX: Only convert to empty if you specifically want to clear it, 
-        // BUT since we are using a dropdown in the sheet now, sending "Customer" is perfectly fine and safer.
-        // I have commented out this line to ensure the dropdown value is sent as-is.
-        // if (role === "Customer") role = ""; 
-
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role, newStaff: staff })
-        }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); });
-    }
-
-    function openAdminEdit(ts, uid, status, grinder) {
-        document.getElementById('admin-edit-modal').style.display = 'flex';
-        document.getElementById('ae-ts').value = ts;
-        document.getElementById('ae-uid').value = uid;
-        document.getElementById('ae-status').value = status;
-        
-        // Populate Grinder Dropdown
-        let select = document.getElementById('ae-grinder');
-        select.innerHTML = '<option value="">None (Unassigned)</option>';
-        availableGrinders.forEach(g => {
-            let opt = document.createElement('option');
-            opt.value = `${g.name} (${g.role})`;
-            opt.text = `${g.name} (${g.role})`;
-            if(grinder === opt.value) opt.selected = true;
-            select.appendChild(opt);
-        });
-    }
-
-    function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
-
-    function saveAdminOrder() {
-        let ts = document.getElementById('ae-ts').value;
-        let uid = document.getElementById('ae-uid').value;
-        let stat = document.getElementById('ae-status').value;
-        let grind = document.getElementById('ae-grinder').value;
-        
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind })
-        }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); });
-    }
-
-    // --- STANDARD LOGIC ---
-    function getStepSize(limit) {
-        if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500;
-        if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1;
-    }
-
-    // FIXED: Now accepts 'this' element to set active class
-    function setCategory(cat, btnElement) {
-        state.category = cat;
-        // Clean all buttons
-        document.querySelectorAll('.selection-area .tab-btn').forEach(b => b.classList.remove('active'));
-        // Set clicked button active
-        if(btnElement) btnElement.classList.add('active');
-        renderGrid();
+    function fetchAdminUsers(silent) { 
+        return fetch(`${GOOGLE_SCRIPT_URL}?action=getUsers&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
+            .then(r => r.json())
+            .then(users => { 
+                allUsersList = users; 
+                availableGrinders = users.filter(u => u.role.includes("Grinder") || u.isStaff === "Yes" || ADMIN_IDS.includes(u.id)); 
+                if (silent) return; 
+                let c = document.getElementById('hk-user-list'); 
+                c.innerHTML = ''; 
+                users.forEach(u => { c.innerHTML += `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.role || '-'}</td><td>${u.isStaff || 'No'}</td><td style="color:${u.status === 'Blocked' ? 'red':'white'}">${u.status}</td><td><button class="hk-action-btn" onclick="openUserEdit('${u.id}', '${u.role}', '${u.status}', '${u.isStaff}')">EDIT</button></td></tr>`; }); 
+            }); 
     }
     
-    function renderGrid() {
-        var container = document.getElementById('item-grid'); container.innerHTML = '';
-        var items = CATEGORIES[state.category];
-        for(var i=0; i<items.length; i++) {
-            (function(item){
-                var div = document.createElement('div'); div.className = 'grid-item' + (state.item && state.item.name === item.name ? ' active' : '');
-                div.onclick = function() { selectItem(item); };
-                div.innerHTML = '<span class="item-icon">'+item.icon+'</span><span class="item-name">'+item.name+'</span><span class="item-price">$'+item.price.toLocaleString()+'</span>';
-                if(state.item && state.item.name === item.name) div.innerHTML += '<div class="check-mark">✔</div>';
-                container.appendChild(div);
-            })(items[i]);
+    function fetchAdminOrders() { fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ let c = document.getElementById('hk-order-list'); c.innerHTML = ''; orders.forEach(o => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit('${o.timestamp}', '${o.orderUserId}', '${o.status}', '${o.grinder}', '${o.qty}', '${o.progress}')">EDIT</button></td></tr>`; }); }); }
+    
+    function openAdminEdit(ts, uid, status, grinder, qty, progress) { 
+        if(qty === "Bundle" && !state.isAdmin) {
+             console.log("Blocked: Staff tried to edit Special Order");
+             return;
         }
+        
+        document.getElementById('admin-edit-modal').style.display = 'flex'; 
+        document.getElementById('ae-ts').value = ts; 
+        document.getElementById('ae-uid').value = uid; 
+        document.getElementById('ae-status').value = status; 
+        document.getElementById('ae-progress').value = progress || "0"; 
+        
+        let select = document.getElementById('ae-grinder'); 
+        select.innerHTML = '<option value="">None (Unassigned)</option>'; 
+        availableGrinders.forEach(g => { 
+            let opt = document.createElement('option'); 
+            opt.value = `${g.name} (${g.role})`; 
+            opt.text = `${g.name} (${g.role})`; 
+            if(grinder === opt.value) opt.selected = true; 
+            select.appendChild(opt); 
+        }); 
     }
+    
+    function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
+    
+    function saveAdminOrder() { 
+        let ts = document.getElementById('ae-ts').value; 
+        let uid = document.getElementById('ae-uid').value; 
+        let stat = document.getElementById('ae-status').value; 
+        let grind = document.getElementById('ae-grinder').value; 
+        let prog = document.getElementById('ae-progress').value;
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: prog, userId: state.userId, pin: state.userPin }) });
 
-    function selectItem(item) {
-        state.item = item;
-        document.getElementById('disp-item-name').value = item.name;
-        document.getElementById('limit-display').innerText = state.customOrderMode ? "(Unlimited)" : "(Max: " + item.limit.toLocaleString() + ")";
-        var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty');
-        var step = getStepSize(item.limit); rInput.step = step;
-        var currentVal = parseInt(qInput.value) || 1;
-        if (!state.customOrderMode) { if(currentVal > item.limit) currentVal = item.limit; qInput.max = item.limit; rInput.max = item.limit; rInput.disabled = false; rInput.min = step; qInput.readOnly = true; if (currentVal < step) currentVal = step; } 
-        else { qInput.max = 1000000; rInput.disabled = true; qInput.readOnly = false; rInput.min = 1; }
-        qInput.value = currentVal; rInput.value = currentVal;
-        document.getElementById('btn-submit').classList.add('active'); renderGrid(); updateCalc(); checkOrderCapability();
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind }) }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); }); 
     }
-
-    function updateCalc() {
-        if(!state.item) return;
-        var qInput = document.getElementById('input-qty'); var rInput = document.getElementById('range-qty'); var val = parseInt(qInput.value);
-        if(!state.customOrderMode && document.activeElement === rInput) { val = parseInt(rInput.value); qInput.value = val; } 
-        else if (!state.customOrderMode) { rInput.value = val; }
-        var total = state.item.price * val;
-        if(document.getElementById('input-priority').value === 'high') total *= 1.05;
-        if(state.customOrderMode) total *= 1.10;
-        document.getElementById('disp-total').innerText = "$" + Math.floor(total).toLocaleString();
-    }
-
-    function toggleCustomOrder() {
-        state.customOrderMode = !state.customOrderMode;
-        var btn = document.getElementById('btn-custom-toggle');
-        if (state.customOrderMode) { btn.classList.add('active'); btn.innerText = "🔓 Custom Order Active (+10% Fee)"; } 
-        else { btn.classList.remove('active'); btn.innerText = "🔓 Custom Order (Unlimited Qty)"; }
-        if(state.item) selectItem(state.item);
-    }
-
-    function toggleMiniMode() {
-        document.body.classList.toggle('mini-mode');
-        if(document.body.classList.contains('mini-mode')) { if(!state.isGrinder) switchView('history'); else switchView(state.miniView); }
-    }
-
-    function setMiniTab(view) {
-        state.miniView = view;
-        document.body.classList.remove('show-orders', 'show-jobs');
-        document.body.classList.add(view === 'orders' ? 'show-orders' : 'show-jobs');
-        document.getElementById('mt-orders').classList.toggle('active', view === 'orders');
-        document.getElementById('mt-jobs').classList.toggle('active', view === 'jobs');
-    }
-
-    function toggleMyHistoryDone() { state.showMyHistoryDone = !state.showMyHistoryDone; document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done"; fetchMyOrders(); }
-    function toggleGrinderDone() { state.showGrinderDone = !state.showGrinderDone; document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done"; fetchGlobalOrders(); }
-
-    function switchView(view) {
-        if(!document.body.classList.contains('mini-mode')) {
-            document.querySelectorAll('#main-content > div').forEach(el => el.style.display = 'none');
-            document.getElementById('view-' + view).style.display = 'flex';
-        }
-        var btns = document.querySelectorAll('.header-btn'); for(var i=0; i<btns.length; i++) btns[i].classList.remove('active');
-        document.getElementById('nav-' + (view === 'housekeeping' ? 'admin' : view)).classList.add('active');
-        if(view === 'history') fetchMyOrders(); if(view === 'grinder') fetchGlobalOrders(); 
-        if(view === 'housekeeping') {
-            fetchAdminUsers(true); // Pre-fetch grinders for dropdown
-            switchAdminTab('users');
-        }
-    }
-
-    function calculateOrderLimit() { if(state.completedOrders >= 5) return 8; if(state.completedOrders >= 1) return 3; return 1; }
-
-    function checkOrderCapability() {
-        var limit = calculateOrderLimit(); var pending = state.activeOrders;
-        var warn = document.getElementById('limit-warning'); var custBtn = document.getElementById('btn-custom-toggle');
-        if(limit >= 8) custBtn.style.display = 'block';
-        if(pending >= limit) { document.getElementById('btn-submit').disabled = true; warn.innerText = "ORDER LIMIT REACHED ("+pending+"/"+limit+")"; } 
-        else { document.getElementById('btn-submit').disabled = false; warn.innerText = "Active Orders: " + pending + "/" + limit; }
-    }
-
-    function submitRealOrder() {
-        var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING...";
-        var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, totalPrice: document.getElementById('disp-total').innerText };
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); });
-    }
-
-    function checkForMail() {
-        if(!state.userPin) return;
-        // CACHE BUSTING
-        fetch(`${GOOGLE_SCRIPT_URL}?userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) {
-            if(!data) return; var hasUnread = false;
-            for(var i=0; i<data.length; i++) { if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) { hasUnread = true; break; } }
-            var icon = document.getElementById('mail-alert'); if(hasUnread) icon.classList.add('has-mail'); else icon.classList.remove('has-mail');
-        });
-    }
-
-    function fetchMyOrders() {
-        var c = document.getElementById('history-container');
-        // CACHE BUSTING
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) {
-            c.innerHTML = ''; state.activeOrders = 0; state.completedOrders = 0;
-            if(!data || !data.length) { c.innerHTML = '<div style="padding:20px; text-align:center;">No history.</div>'; return; }
-            for(var i=0; i<data.length; i++) {
-                // FIXED LOGIC: Force string comparison to catch string vs number mismatch
-                if(String(data[i].userId).trim() !== String(state.userId).trim()) continue; 
-                
-                if(data[i].status === 'Pending' || data[i].status === 'Accepted') state.activeOrders++;
-                if(data[i].status === 'Completed') state.completedOrders++;
-                if(!state.showMyHistoryDone && data[i].status === 'Completed') continue;
-                c.appendChild(createOrderItem(data[i], false));
-            }
-            checkOrderCapability();
-        });
-    }
-
-    function fetchGlobalOrders() {
-        var c = document.getElementById('grinder-container');
-        // CACHE BUSTING
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(function(r){ return r.json(); }).then(function(data) {
-            c.innerHTML = '';
-            for(var i=0; i<data.length; i++) {
-                if(!data[i].item) continue;
-                if(!state.showGrinderDone && data[i].status === "Completed") continue;
-                c.appendChild(createOrderItem(data[i], true));
-            }
-        });
-    }
-
-    function createOrderItem(o, isGrinderView) {
-        var status = (o.status || 'Pending'); var progress = o.progress || "0"; var controls = '';
-        var hasUnread = (o.chat && !o.chat.trim().endsWith(state.username));
-        var chatBadge = hasUnread ? '<div class="unread-badge">1</div>' : '';
-
-        if(isGrinderView) {
-            var s = status.toLowerCase(); var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3;
-            var isMyJob = (o.grinder && o.grinder.toLowerCase().includes(state.username.toLowerCase()));
-
-            if(s === 'pending') {
-                if (String(o.userId) === String(state.userId)) controls = '<span style="color:#555; font-size:0.7em;">YOUR ORDER</span>';
-                else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>';
-            } else if(s === 'accepted' && isMyJob) {
-                controls = `<div class="grinder-action-box"><div class="btn-row"><button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button><button class="g-btn gb-chat" onclick="toggleChat(this)">${chatBadge}💬</button></div><input type="text" class="progress-strip" value="${progress}" placeholder="Enter Progress..." onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)"></div>`;
-            }
-        } else {
-            if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span><button class="g-btn gb-chat" style="margin-left:10px; padding:4px 8px;" onclick="toggleChat(this)">${chatBadge}💬</button>`;
-        }
-
-        var div = document.createElement('div'); div.className = "history-item";
-        div.innerHTML = `<div class="h-top"><div class="h-info"><div class="h-row user">${o.username} <span style="font-family:monospace; color:#666;">(${o.userId})</span></div><div class="h-row item">${o.item} <span style="color:#888;">x${o.qty}</span></div><div class="h-row price">$${parseInt(o.price).toLocaleString()}</div>${o.grinder ? '<div class="h-row worker">Worker: '+o.grinder+'</div>' : ''}</div><div class="status-container"><div class="status-badge st-${status}">${status}</div>${controls}</div></div><div class="chat-area"><div class="chat-logs">${(o.chat ? o.chat.split(" | ").join("\n") : "No messages.")}</div><div class="chat-input-row"><input type="text" class="chat-input" placeholder="Type message..." maxlength="140"><button class="chat-send" onclick="sendChatFromBtn(this, '${o.timestamp}', '${(o.orderUserId||o.userId)}')">SEND</button></div></div>`;
-        return div;
-    }
-
-    function toggleChat(btn) { var area = btn.closest('.history-item').querySelector('.chat-area'); area.style.display = (area.style.display==='block'?'none':'block'); var badge = btn.querySelector('.unread-badge'); if(badge) badge.remove(); }
-    function sendChatFromBtn(btn, ts, uid) { var input = btn.previousElementSibling; if(!input.value) return; sendChatMessage(ts, uid, input.value); input.value = "Sending..."; var badge = btn.closest('.history-item').querySelector('.unread-badge'); if(badge) badge.remove(); }
-
-    function updateOrderStatus(ts, uid, status) { var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank, userId: state.userId, pin: state.userPin }; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(() => setTimeout(fetchGlobalOrders, 1000)); }
-    function updateProgress(ts, uid, amount) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: amount, userId: state.userId, pin: state.userPin }) }); }
-    function sendChatMessage(ts, uid, msg) { fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) }).then(() => { if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); else fetchGlobalOrders(); }); }
-
+    
+    function saveUserModification() { let id = document.getElementById('ue-id').value; let role = document.getElementById('ue-role').value; let status = document.getElementById('ue-status').value; let staff = document.getElementById('ue-staff').value; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role, newStaff: staff }) }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); }); }
+    function closeUserModal() { document.getElementById('user-edit-modal').style.display = 'none'; }
+    function openUserEdit(id, role, status, staff) { document.getElementById('user-edit-modal').style.display = 'flex'; document.getElementById('ue-id').value = id; let cleanRole = role ? role.trim() : ""; let roleSelect = document.getElementById('ue-role'); roleSelect.value = cleanRole; if (roleSelect.value !== cleanRole && cleanRole !== "") { let newOpt = document.createElement('option'); newOpt.text = cleanRole + " (Current)"; newOpt.value = cleanRole; roleSelect.add(newOpt); roleSelect.value = cleanRole; } else if (cleanRole === "") { roleSelect.value = "Customer"; } document.getElementById('ue-status').value = status; document.getElementById('ue-staff').value = staff || "No"; }
+    
     var mainHeader = document.getElementById("main-header"); var miniStrip = document.getElementById("mini-drag-strip"); var elmnt = document.getElementById("app-container"); var pos1=0, pos2=0, pos3=0, pos4=0;
     function dragMouseDown(e) { e.preventDefault(); pos3=e.clientX; pos4=e.clientY; document.onmouseup=closeDrag; document.onmousemove=elementDrag; }
     function elementDrag(e) { e.preventDefault(); pos1=pos3-e.clientX; pos2=pos4-e.clientY; pos3=e.clientX; pos4=e.clientY; elmnt.style.top=(elmnt.offsetTop-pos2)+"px"; elmnt.style.left=(elmnt.offsetLeft-pos1)+"px"; }
@@ -782,7 +1439,16 @@
     function initDrag() { if(mainHeader) mainHeader.onmousedown = dragMouseDown; if(miniStrip) miniStrip.onmousedown = dragMouseDown; }
 
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-    document.onkeydown = function(e) { if(e.keyCode==27) { fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err=>{}); document.getElementById('app-container').style.display = "none"; document.getElementById('login-overlay').style.display = "none"; document.getElementById('side-dock').style.display = "flex"; } }
+    // --- KEYDOWN LISTENER FOR ESC ---
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) { 
+            if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                document.activeElement.blur();
+                return;
+            }
+            closeApp();
+        }
+    });
 </script>
 </body>
 </html>
