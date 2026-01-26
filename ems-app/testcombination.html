@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Paramedic & Heli Helper v2.7</title>
+    <title>TT Paramedic & Heli Helper v2.9 (Crash Guard)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -47,8 +47,8 @@
 
         /* --- MINI MODE --- */
         #tracker-app.mini-mode {
-            width: 440px !important;
-            height: auto !important; /* Allow expansion */
+            width: 460px !important; /* Slightly wider to fit XP */
+            height: auto !important; 
             min-height: 74px;
             border-radius: 12px;
             background: rgba(10, 10, 10, 0.99);
@@ -64,7 +64,7 @@
 
         .micro-section { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-bottom: 4px; }
         .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 30px; }
-        .micro-group { display: flex; align-items: center; gap: 8px; }
+        .micro-group { display: flex; align-items: center; gap: 6px; }
         .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
         .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
         .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
@@ -73,7 +73,7 @@
         .micro-val.active { color: var(--green); }
         .micro-val.urgent { color: var(--alert); }
         
-        .micro-progress-bg { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-bg { width: 50px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
         .micro-progress-fill { height: 100%; width: 0%; transition: width 0.3s; }
         .fill-ems { background: var(--primary); }
         .fill-heli { background: var(--heli-primary); }
@@ -186,6 +186,7 @@
             </div>
             <div class="micro-row">
                 <div class="micro-group" style="min-width: 90px;"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg"><div class="micro-progress-fill fill-ems" id="micro-bar"></div></div></div>
+                <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
                 <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
                 <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
             </div>
@@ -288,6 +289,11 @@
 </div>
 
 <script>
+// --- SAFE HELPERS (CRASH GUARD) ---
+function safeSetText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
+function safeSetWidth(id, width) { const el = document.getElementById(id); if(el) el.style.width = width; }
+function safeSetHTML(id, html) { const el = document.getElementById(id); if(el) el.innerHTML = html; }
+
 // --- KEYS ---
 const KEYS = {
     EMS_XP: "exp_ems_ems",
@@ -375,7 +381,7 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    if(data.name) document.getElementById('user-name-drop').innerText = "Paramedic " + data.name;
+    if(data.name) safeSetText('user-name-drop', "Paramedic " + data.name);
 
     // --- EMS DATA ---
     let emsXP = data[KEYS.EMS_XP] || data.exp_paramedic || 0;
@@ -405,7 +411,7 @@ function processPayload(data) {
          if(val > 0) STATE.heliBXP = val;
     }
 
-    // --- INVENTORY ---
+    // --- INVENTORY (Defibs) ---
     if(data.inventory) processInventory(data.inventory);
 
     renderUI();
@@ -447,7 +453,7 @@ function trackEMSProgress(current) {
     }
     if (STATE.emsLastKnownXP > -1 && current > STATE.emsLastKnownXP) {
         const diff = current - STATE.emsLastKnownXP;
-        if (diff > 5) { // Filter small noise
+        if (diff > 5) {
             STATE.emsSessionXP += diff;
             STATE.revives++;
         }
@@ -474,52 +480,52 @@ function trackHeliProgress(current) {
 function renderUI() {
     // 1. EMS STATS
     const emsLvl = getLevelInfo(STATE.emsXP);
-    document.getElementById('disp-xp').innerText = formatNumber(STATE.emsXP);
-    document.getElementById('disp-level').innerText = emsLvl.level;
-    document.getElementById('level-bar').style.width = emsLvl.percent + "%";
-    document.getElementById('level-text').innerText = emsLvl.percent + "%";
-    document.getElementById('disp-bxp').innerText = formatNumber(STATE.emsBXP);
+    safeSetText('disp-xp', formatNumber(STATE.emsXP));
+    safeSetText('disp-level', emsLvl.level);
+    safeSetWidth('level-bar', emsLvl.percent + "%");
+    safeSetText('level-text', emsLvl.percent + "%");
+    safeSetText('disp-bxp', formatNumber(STATE.emsBXP));
     
     // EMS Mini
-    document.getElementById('micro-xp').innerText = formatNumber(STATE.emsXP);
-    document.getElementById('micro-level').innerText = emsLvl.level;
-    document.getElementById('micro-bar').style.width = emsLvl.percent + "%";
-    document.getElementById('micro-tokens').innerText = formatNumber(STATE.emsBXP);
-    document.getElementById('micro-revives').innerText = STATE.revives;
+    safeSetText('micro-xp', formatNumber(STATE.emsXP));
+    safeSetText('micro-level', emsLvl.level);
+    safeSetWidth('micro-bar', emsLvl.percent + "%");
+    safeSetText('micro-tokens', formatNumber(STATE.emsBXP));
+    safeSetText('micro-revives', STATE.revives);
 
     // EMS Calc
-    document.getElementById('disp-callouts').innerText = STATE.revives;
+    safeSetText('disp-callouts', STATE.revives);
     const emsAvg = STATE.revives > 0 ? (STATE.emsSessionXP / STATE.revives) : 0;
-    document.getElementById('disp-avg').innerText = Math.round(emsAvg);
+    safeSetText('disp-avg', Math.round(emsAvg));
     
-    const emsNeeded = Math.round(emsLvl.cap - emsLvl.expInLevel); // Correct calculation
+    const emsNeeded = Math.round(emsLvl.cap - emsLvl.expInLevel);
     let emsRemText = `<b>${formatNumber(emsNeeded)}</b> XP to Next Level`;
     if (emsAvg > 0) {
         const est = Math.ceil(emsNeeded / emsAvg);
         emsRemText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(est)} revives)</span>`;
     }
-    document.getElementById('disp-xp-remaining').innerHTML = emsRemText;
+    safeSetHTML('disp-xp-remaining', emsRemText);
 
 
     // 2. HELI STATS
     const heliLvl = getLevelInfo(STATE.heliXP);
-    document.getElementById('heli-xp').innerText = formatNumber(STATE.heliXP);
-    document.getElementById('heli-level').innerText = heliLvl.level;
-    document.getElementById('heli-bar').style.width = heliLvl.percent + "%";
-    document.getElementById('heli-text').innerText = heliLvl.percent + "%";
-    document.getElementById('heli-bxp').innerText = formatNumber(STATE.heliBXP);
+    safeSetText('heli-xp', formatNumber(STATE.heliXP));
+    safeSetText('heli-level', heliLvl.level);
+    safeSetWidth('heli-bar', heliLvl.percent + "%");
+    safeSetText('heli-text', heliLvl.percent + "%");
+    safeSetText('heli-bxp', formatNumber(STATE.heliBXP));
     
     // Heli Mini
-    document.getElementById('micro-heli-level').innerText = heliLvl.level;
-    document.getElementById('micro-heli-bar').style.width = heliLvl.percent + "%";
-    document.getElementById('micro-heli-tokens').innerText = formatNumber(STATE.heliBXP);
-    document.getElementById('micro-flights').innerText = STATE.flights;
+    safeSetText('micro-heli-level', heliLvl.level);
+    safeSetWidth('micro-heli-bar', heliLvl.percent + "%");
+    safeSetText('micro-heli-tokens', formatNumber(STATE.heliBXP));
+    safeSetText('micro-flights', STATE.flights);
 
     // Heli Calc
-    document.getElementById('heli-flights').innerText = STATE.flights;
+    safeSetText('heli-flights', STATE.flights);
     const heliAvg = STATE.flights > 0 ? (STATE.heliSessionXP / STATE.flights) : 0;
-    document.getElementById('heli-avg').innerText = Math.round(heliAvg);
-    document.getElementById('micro-heli-avg').innerText = Math.round(heliAvg);
+    safeSetText('heli-avg', Math.round(heliAvg));
+    safeSetText('micro-heli-avg', Math.round(heliAvg));
 
     const heliNeeded = Math.round(heliLvl.cap - heliLvl.expInLevel);
     let heliRemText = `<b>${formatNumber(heliNeeded)}</b> XP to Next Level`;
@@ -527,7 +533,7 @@ function renderUI() {
         const estH = Math.ceil(heliNeeded / heliAvg);
         heliRemText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(estH)} flights)</span>`;
     }
-    document.getElementById('heli-xp-remaining').innerHTML = heliRemText;
+    safeSetHTML('heli-xp-remaining', heliRemText);
 
     // Update Calculator at bottom based on selection
     runCalculator(emsAvg, heliAvg);
@@ -543,20 +549,15 @@ function formatNumber(num) {
 function getLevelInfo(exp) {
     let level = 0, cap = 5;
     let expInLevel = exp;
-    
-    // Tycoon Logic: Levels are progressive steps (5, 10, 15...)
-    // Total XP required for level N is approx 2.5 * N^2
-    // Iterative subtraction to find current progress
     while (expInLevel >= cap) { 
         expInLevel -= cap; 
         level++; 
         cap = (level + 1) * 5; 
     }
-    
     return { 
         level: level, 
-        expInLevel: expInLevel, // Current progress into this level
-        cap: cap, // Total XP needed for next level
+        expInLevel: expInLevel,
+        cap: cap,
         percent: ((expInLevel / cap) * 100).toFixed(1)
     };
 }
@@ -569,8 +570,8 @@ function runCalculator(emsAvg, heliAvg) {
     const microEl = document.getElementById('micro-calc');
     
     if (!val) {
-        el.innerText = "Enter target above.";
-        microEl.innerText = "Set..";
+        if(el) el.innerText = "Enter target above.";
+        if(microEl) microEl.innerText = "Set..";
         return;
     }
 
@@ -582,7 +583,7 @@ function runCalculator(emsAvg, heliAvg) {
     let targetXP = inputVal;
     if (inputVal < 200) { 
          targetXP = getXPFromLevel(inputVal);
-         if (targetXP < currentXP) targetXP = inputVal; // Fallback
+         if (targetXP < currentXP) targetXP = inputVal; 
     }
 
     if (targetXP > currentXP) {
@@ -592,15 +593,15 @@ function runCalculator(emsAvg, heliAvg) {
         if (currentAvg > 0) {
             const est = Math.ceil(diff / currentAvg);
             msg += `<br><span style="color:var(--primary)">Est. ${unit}: <b>${formatNumber(est)}</b></span>`;
-            microEl.innerText = formatNumber(est);
+            if(microEl) microEl.innerText = formatNumber(est);
         } else {
-            microEl.innerText = formatNumber(diff);
+            if(microEl) microEl.innerText = formatNumber(diff);
         }
         
-        el.innerHTML = msg;
+        if(el) el.innerHTML = msg;
     } else {
-        el.innerHTML = `Target reached.`;
-        microEl.innerText = "Done";
+        if(el) el.innerHTML = `Target reached.`;
+        if(microEl) microEl.innerText = "Done";
     }
 }
 
@@ -629,7 +630,9 @@ function dragStart(e) {
     if(e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
     initialX = e.clientX - xOffset;
     initialY = e.clientY - yOffset;
-    if (e.target === header || header.contains(e.target) || e.target === micro || micro.contains(e.target)) {
+    
+    // Check if the click target is within a draggable area
+    if (header.contains(e.target) || micro.contains(e.target)) {
         active = true;
     }
 }
@@ -673,6 +676,13 @@ function stopResize() {
     window.removeEventListener('mousemove', Resize, false);
     window.removeEventListener('mouseup', stopResize, false);
 }
+
+// Remove Focus on ESC (No close)
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (document.activeElement) document.activeElement.blur();
+    }
+});
 </script>
 </body>
 </html>
