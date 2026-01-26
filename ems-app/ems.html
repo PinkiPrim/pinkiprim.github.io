@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Paramedic Helper v2.4</title>
+    <title>TT Paramedic & Heli Helper v3.3 (Fixed Calc)</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -10,13 +11,14 @@
         :root {
             --primary: #e53935; /* EMS Red */
             --primary-dim: #b71c1c;
-            --bg-glass: rgba(15, 15, 15, 0.95);
+            --heli-primary: #ff9800; /* Heli Orange */
+            --bg-glass: rgba(15, 15, 15, 0.96);
             --text-main: #ffffff;
             --text-dim: #aaaaaa;
-            --border: 1px solid rgba(229, 57, 53, 0.3);
+            --border: 1px solid rgba(229, 57, 53, 0.4);
             --green: #00e676;
             --alert: #ff9100;
-            --heart-color: #ff4081; /* Pinki Pink */
+            --heart-color: #ff4081;
         }
 
         body {
@@ -36,200 +38,111 @@
             background: var(--bg-glass);
             border: var(--border);
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.9);
             display: flex; flex-direction: column;
             resize: both; overflow: hidden;
             min-height: 200px;
-            transition: width 0.2s ease, height 0.2s ease, border-radius 0.2s ease;
+            transition: width 0.2s ease, height 0.2s ease;
         }
 
-        /* --- MINI MODE (Double Line Bar) --- */
+        /* --- MINI MODE --- */
         #tracker-app.mini-mode {
-            width: 420px !important;
-            height: 74px !important; /* Double Line Height */
-            min-height: 74px !important;
+            width: 480px !important;
+            height: auto !important; 
+            min-height: 74px;
             border-radius: 12px;
-            background: rgba(10, 10, 10, 0.98);
+            background: rgba(10, 10, 10, 0.99);
             border: 1px solid var(--primary);
             resize: none;
         }
-
-        /* Hide Standard Elements in Mini Mode */
         #tracker-app.mini-mode header, 
         #tracker-app.mini-mode #content,
-        #tracker-app.mini-mode .support-footer {
-            display: none !important;
-        }
-
-        /* Show Micro Elements in Mini Mode */
-        #micro-view {
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            height: 100%;
-            padding: 0 12px;
-            font-family: 'Rajdhani', sans-serif;
-            cursor: move;
-        }
-
+        #tracker-app.mini-mode .support-footer { display: none !important; }
+        
+        #micro-view { display: none; flex-direction: column; padding: 5px 12px; font-family: 'Rajdhani', sans-serif; cursor: move; }
         #tracker-app.mini-mode #micro-view { display: flex; }
 
-        /* Mini Rows */
-        .micro-row {
-            display: flex; justify-content: space-between; align-items: center;
-            width: 100%; height: 50%;
-        }
+        .micro-section { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-bottom: 4px; }
+        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 28px; }
+        .micro-group { display: flex; align-items: center; gap: 6px; }
         
-        .micro-group { display: flex; align-items: center; gap: 8px; }
-        .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
-        
-        .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
-        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
+        .micro-label { color: var(--text-dim); font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px; }
+        .micro-val { color: #fff; font-weight: 700; font-size: 0.85em; }
         .micro-val.highlight { color: var(--primary); }
+        .micro-val.heli { color: var(--heli-primary); }
         .micro-val.active { color: var(--green); }
         .micro-val.urgent { color: var(--alert); }
+        
+        .micro-progress-bg { width: 50px; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
+        .micro-progress-fill { height: 100%; width: 0%; transition: width 0.3s; }
+        .fill-ems { background: var(--primary); }
+        .fill-heli { background: var(--heli-primary); }
 
-        /* Mini Progress Bar */
-        .micro-progress-bg {
-            width: 60px; height: 6px; background: rgba(255,255,255,0.1);
-            border-radius: 3px; overflow: hidden; margin: 0 5px;
-        }
-        .micro-progress-fill {
-            height: 100%; background: var(--primary); width: 0%;
-        }
+        .micro-next { font-size: 0.75em; color: var(--green); margin-left: 4px; font-weight: bold; opacity: 0.9; }
 
-        .micro-btn {
-            position: absolute; top: 4px; right: 4px;
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #aaa; padding: 0px 4px; border-radius: 3px; 
-            font-size: 0.6em; cursor: pointer; text-transform: uppercase;
-        }
+        .micro-btn { position: absolute; top: 4px; right: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 0px 4px; border-radius: 3px; font-size: 0.6em; cursor: pointer; text-transform: uppercase; }
         .micro-btn:hover { background: var(--primary); color: white; }
 
-        /* --- HEADER & ANIMATION --- */
+        .micro-toggle {
+            text-align: center; font-size: 0.65em; color: #888; cursor: pointer; 
+            border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2px; margin-top: 2px;
+            transition: color 0.2s;
+        }
+        .micro-toggle:hover { color: white; }
+        #micro-heli-section { display: none; margin-top: 5px; border-top: 1px dashed var(--heli-primary); padding-top: 5px; }
+
+        /* HEADER */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(229, 57, 53, 0.2));
-            height: 60px;
-            padding: 0 10px;
-            cursor: move;
-            position: relative;
+            height: 60px; padding: 0 10px; cursor: move; position: relative;
             display: flex; align-items: flex-start; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            overflow: hidden;
-            padding-top: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.15); overflow: hidden; padding-top: 5px;
         }
-
-        /* Header Flash Overlay */
-        header::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255, 255, 255, 0.5); /* White flash */
-            opacity: 0;
-            pointer-events: none;
-            z-index: 5; 
-            animation: headerFlash 4s ease-in-out infinite;
-        }
-
-        @keyframes headerFlash {
-            0%, 45%, 55%, 100% { opacity: 0; }
-            50% { opacity: 1; }
-        }
-
-        .header-title {
-            position: absolute; left: 50%; top: 20%;
-            transform: translate(-50%, -50%);
-            font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; font-size: 1.2em;
-            text-transform: uppercase; letter-spacing: 2px;
-            color: #fff; pointer-events: none; white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
-
-        /* ANIMATION CONTAINER */
-        #street-container {
-            position: absolute;
-            bottom: 0; left: 0; width: 100%; height: 45px;
-            overflow: hidden;
-            pointer-events: none;
-            z-index: 6; 
-        }
-
-        /* AMBULANCE IMAGE */
-        #ambulance-img {
-            position: absolute;
-            bottom: 0px; left: -120px; 
-            height: 45px; 
-            width: auto;
-            z-index: 5;
-            transform: scaleX(-1); /* Flipped horizontally */
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-            animation: driveCycle 15s ease-in-out infinite;
-        }
-
-        @keyframes driveCycle {
-            0% { left: -120px; }
-            15% { left: 50%; transform: translateX(-50%) scaleX(-1); } /* Drive In */
-            35% { left: 50%; transform: translateX(-50%) scaleX(-1); } /* WAIT */
-            45% { left: 120%; transform: translateX(0) scaleX(-1); } /* Drive Away */
-            100% { left: 120%; transform: scaleX(-1); }
-        }
-
-        /* NAME DROP ANIMATION */
-        #user-name-drop {
-            position: absolute;
-            bottom: 12px; left: 50%; 
-            transform: translateX(-50%);
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 900; font-size: 1.1em;
-            color: #fff;
-            white-space: nowrap;
-            opacity: 0;
-            z-index: 4; 
-            animation: nameCycle 15s linear infinite;
-        }
-
-        @keyframes nameCycle {
-            0%, 35% { opacity: 0; } 
-            38% { opacity: 1; color: #fff; } 
-            
-            /* Flash Effect */
-            40% { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
-            45% { color: #fff; text-shadow: none; }
-            50% { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
-            55% { color: #fff; text-shadow: none; }
-            60% { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
-            65% { color: #fff; text-shadow: none; }
-            
-            85% { opacity: 1; }
-            90% { opacity: 0; } 
-            100% { opacity: 0; }
-        }
+        .header-title { position: absolute; left: 50%; top: 20%; transform: translate(-50%, -50%); font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; color: #fff; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10; }
+        #street-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 45px; overflow: hidden; pointer-events: none; z-index: 6; }
+        #ambulance-img { position: absolute; bottom: 0px; left: -120px; height: 45px; width: auto; z-index: 5; transform: scaleX(-1); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); animation: driveCycle 15s ease-in-out infinite; }
+        @keyframes driveCycle { 0% { left: -120px; } 15% { left: 50%; transform: translateX(-50%) scaleX(-1); } 35% { left: 50%; transform: translateX(-50%) scaleX(-1); } 45% { left: 120%; transform: translateX(0) scaleX(-1); } 100% { left: 120%; transform: scaleX(-1); } }
+        #user-name-drop { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: #fff; white-space: nowrap; opacity: 0; z-index: 4; animation: nameCycle 15s linear infinite; }
+        @keyframes nameCycle { 0%, 35% { opacity: 0; } 38% { opacity: 1; color: #fff; } 40% { color: var(--primary); text-shadow: 0 0 10px var(--primary); } 45% { color: #fff; text-shadow: none; } 50% { color: var(--primary); text-shadow: 0 0 10px var(--primary); } 55% { color: #fff; text-shadow: none; } 60% { color: var(--primary); text-shadow: 0 0 10px var(--primary); } 65% { color: #fff; text-shadow: none; } 85% { opacity: 1; } 90% { opacity: 0; } 100% { opacity: 0; } }
 
         .header-controls { display: flex; gap: 8px; z-index: 20; align-items: center; }
         .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
         .nav-icon:hover { color: #fff; }
-        
         #mini-btn { font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.75em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
         #mini-btn:hover { background: var(--primary); color: white; border-color: var(--alert); }
-        
         #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
 
-        /* --- CONTENT --- */
+        /* CONTENT */
         #content { padding: 12px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
-
         .section { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .section:last-child { border-bottom: none; }
-
         .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
         .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
         .value.highlight { color: var(--primary); }
         .value.bxp { color: var(--green); }
-
+        
+        /* PROGRESS BARS */
         .progress-container { position: relative; height: 16px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 5px 0 5px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
-        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .progress-bar { height: 100%; width: 0%; transition: width 0.3s ease; }
         .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7em; text-shadow: 1px 1px 2px black; font-weight: bold; z-index: 2; }
+        
+        /* HELI SECTION */
+        #heli-section { 
+            display: none; 
+            margin-top: 10px; 
+            padding-top: 10px; 
+            border-top: 1px dashed var(--heli-primary);
+            animation: expandHeli 0.3s ease-out;
+        }
+        @keyframes expandHeli { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .toggle-btn {
+            width: 100%; padding: 6px; margin-top: 5px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: #ccc; font-size: 0.8em; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover { background: rgba(255, 152, 0, 0.2); border-color: var(--heli-primary); color: white; }
 
         .xp-remaining-text { text-align: center; font-size: 0.8em; color: var(--text-dim); margin-bottom: 10px; }
         .xp-remaining-text b { color: var(--primary); }
@@ -242,116 +155,79 @@
         .inv-stats { font-size: 0.8em; font-weight: bold; text-align: right; }
         .low-stock { border-left-color: var(--alert); }
 
-        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: inherit; }
-        input:focus { outline: 1px solid var(--primary); }
+        input[type="number"], select { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 5px; border-radius: 4px; margin-top: 5px; font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.9em; }
+        select { width: 100%; cursor: pointer; }
+        option { background: #222; color: white; }
+        input:focus, select:focus { outline: 1px solid var(--primary); }
+
         .calc-output { margin-top: 5px; font-size: 0.8em; line-height: 1.3; color: var(--text-dim); word-wrap: break-word; }
-        
         .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
         .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
         
-        #settings-panel, #job-list, #summary-table { display: none !important; }
-
         #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
-
-        /* --- SUPPORT FOOTER --- */
-        .support-footer {
-            width: 100%;
-            text-align: center;
-            padding: 4px 0;
-            background: rgba(0,0,0,0.3);
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .support-link {
-            font-size: 0.65em;
-            color: var(--text-dim);
-            text-decoration: none;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 600;
-            letter-spacing: 1px;
-            opacity: 0.6;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
+        
+        .support-footer { width: 100%; text-align: center; padding: 4px 0; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.1); }
+        .support-link { font-size: 0.65em; color: var(--text-dim); text-decoration: none; font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: 1px; opacity: 0.6; transition: all 0.3s ease; cursor: pointer; }
         .support-link:hover { opacity: 1; color: #fff; }
-        .heart-spin {
-            display: inline-block;
-            color: var(--heart-color);
-            margin-left: 2px;
-            font-size: 1.1em;
-            animation: spinHeart 2.5s infinite linear;
-        }
+        .heart-spin { display: inline-block; color: var(--heart-color); margin-left: 2px; font-size: 1.1em; animation: spinHeart 2.5s infinite linear; }
         @keyframes spinHeart { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
-
     </style>
 </head>
 <body>
 
 <div id="tracker-app">
-    <div id="micro-view" onmousedown="dragMouseDown(event)">
+    <div id="micro-view" onmousedown="dragStart(event)">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
         
-        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="micro-group">
-                <span style="font-size:1.2em">🚑</span>
-                <span class="micro-val highlight">EMS OPS</span>
+        <div class="micro-section">
+            <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div class="micro-group"><span style="font-size:1.2em">🚑</span><span class="micro-val highlight">EMS</span></div>
+                <div class="micro-group"><span class="micro-label">Revives:</span><span class="micro-val active" id="micro-revives">0</span></div>
+                <div class="micro-group"><span class="micro-label">⚡</span><span class="micro-val" id="micro-defib">--</span></div>
             </div>
-            
-            <div class="micro-group">
-                <span class="micro-label">Revives:</span>
-                <span class="micro-val active" id="micro-revives">0</span>
-            </div>
-
-            <div class="micro-group">
-                <span class="micro-label">⚡ Defib:</span>
-                <span class="micro-val" id="micro-defib">--</span>
+            <div class="micro-row">
+                <div class="micro-group" style="min-width: 120px;">
+                    <span class="micro-label">Lvl</span>
+                    <span class="micro-val highlight" id="micro-level">0</span>
+                    <span class="micro-next" id="micro-ems-next"></span>
+                    <div class="micro-progress-bg"><div class="micro-progress-fill fill-ems" id="micro-bar"></div></div>
+                </div>
+                <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
+                <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
+                <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
             </div>
         </div>
 
-        <div class="micro-row">
-            <div class="micro-group" style="min-width: 90px;">
-                <span class="micro-label">Lvl</span>
-                <span class="micro-val highlight" id="micro-level">0</span>
-                <div class="micro-progress-bg">
-                    <div class="micro-progress-fill" id="micro-bar"></div>
+        <div class="micro-toggle" onclick="toggleMicroHeli()">▼ SHOW HELI DETAILS</div>
+
+        <div id="micro-heli-section" class="micro-section">
+            <div class="micro-row" style="border-bottom: 1px solid rgba(255,152,0,0.2);">
+                <div class="micro-group"><span style="font-size:1.2em">🚁</span><span class="micro-val heli">HELI</span></div>
+                <div class="micro-group"><span class="micro-label">Flights:</span><span class="micro-val active" id="micro-flights">0</span></div>
+                <div class="micro-group"><span class="micro-label">Avg:</span><span class="micro-val heli" id="micro-heli-avg">0</span></div>
+            </div>
+            <div class="micro-row">
+                <div class="micro-group" style="min-width: 120px;">
+                    <span class="micro-label">Lvl</span>
+                    <span class="micro-val heli" id="micro-heli-level">0</span>
+                    <span class="micro-next" id="micro-heli-next"></span>
+                    <div class="micro-progress-bg"><div class="micro-progress-fill fill-heli" id="micro-heli-bar"></div></div>
                 </div>
-            </div>
-
-            <div class="micro-sep"></div>
-
-            <div class="micro-group">
-                <span class="micro-label">XP:</span>
-                <span class="micro-val" id="micro-xp">0</span>
-            </div>
-
-            <div class="micro-sep"></div>
-
-            <div class="micro-group">
-                <span class="micro-label">Tok:</span>
-                <span class="micro-val active" id="micro-tokens">0</span>
-            </div>
-
-            <div class="micro-sep"></div>
-
-            <div class="micro-group">
-                <span class="micro-label">Left:</span>
-                <span class="micro-val highlight" id="micro-calc">--</span>
+                <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-heli-xp">0</span></div>
+                <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-heli-tokens">0</span></div>
+                <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-heli-calc">--</span></div>
             </div>
         </div>
     </div>
 
-    <header id="drag-handle">
-        <div class="header-controls">
-            <a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a>
-        </div>
-        
+    <header id="drag-handle" onmousedown="dragStart(event)">
+        <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
         <div class="header-title">EMS OPS</div>
-        
         <div id="street-container">
             <img id="ambulance-img" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f691.png" alt="Ambulance">
             <div id="user-name-drop">Paramedic ...</div>
         </div>
-
         <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
             <button id="mini-btn" onclick="toggleMini()">MINI</button>
             <span id="clock">00:00</span>
@@ -361,37 +237,35 @@
     <div id="content">
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div>
-                    <div class="label">Paramedic Level</div>
-                    <div class="value highlight" style="font-size:1.6em" id="disp-level">...</div>
-                </div>
-                <div style="text-align:right;">
-                    <div class="label">Current XP</div>
-                    <div class="value" id="disp-xp" style="font-size:0.9em">0</div>
-                </div>
+                <div><div class="label">Paramedic Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
+                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
             </div>
-
-            <div class="progress-container">
-                <div class="progress-bar" id="level-bar"></div>
-                <div class="progress-text" id="level-text">Waiting for data...</div>
-            </div>
+            <div class="progress-container"><div class="progress-bar fill-ems" id="level-bar"></div><div class="progress-text" id="level-text">Waiting...</div></div>
+            <div class="xp-remaining-text" id="disp-xp-remaining">Waiting for data...</div>
             
-            <div class="xp-remaining-text" id="disp-xp-remaining">
-                Waiting for data...
+            <div class="stat-grid" style="margin-top:10px;">
+                <div class="stat-box"><div class="label">EMS BXP</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">EMS Avg</div><div class="value" id="disp-avg">0</div></div>
+                <div class="stat-box"><div class="label">Revives/Heals</div><div class="value" id="disp-callouts">0</div></div>
             </div>
 
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <div class="label">BXP Tokens</div>
-                    <div class="value bxp" id="disp-bxp">0</div>
+            <button class="toggle-btn" onclick="toggleHeliSection()">[ TOGGLE HELI XP ]</button>
+
+            <div id="heli-section">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:5px;">
+                    <div><div class="label" style="color:var(--heli-primary)">Heli Pilot Level</div><div class="value heli" style="font-size:1.6em; color:var(--heli-primary)" id="heli-level">...</div></div>
+                    <div style="text-align:right;"><div class="label">Heli XP</div><div class="value" id="heli-xp" style="font-size:0.9em">0</div></div>
                 </div>
-                <div class="stat-box">
-                    <div class="label">Avg XP</div>
-                    <div class="value" id="disp-avg">0</div>
+                <div class="progress-container" style="border:1px solid var(--heli-primary)">
+                    <div class="progress-bar fill-heli" id="heli-bar"></div>
+                    <div class="progress-text" id="heli-text">...</div>
                 </div>
-                <div class="stat-box">
-                    <div class="label">Revives/Heals</div>
-                    <div class="value" id="disp-callouts">0</div>
+                <div class="xp-remaining-text" id="heli-xp-remaining" style="color:#ccc;">Waiting for data...</div>
+
+                <div class="stat-grid" style="margin-top:5px;">
+                    <div class="stat-box"><div class="label">Heli BXP</div><div class="value bxp" id="heli-bxp">0</div></div>
+                    <div class="stat-box"><div class="label">Heli Avg</div><div class="value" style="color:var(--heli-primary)" id="heli-avg">0</div></div>
+                    <div class="stat-box"><div class="label">Flights</div><div class="value" style="color:var(--heli-primary)" id="heli-flights">0</div></div>
                 </div>
             </div>
         </div>
@@ -400,26 +274,23 @@
             <div class="label">Inventory</div>
             <div class="inv-row" id="row-defib">
                 <div class="inv-name">⚡ Defib Kit</div>
-                <div class="inv-stats">
-                    Stock: <span id="stock-defib">--</span>
-                </div>
+                <div class="inv-stats">Stock: <span id="stock-defib">--</span></div>
             </div>
         </div>
 
         <div class="section" style="border:none;">
             <div class="label">Target Calculator</div>
-            <div style="font-size:0.7em; color:#888;">Enter <b>Target XP</b>:</div>
-            <input type="number" id="target-input" placeholder="e.g. 100000">
-            
+            <select id="calc-mode" onchange="runCalculator()" style="margin-top:2px;">
+                <option value="ems">Paramedic XP</option>
+                <option value="heli">Heli Pilot XP</option>
+            </select>
+            <input type="number" id="target-input" placeholder="Enter Target XP or Level" oninput="runCalculator()">
             <div class="quick-btn-row">
                 <button class="quick-btn" onclick="setCalc(100000)">100K</button>
                 <button class="quick-btn" onclick="setCalc(1000000)">1M</button>
                 <button class="quick-btn" onclick="setCalc(10000000)">10M</button>
             </div>
-
-            <div class="calc-output" id="calc-result">
-                Start working to enable calculator...
-            </div>
+            <div class="calc-output" id="calc-result">Start working to enable calculator...</div>
         </div>
     </div>
     
@@ -428,443 +299,281 @@
             Support PinkiPrim <span class="heart-spin">❤</span>
         </div>
     </div>
-    
-    <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
+    <div id="resize-handle"></div>
 </div>
-
-<div id="settings-icon" style="display:none;"></div>
-<div id="settings-panel" style="display:none;">
-    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
-    <button id="reset-exp-log"></button>
-    <div id="xp-font-size-value"></div>
-</div>
-<div id="job-list" style="display:none;"></div>
-<table id="summary-table" style="display:none;"><thead id="summary-thead"></thead><tbody id="summary-tbody"></tbody></table>
 
 <script>
+// --- SAFE HELPERS ---
+function safeSetText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
+function safeSetWidth(id, width) { const el = document.getElementById(id); if(el) el.style.width = width; }
+function safeSetHTML(id, html) { const el = document.getElementById(id); if(el) el.innerHTML = html; }
+
+// --- KEYS ---
+const KEYS = {
+    EMS_XP: "exp_ems_ems",
+    EMS_BXP: "exp_token_a|ems|ems",
+    HELI_XP: "exp_piloting_heli",
+    HELI_BXP: "exp_token_a|piloting|heli"
+};
+
+// --- STATE ---
+let STATE = {
+    emsXP: 0, heliXP: 0,
+    emsBXP: 0, heliBXP: 0,
+    emsStartXP: null, emsSessionXP: 0, revives: 0, emsLastKnownXP: -1,
+    heliStartXP: null, heliSessionXP: 0, flights: 0, heliLastKnownXP: -1
+};
+
+let heliVisible = false;
+let microHeliVisible = false;
+
 // --- CLOCK ---
-function updateClock() {
-    const now = new Date();
-    const el = document.getElementById('clock');
-    if(el) el.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-}
+function updateClock() { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }
 setInterval(updateClock, 1000);
-updateClock();
 
-function openExternal(url) {
-    try {
-        window.invokeNative('openUrl', url);
-    } catch(e) {
-        window.open(url, '_blank');
-    }
-}
+function openExternal(url) { try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); } }
 
-// --- ENGINE VARS ---
-let lastInventoryObj = {};
-let selectedJobs = [];
-let expLogs = {};
-let lastBXPs = {};
-let initialExps = {};
-let lastExps = {};
-let hasFirstGain = {};
-let lastUpdateTime = {};
-let lastDisplayedExps = {};
-let lastRenderTime = 0;
-let hasReceivedAnyData = false;
-let hasRequestedOnce = false;
-
-const STORAGE_KEY_CALC = "target_xp_ems";
-const STORAGE_KEY_MINI = "mini_mode_ems"; // Mini mode storage
-const RECENT_WINDOW_MS = 10 * 60 * 1000;
-const RENDER_THROTTLE_MS = 500;
-
-// --- INIT ---
-const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
-if (savedTarget) document.getElementById('target-input').value = savedTarget;
-
-// RESTORE MINI MODE
-const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
-if (savedMini === "true") {
-    document.getElementById('tracker-app').classList.add('mini-mode');
-    document.getElementById('mini-btn').innerText = "FULL";
-}
-
-// --- MINI MODE TOGGLE ---
+// --- UI LOGIC ---
 function toggleMini() {
     const app = document.getElementById('tracker-app');
     app.classList.toggle('mini-mode');
-    
-    const isMini = app.classList.contains('mini-mode');
-    document.getElementById('mini-btn').innerText = isMini ? "FULL" : "MINI";
-    localStorage.setItem(STORAGE_KEY_MINI, isMini);
+    document.getElementById('mini-btn').innerText = app.classList.contains('mini-mode') ? "FULL" : "MINI";
 }
 
-const JOBS = [
-  { key: "emergency", label: "EMS" }
-];
-
-const JOB_EXP_KEYS = { emergency: "exp_ems_ems" };
-const JOB_BXP_KEYS = { emergency: "exp_token_a|ems|ems" };
-
-function formatNumber(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-  return num.toLocaleString();
+function toggleHeliSection() {
+    heliVisible = !heliVisible;
+    document.getElementById('heli-section').style.display = heliVisible ? 'block' : 'none';
 }
 
-function getAllRequiredKeys() {
-  const expKeys = Object.values(JOB_EXP_KEYS);
-  const bxpKeys = Object.values(JOB_BXP_KEYS);
-  const inventoryKey = ["inventory", "exp_paramedic", "name"];
-  return [...expKeys, ...bxpKeys, ...inventoryKey];
-}
-
-function getLevelInfo(exp) {
-  let level = 0;
-  let xpCap = 5;
-  while (exp >= xpCap) {
-    exp -= xpCap;
-    level++;
-    xpCap = (level + 1) * 5;
-  }
-  return { level, expInLevel: exp, expForNext: xpCap };
-}
-
-function getPercentValue(exp, cap) {
-  if (typeof exp !== "number") return null;
-  const pct = Math.max(0, Math.min(100, (exp / cap) * 100));
-  return +pct.toFixed(1);
-}
-
-function saveData() {
-  localStorage.setItem("exp-logs-ems", JSON.stringify(expLogs));
-}
-
-function loadData() {
-  selectedJobs = ["emergency"]; 
-  expLogs = JSON.parse(localStorage.getItem("exp-logs-ems") || "{}");
-}
-
-function renderStats() {
-  const now = Date.now();
-  if (now - lastRenderTime < RENDER_THROTTLE_MS) {
-    return;
-  }
-  lastRenderTime = now;
-  updateEMSHUD(); 
-}
-
-function calculateJobStats(jobKey) {
-  const currentExp = lastExps[jobKey] || 0;
-  const bxp = lastBXPs[jobKey] || 0;
-  return {
-    currentExp,
-    bxp,
-    levelInfo: getLevelInfo(currentExp)
-  };
-}
-
-function processGameData(data) {
-  // Update Name
-  if(data.name) {
-      document.getElementById('user-name-drop').innerText = "Paramedic " + data.name;
-  }
-
-  const now = Date.now();
-  let inventory = {};
-  
-  if (data.inventory) {
-    try {
-      inventory = typeof data.inventory === "string" ? JSON.parse(data.inventory) : data.inventory;
-      if (inventory) {
-          lastInventoryObj = inventory;
-          processInventory(inventory); 
-      }
-    } catch {
-      inventory = lastInventoryObj;
-    }
-  } else {
-    inventory = lastInventoryObj;
-  }
-  
-  if (data.exp_paramedic && !data[JOB_EXP_KEYS.emergency]) {
-      data[JOB_EXP_KEYS.emergency] = data.exp_paramedic;
-  }
-
-  JOBS.forEach(job => {
-    const expKey = JOB_EXP_KEYS[job.key];
-    const exp = data[expKey];
-    if (typeof exp === "number") {
-      lastExps[job.key] = exp;
-    }
-  });
-  
-  selectedJobs.forEach(jobKey => {
-    const expKey = JOB_EXP_KEYS[jobKey];
-    const exp = data[expKey];
-    
-    if (typeof exp === "number") {
-      if (!expLogs[jobKey]) expLogs[jobKey] = [];
-      const log = expLogs[jobKey];
-      
-      if (!hasFirstGain[jobKey]) {
-        if (typeof initialExps[jobKey] !== "number") {
-          initialExps[jobKey] = exp;
-        }
-      }
-      if (!hasFirstGain[jobKey] && exp !== initialExps[jobKey]) {
-        hasFirstGain[jobKey] = true;
-        if (typeof initialExps[jobKey] !== "number" || initialExps[jobKey] === 0) {
-          initialExps[jobKey] = exp - (exp - (log[log.length - 1]?.exp || 0));
-        }
-      }
-      
-      const lastEntry = log[log.length - 1];
-      if (lastEntry === undefined) {
-        lastUpdateTime[jobKey] = now;
-      } else if (exp > lastEntry.exp) {
-        log.push({ time: now, exp });
-        lastUpdateTime[jobKey] = now;
-        const lastDisplayed = lastDisplayedExps[jobKey] || 0;
-        if (exp > lastDisplayed) {
-          lastDisplayedExps[jobKey] = exp;
-        }
-      }
-      if (log.length === 0 && hasFirstGain[jobKey]) {
-        log.push({ time: now - 5000, exp: initialExps[jobKey] });
-        log.push({ time: now, exp });
-        lastUpdateTime[jobKey] = now;
-      }
-      if (log.length > 2) {
-        const recentCutoff = now - RECENT_WINDOW_MS;
-        expLogs[jobKey] = log.filter((entry, idx) => {
-          return idx === 0 || entry.time >= recentCutoff;
-        });
-      }
-    }
-    
-    const bxpToken = JOB_BXP_KEYS[jobKey];
-    let bxpObj;
-    if (bxpToken && data[bxpToken]) {
-      bxpObj = data[bxpToken];
-    }
-    else if (bxpToken && inventory && typeof inventory === 'object') {
-      bxpObj = inventory[bxpToken];
-      if (!bxpObj) {
-        const fallbackKey = Object.keys(inventory).find(k => k.startsWith(bxpToken));
-        if (fallbackKey) bxpObj = inventory[fallbackKey];
-      }
-    }
-    if (bxpObj && typeof bxpObj.amount === "number") {
-      lastBXPs[jobKey] = bxpObj.amount;
-    } else if (typeof bxpObj === "number") {
-      lastBXPs[jobKey] = bxpObj;
-    } else {
-      delete lastBXPs[jobKey];
-    }
-  });
-  saveData();
-  renderStats();
-}
-
-function requestDataOnce(force = false) {
-  if (hasRequestedOnce && !force) return;
-  hasRequestedOnce = true;
-  try {
-    const keys = getAllRequiredKeys();
-    window.parent.postMessage({ 
-      type: "getNamedData",
-      keys: keys
-    }, "*");
-  } catch (e) {
-    window.parent.postMessage({ type: "getData" }, "*");
-  }
-}
-
-function init() {
-  loadData();
-  renderStats();
-  
-  setInterval(requestDataOnce, 1000); 
-  
-  window.addEventListener("message", (event) => {
-    const msg = event.data;
-    if (msg && msg.type === "data" && msg.data) {
-      hasReceivedAnyData = true;          
-      processGameData(msg.data);
-    }
-  });
-
-  requestDataOnce();
-  setTimeout(() => { if (!hasReceivedAnyData) requestDataOnce(true); }, 1200);
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
-
-// --- FIXED DRAG HANDLER (1:1 Movement) ---
-let elmnt = document.getElementById("tracker-app");
-let header = document.getElementById("drag-handle");
-let microView = document.getElementById("micro-view");
-
-let isDragging = false;
-let startX, startY, initialLeft, initialTop;
-
-// Attach listeners
-header.addEventListener("mousedown", dragStart);
-microView.addEventListener("mousedown", dragStart);
-
-function dragStart(e) {
-    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
-    e.preventDefault();
-    
-    isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    
-    const rect = elmnt.getBoundingClientRect();
-    initialLeft = rect.left;
-    initialTop = rect.top;
-    
-    document.addEventListener("mousemove", dragMove);
-    document.addEventListener("mouseup", dragEnd);
-}
-
-function dragMove(e) {
-    if (!isDragging) return;
-    e.preventDefault();
-    
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    
-    elmnt.style.left = `${initialLeft + dx}px`;
-    elmnt.style.top = `${initialTop + dy}px`;
-}
-
-function dragEnd() {
-    isDragging = false;
-    document.removeEventListener("mousemove", dragMove);
-    document.removeEventListener("mouseup", dragEnd);
-}
-
-// Resize Logic
-const rh = document.getElementById('resize-handle');
-if (rh) {
-    rh.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        window.addEventListener('mousemove', resize);
-        window.addEventListener('mouseup', stopResize);
-    });
-}
-function resize(e) {
-    if(elmnt.classList.contains('mini-mode')) return; // Disable in mini mode
-    elmnt.style.width = Math.max(280, e.clientX - elmnt.getBoundingClientRect().left) + 'px';
-    elmnt.style.height = Math.max(200, e.clientY - elmnt.getBoundingClientRect().top) + 'px';
-}
-function stopResize() {
-    window.removeEventListener('mousemove', resize);
-    window.removeEventListener('mouseup', stopResize);
-}
-
-// --- EMS LOGIC ---
-
-function processInventory(inv) {
-    const invArray = Object.entries(inv).map(([id, data]) => {
-        let qty = 0;
-        if (typeof data === 'number') qty = data;
-        else if (typeof data === 'object') qty = data.amount || data.count || 0;
-        return { id: id.toLowerCase(), qty: qty };
-    });
-    const matches = invArray.filter(i => i.id.includes('defib'));
-    const defibCount = matches.reduce((sum, item) => sum + item.qty, 0);
-    const el = document.getElementById('stock-defib');
-    const microEl = document.getElementById('micro-defib');
-    
-    if(el) {
-        el.innerText = defibCount;
-        microEl.innerText = defibCount;
-        
-        let color = defibCount < 2 ? "var(--alert)" : "white";
-        el.style.color = color;
-        microEl.className = defibCount < 2 ? "micro-val urgent" : "micro-val";
-    }
-}
-
-let bridge_StartXP = null;
-let bridge_SessionXP = 0;
-let bridge_Revives = 0;
-let bridge_LastKnownXP = -1;
-
-function updateEMSHUD() {
-    const stats = calculateJobStats('emergency');
-    const current = stats.currentExp;
-    
-    // Main UI
-    document.getElementById('disp-xp').innerText = formatNumber(current);
-    document.getElementById('disp-level').innerText = stats.levelInfo.level;
-    const pct = getPercentValue(stats.levelInfo.expInLevel, stats.levelInfo.expForNext);
-    document.getElementById('level-bar').style.width = pct + "%";
-    document.getElementById('level-text').innerText = pct + "%";
-    
-    // Micro UI
-    document.getElementById('micro-xp').innerText = formatNumber(current);
-    document.getElementById('micro-level').innerText = stats.levelInfo.level;
-    document.getElementById('micro-bar').style.width = pct + "%";
-    
-    if(stats.bxp > 0) {
-        const txt = formatNumber(stats.bxp);
-        document.getElementById('disp-bxp').innerText = txt;
-        document.getElementById('micro-tokens').innerText = txt;
-    }
-    
-    if (bridge_StartXP === null && current > 0) {
-        bridge_StartXP = current;
-        bridge_LastKnownXP = current;
-    }
-    
-    if (bridge_LastKnownXP > -1 && current > bridge_LastKnownXP) {
-        const diff = current - bridge_LastKnownXP;
-        if (diff > 5) {
-            bridge_SessionXP += diff;
-            bridge_Revives++;
-        }
-        bridge_LastKnownXP = current;
-    }
-    
-    document.getElementById('disp-callouts').innerText = bridge_Revives;
-    document.getElementById('micro-revives').innerText = bridge_Revives;
-    
-    const averageXP = bridge_Revives > 0 ? (bridge_SessionXP / bridge_Revives) : 0;
-    
-    document.getElementById('disp-avg').innerText = Math.round(averageXP);
-    
-    const xpNeeded = Math.round(stats.levelInfo.expForNext - stats.levelInfo.expInLevel);
-    let remainingText = `<b>${formatNumber(xpNeeded)}</b> XP to Next Level`;
-    
-    if (averageXP > 0) {
-        const revsNeeded = Math.ceil(xpNeeded / averageXP);
-        remainingText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(revsNeeded)} revives)</span>`;
-    } else {
-        remainingText += ` <span style="opacity:0.5; font-size:0.9em">(Working...)</span>`;
-    }
-    document.getElementById('disp-xp-remaining').innerHTML = remainingText;
-    
-    runCalculator(averageXP); 
-}
-
-const calcInput = document.getElementById('target-input');
-let currentAvg = 0;
-
-if(calcInput) {
-    calcInput.addEventListener('input', () => runCalculator(currentAvg));
+function toggleMicroHeli() {
+    microHeliVisible = !microHeliVisible;
+    document.getElementById('micro-heli-section').style.display = microHeliVisible ? 'block' : 'none';
+    document.querySelector('.micro-toggle').innerText = microHeliVisible ? "▲ HIDE HELI DETAILS" : "▼ SHOW HELI DETAILS";
 }
 
 function setCalc(amount) {
     document.getElementById('target-input').value = amount;
-    runCalculator(currentAvg);
+    runCalculator();
+}
+
+// --- ENGINE ---
+function requestData() {
+    if(window.parent) {
+        try { 
+            let keys = [ KEYS.EMS_XP, KEYS.EMS_BXP, KEYS.HELI_XP, KEYS.HELI_BXP, "inventory", "exp_paramedic", "name" ];
+            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
+            window.parent.postMessage({ type: "getData" }, "*"); 
+        } catch(e) {}
+    }
+}
+setInterval(requestData, 1000); 
+
+window.addEventListener('message', (event) => {
+    let data = event.data.type === 'data' ? event.data.data : event.data;
+    if (!data) return;
+    if(Object.keys(data).length < 2) return;
+    processPayload(data);
+});
+
+function processPayload(data) {
+    if(data.name) safeSetText('user-name-drop', "Paramedic " + data.name);
+
+    // EMS DATA
+    let emsXP = data[KEYS.EMS_XP] || data.exp_paramedic || 0;
+    if (typeof emsXP === 'number' && emsXP > 0) { STATE.emsXP = emsXP; trackEMSProgress(emsXP); }
+
+    let emsBXP = data[KEYS.EMS_BXP];
+    if(!emsBXP && data.inventory) emsBXP = findInInventory(data.inventory, KEYS.EMS_BXP);
+    if(emsBXP) { let val = (typeof emsBXP === 'object') ? emsBXP.amount : emsBXP; if(val > 0) STATE.emsBXP = val; }
+
+    // HELI DATA
+    let heliXP = data[KEYS.HELI_XP] || 0;
+    if (typeof heliXP === 'number' && heliXP > 0) { STATE.heliXP = heliXP; trackHeliProgress(heliXP); }
+
+    let heliBXP = data[KEYS.HELI_BXP];
+    if(!heliBXP && data.inventory) heliBXP = findInInventory(data.inventory, KEYS.HELI_BXP);
+    if(heliBXP) { let val = (typeof heliBXP === 'object') ? heliBXP.amount : heliBXP; if(val > 0) STATE.heliBXP = val; }
+
+    if(data.inventory) processInventory(data.inventory);
+    renderUI();
+}
+
+function findInInventory(inv, key) {
+    try {
+        const i = (typeof inv === 'string') ? JSON.parse(inv) : inv;
+        return i[key];
+    } catch(e) { return null; }
+}
+
+function processInventory(inv) {
+    try {
+        const i = (typeof inv === 'string') ? JSON.parse(inv) : inv;
+        let defibCount = 0;
+        for (let k in i) { if (k.toLowerCase().includes('defib')) defibCount += (i[k].amount || i[k].count || i[k] || 0); }
+        safeSetText('stock-defib', defibCount);
+        safeSetText('micro-defib', defibCount);
+        const microEl = document.getElementById('micro-defib');
+        if(microEl) {
+            microEl.style.color = defibCount < 2 ? "var(--alert)" : "white";
+        }
+    } catch(e){}
+}
+
+function trackEMSProgress(current) {
+    if (STATE.emsStartXP === null && current > 0) { STATE.emsStartXP = current; STATE.emsLastKnownXP = current; }
+    if (STATE.emsLastKnownXP > -1 && current > STATE.emsLastKnownXP) {
+        const diff = current - STATE.emsLastKnownXP;
+        if (diff > 5) { STATE.emsSessionXP += diff; STATE.revives++; }
+        STATE.emsLastKnownXP = current;
+    }
+}
+
+function trackHeliProgress(current) {
+    if (STATE.heliStartXP === null && current > 0) { STATE.heliStartXP = current; STATE.heliLastKnownXP = current; }
+    if (STATE.heliLastKnownXP > -1 && current > STATE.heliLastKnownXP) {
+        const diff = current - STATE.heliLastKnownXP;
+        if (diff > 5) { STATE.heliSessionXP += diff; STATE.flights++; }
+        STATE.heliLastKnownXP = current;
+    }
+}
+
+// --- RENDER ---
+function renderUI() {
+    const emsAvg = STATE.revives > 0 ? (STATE.emsSessionXP / STATE.revives) : 0;
+    const heliAvg = STATE.flights > 0 ? (STATE.heliSessionXP / STATE.flights) : 0;
+
+    // EMS UI
+    const emsLvl = getLevelInfo(STATE.emsXP);
+    safeSetText('disp-xp', formatNumber(STATE.emsXP));
+    safeSetText('disp-level', emsLvl.level);
+    safeSetWidth('level-bar', emsLvl.percent + "%");
+    safeSetText('level-text', emsLvl.percent + "%");
+    safeSetText('disp-bxp', formatNumber(STATE.emsBXP));
+    
+    // EMS Mini
+    safeSetText('micro-xp', formatNumber(STATE.emsXP));
+    safeSetText('micro-level', emsLvl.level);
+    safeSetWidth('micro-bar', emsLvl.percent + "%");
+    safeSetText('micro-tokens', formatNumber(STATE.emsBXP));
+    safeSetText('micro-revives', STATE.revives);
+    
+    // Independent Next Level Count for EMS (Mini)
+    const emsNeeded = Math.round(emsLvl.cap - emsLvl.expInLevel);
+    let emsEstNext = emsAvg > 0 ? Math.ceil(emsNeeded / emsAvg) : "?";
+    safeSetText('micro-ems-next', `(${emsEstNext})`);
+
+    // EMS Calc
+    safeSetText('disp-callouts', STATE.revives);
+    safeSetText('disp-avg', Math.round(emsAvg));
+    
+    let emsRemText = `<b>${formatNumber(emsNeeded)}</b> XP to Next Level`;
+    if (emsAvg > 0) { emsRemText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(Math.ceil(emsNeeded / emsAvg))} revives)</span>`; }
+    safeSetHTML('disp-xp-remaining', emsRemText);
+
+    // HELI UI
+    const heliLvl = getLevelInfo(STATE.heliXP);
+    safeSetText('heli-xp', formatNumber(STATE.heliXP));
+    safeSetText('heli-level', heliLvl.level);
+    safeSetWidth('heli-bar', heliLvl.percent + "%");
+    safeSetText('heli-text', heliLvl.percent + "%");
+    safeSetText('heli-bxp', formatNumber(STATE.heliBXP));
+    
+    // Heli Mini
+    safeSetText('micro-heli-level', heliLvl.level);
+    safeSetWidth('micro-heli-bar', heliLvl.percent + "%");
+    safeSetText('micro-heli-tokens', formatNumber(STATE.heliBXP));
+    safeSetText('micro-flights', STATE.flights);
+    safeSetText('micro-heli-avg', Math.round(heliAvg));
+    safeSetText('micro-heli-xp', formatNumber(STATE.heliXP));
+
+    // Independent Next Level Count for Heli (Mini)
+    const heliNeeded = Math.round(heliLvl.cap - heliLvl.expInLevel);
+    let heliEstNext = heliAvg > 0 ? Math.ceil(heliNeeded / heliAvg) : "?";
+    safeSetText('micro-heli-next', `(${heliEstNext})`);
+
+    // Heli Calc
+    safeSetText('heli-flights', STATE.flights);
+    safeSetText('heli-avg', Math.round(heliAvg));
+    
+    let heliRemText = `<b>${formatNumber(heliNeeded)}</b> XP to Next Level`;
+    if (heliAvg > 0) { heliRemText += ` <span style="opacity:0.7; color:var(--green)">(${formatNumber(Math.ceil(heliNeeded / heliAvg))} flights)</span>`; }
+    safeSetHTML('heli-xp-remaining', heliRemText);
+
+    // Run Calculation (Separate)
+    runCalculator(emsAvg, heliAvg);
+}
+
+// --- UTILS ---
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return Math.round(num).toLocaleString();
+}
+
+function getLevelInfo(exp) {
+    let level = 0, cap = 5;
+    let expInLevel = exp;
+    while (expInLevel >= cap) { 
+        expInLevel -= cap; 
+        level++; 
+        cap = (level + 1) * 5; 
+    }
+    return { level: level, expInLevel: expInLevel, cap: cap, percent: ((expInLevel / cap) * 100).toFixed(1) };
+}
+
+// --- CALCULATOR ---
+function runCalculator(emsAvg, heliAvg) {
+    const val = document.getElementById('target-input').value;
+    const mode = document.getElementById('calc-mode').value; // 'ems' or 'heli'
+    const el = document.getElementById('calc-result');
+    
+    // Mini Calc fields - update ONLY the selected one
+    const microCalcEms = document.getElementById('micro-calc');
+    const microCalcHeli = document.getElementById('micro-heli-calc');
+
+    if (!val) {
+        if(el) el.innerText = "Enter target above.";
+        if(microCalcEms) microCalcEms.innerText = "Set..";
+        if(microCalcHeli) microCalcHeli.innerText = "Set..";
+        return;
+    }
+
+    let inputVal = parseInt(val.replace(/,/g, ''));
+    let targetXP = inputVal;
+    
+    // Detect Level vs XP
+    if (inputVal < 200) targetXP = getXPFromLevel(inputVal);
+
+    if (mode === 'ems') {
+        // Calculate EMS ONLY
+        let diff = Math.max(0, targetXP - STATE.emsXP);
+        let avg = STATE.revives > 0 ? (STATE.emsSessionXP / STATE.revives) : 0;
+        let est = avg > 0 ? Math.ceil(diff / avg) : "?";
+        
+        if(microCalcEms) microCalcEms.innerText = (diff > 0) ? formatNumber(est) : "Done";
+        // Do NOT touch Heli micro calc here
+        
+        if (diff > 0) {
+             el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Revives: <b>${formatNumber(est)}</b></span>`;
+        } else {
+             el.innerHTML = "Target Reached (EMS)!";
+        }
+    } 
+    else if (mode === 'heli') {
+        // Calculate HELI ONLY
+        let diff = Math.max(0, targetXP - STATE.heliXP);
+        let avg = STATE.flights > 0 ? (STATE.heliSessionXP / STATE.flights) : 0;
+        let est = avg > 0 ? Math.ceil(diff / avg) : "?";
+
+        if(microCalcHeli) microCalcHeli.innerText = (diff > 0) ? formatNumber(est) : "Done";
+         // Do NOT touch EMS micro calc here
+
+        if (diff > 0) {
+             el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--heli-primary)">Est. Flights: <b>${formatNumber(est)}</b></span>`;
+        } else {
+             el.innerHTML = "Target Reached (Heli)!";
+        }
+    }
 }
 
 function getXPFromLevel(targetLvl) {
@@ -879,49 +588,70 @@ function getXPFromLevel(targetLvl) {
     return xp;
 }
 
-function runCalculator(avg) {
-    if(avg) currentAvg = avg;
-    const val = document.getElementById('target-input').value;
-    const el = document.getElementById('calc-result');
-    const microEl = document.getElementById('micro-calc');
-    
-    localStorage.setItem(STORAGE_KEY_CALC, val);
-    
-    if (currentAvg === 0) {
-        el.innerHTML = "<i>Work to enable calc...</i>";
-        microEl.innerText = "Wait..";
-        return;
-    }
-    if (!val) {
-        el.innerText = "Enter target above.";
-        microEl.innerText = "Set..";
-        return;
-    }
+// --- DRAG ---
+let dragItem = document.getElementById("tracker-app");
+let header = document.getElementById("drag-handle");
+let micro = document.getElementById("micro-view");
+let active = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
 
-    let inputVal = parseInt(val.replace(/,/g, ''));
-    let targetXP = inputVal;
-    
-    const currentExp = lastExps['emergency'] || 0;
-    if (inputVal < 200) { 
-         let lvlXP = getXPFromLevel(inputVal);
-         if (lvlXP > currentExp) targetXP = lvlXP;
-    }
+header.addEventListener("mousedown", dragStart);
+micro.addEventListener("mousedown", dragStart);
 
-    if (targetXP > currentExp) {
-        const diff = targetXP - currentExp;
-        const revives = Math.ceil(diff / currentAvg);
-        
-        let output = `Remaining: <b>${formatNumber(diff)} XP</b><br>`;
-        output += `<span style="color:var(--primary)">Est. Revives: <b>${formatNumber(revives)}</b></span>`;
-        
-        el.innerHTML = output;
-        microEl.innerText = formatNumber(revives);
-    } else {
-        el.innerHTML = `Target reached.`;
-        microEl.innerText = "Done";
+function dragStart(e) {
+    if(e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+    initialX = e.clientX - xOffset;
+    initialY = e.clientY - yOffset;
+    if (header.contains(e.target) || micro.contains(e.target)) {
+        active = true;
     }
 }
 
+document.addEventListener("mousemove", drag);
+document.addEventListener("mouseup", dragEnd);
+
+function drag(e) {
+    if (active) {
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        xOffset = currentX;
+        yOffset = currentY;
+        setTranslate(currentX, currentY, dragItem);
+    }
+}
+
+function setTranslate(xPos, yPos, el) {
+    el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+}
+
+function dragEnd() {
+    initialX = currentX;
+    initialY = currentY;
+    active = false;
+}
+
+const resizeHandle = document.getElementById('resize-handle');
+resizeHandle.addEventListener('mousedown', initResize, false);
+function initResize(e) {
+   window.addEventListener('mousemove', Resize, false);
+   window.addEventListener('mouseup', stopResize, false);
+}
+function Resize(e) {
+   if(dragItem.classList.contains('mini-mode')) return;
+   dragItem.style.width = (e.clientX - dragItem.getBoundingClientRect().left) + 'px';
+   dragItem.style.height = (e.clientY - dragItem.getBoundingClientRect().top) + 'px';
+}
+function stopResize() {
+    window.removeEventListener('mousemove', Resize, false);
+    window.removeEventListener('mouseup', stopResize, false);
+}
+
+// Remove Focus on ESC (No close)
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (document.activeElement) document.activeElement.blur();
+    }
+});
 </script>
 </body>
 </html>
