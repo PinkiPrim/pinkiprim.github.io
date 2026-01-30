@@ -51,11 +51,10 @@
         .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top:5px; }
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
         
-        /* UPDATED WARNING BOX STYLE */
         .warning-box { 
             margin-top: 10px; padding: 10px; 
             border: 1px solid var(--warning-red); 
-            background: rgba(0, 0, 0, 0.9); /* Solid dark background */
+            background: rgba(0, 0, 0, 0.9); 
             color: var(--warning-red); 
             font-size: 0.75em; text-align: center; 
             box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); 
@@ -67,32 +66,74 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE WIDGET - COMPACT & BIDDING ENABLED */
+        /* --- MINI MODE WIDGET (COMPACT 2-LINE) --- */
         body.mini-mode .pivot-wrapper { 
-            width: 250px !important; height: auto !important; min-height: 120px;
+            width: 320px !important; height: auto !important; 
             transform: none !important; margin: 0; position: fixed !important;
-            /* Top/Left set via JS for memory position */
             cursor: move; z-index: 9999;
         }
-        body.mini-mode .menu-container, body.mini-mode .detail-left, body.mini-mode .back-btn, 
-        body.mini-mode .content-header, body.mini-mode #controls-actions, 
-        body.mini-mode #controls-admin { display: none !important; }
+        
+        /* HIDE ELEMENTS IN MINI MODE */
+        body.mini-mode .menu-container, 
+        body.mini-mode .detail-left, 
+        body.mini-mode .back-btn, 
+        body.mini-mode .content-header, 
+        body.mini-mode #controls-actions, 
+        body.mini-mode #controls-admin,
+        body.mini-mode #detail-live-timer { /* Hide big timer, maybe show small in corner if needed, but saving space */
+            display: none !important; 
+        }
 
-        /* Enable Bidding in Mini Mode, but style it compact */
-        body.mini-mode #controls-bid { display: block !important; margin-top: 5px; }
-        body.mini-mode #detail-bid-input { padding: 5px; font-size: 0.9em; height: 30px; margin-bottom: 2px; }
-        body.mini-mode #controls-bid .action-btn { padding: 5px; font-size: 0.9em; margin-top: 2px; }
-        body.mini-mode #bid-status { font-size: 0.7em; margin-top: 2px; }
-
-        body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 8px; border-radius: 5px; }
+        /* MINI CONTAINER */
+        body.mini-mode .submenu-container { 
+            background: rgba(0, 10, 20, 0.98); 
+            border: 2px solid var(--primary); 
+            top:0; transform: none; height: auto; 
+            padding: 5px 10px; 
+            border-radius: 5px; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
+        
         body.mini-mode #view-detail { height: auto !important; display: block !important; }
         body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
-        body.mini-mode .detail-right { overflow: visible !important; padding: 2px !important; border: none !important; background: transparent !important; }
-        body.mini-mode #detail-title { font-size: 1em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        body.mini-mode #detail-price { font-size: 1.4em; margin: 5px 0; text-align: center; pointer-events: none; }
-        body.mini-mode #detail-live-timer { font-size: 0.9em; text-align: center; display: block; margin-bottom: 0; pointer-events: none; }
-        body.mini-mode #min-btn { position: absolute; top: -8px; right: -5px; font-size: 0.9em; padding: 5px 10px; border: none; background: transparent; color: #888; cursor: pointer; z-index: 10000; }
-        body.mini-mode #min-btn:hover { color: white; }
+        body.mini-mode .detail-right { 
+            overflow: visible !important; padding: 0 !important; border: none !important; background: transparent !important; 
+            display: flex; flex-direction: column; gap: 2px;
+        }
+
+        /* LINE 1: Title (left) - Price (Right) */
+        body.mini-mode #detail-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 2px; margin-bottom: 2px; }
+        body.mini-mode #detail-title { font-size: 1.1em; margin: 0; border: none; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+        body.mini-mode #detail-price { font-size: 1.2em; margin: 0; color: var(--primary); }
+
+        /* LINE 2: Bidder (Left) - Inputs (Right) */
+        body.mini-mode #detail-action-row { display: flex; justify-content: space-between; align-items: center; height: 30px; }
+        body.mini-mode #detail-bidder-info { font-size: 0.8em; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+        
+        body.mini-mode #controls-bid { 
+            display: flex !important; 
+            gap: 5px; 
+            margin: 0 !important; 
+            width: auto; 
+            align-items: center;
+        }
+        
+        /* Compact Input/Button */
+        body.mini-mode #detail-bid-input { 
+            height: 24px; width: 80px; padding: 2px 5px; font-size: 0.9em; border: 1px solid #444; background: #111; 
+        }
+        body.mini-mode #controls-bid .action-btn { 
+            height: 24px; padding: 0 10px; font-size: 0.8em; margin: 0; width: auto; 
+        }
+        body.mini-mode #bid-status { display:none; } /* Hide status text in mini to save space, rely on visual */
+
+        /* Minimize Button */
+        body.mini-mode #min-btn { 
+            position: absolute; top: -10px; right: -10px; 
+            font-size: 0.8em; padding: 2px 6px; 
+            background: #000; border: 1px solid var(--primary); color: white; 
+            z-index: 10002; 
+        }
 
         /* REGULAR STYLES */
         .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
@@ -102,7 +143,6 @@
         .holo-btn.show { opacity: 1; transform: translateX(0); }
         .holo-btn:hover { background: var(--primary-dim); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-dim); transform: translateX(10px); }
         
-        /* Support Button Specific Style */
         .holo-btn.support { border-color: var(--heart-color); }
         .holo-btn.support:hover { background: rgba(255, 64, 129, 0.15); box-shadow: 0 0 15px rgba(255, 64, 129, 0.3); }
         .holo-btn.support .icon-box { color: var(--heart-color); }
@@ -159,7 +199,6 @@
         .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #333; margin-bottom: 2px; }
         .user-list-item select { width: 120px; background: #222; border: 1px solid #444; color: white; padding: 5px; }
 
-        /* Section dividers for My Listings */
         .section-header { font-size: 1.2em; color: var(--primary); border-bottom: 1px solid #444; margin: 15px 0 5px 0; padding-bottom: 5px; }
 
         ::-webkit-scrollbar { width: 5px; }
@@ -275,19 +314,28 @@
                             <div id="detail-img-container" style="width:100%; height:250px; background:#000; border:1px solid #444; display:flex; align-items:center; justify-content:center;"></div>
                             <div style="font-size:0.9em; color:#888; margin-top:10px;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
                             <div style="font-size:0.9em; color:#888;">STATUS: <span id="detail-status" style="font-weight:bold;"></span></div>
+                            <div style="font-size:0.9em; color:#888;">QUANTITY: <span id="detail-qty" style="color:white; font-weight:bold;"></span></div>
                             <div id="debug-id-match"></div>
                         </div>
                         <div class="detail-right">
                             <button id="min-btn" onclick="toggleMiniMode()">[-]</button>
-                            <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
-                            <div id="detail-price" style="font-size:2em; color:var(--primary); font-weight:bold; margin-bottom:5px;">$0</div>
-                            <div style="color:#ff4444; font-weight:bold; margin-bottom:15px;"><i class="far fa-clock"></i> <span id="detail-live-timer">00:00</span></div>
-                            <div style="margin-bottom:20px;">High Bidder: <span id="detail-bidder">None</span></div>
                             
-                            <div id="controls-bid" style="display:none;">
-                                <input type="number" id="detail-bid-input" placeholder="Amount...">
-                                <button class="action-btn" onclick="placeBid()">CONFIRM BID</button>
-                                <div id="bid-status" style="margin-top:5px; font-size:0.8em; text-align:center;"></div> </div>
+                            <div id="detail-header-row">
+                                <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
+                                <div id="detail-price" style="font-size:2em; color:var(--primary); font-weight:bold; margin-bottom:5px;">$0</div>
+                            </div>
+                            
+                            <div style="color:#ff4444; font-weight:bold; margin-bottom:15px;"><i class="far fa-clock"></i> <span id="detail-live-timer">00:00</span></div>
+                            
+                            <div id="detail-action-row">
+                                <div id="detail-bidder-info" style="margin-bottom:20px;">High Bidder: <span id="detail-bidder">None</span></div>
+                                
+                                <div id="controls-bid" style="display:none;">
+                                    <input type="number" id="detail-bid-input" placeholder="Amount...">
+                                    <button class="action-btn" onclick="placeBid()">CONFIRM BID</button>
+                                    <div id="bid-status" style="margin-top:5px; font-size:0.8em; text-align:center;"></div> 
+                                </div>
+                            </div>
                             
                             <div id="controls-actions" style="display:none; text-align:center;">
                                 <div id="action-msg" style="color:#e67e22; margin-bottom:10px;"></div>
@@ -338,19 +386,13 @@
     let pollingInterval = null;
     let countdownInterval = null;
     let pendingAdminAction = null;
-    
-    // Mini Mode Position Memory
-    let miniModePos = null;
+    let miniModePos = null; // Memory for mini pos
 
     function openExternal(url) {
-        try {
-            window.invokeNative('openUrl', url);
-        } catch(e) {
-            window.open(url, '_blank');
-        }
+        try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); }
     }
 
-    // --- DOCK MODE & DRAG LOGIC ---
+    // --- DOCK & DRAG ---
     function startAppFlow() {
         document.body.classList.remove('docked-mode');
         if (isAuthenticated) {
@@ -390,12 +432,8 @@
     document.addEventListener('mouseup', function() { 
         if(isDragging) {
             isDragging = false; 
-            // Save position if in mini mode
             if(document.body.classList.contains('mini-mode')) {
-                miniModePos = {
-                    top: wrapper.style.top,
-                    left: wrapper.style.left
-                };
+                miniModePos = { top: wrapper.style.top, left: wrapper.style.left };
             }
         }
     });
@@ -406,18 +444,13 @@
     });
 
     window.addEventListener('message', (event) => {
-        if (event.data.action === "open") { 
-            document.body.style.display = 'block'; 
-        }
+        if (event.data.action === "open") document.body.style.display = 'block'; 
         if (event.data.type === "data" || event.data.user_id) {
             let d = event.data.data || event.data;
             if(d.user_id || d.player_id || d.id) {
                 let tempName = d.name || d.player;
-                if(tempName && tempName !== "null" && tempName !== "undefined") {
-                    userData.name = tempName;
-                } else {
-                    userData.name = "Unknown";
-                }
+                if(tempName && tempName !== "null" && tempName !== "undefined") userData.name = tempName;
+                else userData.name = "Unknown";
                 
                 userData.id = cleanID(d.user_id || d.player_id || d.id);
                 if(d.wallet) userData.wallet = parseInt(d.wallet);
@@ -429,7 +462,6 @@
                     document.getElementById('login-name').value = "Waiting for Signal...";
                     document.getElementById('login-name').classList.remove('verified');
                 }
-                
                 document.getElementById('login-id').value = userData.id;
                 document.getElementById('login-id').classList.add('verified');
             }
@@ -438,14 +470,10 @@
 
     function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
 
-    // --- NEW HANDSHAKE LOGIC ---
     function performHandshake() {
         if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id", "wallet"] }, "*");
-        
         const status = document.getElementById('link-status');
-        status.innerText = "Analyzing Signal...";
-        status.style.color = "cyan";
-
+        status.innerText = "Analyzing Signal..."; status.style.color = "cyan";
         setTimeout(() => {
             if(!userData.name || userData.name === "Unknown" || userData.name === "undefined") {
                 status.innerText = "SIGNAL WEAK: IDENTITY UNKNOWN. PLEASE RELOAD USER APP.";
@@ -458,91 +486,52 @@
         }, 1500); 
     }
 
-    // --- FIX FOR VERIFYING LOOP ---
     function submitPin() {
         const pin = document.getElementById('login-pin').value;
         const statusEl = document.getElementById('login-status');
         const btn = document.getElementById('btn-enter');
-
-        if(pin.length < 4) {
-            statusEl.innerText = "PIN must be at least 4 digits";
-            statusEl.style.color = "#ff4444";
-            return;
-        }
+        if(pin.length < 4) { statusEl.innerText = "PIN must be at least 4 digits"; statusEl.style.color = "#ff4444"; return; }
         userData.pin = pin;
-        
-        btn.disabled = true;
-        btn.innerText = "VERIFYING...";
-        statusEl.innerText = "Connecting to Server...";
-        statusEl.style.color = "#888";
+        btn.disabled = true; btn.innerText = "VERIFYING..."; statusEl.innerText = "Connecting to Server..."; statusEl.style.color = "#888";
 
         fetch(`${CONST_GOOGLE_URL}?action=login&userId=${userData.id}&name=${userData.name}&pin=${userData.pin}`)
-        .then(res => res.json())
-        .then(data => {
+        .then(res => res.json()).then(data => {
             if (data && data.status === "success") {
-                isAuthenticated = true; 
-                document.getElementById('login-screen').style.display = 'none';
+                isAuthenticated = true; document.getElementById('login-screen').style.display = 'none';
                 if(data.msg === "PIN Set") alert("Your PIN has been set to: " + pin + ". Don't forget it!");
                 document.body.classList.remove('docked-mode');
                 enterMarket();
             } else if (data && data.status === "error" && data.msg.includes("ID Not Found")) {
-                statusEl.innerText = "ID NOT WHITELISTED.";
-                statusEl.style.color = "#ff4444";
+                statusEl.innerText = "ID NOT WHITELISTED."; statusEl.style.color = "#ff4444";
                 document.getElementById('pin-section').style.display = 'none';
                 document.getElementById('btn-request').style.display = 'block';
             } else {
                 statusEl.innerText = (data && data.msg) ? data.msg : "Connection Failed. Try again.";
-                statusEl.style.color = "#ff4444";
-                btn.disabled = false;
-                btn.innerText = "LOGIN";
+                statusEl.style.color = "#ff4444"; btn.disabled = false; btn.innerText = "LOGIN";
             }
-        })
-        .catch(err => {
-            console.error("Login Fetch Error:", err);
-            statusEl.innerText = "CONNECTION ERROR (Network)";
-            statusEl.style.color = "#ff4444";
-            btn.disabled = false;
-            btn.innerText = "LOGIN";
+        }).catch(err => {
+            statusEl.innerText = "CONNECTION ERROR (Network)"; statusEl.style.color = "#ff4444"; btn.disabled = false; btn.innerText = "LOGIN";
         });
     }
 
     function requestAccess() {
-        const btn = document.getElementById('btn-request');
-        const status = document.getElementById('login-status');
-        btn.disabled = true;
-        btn.innerText = "SENDING...";
-        status.innerText = "Processing Request...";
-        status.style.color = "cyan";
-
+        const btn = document.getElementById('btn-request'); const status = document.getElementById('login-status');
+        btn.disabled = true; btn.innerText = "SENDING..."; status.innerText = "Processing Request..."; status.style.color = "cyan";
         fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "requestAccess", userId: userData.id, name: userData.name })
         }).then(() => {
-            status.innerText = "REQUEST SENT (Contact Admin)";
-            status.style.color = "#2ecc71";
-            setTimeout(() => { 
-                btn.disabled = false; 
-                btn.innerText = "REQUEST ACCESS"; 
-            }, 3000);
+            status.innerText = "REQUEST SENT (Contact Admin)"; status.style.color = "#2ecc71";
+            setTimeout(() => { btn.disabled = false; btn.innerText = "REQUEST ACCESS"; }, 3000);
         });
     }
 
     function enterMarket() {
-        isMenuOpen = true;
-        document.getElementById('pivot-wrapper').style.display = "block";
-        
-        if(userData.id === ADMIN_ID) {
-            document.getElementById('btn-hk').style.display = 'flex';
-            document.getElementById('btn-users').style.display = 'flex';
-        } else {
-            document.getElementById('btn-hk').style.display = 'none';
-            document.getElementById('btn-users').style.display = 'none';
-        }
-
+        isMenuOpen = true; document.getElementById('pivot-wrapper').style.display = "block";
+        if(userData.id === ADMIN_ID) { document.getElementById('btn-hk').style.display = 'flex'; document.getElementById('btn-users').style.display = 'flex'; } 
+        else { document.getElementById('btn-hk').style.display = 'none'; document.getElementById('btn-users').style.display = 'none'; }
         const btns = document.querySelectorAll('.holo-btn');
         btns.forEach((btn, i) => { btn.classList.remove('show'); setTimeout(() => btn.classList.add('show'), i * 100); });
-        
         if(countdownInterval) clearInterval(countdownInterval);
         countdownInterval = setInterval(updateAllTimers, 1000);
     }
@@ -550,6 +539,7 @@
     function closeApp() {
         isMenuOpen = false;
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
+        // Reset to docked mode instead of disconnect
         document.body.classList.add('docked-mode');
         document.getElementById('pivot-wrapper').style.display = 'none';
         document.getElementById('link-screen').style.display = 'none';
@@ -559,11 +549,9 @@
     function openSubmenu(view) {
         lastView = view;
         document.getElementById('pivot-wrapper').classList.add('expanded');
-        document.getElementById('main-menu').style.opacity = '0';
-        document.getElementById('main-menu').style.pointerEvents = 'none';
+        document.getElementById('main-menu').style.opacity = '0'; document.getElementById('main-menu').style.pointerEvents = 'none';
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-' + view).style.display = 'flex';
-        
         if(view === 'browse' || view === 'mylistings' || view === 'hk' || view === 'users') fetchData(view);
         setTimeout(() => document.getElementById('submenu-layer').classList.add('active'), 300);
     }
@@ -572,8 +560,7 @@
         document.getElementById('submenu-layer').classList.remove('active');
         setTimeout(() => {
             document.getElementById('pivot-wrapper').classList.remove('expanded');
-            document.getElementById('main-menu').style.opacity = '1';
-            document.getElementById('main-menu').style.pointerEvents = 'all';
+            document.getElementById('main-menu').style.opacity = '1'; document.getElementById('main-menu').style.pointerEvents = 'all';
         }, 300);
     }
 
@@ -589,7 +576,6 @@
         else if(view === 'mylistings') action = "getMyData";
         else if(view === 'users') action = "getUsers";
         
-        // Define loading containers
         if(view === 'mylistings') {
             document.getElementById('my-active-grid').innerHTML = '<div style="color:cyan; text-align:center;">LOADING...</div>';
             document.getElementById('my-history-grid').innerHTML = '<div style="color:cyan; text-align:center;">LOADING...</div>';
@@ -599,8 +585,7 @@
         }
 
         fetch(`${CONST_GOOGLE_URL}?action=${action}&userId=${userData.id}`)
-        .then(res => res.json())
-        .then(data => {
+        .then(res => res.json()).then(data => {
             currentData = data;
             if(view === 'hk') renderHK(data);
             else if(view === 'users') renderUsers(data);
@@ -612,34 +597,24 @@
     function renderMyListings(data) {
         const activeContainer = document.getElementById('my-active-grid');
         const historyContainer = document.getElementById('my-history-grid');
-        activeContainer.innerHTML = '';
-        historyContainer.innerHTML = '';
-        
-        let activeCount = 0;
-        let historyCount = 0;
+        activeContainer.innerHTML = ''; historyContainer.innerHTML = '';
+        let activeCount = 0; let historyCount = 0;
         const now = new Date().getTime();
 
         data.forEach(item => {
             let status = item.status;
             if (status === "Active" && now > item.endTime) status = "Ended";
-            
-            // Build card HTML
+            // FORMAT: "2x Item Name"
+            let qtyDisplay = (item.quantity > 1) ? `<span style="color:#00ffff; font-weight:bold;">${item.quantity}x</span> ` : "";
             let imgHTML = (item.img && item.img.startsWith('http')) ? `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">` : '';
             let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
-            let card = document.createElement('div');
-            card.className = 'auction-card';
+            let card = document.createElement('div'); card.className = 'auction-card';
             card.onclick = () => openDetail(item);
-            card.innerHTML = `${imgHTML}<div class="card-body"><div class="card-title">${item.item}</div><div class="card-price">$${parseInt(item.price).toLocaleString()}</div>${timerHTML}<div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div><div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div></div>`;
+            card.innerHTML = `${imgHTML}<div class="card-body"><div class="card-title">${qtyDisplay}${item.item}</div><div class="card-price">$${parseInt(item.price).toLocaleString()}</div>${timerHTML}<div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div><div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div><div style="font-size:0.7em; color:#aaa; margin-top:2px;">Bidder: ${item.highBidder}</div></div>`;
 
-            if(status === 'Active') {
-                activeContainer.appendChild(card);
-                activeCount++;
-            } else {
-                historyContainer.appendChild(card);
-                historyCount++;
-            }
+            if(status === 'Active') { activeContainer.appendChild(card); activeCount++; } 
+            else { historyContainer.appendChild(card); historyCount++; }
         });
-
         if(activeCount === 0) activeContainer.innerHTML = '<div style="padding:10px; color:#555;">No active listings.</div>';
         if(historyCount === 0) historyContainer.innerHTML = '<div style="padding:10px; color:#555;">No past listings.</div>';
         updateAllTimers();
@@ -654,13 +629,14 @@
             count++;
             let status = item.status;
             if (status === "Active" && now > item.endTime) status = "Ended";
+            
+            let qtyDisplay = (item.quantity > 1) ? `<span style="color:#00ffff; font-weight:bold;">${item.quantity}x</span> ` : "";
             let imgHTML = (item.img && item.img.startsWith('http')) ? `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">` : '';
             let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
 
-            let card = document.createElement('div');
-            card.className = 'auction-card';
+            let card = document.createElement('div'); card.className = 'auction-card';
             card.onclick = () => openDetail(item);
-            card.innerHTML = `${imgHTML}<div class="card-body"><div class="card-title">${item.item}</div><div class="card-price">$${parseInt(item.price).toLocaleString()}</div>${timerHTML}<div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div><div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div></div>`;
+            card.innerHTML = `${imgHTML}<div class="card-body"><div class="card-title">${qtyDisplay}${item.item}</div><div class="card-price">$${parseInt(item.price).toLocaleString()}</div>${timerHTML}<div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div><div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div><div style="font-size:0.7em; color:#aaa; margin-top:2px;">Bidder: ${item.highBidder}</div></div>`;
             container.appendChild(card);
         });
         if(count === 0) container.innerHTML = '<div style="padding:20px; color:#555;">No records found.</div>';
@@ -682,8 +658,7 @@
     function renderUsers(data) {
         const list = document.getElementById('user-list'); list.innerHTML = '';
         data.forEach(user => {
-            let row = document.createElement('div');
-            row.className = 'user-list-item';
+            let row = document.createElement('div'); row.className = 'user-list-item';
             let select = document.createElement('select');
             ['Requested', 'Whitelisted', 'Blacklisted'].forEach(opt => {
                 let option = document.createElement('option');
@@ -697,15 +672,12 @@
         });
     }
 
-    function updateUserPermission(targetId, newStatus) {
-        promptAdminAction('UserStatus', {targetId: targetId, newStatus: newStatus});
-    }
+    function updateUserPermission(targetId, newStatus) { promptAdminAction('UserStatus', {targetId: targetId, newStatus: newStatus}); }
 
     function openDetail(item) {
         currentDetailId = item.id;
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-detail').style.display = 'flex';
-        // Polling details is good for live updates
         if(pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(refreshDetail, 1000);
         renderDetail(item);
@@ -715,11 +687,7 @@
         fetch(`${CONST_GOOGLE_URL}?action=getAll&userId=${userData.id}`).then(r=>r.json()).then(data=>{
             currentData = data; 
             const item = data.find(i => String(i.id) === String(currentDetailId));
-            if(item) {
-                renderDetail(item);
-            } else {
-                // Item deleted or gone?
-            }
+            if(item) renderDetail(item);
         });
     }
 
@@ -728,12 +696,14 @@
         let displayStatus = item.status;
         if(displayStatus === 'Active' && now > item.endTime) displayStatus = 'Ended';
 
-        document.getElementById('detail-title').innerText = item.item;
+        let qtyDisplay = (item.quantity > 1) ? `${item.quantity}x ` : "";
+        document.getElementById('detail-title').innerText = qtyDisplay + item.item;
         document.getElementById('detail-seller').innerText = item.seller;
         document.getElementById('detail-price').innerText = "$" + parseInt(item.price).toLocaleString();
         document.getElementById('detail-bidder').innerText = (item.highBidder === "No Bids" || item.highBidder === "None") ? "No Bids" : item.highBidder;
         document.getElementById('detail-status').innerText = displayStatus;
         document.getElementById('detail-status').className = `st-${displayStatus}`;
+        document.getElementById('detail-qty').innerText = item.quantity;
         
         const imgContainer = document.getElementById('detail-img-container');
         if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
@@ -767,9 +737,7 @@
                 if(noBids) { btn.innerText = "REMOVE (UNSOLD)"; btn.style.backgroundColor = "#ff4444"; btn.onclick = removeListing; }
                 else { btn.innerText = "MARK AS COMPLETED"; btn.style.backgroundColor = "#e67e22"; btn.onclick = () => updateStatus('Completed'); }
                 btnContainer.appendChild(btn);
-            } else {
-                document.getElementById('action-msg').innerText = noBids ? "ENDED - UNSOLD" : "ENDED - WAITING FOR SELLER";
-            }
+            } else { document.getElementById('action-msg').innerText = noBids ? "ENDED - UNSOLD" : "ENDED - WAITING FOR SELLER"; }
         } 
         else if (displayStatus === 'Completed') {
             document.getElementById('controls-actions').style.display = 'block';
@@ -812,35 +780,20 @@
         document.getElementById('admin-pin-input').focus();
     }
 
-    function closePinModal() {
-        document.getElementById('pin-modal').style.display = 'none';
-        pendingAdminAction = null;
-    }
+    function closePinModal() { document.getElementById('pin-modal').style.display = 'none'; pendingAdminAction = null; }
 
     function submitAdminAction() {
         const pin = document.getElementById('admin-pin-input').value;
         if (!pin) return;
-        
         let payload = { requesterId: userData.id, pin: pin };
-
-        if (pendingAdminAction.type === 'Delete') {
-            payload.action = 'delete'; payload.id = currentDetailId;
-        } else if (pendingAdminAction.type === 'Completed') {
-            payload.action = 'updateStatus'; payload.id = currentDetailId; payload.newStatus = 'Completed';
-        } else if (pendingAdminAction.type === 'UserStatus') {
-            payload.action = 'updateUserStatus'; payload.adminId = userData.id;
-            payload.targetId = pendingAdminAction.data.targetId; payload.newStatus = pendingAdminAction.data.newStatus;
-        }
+        if (pendingAdminAction.type === 'Delete') { payload.action = 'delete'; payload.id = currentDetailId; }
+        else if (pendingAdminAction.type === 'Completed') { payload.action = 'updateStatus'; payload.id = currentDetailId; payload.newStatus = 'Completed'; }
+        else if (pendingAdminAction.type === 'UserStatus') { payload.action = 'updateUserStatus'; payload.adminId = userData.id; payload.targetId = pendingAdminAction.data.targetId; payload.newStatus = pendingAdminAction.data.newStatus; }
 
         fetch(CONST_GOOGLE_URL, {
-            method: "POST", mode: "no-cors",
-            headers: {"Content-Type": "application/json"},
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
             body: JSON.stringify(payload)
-        }).then(() => { 
-            closePinModal();
-            if(pendingAdminAction.type === 'UserStatus') fetchData('users');
-            else returnToLastView(); 
-        });
+        }).then(() => { closePinModal(); if(pendingAdminAction.type === 'UserStatus') fetchData('users'); else returnToLastView(); });
     }
 
     function removeListing() {
@@ -857,29 +810,33 @@
         }).then(() => { returnToLastView(); });
     }
 
-    // --- WALLET CHECKED BIDDING FIX ---
     function placeBid() {
         let amt = document.getElementById('detail-bid-input').value;
-        let status = document.getElementById('bid-status'); // Status div
+        let status = document.getElementById('bid-status'); 
         
         if(!amt) return;
         
+        // DECIMAL CHECK
+        if(amt % 1 != 0) { status.innerText = "WHOLE NUMBERS ONLY"; status.style.color = "#ff4444"; return; }
+
+        // SELF-BID CHECK (Backup to UI check)
+        const item = currentData.find(i => String(i.id) === String(currentDetailId));
+        if (item && String(item.sellerId) === String(userData.id)) {
+            status.innerText = "CANNOT BID ON OWN ITEM"; status.style.color = "#ff4444"; return;
+        }
+
         if(parseInt(amt) > userData.wallet) {
-            status.innerText = "INSUFFICIENT FUNDS ($" + userData.wallet.toLocaleString() + ")";
-            status.style.color = "#ff4444";
-            return;
+            status.innerText = "INSUFFICIENT FUNDS ($" + userData.wallet.toLocaleString() + ")"; status.style.color = "#ff4444"; return;
         }
         
-        status.innerText = "PLACING BID...";
-        status.style.color = "cyan";
+        status.innerText = "PLACING BID..."; status.style.color = "cyan";
 
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin })
         }).then(() => { 
             document.getElementById('detail-bid-input').value = "";
-            status.innerText = "BID PLACED";
-            status.style.color = "#2ecc71";
+            status.innerText = "BID PLACED"; status.style.color = "#2ecc71";
             setTimeout(() => { status.innerText = ""; }, 3000);
         });
     }
@@ -893,8 +850,7 @@
     }
 
     function previewImg(url) {
-        const div = document.getElementById('img-preview');
-        div.innerHTML = '';
+        const div = document.getElementById('img-preview'); div.innerHTML = '';
         if(url.startsWith('http')) div.innerHTML = `<img src="${url}" class="preview-image-actual">`;
         else div.innerHTML = `<span style="color:#555;">INVALID URL</span>`;
     }
@@ -919,31 +875,22 @@
             setTimeout(() => {
                 closeSubmenu();
                 document.getElementById('sell-name').value = '';
+                document.getElementById('sell-qty').value = '1';
                 document.getElementById('sell-price').value = '';
                 btn.disabled = false; btn.innerText = "CREATE LISTING";
             }, 1000);
         });
     }
 
-    // --- FIX FOR HOUSEKEEPING REFRESH ---
     function returnToLastView() {
-        // Stop detail polling
         if(pollingInterval) clearInterval(pollingInterval);
-        
         const wrapper = document.getElementById('pivot-wrapper');
         document.body.classList.remove('mini-mode');
-        
-        // Reset positioning completely so it centers
-        wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = ''; wrapper.style.width = ''; wrapper.style.height = '';
-        
+        // Reset to Center
+        wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = ''; 
         document.getElementById('view-detail').style.display = 'none';
-        
-        // Ensure lastView is valid, default to 'browse'
         if (!lastView || !document.getElementById('view-' + lastView)) lastView = 'browse';
-        
         document.getElementById('view-' + lastView).style.display = 'flex';
-        
-        // FORCE REFRESH OF DATA FOR THE VIEW WE ARE RETURNING TO
         fetchData(lastView);
     }
 
@@ -951,18 +898,13 @@
         const wrapper = document.getElementById('pivot-wrapper');
         document.body.classList.toggle('mini-mode');
         if(document.body.classList.contains('mini-mode')) {
-            // APPLY SAVED POSITION IF EXISTS
             if(miniModePos) {
-                wrapper.style.top = miniModePos.top;
-                wrapper.style.left = miniModePos.left;
-                // unset right/bottom just in case
+                wrapper.style.top = miniModePos.top; wrapper.style.left = miniModePos.left;
                 wrapper.style.right = 'auto'; wrapper.style.bottom = 'auto';
             } else {
-                // Default Top Right
                 wrapper.style.top = '50px'; wrapper.style.right = '50px'; wrapper.style.left = 'auto';
             }
         } else {
-            // Reset to Center when maximizing
             wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = '';
         }
     }
