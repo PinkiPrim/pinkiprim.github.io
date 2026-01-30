@@ -2,827 +2,943 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Bus Ops v2.7 (Restored)</title>
-    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
-    
+    <title>Pinki TT Auction</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
 
         :root {
-            /* Bus Theme - Cyan/Teal */
-            --primary: #00bcd4; 
-            --primary-dim: #008ba3;
-            --bg-glass: rgba(18, 18, 18, 0.95);
-            --bg-dark: rgba(10, 10, 10, 0.98);
-            --text-main: #ffffff;
-            --text-dim: #aaaaaa;
-            --border: 1px solid rgba(0, 188, 212, 0.3);
-            --green: #00e676;
-            --orange: #ff9800;
-            --red: #ff5252;
-            --accent: #4dd0e1;
-            --gold: #ffd700; 
+            --primary: #00ffff;
+            --primary-dim: rgba(0, 255, 255, 0.1);
+            --bg-dark: rgba(0, 15, 30, 0.95);
+            --border: 1px solid rgba(0, 255, 255, 0.5);
+            --glass: blur(4px);
+            --admin-color: #ff0055;
+            --warning-red: #ff4444;
             --heart-color: #ff4081;
         }
 
-        body {
-            margin: 0; padding: 0;
-            font-family: 'Roboto', sans-serif;
-            background-color: transparent;
-            color: var(--text-main);
-            overflow: hidden;
-            height: 100vh; width: 100vw;
-            user-select: none;
-        }
-
-        #tracker-app {
-            position: absolute;
-            top: 50px; left: 50px;
-            width: 320px;
-            background: var(--bg-glass);
-            border: var(--border);
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            display: flex; flex-direction: column;
-            overflow: hidden;
-            transition: width 0.2s ease, height 0.2s ease;
-            min-height: 250px;
-        }
-
-        /* --- MINI MODE --- */
-        #tracker-app.mini-mode {
-            width: 460px !important; 
-            height: 74px !important;
-            min-height: 74px !important;
-            border-radius: 12px;
-            background: var(--bg-dark);
-            border: 1px solid var(--primary);
-            resize: none;
-        }
-
-        #tracker-app.mini-mode header, 
-        #tracker-app.mini-mode #content,
-        #tracker-app.mini-mode #grinder-panel,
-        #tracker-app.mini-mode .support-footer { display: none !important; }
-
-        #micro-view {
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            height: 100%;
-            padding: 0 10px;
-            font-family: 'Rajdhani', sans-serif;
-            cursor: move;
-        }
-        #tracker-app.mini-mode #micro-view { display: flex; }
-
-        .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50%; gap: 5px; }
-        .micro-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-        .micro-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
+        * { box-sizing: border-box; user-select: none; }
         
-        .micro-label { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
-        .micro-val { color: #fff; font-weight: 700; font-size: 0.9em; }
-        .micro-val.highlight { color: var(--primary); }
-        .micro-val.active { color: var(--green); }
-        .micro-val.urgent { color: var(--red); }
+        body { margin: 0; overflow: hidden; background: transparent; font-family: 'Rajdhani', sans-serif; color: white; height: 100vh; width: 100vw; }
+
+        /* --- DOCKED BAR --- */
+        #docked-bar {
+            display: none; 
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            background: var(--bg-dark); border: 2px solid var(--primary); border-bottom: none;
+            padding: 10px 40px; border-radius: 15px 15px 0 0; cursor: pointer; z-index: 10001;
+            box-shadow: 0 0 20px var(--primary-dim); font-weight: bold; letter-spacing: 2px;
+            align-items: center; gap: 10px; transition: 0.2s;
+        }
+        #docked-bar:hover { background: var(--primary-dim); padding-bottom: 15px; }
         
-        .micro-progress-bg { width: 50px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 0 5px; }
-        .micro-progress-fill { height: 100%; background: var(--primary); width: 0%; }
+        body.docked-mode #docked-bar { display: flex; }
+        body.docked-mode .perspective-container { display: none !important; }
+        body.docked-mode #login-screen { display: none !important; }
+        body.docked-mode #link-screen { display: none !important; }
+        body.docked-mode #pivot-wrapper { display: none !important; }
 
-        .micro-btn {
-            position: absolute; top: 4px; right: 4px;
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #aaa; padding: 0px 4px; border-radius: 3px; 
-            font-size: 0.6em; cursor: pointer; text-transform: uppercase; z-index: 99;
-        }
-        .micro-btn:hover { background: var(--primary); color: white; }
+        /* SCREENS */
+        #login-screen, #link-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        #login-screen { display: none; }
+        #link-screen { display: none; } 
 
-        /* --- HEADER --- */
-        header {
-            background: linear-gradient(180deg, var(--primary-dim), rgba(0, 188, 212, 0.2));
-            height: 65px; 
-            padding: 0 10px;
-            cursor: move;
-            position: relative;
-            display: flex; align-items: flex-start; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            overflow: visible; 
-            padding-top: 5px;
-            z-index: 60; 
-        }
-
-        .header-title {
-            position: absolute; left: 50%; top: 25%;
-            transform: translate(-50%, -50%);
-            font-family: 'Rajdhani', sans-serif; 
-            font-weight: 900; font-size: 1.2em;
-            text-transform: uppercase; letter-spacing: 2px;
-            color: #fff; pointer-events: none; white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 10;
+        .login-box { width: 450px; padding: 30px; background: rgba(0, 10, 20, 0.95); border: 2px solid var(--primary); box-shadow: 0 0 20px var(--primary-dim); text-align: center; }
+        .login-input { width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #888; padding: 12px; margin-bottom: 10px; cursor: not-allowed; }
+        .login-input.verified { color: var(--primary); border-color: var(--primary); background: rgba(0, 255, 255, 0.05); }
+        .pin-entry { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--primary); color: white; padding: 15px; margin-bottom: 15px; font-size: 1.5em; text-align: center; letter-spacing: 5px; display: none; cursor: text; }
+        .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top:5px; }
+        .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
+        
+        .warning-box { 
+            margin-top: 10px; padding: 10px; 
+            border: 1px solid var(--warning-red); 
+            background: rgba(0, 0, 0, 0.9); 
+            color: var(--warning-red); 
+            font-size: 0.75em; text-align: center; 
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); 
+            text-transform: uppercase; letter-spacing: 1px; width: 100%; 
         }
 
-        /* BUS ANIMATION */
-        #road-container {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 45px;
-            overflow: hidden; pointer-events: none; z-index: 6;
+        /* 3D WRAPPER */
+        .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
+        .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
+        .pivot-wrapper.expanded { width: 950px; height: 700px; }
+
+        /* --- MINI MODE WIDGET (REFINED) --- */
+        body.mini-mode .pivot-wrapper { 
+            width: 320px !important; height: auto !important; 
+            transform: none !important; margin: 0; position: fixed !important;
+            cursor: move; z-index: 9999;
         }
         
-        #user-name-display {
-            position: absolute; bottom: 12px; left: 10px;
-            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.9em;
-            color: #fff; text-shadow: 0 0 5px var(--primary); z-index: 15;
-        }
+        body.mini-mode .menu-container, 
+        body.mini-mode .detail-left, 
+        body.mini-mode .back-btn, 
+        body.mini-mode .content-header, 
+        body.mini-mode #controls-actions, 
+        body.mini-mode #controls-admin { display: none !important; }
 
-        #bus-stop-sign {
-            position: absolute; bottom: 0; right: 60px;
-            height: 35px; width: 2px; background: #888; z-index: 4;
+        body.mini-mode .submenu-container { 
+            background: rgba(0, 10, 20, 0.98); 
+            border: 2px solid var(--primary); 
+            top:0; transform: none; height: auto; 
+            padding: 8px 12px; 
+            border-radius: 5px; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
-        #bus-stop-sign::after {
-            content: 'BUS'; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-            background: #ffc107; color: black; font-size: 8px; font-weight: bold;
-            padding: 1px 3px; border: 1px solid #333; border-radius: 2px;
-        }
-
-        #bus-img {
-            position: absolute; bottom: 2px; left: -100px;
-            height: 32px; width: auto; z-index: 5;
-            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
-            animation: busDrive 8s linear infinite;
-        }
-        #bus-img.parked {
-            animation: none; left: calc(100% - 115px); transition: left 1s ease-out;
-        }
-        @keyframes busDrive { 0% { left: -100px; } 100% { left: 120%; } }
-
-        .header-controls { display: flex; gap: 8px; z-index: 30; align-items: center; }
-        .nav-icon { text-decoration: none; font-size: 1.1em; cursor: pointer; color: #ccc; }
-        .nav-icon:hover { color: #fff; }
         
-        #clock { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #fff; font-size: 0.85em; z-index: 20; margin-top: 4px; }
-
-        /* BURGER MENU */
-        .menu-container { position: relative; }
-        .burger-btn {
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
-            color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer;
-            font-size: 1.2em; line-height: 1; display: flex; align-items: center; justify-content: center;
+        body.mini-mode #view-detail { height: auto !important; display: block !important; }
+        body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
+        body.mini-mode .detail-right { 
+            overflow: visible !important; padding: 0 !important; border: none !important; background: transparent !important; 
+            display: flex; flex-direction: column; gap: 4px;
         }
-        .burger-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
 
-        .dropdown-menu {
-            position: absolute; top: 100%; right: 0; margin-top: 5px;
-            background: #121212; border: 1px solid var(--primary); border-radius: 4px;
-            width: 140px; display: none; flex-direction: column; z-index: 100;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.9);
-        }
-        .dropdown-menu.show { display: flex; }
+        /* Line 1: Title (L) - Price (R) */
+        body.mini-mode #detail-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 2px; }
+        body.mini-mode #detail-title { font-size: 1.1em; margin: 0; border: none; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; font-weight: 700; }
+        body.mini-mode #detail-price { font-size: 1.2em; margin: 0; color: var(--primary); font-weight: bold; }
+
+        /* Line 2: Bidder (L) - Timer (M) - Action (R) */
+        body.mini-mode #detail-action-row { display: flex; justify-content: space-between; align-items: center; height: 32px; }
+        body.mini-mode #detail-bidder-info { font-size: 0.85em; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30%; }
         
-        .menu-item {
-            padding: 10px; color: #ccc; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 0.9em;
-            border-bottom: 1px solid rgba(255,255,255,0.1); transition: 0.2s;
-        }
-        .menu-item:hover { background: var(--primary); color: #000; }
-        .menu-item:last-child { border-bottom: none; }
-
-        /* GRINDER PANEL */
-        #grinder-panel {
-            position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px);
-            background: rgba(10, 15, 20, 0.98); z-index: 50; display: none;
-            flex-direction: column; padding: 15px; box-sizing: border-box;
-            backdrop-filter: blur(5px); overflow-y: auto;
-        }
-        #grinder-panel.active { display: flex; }
-
-        .grinder-header {
-            font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.1em;
-            color: var(--gold); border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px;
-            display: flex; justify-content: space-between;
+        /* Explicit Timer Display for Mini */
+        body.mini-mode #detail-live-timer { 
+            display: block !important; 
+            font-size: 0.9em; 
+            color: #ff4444; 
+            margin: 0 10px; 
+            white-space: nowrap;
         }
 
-        .stat-row {
-            display: flex; justify-content: space-between; margin-bottom: 8px;
-            font-size: 0.9em; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;
+        /* Input/Button Area */
+        body.mini-mode #controls-bid { 
+            display: flex !important; 
+            gap: 5px; 
+            margin: 0 !important; 
+            width: auto; 
+            align-items: center;
         }
-        .stat-val.gold { color: var(--gold); }
-        .stat-val.green { color: var(--green); }
+        body.mini-mode #detail-bid-input { 
+            height: 26px; width: 70px; padding: 2px 5px; font-size: 0.9em; border: 1px solid #444; background: #111; 
+        }
+        body.mini-mode #controls-bid .action-btn { 
+            height: 26px; padding: 0 12px; font-size: 0.85em; margin: 0; width: auto; 
+        }
+        /* Hide regular status text in mini */
+        body.mini-mode #bid-status { display:none; } 
+
+        /* Self-Bid Warning Styling for Mini */
+        .self-bid-warning { color: #ff4444; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+
+        body.mini-mode #min-btn { 
+            position: absolute; top: -10px; right: -10px; 
+            font-size: 0.8em; padding: 2px 6px; 
+            background: #000; border: 1px solid var(--primary); color: white; 
+            z-index: 10002; 
+        }
+
+        /* REGULAR STYLES */
+        .menu-container { position: absolute; width: 100%; top: 0; left: 0; display: flex; flex-direction: column; gap: 15px; z-index: 20; transition: opacity 0.5s; }
+        .header-text { font-size: 2.5rem; font-weight: 700; letter-spacing: 4px; text-align: center; color: white; text-shadow: 0 0 15px var(--primary); border-bottom: 1px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; }
         
-        .bonus-list {
-            margin-top: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;
-            font-size: 0.8em; color: #ccc;
-        }
-        .bonus-item { color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
-
-        /* CONTENT */
-        #content { padding: 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; }
-        .route-box { background: rgba(0, 188, 212, 0.1); border: 1px dashed var(--accent); border-radius: 6px; padding: 5px; margin-bottom: 6px; text-align: center; }
-        .route-label { font-size: 0.6em; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
-        .route-name { font-family: 'Rajdhani', sans-serif; font-size: 0.95em; font-weight: 700; color: #fff; line-height: 1.1; margin-bottom: 2px; }
-        .route-progress { font-size: 0.75em; color: var(--text-dim); font-weight: bold; }
+        .holo-btn { background: var(--bg-dark); border: var(--border); padding: 15px 20px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.3s; transform: translateX(50px); opacity: 0; backdrop-filter: var(--glass); }
+        .holo-btn.show { opacity: 1; transform: translateX(0); }
+        .holo-btn:hover { background: var(--primary-dim); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-dim); transform: translateX(10px); }
         
-        .status-container { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px; margin-bottom: 10px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
-        .status-line { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8em; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px; }
-        .timer-line { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.1em; color: var(--text-dim); line-height: 1; transition: color 0.2s ease; }
-        .timer-line.active { color: var(--green); text-shadow: 0 0 8px rgba(0, 230, 118, 0.4); }
-        .timer-line.urgent { color: var(--red); text-shadow: 0 0 8px rgba(255, 82, 82, 0.6); }
-        
-        .section { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .section:last-child { border-bottom: none; }
-        .label { font-size: 0.7em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
-        .value { font-size: 1.1em; font-weight: bold; color: var(--text-main); }
-        .value.highlight { color: var(--primary); }
-        .value.bxp { color: var(--green); }
-        
-        .progress-container { position: relative; height: 14px; background: rgba(0,0,0,0.5); border-radius: 4px; margin: 4px 0 4px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
-        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
-        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65em; font-weight: bold; z-index: 2; }
-        .xp-remaining-text { text-align: center; font-size: 0.75em; color: var(--text-dim); margin-bottom: 8px; }
-        .xp-remaining-text b { color: var(--primary); }
+        .holo-btn.support { border-color: var(--heart-color); }
+        .holo-btn.support:hover { background: rgba(255, 64, 129, 0.15); box-shadow: 0 0 15px rgba(255, 64, 129, 0.3); }
+        .holo-btn.support .icon-box { color: var(--heart-color); }
+        .holo-btn.support .btn-text { color: var(--heart-color); }
 
-        .run-box { background: rgba(0, 188, 212, 0.1); border: 1px solid rgba(0, 188, 212, 0.3); border-radius: 4px; padding: 6px; margin-bottom: 8px; }
-        .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em; }
-        .run-val { font-weight: bold; color: #fff; }
-        .run-label { font-size: 0.8em; color: #aaa; }
-
-        /* FIXED GRID COLUMN COUNT */
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-        
-        .stat-box { background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; text-align: center; }
-
-        input[type="number"] { width: 90%; background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 4px; border-radius: 4px; margin-top: 4px; font-family: inherit; font-size: 0.9em; }
-        input:focus { outline: 1px solid var(--primary); }
-        .calc-output { margin-top: 4px; font-size: 0.75em; line-height: 1.2; color: var(--text-dim); word-wrap: break-word; }
-        .quick-btn-row { display: flex; gap: 5px; margin-top: 5px; justify-content: center; }
-        .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; flex: 1; }
-        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
-
-        #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
-
-        /* --- SUPPORT FOOTER --- */
-        .support-footer {
-            width: 100%;
-            text-align: center;
-            padding: 4px 0;
-            background: rgba(0,0,0,0.3);
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .support-link {
-            font-size: 0.65em;
-            color: var(--text-dim);
-            text-decoration: none;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 600;
-            letter-spacing: 1px;
-            opacity: 0.6;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .support-link:hover { opacity: 1; color: #fff; }
-        .heart-spin {
-            display: inline-block;
-            color: var(--heart-color);
-            margin-left: 2px;
-            font-size: 1.1em;
-            animation: spinHeart 2.5s infinite linear;
-        }
+        .icon-box { color: var(--primary); font-size: 1.4rem; width: 30px; text-align: center; }
+        .heart-spin { display: inline-block; animation: spinHeart 2.5s infinite linear; margin-left: 5px; }
         @keyframes spinHeart { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
 
+        .submenu-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0, 10, 20, 0.95), rgba(0, 5, 10, 0.9)); border: 1px solid var(--primary); opacity: 0; pointer-events: none; transform: translateY(20px) translateZ(-50px); transition: 0.5s; display: flex; flex-direction: column; padding: 20px; }
+        .submenu-container.active { opacity: 1; pointer-events: all; transform: translateY(0) translateZ(0); }
+        
+        .content-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0; }
+        .grid-scroll { flex: 1; overflow-y: auto; padding-right: 10px; }
+        .auction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .auction-card { background: rgba(0,0,0,0.6); border: 1px solid #333; display: flex; flex-direction: column; transition: 0.2s; position: relative; overflow: hidden; cursor: pointer; min-height: 100px; }
+        .auction-card:hover { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-dim); transform: translateY(-3px); }
+        .card-img { width: 100%; height: 120px; object-fit: cover; background: #000; border-bottom: 1px solid #333; }
+        .card-body { padding: 15px; display: flex; flex-direction: column; justify-content: center; height: 100%; }
+        .card-title { font-weight: bold; font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
+        .card-price { color: var(--primary); font-size: 1.3em; font-weight: bold; }
+        .card-timer { font-size: 0.9em; color: #ff4444; font-weight: bold; text-align: right; margin-top: 5px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+        .st-Active { color: #00ff00; } .st-Ended { color: #ffaa00; } .st-Completed { color: #0088ff; } .st-Fulfilled { color: #888; text-decoration: line-through; }
+
+        .hk-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; flex-shrink: 0; }
+        .stat-box { background: rgba(255, 0, 85, 0.1); border: 1px solid var(--admin-color); padding: 15px; text-align: center; }
+        .stat-val { font-size: 2em; font-weight: bold; color: var(--admin-color); }
+        .hk-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; background: rgba(0,0,0,0.3); font-size: 0.85em; }
+        
+        #view-detail { display: none; height: 100%; flex-direction: column; }
+        .detail-layout { display: flex; gap: 20px; flex: 1; min-height: 0; margin-bottom: 10px; }
+        .detail-left { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .detail-right { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; position: relative; overflow-y: auto; }
+        .detail-img { width: 100%; height: 250px; object-fit: contain; background: #000; border: 1px solid #444; }
+        
+        #view-sell { display: none; height: 100%; flex-direction: column; }
+        .sell-layout { display: flex; gap: 20px; flex: 1; min-height: 0; }
+        .sell-form { flex: 1; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .sell-preview-box { flex: 1; background: rgba(0,0,0,0.5); border: 1px dashed var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        .preview-image-actual { max-width: 100%; max-height: 300px; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        
+        .input-group label { display: block; font-size: 0.8em; color: var(--primary); margin-bottom: 3px; }
+        input[type="text"], input[type="number"], select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1rem; }
+        input:focus { border-color: var(--primary); outline: none; }
+        .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; cursor: pointer; }
+        .action-btn { background: var(--primary-dim); border: 1px solid var(--primary); color: white; padding: 12px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
+        .action-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 15px var(--primary); }
+        .action-btn:disabled { background: #333; color: #888; border-color: #555; cursor: default; box-shadow: none; }
+        .back-btn { margin-top: auto; padding: 15px; text-align: center; border-top: 1px solid #333; cursor: pointer; color: #ff4444; flex-shrink: 0; }
+
+        #pin-modal { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; align-items:center; justify-content:center; flex-direction:column; }
+        .pin-box { background:#111; border:2px solid var(--admin-color); padding:20px; width:300px; text-align:center; }
+        .pin-input { width:100%; padding:10px; background:#222; border:1px solid #444; color:white; font-size:1.5em; text-align:center; letter-spacing:5px; margin-bottom:10px; }
+        .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #333; margin-bottom: 2px; }
+        .user-list-item select { width: 120px; background: #222; border: 1px solid #444; color: white; padding: 5px; }
+
+        .section-header { font-size: 1.2em; color: var(--primary); border-bottom: 1px solid #444; margin: 15px 0 5px 0; padding-bottom: 5px; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); }
+        #debug-id-match { font-size:0.7em; color:#444; position:absolute; bottom:5px; left:5px; }
     </style>
 </head>
-<body>
+<body class="docked-mode">
 
-<div id="tracker-app">
-    <div id="micro-view" onmousedown="dragStart(event)">
-        <button class="micro-btn" onclick="window.toggleMini()">EXPAND</button>
-        <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="micro-group"><span style="font-size:1.2em">🚌</span><span class="micro-val highlight">BUS OPS</span></div>
-            <div class="micro-group"><span class="micro-label">Route:</span><span class="micro-val" id="micro-route">--</span></div>
-            <div class="micro-group"><span class="micro-val" id="micro-status">IDLE</span><span class="micro-val" id="micro-timer">--</span></div>
-        </div>
-        <div class="micro-row">
-            <div class="micro-group" style="width:100%"><span class="micro-label">Lvl</span><span class="micro-val highlight" id="micro-level">0</span><div class="micro-progress-bg" style="flex:1"><div class="micro-progress-fill" id="micro-bar"></div></div></div>
-        </div>
-        <div class="micro-row" style="padding-top:2px;">
-            <div class="micro-group"><span class="micro-label">XP:</span><span class="micro-val" id="micro-xp">0</span></div>
-            <div class="micro-group"><span class="micro-label">Tok:</span><span class="micro-val active" id="micro-tokens">0</span></div>
-            <div class="micro-group"><span class="micro-label">Left:</span><span class="micro-val highlight" id="micro-calc">--</span></div>
+    <div id="docked-bar" onclick="startAppFlow()">
+        <i class="fas fa-gavel" style="color:var(--primary);"></i> <span>OPEN AUCTION</span>
+    </div>
+
+    <div id="link-screen">
+        <div class="login-box">
+            <div class="header-text" style="border:none; font-size: 2em; color:#888;">ESTABLISH LINK</div>
+            <div style="font-size:0.9em; color:#666; margin-bottom:20px;">Synchronizing Satellite Feed...</div>
+            <button class="btn-auth" onclick="performHandshake()">ESTABLISH CONNECTION</button>
+            <div id="link-status" style="margin-top:10px; font-size:0.8em; color:#888;">Waiting for input...</div>
         </div>
     </div>
 
-    <header id="drag-handle" onmousedown="dragStart(event)">
-        <div class="header-controls"><a href="https://pinkiprim.github.io/pinkiapps.html" class="nav-icon">🏠</a></div>
-        
-        <div class="header-title">BUS OPS</div>
-        <div id="road-container">
-            <div id="user-name-display">Driver ...</div>
-            <div id="bus-stop-sign"></div>
-            <img id="bus-img" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f68c.png" alt="Bus">
-        </div>
-
-        <div class="header-controls" style="flex-direction:column; gap:2px; align-items:flex-end;">
-            <div class="menu-container">
-                <button class="burger-btn" onclick="toggleMenu()">☰</button>
-                <div class="dropdown-menu" id="main-menu">
-                    <div class="menu-item" onclick="window.toggleMini()">🗖 Mini Mode</div>
-                    <div class="menu-item" onclick="toggleGrinder()">📈 Grinder Stats</div>
-                    <div class="menu-item" onclick="resetSession()">🔄 Reset Session</div>
-                </div>
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="header-text" style="border:none; font-size: 2em;">SYSTEM AUTH</div>
+            <input type="text" id="login-name" class="login-input" placeholder="Scanning..." readonly disabled>
+            <input type="text" id="login-id" class="login-input" placeholder="Waiting..." readonly disabled>
+            
+            <div id="pin-section">
+                <input type="password" id="login-pin" class="pin-entry" placeholder="PIN" maxlength="4" style="display:block;">
+                <button id="btn-enter" class="btn-auth" style="background:#2ecc71; border-color:#27ae60;" onclick="submitPin()">LOGIN</button>
             </div>
-            <span id="clock">00:00</span>
+            
+            <button id="btn-request" class="btn-auth" style="display:none; background:#e67e22; border-color:#d35400;" onclick="requestAccess()">REQUEST ACCESS</button>
+            <div id="login-status" style="margin-top:10px; font-size:0.8em; color:#888;">Secure Connection Required</div>
+            <div class="warning-box">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
         </div>
-    </header>
-
-    <div id="grinder-panel">
-        <div class="grinder-header">
-            <span>BXP TOKEN TRACKER</span>
-            <span style="color:#aaa; font-size:0.7em">BUS DRIVING</span>
-        </div>
-        <div class="stat-row"><span class="label" style="color:#ccc">Session Earned</span><span class="stat-val gold" id="g-session">0</span></div>
-        <div class="stat-row"><span class="label" style="color:#ccc">AVG Per Route</span><span class="stat-val" id="g-avg">0</span></div>
-        <div class="stat-row"><span class="label" style="color:#ccc">Est. Per Hour</span><span class="stat-val green" id="g-ph">0</span></div>
-        <div class="stat-row"><span class="label" style="color:#ccc">Start Balance</span><span class="stat-val" id="g-start">0</span></div>
-        <div class="grinder-header" style="margin-top:15px; color:var(--primary); border-bottom:1px solid #444;"><span>ACTIVE BONUSES</span></div>
-        <div class="bonus-list" id="bonus-container"><div style="font-style:italic; opacity:0.5; font-size:0.8em">Open 'Identity' menu in-game to scan...</div></div>
-        <div style="margin-top:auto; text-align:center;"><button class="quick-btn" onclick="toggleGrinder()">CLOSE PANEL</button></div>
     </div>
 
-    <div id="content">
-        <div class="route-box" id="route-box">
-            <div class="route-label">Current Route</div>
-            <div class="route-name" id="disp-route-name">Waiting for route...</div>
-            <div class="route-progress" id="disp-progress">Stop: -/-</div>
+    <div id="pin-modal">
+        <div class="pin-box">
+            <h3 style="color:var(--admin-color);">ADMIN AUTH</h3>
+            <input type="password" id="admin-pin-input" class="pin-input" placeholder="PIN">
+            <button class="action-btn" onclick="submitAdminAction()">CONFIRM</button>
+            <button class="action-btn" onclick="closePinModal()" style="background:#333; margin-top:5px;">CANCEL</button>
         </div>
+    </div>
 
-        <div class="status-container">
-            <div class="status-line" id="disp-status">IDLE</div>
-            <div class="timer-line" id="disp-timer">--</div>
-        </div>
+    <div class="perspective-container">
+        <div class="pivot-wrapper" id="pivot-wrapper">
+            
+            <div class="menu-container" id="main-menu">
+                <div class="header-text">PINKI TT AUCTION</div>
+                
+                <div class="holo-btn" onclick="openSubmenu('browse')"><div class="icon-box"><i class="fas fa-globe"></i></div><span class="btn-text">BROWSE LISTINGS</span></div>
+                <div class="holo-btn" onclick="openSubmenu('mylistings')"><div class="icon-box"><i class="fas fa-box-open"></i></div><span class="btn-text">MY LISTINGS</span></div>
+                <div class="holo-btn" onclick="openSubmenu('sell')"><div class="icon-box"><i class="fas fa-upload"></i></div><span class="btn-text">CREATE LISTING</span></div>
+                <div class="holo-btn" id="btn-hk" style="display:none; border-color: var(--admin-color);" onclick="openSubmenu('hk')"><div class="icon-box" style="color:var(--admin-color);"><i class="fas fa-shield-alt"></i></div><span class="btn-text" style="color:var(--admin-color);">HK DASHBOARD</span></div>
+                <div class="holo-btn" id="btn-users" style="display:none; border-color: cyan;" onclick="openSubmenu('users')"><div class="icon-box" style="color:cyan;"><i class="fas fa-users"></i></div><span class="btn-text" style="color:cyan;">USER MANAGER</span></div>
+                <div class="holo-btn" onclick="toggleDockMode()"><div class="icon-box"><i class="fas fa-window-minimize"></i></div><span class="btn-text">MINIMIZE APP</span></div>
 
-        <div class="section">
-            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div><div class="label">Driver Level</div><div class="value highlight" style="font-size:1.6em" id="disp-level">...</div></div>
-                <div style="text-align:right;"><div class="label">Current XP</div><div class="value" id="disp-xp" style="font-size:0.9em">0</div></div>
-            </div>
-            <div class="progress-container"><div class="progress-bar" id="level-bar"></div><div class="progress-text" id="level-text">Waiting...</div></div>
-            <div class="xp-remaining-text" id="disp-xp-remaining" style="text-align:center; font-size:0.75em; color:#aaa; margin-bottom:5px;"></div>
+                <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px;">
+                    <div class="holo-btn support" onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')">
+                        <div class="icon-box"><i class="fas fa-heart"></i></div>
+                        <span class="btn-text">SUPPORT PINKIPRIM <span class="heart-spin">❤</span></span>
+                    </div>
 
-            <div class="run-box">
-                <div style="border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:5px; padding-bottom:3px; color:var(--primary); font-size:0.85em; font-weight:bold; letter-spacing:1px;">SESSION TRACKER</div>
-                <div class="run-grid">
-                    <div><div class="run-label">Session XP Gain</div><div class="run-val" id="disp-session-xp" style="color:var(--green)">0 XP</div></div>
-                    <div style="text-align:right"><div class="run-label">Avg XP / Stop</div><div class="run-val" id="disp-xp-drop">0 XP</div></div>
+                    <div class="warning-box">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
                 </div>
             </div>
 
-            <div class="stat-grid">
-                <div class="stat-box"><div class="label">Bus Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
-                <div class="stat-box"><div class="label">Stops Done</div><div class="value" id="disp-drops" style="color:var(--accent)">0</div></div>
-                <div class="stat-box"><div class="label">Tokens</div><div class="value" id="disp-tokens" style="color:var(--accent)">0</div></div>
-            </div>
-        </div>
+            <div class="submenu-container" id="submenu-layer">
+                
+                <div id="view-browse" class="view-content" style="display:none; height:100%; flex-direction:column;">
+                    <div class="content-header"><h3>ACTIVE MARKET</h3><button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('browse')">REFRESH</button></div>
+                    <div class="grid-scroll"><div class="auction-grid" id="browse-grid"></div></div>
+                    <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
+                </div>
 
-        <div class="section" style="border:none;">
-            <div class="label">Stop Calculator</div>
-            <input type="number" id="target-input" placeholder="e.g. 500000">
-            <div class="quick-btn-row">
-                <button class="quick-btn" onclick="window.setCalc(100000)">100K</button>
-                <button class="quick-btn" onclick="window.setCalc(1000000)">1M</button>
-                <button class="quick-btn" onclick="window.setCalc(10000000)">10M</button>
+                <div id="view-mylistings" class="view-content" style="display:none; height:100%; flex-direction:column;">
+                    <div class="content-header"><h3>MY LISTINGS</h3><button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('mylistings')">REFRESH</button></div>
+                    <div class="grid-scroll">
+                        <div class="section-header">ACTIVE LISTINGS</div>
+                        <div class="auction-grid" id="my-active-grid" style="margin-bottom:20px;"></div>
+                        <div class="section-header">PREVIOUS LISTINGS</div>
+                        <div class="auction-grid" id="my-history-grid"></div>
+                    </div>
+                    <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
+                </div>
+
+                <div id="view-hk" class="view-content" style="display:none; height:100%; flex-direction:column;">
+                    <div class="content-header"><h3 style="color:var(--admin-color);">HOUSEKEEPING</h3><button class="action-btn" style="width:auto; margin:0; border-color:var(--admin-color);" onclick="fetchData('hk')">REFRESH</button></div>
+                    <div class="hk-dashboard">
+                        <div class="stat-box"><div class="stat-val" id="st-total">0</div><div class="stat-label">Total</div></div>
+                        <div class="stat-box"><div class="stat-val" id="st-active">0</div><div class="stat-label">Active</div></div>
+                        <div class="stat-box"><div class="stat-val" id="st-comp">0</div><div class="stat-label">Completed</div></div>
+                        <div class="stat-box"><div class="stat-val" id="st-ful">0</div><div class="stat-label">Fulfilled</div></div>
+                    </div>
+                    <div class="grid-scroll" id="hk-list"></div>
+                    <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
+                </div>
+
+                <div id="view-users" class="view-content" style="display:none; height:100%; flex-direction:column;">
+                    <div class="content-header"><h3 style="color:cyan;">USER PERMISSIONS</h3><button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('users')">REFRESH</button></div>
+                    <div class="grid-scroll" id="user-list"></div>
+                    <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
+                </div>
+
+                <div id="view-detail" class="view-content">
+                    <div class="content-header"><h3>ITEM DETAILS</h3></div>
+                    <div class="detail-layout">
+                        <div class="detail-left">
+                            <div id="detail-img-container" style="width:100%; height:250px; background:#000; border:1px solid #444; display:flex; align-items:center; justify-content:center;"></div>
+                            <div style="font-size:0.9em; color:#888; margin-top:10px;">SELLER: <span id="detail-seller" style="color:white;"></span></div>
+                            <div style="font-size:0.9em; color:#888;">STATUS: <span id="detail-status" style="font-weight:bold;"></span></div>
+                            <div style="font-size:0.9em; color:#888;">QUANTITY: <span id="detail-qty" style="color:white; font-weight:bold;"></span></div>
+                            <div id="debug-id-match"></div>
+                        </div>
+                        <div class="detail-right">
+                            <button id="min-btn" onclick="toggleMiniMode()">[-]</button>
+                            
+                            <div id="detail-header-row">
+                                <div id="detail-title" style="font-size:1.8em; font-weight:bold; margin-bottom:10px; margin-top:20px;">Item Name</div>
+                                <div id="detail-price" style="font-size:2em; color:var(--primary); font-weight:bold; margin-bottom:5px;">$0</div>
+                            </div>
+                            
+                            <div style="color:#ff4444; font-weight:bold; margin-bottom:15px;"><i class="far fa-clock"></i> <span id="detail-live-timer">00:00</span></div>
+                            
+                            <div id="detail-action-row">
+                                <div id="detail-bidder-info" style="margin-bottom:20px;">High Bidder: <span id="detail-bidder">None</span></div>
+                                
+                                <div id="controls-bid" style="display:none;">
+                                    <input type="number" id="detail-bid-input" placeholder="Amount...">
+                                    <button class="action-btn" onclick="placeBid()">CONFIRM</button>
+                                    <div id="bid-status" style="margin-top:5px; font-size:0.8em; text-align:center;"></div> 
+                                </div>
+                            </div>
+                            
+                            <div id="controls-actions" style="display:none; text-align:center;">
+                                <div id="action-msg" style="color:#e67e22; margin-bottom:10px;"></div>
+                                <div id="action-buttons"></div>
+                            </div>
+                            
+                            <div id="controls-admin" style="display:none; margin-top:15px; border-top:1px dashed #555; padding-top:10px;">
+                                <div style="color:var(--admin-color); font-size:0.8em; text-align:center;">ADMIN OVERRIDE</div>
+                                <button class="action-btn" onclick="promptAdminAction('Completed')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE COMPLETE (PIN)</button>
+                                <button class="action-btn" onclick="promptAdminAction('Delete')" style="background:#444; font-size:0.8em; margin-top:5px;">FORCE DELETE (PIN)</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="back-btn" onclick="returnToLastView()"><i class="fas fa-chevron-left"></i> BACK</div>
+                </div>
+
+                <div id="view-sell" class="view-content">
+                    <div class="content-header"><h3>UPLOAD TO MARKET</h3></div>
+                    <div class="sell-layout">
+                        <div class="sell-form">
+                            <div class="input-group"><label>ITEM NAME</label><input type="text" id="sell-name" placeholder="e.g. Import Car"></div>
+                            <div class="input-group"><label>IMAGE URL (Catbox.moe)</label><input type="text" id="sell-img" placeholder="https://..." oninput="previewImg(this.value)"><div class="checkbox-row"><input type="checkbox" id="no-img-check" onchange="toggleImgInput()"><label for="no-img-check">NO IMAGE</label></div></div>
+                            <div class="input-group"><label>QUANTITY</label><input type="number" id="sell-qty" placeholder="1" value="1"></div>
+                            <div class="input-group"><label>STARTING BID</label><input type="number" id="sell-price" placeholder="5000"></div>
+                            <div class="input-group"><label>DURATION</label><select id="sell-duration"><option value="15">15 Minutes</option><option value="60">1 Hour</option><option value="1440">24 Hours</option></select></div>
+                        </div>
+                        <div class="sell-preview-box"><div id="img-preview" style="color:#555;">NO IMAGE PREVIEW</div></div>
+                    </div>
+                    <button class="action-btn" onclick="postAuction()">CREATE LISTING</button>
+                    <div id="sell-status" style="text-align:center; margin-top:5px; height:20px; color:cyan;"></div>
+                    <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
+                </div>
+
             </div>
-            <div class="calc-output" id="calc-result">Complete 1 stop to calibrate...</div>
         </div>
     </div>
-    
-    <div class="support-footer">
-        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
-            Support PinkiPrim <span class="heart-spin">❤</span>
-        </div>
-    </div>
-    
-    <div id="resize-handle"></div>
-</div>
 
 <script>
-// --- HELPERS ---
-function safeSetText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
-function safeSetHTML(id, html) { const el = document.getElementById(id); if(el) el.innerHTML = html; }
-function safeSetClass(id, className) { const el = document.getElementById(id); if(el) el.className = className; }
+    const CONST_GOOGLE_URL = "https://script.google.com/macros/s/AKfycbxEkSQtwEo4Y8FLHodspNSFWCP0vi1h_GlBR9r3Dk35OmehXLDXtpilds91t_1sL9wl/exec";
+    const ADMIN_ID = "757858";
 
-function openExternal(url) {
-    try {
-        window.invokeNative('openUrl', url);
-    } catch(e) {
-        window.open(url, '_blank');
+    let userData = { name: "", id: "", pin: "", wallet: 0 };
+    let currentData = [];
+    let isMenuOpen = false;
+    let isAuthenticated = false;
+    let currentDetailId = null;
+    let lastView = 'browse';
+    let pollingInterval = null;
+    let countdownInterval = null;
+    let pendingAdminAction = null;
+    let miniModePos = null; 
+
+    function openExternal(url) {
+        try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); }
     }
-}
 
-// --- STATE ---
-let SESSION_START_TIME = Date.now();
-const JOB_EXP_KEY = "exp_train_bus";
-const JOB_BXP_KEY_BONUS = "exp_token_a|train|bus";
-const JOB_BXP_KEY_TOKEN = "exp_token|train|bus"; 
-
-const STORAGE_KEY_CALC = "target_xp_bus"; 
-const STORAGE_KEY_MINI = "mini_mode_bus";
-
-let routeResetTimeout = null;
-const MEMORY = { inventory: {}, bonuses: [] };
-const STATE = { 
-    currentXP: 0, startXP: 0, sessionGain: 0, completedRuns: 0, avgXP: 0,
-    startTokens: null, currentTokens: 0
-};
-
-// --- INIT ---
-const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
-if (savedTarget) document.getElementById('target-input').value = savedTarget;
-
-const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
-if (savedMini === "true") {
-    document.getElementById('tracker-app').classList.add('mini-mode');
-}
-
-// --- UI FUNCTIONS ---
-window.toggleMini = function() {
-    const app = document.getElementById('tracker-app');
-    app.classList.toggle('mini-mode');
-    localStorage.setItem(STORAGE_KEY_MINI, app.classList.contains('mini-mode'));
-    document.getElementById('main-menu').classList.remove('show');
-};
-
-function toggleMenu() { document.getElementById('main-menu').classList.toggle('show'); }
-window.onclick = function(e) { if (!e.target.matches('.burger-btn')) document.getElementById('main-menu').classList.remove('show'); }
-function toggleGrinder() { document.getElementById('grinder-panel').classList.toggle('active'); document.getElementById('main-menu').classList.remove('show'); }
-
-function resetSession() {
-    STATE.startXP = STATE.currentXP;
-    STATE.startTokens = STATE.currentTokens;
-    STATE.sessionGain = 0;
-    STATE.completedRuns = 0;
-    STATE.avgXP = 0;
-    SESSION_START_TIME = Date.now();
-    document.getElementById('main-menu').classList.remove('show');
-    updateGrinderUI(STATE.currentTokens);
-    renderStats();
-}
-
-window.setCalc = function(amount) {
-    document.getElementById('target-input').value = amount;
-    runCalculator();
-};
-
-setInterval(() => {
-    safeSetText('clock', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
-}, 1000);
-
-// --- KEYDOWN LISTENER FOR ESC ---
-window.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' || e.keyCode === 27) { 
-        // 1. CHECK IF TYPING: If inside a text box, just unfocus it
-        if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-            document.activeElement.blur();
-            return;
+    // --- DOCK & DRAG ---
+    function startAppFlow() {
+        document.body.classList.remove('docked-mode');
+        if (isAuthenticated) {
+            document.getElementById('pivot-wrapper').style.display = 'block';
+            document.getElementById('link-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'none';
+        } else {
+            document.getElementById('pivot-wrapper').style.display = 'none'; 
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('link-screen').style.display = 'flex';
         }
-
-        // 2. CHECK FOR MODALS: If a modal/menu is open, close IT
-        const mainMenu = document.getElementById('main-menu');
-        if (mainMenu && mainMenu.classList.contains('show')) {
-            mainMenu.classList.remove('show');
-            return;
-        }
-        
-        const grinder = document.getElementById('grinder-panel');
-        if (grinder && grinder.classList.contains('active')) {
-            grinder.classList.remove('active');
-            return;
-        }
-
-        // 3. RETURN FOCUS TO GAME (Keep UI Visible)
-        releaseFocus();
     }
-});
 
-// --- RELEASE FOCUS FUNCTION ---
-function releaseFocus() {
-    // Standard focus release - Does NOT hide the UI
-    if(window.GetParentResourceName) {
-        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+    function toggleDockMode() {
+        document.body.classList.toggle('docked-mode');
     }
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isMenuOpen || document.body.classList.contains('mini-mode') || document.body.classList.contains('docked-mode')) return;
+        const wrapper = document.getElementById('pivot-wrapper');
+        const rotX = ((e.clientY - window.innerHeight/2) / window.innerHeight/2) * -5;
+        const rotY = ((e.clientX - window.innerWidth/2) / window.innerWidth/2) * 5;
+        wrapper.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    });
+
+    const wrapper = document.getElementById('pivot-wrapper');
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
     
-    // Legacy/Alternative callback method
-    try {
-        window.parent.postMessage({ type: "close" }, "*");
-    } catch(e) {}
-}
+    wrapper.addEventListener('mousedown', function(e) {
+        if (!document.body.classList.contains('mini-mode')) return;
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        isDragging = true; offset.x = e.clientX - wrapper.offsetLeft; offset.y = e.clientY - wrapper.offsetTop;
+        wrapper.style.right = 'auto'; wrapper.style.bottom = 'auto';
+    });
+    
+    document.addEventListener('mouseup', function() { 
+        if(isDragging) {
+            isDragging = false; 
+            if(document.body.classList.contains('mini-mode')) {
+                miniModePos = { top: wrapper.style.top, left: wrapper.style.left };
+            }
+        }
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        wrapper.style.left = (e.clientX - offset.x) + 'px'; wrapper.style.top = (e.clientY - offset.y) + 'px';
+    });
 
-
-// --- ENGINE ---
-function requestData() {
-    if(window.parent) {
-        try { 
-            let keys = [ JOB_EXP_KEY, JOB_BXP_KEY_BONUS, JOB_BXP_KEY_TOKEN, "status", "inventory", "name", "menu_choices" ];
-            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
-            window.parent.postMessage({ type: "getData" }, "*"); 
-        } catch(e) {}
-    }
-}
-setInterval(requestData, 1000); 
-
-window.addEventListener('message', (event) => {
-    let payload = event.data;
-    if (payload && payload.type === 'data' && payload.data) payload = payload.data;
-    if (!payload) return;
-    processPayload(payload);
-});
-
-function processPayload(data) {
-    if(data.name) safeSetText('user-name-display', "Driver " + data.name);
-
-    // 1. STATUS
-    if (data.status) {
-        try {
-            let statusData = (typeof data.status === 'string') ? JSON.parse(data.status) : data.status;
-            if (statusData && statusData.lines) {
-                let lines = statusData.lines;
+    window.addEventListener('message', (event) => {
+        if (event.data.action === "open") document.body.style.display = 'block'; 
+        if (event.data.type === "data" || event.data.user_id) {
+            let d = event.data.data || event.data;
+            if(d.user_id || d.player_id || d.id) {
+                let tempName = d.name || d.player;
+                if(tempName && tempName !== "null" && tempName !== "undefined") userData.name = tempName;
+                else userData.name = "Unknown";
                 
-                if (lines[0]) {
-                    let rawLine = cleanString(lines[0]);
-                    let match = rawLine.match(/(.*)(\[\d+\/\d+\])/);
-                    if (match) {
-                        safeSetText('disp-route-name', match[1].trim());
-                        safeSetText('micro-route', match[1].trim().substring(0,18));
-                        safeSetText('disp-progress', "Stop: " + match[2]);
-                    } else {
-                        safeSetText('disp-route-name', rawLine);
-                        safeSetText('micro-route', rawLine.substring(0,18));
-                        safeSetText('disp-progress', "Stop: -/-");
-                    }
+                userData.id = cleanID(d.user_id || d.player_id || d.id);
+                if(d.wallet) userData.wallet = parseInt(d.wallet);
+                
+                if(userData.name !== "Unknown") {
+                    document.getElementById('login-name').value = userData.name;
+                    document.getElementById('login-name').classList.add('verified');
+                } else {
+                    document.getElementById('login-name').value = "Waiting for Signal...";
+                    document.getElementById('login-name').classList.remove('verified');
                 }
+                document.getElementById('login-id').value = userData.id;
+                document.getElementById('login-id').classList.add('verified');
+            }
+        }
+    });
 
-                let timerActive = false;
-                if (lines[1]) {
-                    let rawStatus = cleanString(lines[1]);
-                    safeSetText('disp-status', rawStatus);
-                    safeSetText('micro-status', rawStatus.split(" ")[0]);
-                    
-                    const busImg = document.getElementById('bus-img');
-                    if (busImg) {
-                        if (rawStatus.toUpperCase().includes("BOARD") || rawStatus.toUpperCase().includes("WAIT")) {
-                            timerActive = true;
-                            busImg.classList.add('parked');
-                        } else {
-                            busImg.classList.remove('parked');
-                        }
-                    }
-                }
+    function cleanID(id) { return String(id).replace(/[^0-9]/g, ''); }
 
-                if (lines[2]) {
-                    let timerText = cleanString(lines[2]);
-                    let timeMatch = timerText.match(/(\d+)/);
-                    if (timeMatch && timerActive) {
-                        let sec = timeMatch[1];
-                        safeSetText('disp-timer', sec + "s");
-                        safeSetText('micro-timer', sec + "s");
-                        let cls = (sec <= 5) ? "urgent" : "active";
-                        safeSetClass('disp-timer', "timer-line " + cls);
-                    } else {
-                        safeSetText('disp-timer', "--");
-                        safeSetText('micro-timer', "--");
-                        safeSetClass('disp-timer', "timer-line");
-                    }
+    function performHandshake() {
+        if(window.parent) window.parent.postMessage({ type: "getNamedData", keys: ["name", "user_id", "wallet"] }, "*");
+        const status = document.getElementById('link-status');
+        status.innerText = "Analyzing Signal..."; status.style.color = "cyan";
+        setTimeout(() => {
+            if(!userData.name || userData.name === "Unknown" || userData.name === "undefined") {
+                status.innerText = "SIGNAL WEAK: IDENTITY UNKNOWN. PLEASE RELOAD USER APP.";
+                status.style.color = "#ff4444";
+            } else {
+                document.getElementById('link-screen').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('login-pin').focus();
+            }
+        }, 1500); 
+    }
+
+    function submitPin() {
+        const pin = document.getElementById('login-pin').value;
+        const statusEl = document.getElementById('login-status');
+        const btn = document.getElementById('btn-enter');
+        if(pin.length < 4) { statusEl.innerText = "PIN must be at least 4 digits"; statusEl.style.color = "#ff4444"; return; }
+        userData.pin = pin;
+        btn.disabled = true; btn.innerText = "VERIFYING..."; statusEl.innerText = "Connecting to Server..."; statusEl.style.color = "#888";
+
+        fetch(`${CONST_GOOGLE_URL}?action=login&userId=${userData.id}&name=${userData.name}&pin=${userData.pin}`)
+        .then(res => res.json()).then(data => {
+            if (data && data.status === "success") {
+                isAuthenticated = true; document.getElementById('login-screen').style.display = 'none';
+                if(data.msg === "PIN Set") alert("Your PIN has been set to: " + pin + ". Don't forget it!");
+                document.body.classList.remove('docked-mode');
+                enterMarket();
+            } else if (data && data.status === "error" && data.msg.includes("ID Not Found")) {
+                statusEl.innerText = "ID NOT WHITELISTED."; statusEl.style.color = "#ff4444";
+                document.getElementById('pin-section').style.display = 'none';
+                document.getElementById('btn-request').style.display = 'block';
+            } else {
+                statusEl.innerText = (data && data.msg) ? data.msg : "Connection Failed. Try again.";
+                statusEl.style.color = "#ff4444"; btn.disabled = false; btn.innerText = "LOGIN";
+            }
+        }).catch(err => {
+            statusEl.innerText = "CONNECTION ERROR (Network)"; statusEl.style.color = "#ff4444"; btn.disabled = false; btn.innerText = "LOGIN";
+        });
+    }
+
+    function requestAccess() {
+        const btn = document.getElementById('btn-request'); const status = document.getElementById('login-status');
+        btn.disabled = true; btn.innerText = "SENDING..."; status.innerText = "Processing Request..."; status.style.color = "cyan";
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "requestAccess", userId: userData.id, name: userData.name })
+        }).then(() => {
+            status.innerText = "REQUEST SENT (Contact Admin)"; status.style.color = "#2ecc71";
+            setTimeout(() => { btn.disabled = false; btn.innerText = "REQUEST ACCESS"; }, 3000);
+        });
+    }
+
+    function enterMarket() {
+        isMenuOpen = true; document.getElementById('pivot-wrapper').style.display = "block";
+        if(userData.id === ADMIN_ID) { document.getElementById('btn-hk').style.display = 'flex'; document.getElementById('btn-users').style.display = 'flex'; } 
+        else { document.getElementById('btn-hk').style.display = 'none'; document.getElementById('btn-users').style.display = 'none'; }
+        const btns = document.querySelectorAll('.holo-btn');
+        btns.forEach((btn, i) => { btn.classList.remove('show'); setTimeout(() => btn.classList.add('show'), i * 100); });
+        if(countdownInterval) clearInterval(countdownInterval);
+        countdownInterval = setInterval(updateAllTimers, 1000);
+    }
+
+    function closeApp() {
+        isMenuOpen = false;
+        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
+        // Reset to docked mode instead of disconnect
+        document.body.classList.add('docked-mode');
+        document.getElementById('pivot-wrapper').style.display = 'none';
+        document.getElementById('link-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'none';
+    }
+
+    function openSubmenu(view) {
+        lastView = view;
+        document.getElementById('pivot-wrapper').classList.add('expanded');
+        document.getElementById('main-menu').style.opacity = '0'; document.getElementById('main-menu').style.pointerEvents = 'none';
+        document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
+        document.getElementById('view-' + view).style.display = 'flex';
+        
+        if(view === 'browse' || view === 'mylistings' || view === 'hk' || view === 'users') fetchData(view);
+        setTimeout(() => document.getElementById('submenu-layer').classList.add('active'), 300);
+    }
+
+    function closeSubmenu() {
+        document.getElementById('submenu-layer').classList.remove('active');
+        setTimeout(() => {
+            document.getElementById('pivot-wrapper').classList.remove('expanded');
+            document.getElementById('main-menu').style.opacity = '1'; document.getElementById('main-menu').style.pointerEvents = 'all';
+        }, 300);
+    }
+
+    function toggleArchive() {
+        showArchive = !showArchive;
+        document.getElementById('btn-arch').innerText = showArchive ? "HIDE PREVIOUS" : "SHOW PREVIOUS";
+        fetchData('mylistings');
+    }
+
+    function fetchData(view) {
+        let action = "browse"; 
+        if(view === 'hk') action = "getAll";
+        else if(view === 'mylistings') action = "getMyData";
+        else if(view === 'users') action = "getUsers";
+        
+        if(view === 'mylistings') {
+            document.getElementById('my-active-grid').innerHTML = '<div style="color:cyan; text-align:center;">LOADING...</div>';
+            document.getElementById('my-history-grid').innerHTML = '<div style="color:cyan; text-align:center;">LOADING...</div>';
+        } else {
+            let containerId = (view === 'hk') ? 'hk-list' : (view === 'users') ? 'user-list' : 'browse-grid';
+            document.getElementById(containerId).innerHTML = '<div style="color:cyan; padding:20px; text-align:center; width:100%;">LOADING DATA...</div>';
+        }
+
+        fetch(`${CONST_GOOGLE_URL}?action=${action}&userId=${userData.id}`)
+        .then(res => res.json()).then(data => {
+            currentData = data;
+            if(view === 'hk') renderHK(data);
+            else if(view === 'users') renderUsers(data);
+            else if(view === 'mylistings') renderMyListings(data);
+            else renderGrid(data, document.getElementById('browse-grid'), false);
+        });
+    }
+
+    function renderMyListings(data) {
+        const activeContainer = document.getElementById('my-active-grid');
+        const historyContainer = document.getElementById('my-history-grid');
+        activeContainer.innerHTML = ''; historyContainer.innerHTML = '';
+        let activeCount = 0; let historyCount = 0;
+        const now = new Date().getTime();
+
+        data.forEach(item => {
+            let status = item.status;
+            if (status === "Active" && now > item.endTime) status = "Ended";
+            let qtyDisplay = (item.quantity > 1) ? `<span style="color:#00ffff; font-weight:bold;">${item.quantity}x</span> ` : "";
+            let imgHTML = (item.img && item.img.startsWith('http')) ? `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">` : '';
+            let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
+            let card = document.createElement('div'); card.className = 'auction-card';
+            card.onclick = () => openDetail(item);
+            card.innerHTML = `${imgHTML}<div class="card-body"><div class="card-title">${qtyDisplay}${item.item}</div><div class="card-price">$${parseInt(item.price).toLocaleString()}</div>${timerHTML}<div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div><div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div><div style="font-size:0.7em; color:#aaa; margin-top:2px;">Bidder: ${item.highBidder}</div></div>`;
+
+            if(status === 'Active') { activeContainer.appendChild(card); activeCount++; } 
+            else { historyContainer.appendChild(card); historyCount++; }
+        });
+        if(activeCount === 0) activeContainer.innerHTML = '<div style="padding:10px; color:#555;">No active listings.</div>';
+        if(historyCount === 0) historyContainer.innerHTML = '<div style="padding:10px; color:#555;">No past listings.</div>';
+        updateAllTimers();
+    }
+
+    function renderGrid(data, container, isHistory) {
+        container.innerHTML = '';
+        const now = new Date().getTime();
+        let count = 0;
+        data.forEach(item => {
+            if(isHistory && !showArchive && item.status !== "Active") return;
+            count++;
+            let status = item.status;
+            if (status === "Active" && now > item.endTime) status = "Ended";
+            
+            let qtyDisplay = (item.quantity > 1) ? `<span style="color:#00ffff; font-weight:bold;">${item.quantity}x</span> ` : "";
+            let imgHTML = (item.img && item.img.startsWith('http')) ? `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">` : '';
+            let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
+
+            let card = document.createElement('div'); card.className = 'auction-card';
+            card.onclick = () => openDetail(item);
+            card.innerHTML = `${imgHTML}<div class="card-body"><div class="card-title">${qtyDisplay}${item.item}</div><div class="card-price">$${parseInt(item.price).toLocaleString()}</div>${timerHTML}<div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div><div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div><div style="font-size:0.7em; color:#aaa; margin-top:2px;">Bidder: ${item.highBidder}</div></div>`;
+            container.appendChild(card);
+        });
+        if(count === 0) container.innerHTML = '<div style="padding:20px; color:#555;">No records found.</div>';
+        updateAllTimers();
+    }
+
+    function renderHK(data) {
+        const list = document.getElementById('hk-list'); list.innerHTML = '';
+        let active = 0, comp = 0, ful = 0;
+        data.forEach(item => {
+            if(item.status === 'Active') active++; if(item.status === 'Completed') comp++; if(item.status === 'Fulfilled') ful++;
+            let row = document.createElement('div'); row.className = 'hk-list-item';
+            row.innerHTML = `<span style="width:30%; overflow:hidden;">${item.item}</span><span style="width:20%;">${item.seller}</span><span style="width:20%;">$${item.price}</span><span style="width:20%;" class="st-${item.status}">${item.status}</span><span style="width:10%; cursor:pointer;" onclick='openDetail(${JSON.stringify(item)})'>👁️</span>`;
+            list.appendChild(row);
+        });
+        document.getElementById('st-total').innerText = data.length; document.getElementById('st-active').innerText = active; document.getElementById('st-comp').innerText = comp; document.getElementById('st-ful').innerText = ful;
+    }
+
+    function renderUsers(data) {
+        const list = document.getElementById('user-list'); list.innerHTML = '';
+        data.forEach(user => {
+            let row = document.createElement('div');
+            row.className = 'user-list-item';
+            let select = document.createElement('select');
+            ['Requested', 'Whitelisted', 'Blacklisted'].forEach(opt => {
+                let option = document.createElement('option');
+                option.value = opt; option.text = opt; if(user.status === opt) option.selected = true;
+                select.appendChild(option);
+            });
+            select.onchange = function() { updateUserPermission(user.id, this.value); };
+            row.innerHTML = `<span>${user.name} (${user.id})</span>`;
+            row.appendChild(select);
+            list.appendChild(row);
+        });
+    }
+
+    function updateUserPermission(targetId, newStatus) { promptAdminAction('UserStatus', {targetId: targetId, newStatus: newStatus}); }
+
+    function openDetail(item) {
+        currentDetailId = item.id;
+        document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
+        document.getElementById('view-detail').style.display = 'flex';
+        if(pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(refreshDetail, 1000);
+        renderDetail(item);
+    }
+
+    function refreshDetail() {
+        fetch(`${CONST_GOOGLE_URL}?action=getAll&userId=${userData.id}`).then(r=>r.json()).then(data=>{
+            currentData = data; 
+            const item = data.find(i => String(i.id) === String(currentDetailId));
+            if(item) renderDetail(item);
+        });
+    }
+
+    function renderDetail(item) {
+        const now = new Date().getTime();
+        let displayStatus = item.status;
+        if(displayStatus === 'Active' && now > item.endTime) displayStatus = 'Ended';
+
+        let qtyDisplay = (item.quantity > 1) ? `${item.quantity}x ` : "";
+        document.getElementById('detail-title').innerText = qtyDisplay + item.item;
+        document.getElementById('detail-seller').innerText = item.seller;
+        document.getElementById('detail-price').innerText = "$" + parseInt(item.price).toLocaleString();
+        document.getElementById('detail-bidder').innerText = (item.highBidder === "No Bids" || item.highBidder === "None") ? "No Bids" : item.highBidder;
+        document.getElementById('detail-status').innerText = displayStatus;
+        document.getElementById('detail-status').className = `st-${displayStatus}`;
+        document.getElementById('detail-qty').innerText = item.quantity;
+        
+        const imgContainer = document.getElementById('detail-img-container');
+        if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
+        else imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
+
+        // Check if self-bid
+        const isSeller = (String(item.sellerId) === String(userData.id));
+        const controlsBid = document.getElementById('controls-bid');
+        
+        // Reset controls
+        controlsBid.style.display = 'none';
+        document.getElementById('controls-actions').style.display = 'none';
+        document.getElementById('controls-admin').style.display = 'none';
+        document.getElementById('action-buttons').innerHTML = ''; 
+
+        // If Mini Mode, inject warning if seller
+        if (document.body.classList.contains('mini-mode') && isSeller) {
+             // We manipulate the controls-bid container to show warning instead of inputs
+             controlsBid.innerHTML = '<span class="self-bid-warning">(YOUR ITEM)</span>';
+             controlsBid.style.display = 'block'; 
+        } else if (document.body.classList.contains('mini-mode')) {
+             // Reset to input fields for non-sellers
+             controlsBid.innerHTML = '<input type="number" id="detail-bid-input" placeholder="Amount..."><button class="action-btn" onclick="placeBid()">CONFIRM</button>';
+             controlsBid.style.display = 'flex'; 
+        }
+
+        const sellerID = cleanID(item.sellerId); const buyerID = cleanID(item.bidderId);
+        const myID = cleanID(userData.id); const adminID = cleanID(ADMIN_ID);
+        const isAdmin = (myID === adminID);
+        const noBids = (buyerID == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
+
+        document.getElementById('debug-id-match').innerText = `Me:${myID} | Seller:${sellerID}`;
+
+        if(isAdmin) document.getElementById('controls-admin').style.display = 'block';
+
+        if (displayStatus === 'Active') {
+            if(!isSeller) {
+                if(!document.body.classList.contains('mini-mode')) document.getElementById('controls-bid').style.display = 'block';
+            }
+            else { 
+                if(!document.body.classList.contains('mini-mode')) {
+                    document.getElementById('controls-actions').style.display = 'block'; 
+                    document.getElementById('action-msg').innerText = "AUCTION IN PROGRESS"; 
                 }
             }
-        } catch (e) {}
-    }
-
-    // 2. XP LOGIC
-    let currentXP = data[JOB_EXP_KEY];
-    if (typeof currentXP === 'number') {
-        if (STATE.startXP === 0) { STATE.startXP = currentXP; STATE.currentXP = currentXP; }
-        else if (currentXP > STATE.currentXP) {
-            STATE.completedRuns++; // Used for "Stops Done"
-            STATE.currentXP = currentXP;
-            STATE.sessionGain = currentXP - STATE.startXP;
-            updateAverages();
+        } 
+        else if (displayStatus === 'Ended') {
+            document.getElementById('controls-actions').style.display = 'block';
+            if (isSeller) {
+                document.getElementById('action-msg').innerText = "AUCTION ENDED - ACTION REQUIRED";
+                const btnContainer = document.getElementById('action-buttons');
+                const btn = document.createElement('button'); btn.className = 'action-btn';
+                if(noBids) { btn.innerText = "REMOVE (UNSOLD)"; btn.style.backgroundColor = "#ff4444"; btn.onclick = removeListing; }
+                else { btn.innerText = "MARK AS COMPLETED"; btn.style.backgroundColor = "#e67e22"; btn.onclick = () => updateStatus('Completed'); }
+                btnContainer.appendChild(btn);
+            } else { document.getElementById('action-msg').innerText = noBids ? "ENDED - UNSOLD" : "ENDED - WAITING FOR SELLER"; }
+        } 
+        else if (displayStatus === 'Completed') {
+            document.getElementById('controls-actions').style.display = 'block';
+            if (isBuyer) {
+                document.getElementById('action-msg').innerText = "SELLER COMPLETED - CONFIRM RECEIPT";
+                const btnContainer = document.getElementById('action-buttons');
+                const btn = document.createElement('button'); btn.className = 'action-btn';
+                btn.innerText = "CONFIRM RECEIPT"; btn.style.backgroundColor = "#2ecc71";
+                btn.onclick = () => updateStatus('Fulfilled');
+                btnContainer.appendChild(btn);
+            } else { document.getElementById('action-msg').innerText = "SELLER COMPLETED - WAITING FOR BUYER"; }
+        } 
+        else if (displayStatus === 'Fulfilled') {
+            document.getElementById('controls-actions').style.display = 'block';
+            document.getElementById('action-msg').innerText = "TRANSACTION CLOSED";
         }
-        renderStats();
     }
 
-    // 3. BXP & TOKENS
-    let bxp = data[JOB_BXP_KEY_BONUS];
-    if (!bxp && data.inventory) {
-        try { let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; if(inv[JOB_BXP_KEY_BONUS]) bxp = inv[JOB_BXP_KEY_BONUS]; } catch(e){}
+    function updateAllTimers() {
+        const now = new Date().getTime();
+        document.querySelectorAll('.card-timer').forEach(el => {
+            const end = parseInt(el.getAttribute('data-end'));
+            el.innerHTML = `<i class="far fa-clock"></i> ${formatTime(end - now)}`;
+        });
+        if(currentDetailId && document.getElementById('view-detail').style.display !== 'none') {
+            const item = currentData.find(i => String(i.id) === String(currentDetailId));
+            if(item) document.getElementById('detail-live-timer').innerText = formatTime(item.endTime - now);
+        }
     }
-    if (bxp) {
-        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
-        safeSetText('disp-bxp', formatNumber(val));
+    function formatTime(ms) {
+        if(ms <= 0) return "ENDED";
+        let h = Math.floor(ms / 3600000); let m = Math.floor((ms % 3600000) / 60000); let s = Math.floor((ms % 60000) / 1000);
+        return `${h}h ${m}m ${s}s`;
     }
 
-    let tokens = data[JOB_BXP_KEY_TOKEN];
-    if (!tokens && data.inventory) {
-        try { let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; if(inv[JOB_BXP_KEY_TOKEN]) tokens = inv[JOB_BXP_KEY_TOKEN]; } catch(e){}
+    function promptAdminAction(actionType, extraData) {
+        pendingAdminAction = { type: actionType, data: extraData };
+        document.getElementById('pin-modal').style.display = 'flex';
+        document.getElementById('admin-pin-input').value = '';
+        document.getElementById('admin-pin-input').focus();
     }
-    if (tokens) {
-        let val = (typeof tokens === 'object') ? tokens.amount : tokens;
-        let txt = formatNumber(val);
-        safeSetText('disp-tokens', txt);
-        safeSetText('micro-tokens', txt);
+
+    function closePinModal() { document.getElementById('pin-modal').style.display = 'none'; pendingAdminAction = null; }
+
+    function submitAdminAction() {
+        const pin = document.getElementById('admin-pin-input').value;
+        if (!pin) return;
+        let payload = { requesterId: userData.id, pin: pin };
+        if (pendingAdminAction.type === 'Delete') { payload.action = 'delete'; payload.id = currentDetailId; }
+        else if (pendingAdminAction.type === 'Completed') { payload.action = 'updateStatus'; payload.id = currentDetailId; payload.newStatus = 'Completed'; }
+        else if (pendingAdminAction.type === 'UserStatus') { payload.action = 'updateUserStatus'; payload.adminId = userData.id; payload.targetId = pendingAdminAction.data.targetId; payload.newStatus = pendingAdminAction.data.newStatus; }
+
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        }).then(() => { closePinModal(); if(pendingAdminAction.type === 'UserStatus') fetchData('users'); else returnToLastView(); });
+    }
+
+    function removeListing() {
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "delete", id: currentDetailId, requesterId: userData.id, pin: userData.pin })
+        }).then(() => { returnToLastView(); });
+    }
+
+    function updateStatus(newStatus) {
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "updateStatus", id: currentDetailId, newStatus: newStatus, requesterId: userData.id, pin: userData.pin })
+        }).then(() => { returnToLastView(); });
+    }
+
+    function placeBid() {
+        let amt = document.getElementById('detail-bid-input').value;
+        let status = document.getElementById('bid-status'); 
         
-        if(STATE.startTokens === null) STATE.startTokens = val;
-        STATE.currentTokens = val;
-        updateGrinderUI(val);
-    }
+        if(!amt) return;
+        
+        // DECIMAL CHECK
+        if(amt % 1 != 0) { status.innerText = "WHOLE NUMBERS ONLY"; status.style.color = "#ff4444"; return; }
 
-    // 4. BONUS SCAN
-    if (data.menu_choices) {
-        try {
-            let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
-            let identityHtml = menu.find(m => m[0] === "Identity")?.[1];
-            if (identityHtml) parseBonuses(identityHtml);
-        } catch(e) {}
-    }
-}
-
-function updateAverages() {
-    if (STATE.completedRuns > 0) STATE.avgXP = STATE.sessionGain / STATE.completedRuns;
-}
-
-function updateGrinderUI(currentVal) {
-    let earned = currentVal - STATE.startTokens;
-    if(earned < 0) { STATE.startTokens = currentVal; earned = 0; }
-
-    safeSetText('g-session', formatNumber(earned));
-    safeSetText('g-start', formatNumber(STATE.startTokens));
-
-    let avg = STATE.completedRuns > 0 ? Math.round(earned / STATE.completedRuns) : 0;
-    safeSetText('g-avg', formatNumber(avg));
-
-    let mins = (Date.now() - SESSION_START_TIME) / 60000;
-    if(mins > 1) {
-        let ph = Math.round((earned / mins) * 60);
-        safeSetText('g-ph', formatNumber(ph));
-    }
-}
-
-function parseBonuses(html) {
-    const lines = html.split(/<br\s*\/?>/i);
-    let newBonuses = [];
-    lines.forEach(line => {
-        let decoded = line.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
-        let text = decoded.replace(/<[^>]*>/g, '').trim();
-        if (text && (text.includes("Exp Bonus") || text.includes("Premium") || text.includes("Skill of the Day"))) {
-            newBonuses.push(text);
+        // SELF-BID CHECK (Backup to UI check)
+        const item = currentData.find(i => String(i.id) === String(currentDetailId));
+        if (item && String(item.sellerId) === String(userData.id)) {
+            status.innerText = "CANNOT BID ON OWN ITEM"; status.style.color = "#ff4444"; return;
         }
-    });
-    
-    if (newBonuses.length > 0) {
-        MEMORY.bonuses = newBonuses;
-        renderBonuses();
-    } else if (MEMORY.bonuses.length > 0) {
-        renderBonuses(); 
-    } else {
-        const container = document.getElementById('bonus-container');
-        if(container) container.innerHTML = "<div style='opacity:0.5;font-size:0.8em'>Open 'Identity' menu in-game to scan...</div>";
-    }
-}
 
-function renderBonuses() {
-    const container = document.getElementById('bonus-container');
-    if(!container) return;
-    container.innerHTML = "";
-    MEMORY.bonuses.forEach(text => {
-        let div = document.createElement('div');
-        div.className = 'bonus-item';
-        div.innerText = "★ " + text;
-        container.appendChild(div);
-    });
-}
+        if(parseInt(amt) > userData.wallet) {
+            status.innerText = "INSUFFICIENT FUNDS ($" + userData.wallet.toLocaleString() + ")"; status.style.color = "#ff4444"; return;
+        }
+        
+        status.innerText = "PLACING BID..."; status.style.color = "cyan";
 
-function cleanString(str) {
-    if (!str) return "";
-    return str.replace(/~[a-z]~/g, "").trim();
-}
-
-function renderStats() {
-    const lvl = getLevelInfo(STATE.currentXP);
-    const xpTxt = formatNumber(STATE.currentXP);
-    
-    safeSetText('disp-xp', xpTxt);
-    safeSetText('micro-xp', xpTxt);
-    
-    safeSetText('disp-level', lvl.level);
-    safeSetText('micro-level', lvl.level);
-    
-    const pct = getPercentValue(lvl.expInLevel, lvl.expForNext);
-    const bar = document.getElementById('level-bar');
-    if(bar) bar.style.width = pct + "%";
-    safeSetText('level-text', pct + "%");
-    const mBar = document.getElementById('micro-bar');
-    if(mBar) mBar.style.width = pct + "%";
-
-    safeSetText('disp-session-xp', formatNumber(STATE.sessionGain) + " XP");
-    
-    let avgDrop = STATE.completedRuns > 0 ? Math.round(STATE.sessionGain / STATE.completedRuns) : 0;
-    safeSetText('disp-xp-drop', avgDrop + " XP");
-    safeSetText('disp-drops', STATE.completedRuns);
-
-    const needed = Math.round(lvl.expForNext - lvl.expInLevel);
-    safeSetHTML('disp-xp-remaining', `<b>${formatNumber(needed)}</b> XP to Next Level`);
-    safeSetText('micro-calc', formatNumber(needed));
-
-    runCalculator();
-}
-
-function formatNumber(num) {
-    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-    return num.toLocaleString();
-}
-
-function getLevelInfo(exp) {
-    let level = 0, xpCap = 5;
-    while (exp >= xpCap) {
-        exp -= xpCap;
-        level++;
-        xpCap = (level + 1) * 5;
-    }
-    return { level, expInLevel: exp, expForNext: xpCap };
-}
-
-function getPercentValue(exp, cap) {
-    return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
-}
-
-function runCalculator() {
-    const inp = document.getElementById('target-input');
-    if(!inp) return;
-    const val = inp.value;
-    const el = document.getElementById('calc-result');
-    
-    localStorage.setItem(STORAGE_KEY_CALC, val);
-    if (!val) { if(el) el.innerText = ""; return; }
-    
-    let inputVal = parseInt(val.replace(/,/g, ''));
-    let targetXP = inputVal;
-    
-    if (inputVal < 200) { 
-         let lvlXP = 0; 
-         for(let i=0; i<inputVal; i++) lvlXP += (5 * i * (i + 1)) / 2;
-         targetXP = (5 * inputVal * (inputVal + 1)) / 2;
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin })
+        }).then(() => { 
+            document.getElementById('detail-bid-input').value = "";
+            status.innerText = "BID PLACED"; status.style.color = "#2ecc71";
+            setTimeout(() => { status.innerText = ""; }, 3000);
+        });
     }
 
-    if (targetXP > STATE.currentXP) {
-        const diff = targetXP - STATE.currentXP;
-        const avgDrop = (STATE.avgXP > 0) ? STATE.avgXP : 1; 
-        const estDrops = Math.ceil(diff / avgDrop);
-        if(el) el.innerHTML = `Need: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Stops: <b>${formatNumber(estDrops)}</b></span>`;
-    } else {
-        if(el) el.innerHTML = `Target Reached!`;
+    function toggleImgInput() {
+        const checkbox = document.getElementById('no-img-check');
+        const input = document.getElementById('sell-img');
+        const preview = document.getElementById('img-preview');
+        if(checkbox.checked) { input.disabled = true; input.value = ""; preview.innerHTML = `<span style="color:#555;">IMAGE DISABLED</span>`; }
+        else { input.disabled = false; preview.innerHTML = `<span style="color:#555;">NO IMAGE PREVIEW</span>`; }
     }
-}
 
-// Drag & Resize Logic
-const elm = document.getElementById("tracker-app");
-const head = document.getElementById("drag-handle");
-const microView = document.getElementById("micro-view");
-let isDragging = false, startX, startY, initLeft, initTop;
+    function previewImg(url) {
+        const div = document.getElementById('img-preview'); div.innerHTML = '';
+        if(url.startsWith('http')) div.innerHTML = `<img src="${url}" class="preview-image-actual">`;
+        else div.innerHTML = `<span style="color:#555;">INVALID URL</span>`;
+    }
 
-const startDrag = (e) => {
-    if(e.target.closest('button') || e.target.closest('input') || e.target.closest('a')) return;
-    e.preventDefault(); isDragging = true;
-    startX = e.clientX; startY = e.clientY;
-    const r = elm.getBoundingClientRect();
-    initLeft = r.left; initTop = r.top;
-    document.addEventListener("mousemove", dragMove);
-    document.addEventListener("mouseup", dragEnd);
-};
-const dragMove = (e) => {
-    if(!isDragging) return;
-    elm.style.left = (initLeft + e.clientX - startX) + "px";
-    elm.style.top = (initTop + e.clientY - startY) + "px";
-};
-const dragEnd = () => {
-    isDragging = false;
-    document.removeEventListener("mousemove", dragMove);
-    document.removeEventListener("mouseup", dragEnd);
-};
-head.addEventListener("mousedown", startDrag);
-microView.addEventListener("mousedown", startDrag);
+    function postAuction() {
+        const btn = document.querySelector('#view-sell .action-btn');
+        const name = document.getElementById('sell-name').value;
+        const qty = document.getElementById('sell-qty').value;
+        const price = document.getElementById('sell-price').value;
+        if(!name || !price) { document.getElementById('sell-status').innerText = "ERROR: MISSING FIELDS"; return; }
 
-const rh = document.getElementById('resize-handle');
-rh.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    window.addEventListener('mousemove', resize);
-    window.addEventListener('mouseup', stopResize);
-});
-function resize(e) {
-    if(elm.classList.contains('mini-mode')) return;
-    elm.style.width = Math.max(280, e.clientX - elm.getBoundingClientRect().left) + 'px';
-    elm.style.height = Math.max(250, e.clientY - elm.getBoundingClientRect().top) + 'px';
-}
-function stopResize() {
-    window.removeEventListener('mousemove', resize);
-    window.removeEventListener('mouseup', stopResize);
-}
+        btn.disabled = true; btn.innerText = "UPLOADING...";
+        const imgVal = document.getElementById('no-img-check').checked ? "" : document.getElementById('sell-img').value;
+
+        fetch(CONST_GOOGLE_URL, {
+            method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                action: "create", seller: userData.name, sellerId: userData.id, pin: userData.pin,
+                item: name, quantity: qty, img: imgVal, price: price, duration: document.getElementById('sell-duration').value
+            })
+        }).then(() => {
+            setTimeout(() => {
+                closeSubmenu();
+                document.getElementById('sell-name').value = '';
+                document.getElementById('sell-qty').value = '1';
+                document.getElementById('sell-price').value = '';
+                btn.disabled = false; btn.innerText = "CREATE LISTING";
+            }, 1000);
+        });
+    }
+
+    function returnToLastView() {
+        if(pollingInterval) clearInterval(pollingInterval);
+        const wrapper = document.getElementById('pivot-wrapper');
+        document.body.classList.remove('mini-mode');
+        // Reset to Center
+        wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = ''; 
+        document.getElementById('view-detail').style.display = 'none';
+        if (!lastView || !document.getElementById('view-' + lastView)) lastView = 'browse';
+        document.getElementById('view-' + lastView).style.display = 'flex';
+        fetchData(lastView);
+    }
+
+    function toggleMiniMode() {
+        const wrapper = document.getElementById('pivot-wrapper');
+        document.body.classList.toggle('mini-mode');
+        if(document.body.classList.contains('mini-mode')) {
+            if(miniModePos) {
+                wrapper.style.top = miniModePos.top; wrapper.style.left = miniModePos.left;
+                wrapper.style.right = 'auto'; wrapper.style.bottom = 'auto';
+            } else {
+                wrapper.style.top = '50px'; wrapper.style.right = '50px'; wrapper.style.left = 'auto';
+            }
+        } else {
+            wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = '';
+        }
+    }
+
+    document.onkeydown = function(e) { if(e.keyCode == 27) closeApp(); };
 </script>
 </body>
 </html>
