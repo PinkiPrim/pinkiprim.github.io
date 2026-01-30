@@ -15,7 +15,7 @@
             --glass: blur(4px);
             --admin-color: #ff0055;
             --warning-red: #ff4444;
-            --heart-color: #ff4081; /* Pinki Pink */
+            --heart-color: #ff4081;
         }
 
         * { box-sizing: border-box; user-select: none; }
@@ -50,31 +50,47 @@
         .pin-entry { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--primary); color: white; padding: 15px; margin-bottom: 15px; font-size: 1.5em; text-align: center; letter-spacing: 5px; display: none; cursor: text; }
         .btn-auth { width: 100%; padding: 15px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; font-weight: bold; cursor: pointer; margin-top:5px; }
         .btn-auth:disabled { background: #333; border-color: #555; color: #888; }
-        .warning-box { margin-top: 10px; padding: 10px; border: 1px solid var(--warning-red); background: rgba(255, 68, 68, 0.1); color: var(--warning-red); font-size: 0.75em; text-align: center; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); text-transform: uppercase; letter-spacing: 1px; width: 100%; }
+        
+        /* UPDATED WARNING BOX STYLE */
+        .warning-box { 
+            margin-top: 10px; padding: 10px; 
+            border: 1px solid var(--warning-red); 
+            background: rgba(0, 0, 0, 0.9); /* Solid dark background */
+            color: var(--warning-red); 
+            font-size: 0.75em; text-align: center; 
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); 
+            text-transform: uppercase; letter-spacing: 1px; width: 100%; 
+        }
 
         /* 3D WRAPPER */
         .perspective-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; perspective: 1500px; }
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* MINI MODE WIDGET */
+        /* MINI MODE WIDGET - COMPACT & BIDDING ENABLED */
         body.mini-mode .pivot-wrapper { 
             width: 250px !important; height: auto !important; min-height: 120px;
             transform: none !important; margin: 0; position: fixed !important;
-            top: 50px; right: 50px; left: auto; bottom: auto;
+            /* Top/Left set via JS for memory position */
             cursor: move; z-index: 9999;
         }
         body.mini-mode .menu-container, body.mini-mode .detail-left, body.mini-mode .back-btn, 
-        body.mini-mode .content-header, body.mini-mode #controls-bid, body.mini-mode #controls-actions, 
+        body.mini-mode .content-header, body.mini-mode #controls-actions, 
         body.mini-mode #controls-admin { display: none !important; }
 
-        body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 10px; border-radius: 5px; }
+        /* Enable Bidding in Mini Mode, but style it compact */
+        body.mini-mode #controls-bid { display: block !important; margin-top: 5px; }
+        body.mini-mode #detail-bid-input { padding: 5px; font-size: 0.9em; height: 30px; margin-bottom: 2px; }
+        body.mini-mode #controls-bid .action-btn { padding: 5px; font-size: 0.9em; margin-top: 2px; }
+        body.mini-mode #bid-status { font-size: 0.7em; margin-top: 2px; }
+
+        body.mini-mode .submenu-container { background: rgba(0,0,0,0.95); border: 2px solid var(--primary); top:0; transform: none; height: auto; padding: 8px; border-radius: 5px; }
         body.mini-mode #view-detail { height: auto !important; display: block !important; }
         body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
-        body.mini-mode .detail-right { overflow: visible !important; padding: 5px !important; border: none !important; background: transparent !important; }
+        body.mini-mode .detail-right { overflow: visible !important; padding: 2px !important; border: none !important; background: transparent !important; }
         body.mini-mode #detail-title { font-size: 1em; margin: 0; border-bottom: 1px solid #333; padding-bottom: 5px; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        body.mini-mode #detail-price { font-size: 1.6em; margin: 5px 0; text-align: center; pointer-events: none; }
-        body.mini-mode #detail-live-timer { font-size: 1em; text-align: center; display: block; margin-bottom: 0; pointer-events: none; }
+        body.mini-mode #detail-price { font-size: 1.4em; margin: 5px 0; text-align: center; pointer-events: none; }
+        body.mini-mode #detail-live-timer { font-size: 0.9em; text-align: center; display: block; margin-bottom: 0; pointer-events: none; }
         body.mini-mode #min-btn { position: absolute; top: -8px; right: -5px; font-size: 0.9em; padding: 5px 10px; border: none; background: transparent; color: #888; cursor: pointer; z-index: 10000; }
         body.mini-mode #min-btn:hover { color: white; }
 
@@ -143,6 +159,9 @@
         .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #333; margin-bottom: 2px; }
         .user-list-item select { width: 120px; background: #222; border: 1px solid #444; color: white; padding: 5px; }
 
+        /* Section dividers for My Listings */
+        .section-header { font-size: 1.2em; color: var(--primary); border-bottom: 1px solid #444; margin: 15px 0 5px 0; padding-bottom: 5px; }
+
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); }
         #debug-id-match { font-size:0.7em; color:#444; position:absolute; bottom:5px; left:5px; }
@@ -196,12 +215,11 @@
                 <div class="header-text">PINKI TT AUCTION</div>
                 
                 <div class="holo-btn" onclick="openSubmenu('browse')"><div class="icon-box"><i class="fas fa-globe"></i></div><span class="btn-text">BROWSE LISTINGS</span></div>
-                <div class="holo-btn" onclick="openSubmenu('mydata')"><div class="icon-box"><i class="fas fa-box-open"></i></div><span class="btn-text">MY HISTORY</span></div>
+                <div class="holo-btn" onclick="openSubmenu('mylistings')"><div class="icon-box"><i class="fas fa-box-open"></i></div><span class="btn-text">MY LISTINGS</span></div>
                 <div class="holo-btn" onclick="openSubmenu('sell')"><div class="icon-box"><i class="fas fa-upload"></i></div><span class="btn-text">CREATE LISTING</span></div>
                 <div class="holo-btn" id="btn-hk" style="display:none; border-color: var(--admin-color);" onclick="openSubmenu('hk')"><div class="icon-box" style="color:var(--admin-color);"><i class="fas fa-shield-alt"></i></div><span class="btn-text" style="color:var(--admin-color);">HK DASHBOARD</span></div>
                 <div class="holo-btn" id="btn-users" style="display:none; border-color: cyan;" onclick="openSubmenu('users')"><div class="icon-box" style="color:cyan;"><i class="fas fa-users"></i></div><span class="btn-text" style="color:cyan;">USER MANAGER</span></div>
                 <div class="holo-btn" onclick="toggleDockMode()"><div class="icon-box"><i class="fas fa-window-minimize"></i></div><span class="btn-text">MINIMIZE APP</span></div>
-                <div class="holo-btn" onclick="closeApp()"><div class="icon-box"><i class="fas fa-power-off"></i></div><span class="btn-text">DISCONNECT</span></div>
 
                 <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px;">
                     <div class="holo-btn support" onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')">
@@ -209,7 +227,7 @@
                         <span class="btn-text">SUPPORT PINKIPRIM <span class="heart-spin">❤</span></span>
                     </div>
 
-                    <div class="warning-box" style="opacity: 0.8;">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
+                    <div class="warning-box">WARNING: If you do not hold up your end of the deal, or you do anything that is troll-worthy, you may be blacklisted from this User-App</div>
                 </div>
             </div>
 
@@ -221,9 +239,14 @@
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
 
-                <div id="view-mydata" class="view-content" style="display:none; height:100%; flex-direction:column;">
-                    <div class="content-header"><h3>MY HISTORY</h3><button class="action-btn" id="btn-arch" style="width:auto; margin:0; font-size:0.8em;" onclick="toggleArchive()">SHOW PREVIOUS</button></div>
-                    <div class="grid-scroll"><div class="auction-grid" id="my-grid"></div></div>
+                <div id="view-mylistings" class="view-content" style="display:none; height:100%; flex-direction:column;">
+                    <div class="content-header"><h3>MY LISTINGS</h3><button class="action-btn" style="width:auto; margin:0;" onclick="fetchData('mylistings')">REFRESH</button></div>
+                    <div class="grid-scroll">
+                        <div class="section-header">ACTIVE LISTINGS</div>
+                        <div class="auction-grid" id="my-active-grid" style="margin-bottom:20px;"></div>
+                        <div class="section-header">PREVIOUS LISTINGS</div>
+                        <div class="auction-grid" id="my-history-grid"></div>
+                    </div>
                     <div class="back-btn" onclick="closeSubmenu()"><i class="fas fa-chevron-left"></i> RETURN</div>
                 </div>
 
@@ -287,6 +310,7 @@
                         <div class="sell-form">
                             <div class="input-group"><label>ITEM NAME</label><input type="text" id="sell-name" placeholder="e.g. Import Car"></div>
                             <div class="input-group"><label>IMAGE URL (Catbox.moe)</label><input type="text" id="sell-img" placeholder="https://..." oninput="previewImg(this.value)"><div class="checkbox-row"><input type="checkbox" id="no-img-check" onchange="toggleImgInput()"><label for="no-img-check">NO IMAGE</label></div></div>
+                            <div class="input-group"><label>QUANTITY</label><input type="number" id="sell-qty" placeholder="1" value="1"></div>
                             <div class="input-group"><label>STARTING BID</label><input type="number" id="sell-price" placeholder="5000"></div>
                             <div class="input-group"><label>DURATION</label><select id="sell-duration"><option value="15">15 Minutes</option><option value="60">1 Hour</option><option value="1440">24 Hours</option></select></div>
                         </div>
@@ -311,10 +335,12 @@
     let isAuthenticated = false;
     let currentDetailId = null;
     let lastView = 'browse';
-    let showArchive = false;
     let pollingInterval = null;
     let countdownInterval = null;
     let pendingAdminAction = null;
+    
+    // Mini Mode Position Memory
+    let miniModePos = null;
 
     function openExternal(url) {
         try {
@@ -353,13 +379,27 @@
     const wrapper = document.getElementById('pivot-wrapper');
     let isDragging = false;
     let offset = { x: 0, y: 0 };
+    
     wrapper.addEventListener('mousedown', function(e) {
         if (!document.body.classList.contains('mini-mode')) return;
         if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
         isDragging = true; offset.x = e.clientX - wrapper.offsetLeft; offset.y = e.clientY - wrapper.offsetTop;
         wrapper.style.right = 'auto'; wrapper.style.bottom = 'auto';
     });
-    document.addEventListener('mouseup', function() { isDragging = false; });
+    
+    document.addEventListener('mouseup', function() { 
+        if(isDragging) {
+            isDragging = false; 
+            // Save position if in mini mode
+            if(document.body.classList.contains('mini-mode')) {
+                miniModePos = {
+                    top: wrapper.style.top,
+                    left: wrapper.style.left
+                };
+            }
+        }
+    });
+    
     document.addEventListener('mousemove', function(e) {
         if (!isDragging) return;
         wrapper.style.left = (e.clientX - offset.x) + 'px'; wrapper.style.top = (e.clientY - offset.y) + 'px';
@@ -436,7 +476,6 @@
         statusEl.innerText = "Connecting to Server...";
         statusEl.style.color = "#888";
 
-        // USE GET REQUEST TO ENSURE JSON RESPONSE IS READABLE
         fetch(`${CONST_GOOGLE_URL}?action=login&userId=${userData.id}&name=${userData.name}&pin=${userData.pin}`)
         .then(res => res.json())
         .then(data => {
@@ -452,7 +491,6 @@
                 document.getElementById('pin-section').style.display = 'none';
                 document.getElementById('btn-request').style.display = 'block';
             } else {
-                // If data is undefined or status is error
                 statusEl.innerText = (data && data.msg) ? data.msg : "Connection Failed. Try again.";
                 statusEl.style.color = "#ff4444";
                 btn.disabled = false;
@@ -525,8 +563,8 @@
         document.getElementById('main-menu').style.pointerEvents = 'none';
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-' + view).style.display = 'flex';
-        // Always fetch data when opening a view
-        if(view === 'browse' || view === 'mydata' || view === 'hk' || view === 'users') fetchData(view);
+        
+        if(view === 'browse' || view === 'mylistings' || view === 'hk' || view === 'users') fetchData(view);
         setTimeout(() => document.getElementById('submenu-layer').classList.add('active'), 300);
     }
 
@@ -542,18 +580,23 @@
     function toggleArchive() {
         showArchive = !showArchive;
         document.getElementById('btn-arch').innerText = showArchive ? "HIDE PREVIOUS" : "SHOW PREVIOUS";
-        fetchData('mydata');
+        fetchData('mylistings');
     }
 
     function fetchData(view) {
         let action = "browse"; 
         if(view === 'hk') action = "getAll";
-        else if(view === 'mydata') action = "getMyData";
+        else if(view === 'mylistings') action = "getMyData";
         else if(view === 'users') action = "getUsers";
         
-        let containerId = (view === 'hk') ? 'hk-list' : (view === 'users') ? 'user-list' : (view === 'mydata' ? 'my-grid' : 'browse-grid');
-        let container = document.getElementById(containerId);
-        container.innerHTML = '<div style="color:cyan; padding:20px; text-align:center; width:100%;">LOADING DATA...</div>';
+        // Define loading containers
+        if(view === 'mylistings') {
+            document.getElementById('my-active-grid').innerHTML = '<div style="color:cyan; text-align:center;">LOADING...</div>';
+            document.getElementById('my-history-grid').innerHTML = '<div style="color:cyan; text-align:center;">LOADING...</div>';
+        } else {
+            let containerId = (view === 'hk') ? 'hk-list' : (view === 'users') ? 'user-list' : 'browse-grid';
+            document.getElementById(containerId).innerHTML = '<div style="color:cyan; padding:20px; text-align:center; width:100%;">LOADING DATA...</div>';
+        }
 
         fetch(`${CONST_GOOGLE_URL}?action=${action}&userId=${userData.id}`)
         .then(res => res.json())
@@ -561,8 +604,45 @@
             currentData = data;
             if(view === 'hk') renderHK(data);
             else if(view === 'users') renderUsers(data);
-            else renderGrid(data, container, view === 'mydata');
+            else if(view === 'mylistings') renderMyListings(data);
+            else renderGrid(data, document.getElementById('browse-grid'), false);
         });
+    }
+
+    function renderMyListings(data) {
+        const activeContainer = document.getElementById('my-active-grid');
+        const historyContainer = document.getElementById('my-history-grid');
+        activeContainer.innerHTML = '';
+        historyContainer.innerHTML = '';
+        
+        let activeCount = 0;
+        let historyCount = 0;
+        const now = new Date().getTime();
+
+        data.forEach(item => {
+            let status = item.status;
+            if (status === "Active" && now > item.endTime) status = "Ended";
+            
+            // Build card HTML
+            let imgHTML = (item.img && item.img.startsWith('http')) ? `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">` : '';
+            let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
+            let card = document.createElement('div');
+            card.className = 'auction-card';
+            card.onclick = () => openDetail(item);
+            card.innerHTML = `${imgHTML}<div class="card-body"><div class="card-title">${item.item}</div><div class="card-price">$${parseInt(item.price).toLocaleString()}</div>${timerHTML}<div style="font-size:0.8em; margin-top:5px;">Status: <span class="st-${status}">${status}</span></div><div style="font-size:0.7em; color:#888;">Seller: ${item.seller}</div></div>`;
+
+            if(status === 'Active') {
+                activeContainer.appendChild(card);
+                activeCount++;
+            } else {
+                historyContainer.appendChild(card);
+                historyCount++;
+            }
+        });
+
+        if(activeCount === 0) activeContainer.innerHTML = '<div style="padding:10px; color:#555;">No active listings.</div>';
+        if(historyCount === 0) historyContainer.innerHTML = '<div style="padding:10px; color:#555;">No past listings.</div>';
+        updateAllTimers();
     }
 
     function renderGrid(data, container, isHistory) {
@@ -639,7 +719,6 @@
                 renderDetail(item);
             } else {
                 // Item deleted or gone?
-                // optionally handle this
             }
         });
     }
@@ -823,6 +902,7 @@
     function postAuction() {
         const btn = document.querySelector('#view-sell .action-btn');
         const name = document.getElementById('sell-name').value;
+        const qty = document.getElementById('sell-qty').value;
         const price = document.getElementById('sell-price').value;
         if(!name || !price) { document.getElementById('sell-status').innerText = "ERROR: MISSING FIELDS"; return; }
 
@@ -833,7 +913,7 @@
             method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 action: "create", seller: userData.name, sellerId: userData.id, pin: userData.pin,
-                item: name, img: imgVal, price: price, duration: document.getElementById('sell-duration').value
+                item: name, quantity: qty, img: imgVal, price: price, duration: document.getElementById('sell-duration').value
             })
         }).then(() => {
             setTimeout(() => {
@@ -852,6 +932,8 @@
         
         const wrapper = document.getElementById('pivot-wrapper');
         document.body.classList.remove('mini-mode');
+        
+        // Reset positioning completely so it centers
         wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = ''; wrapper.style.width = ''; wrapper.style.height = '';
         
         document.getElementById('view-detail').style.display = 'none';
@@ -868,7 +950,19 @@
     function toggleMiniMode() {
         const wrapper = document.getElementById('pivot-wrapper');
         document.body.classList.toggle('mini-mode');
-        if(!document.body.classList.contains('mini-mode')) {
+        if(document.body.classList.contains('mini-mode')) {
+            // APPLY SAVED POSITION IF EXISTS
+            if(miniModePos) {
+                wrapper.style.top = miniModePos.top;
+                wrapper.style.left = miniModePos.left;
+                // unset right/bottom just in case
+                wrapper.style.right = 'auto'; wrapper.style.bottom = 'auto';
+            } else {
+                // Default Top Right
+                wrapper.style.top = '50px'; wrapper.style.right = '50px'; wrapper.style.left = 'auto';
+            }
+        } else {
+            // Reset to Center when maximizing
             wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = '';
         }
     }
