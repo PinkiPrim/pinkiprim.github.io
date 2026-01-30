@@ -57,7 +57,7 @@
         /* --- MINI MODE WIDGET (3-LINE LAYOUT) --- */
         body.mini-mode .pivot-wrapper { 
             width: 350px !important; 
-            height: 110px !important; /* Increased height for 3 lines */
+            height: 110px !important; 
             min-height: 110px !important;
             transform: none !important; margin: 0; position: fixed !important;
             cursor: move; z-index: 9999;
@@ -67,16 +67,10 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
 
-        /* Hide big UI elements */
-        body.mini-mode .menu-container, 
-        body.mini-mode .detail-left, 
-        body.mini-mode .back-btn, 
-        body.mini-mode .content-header, 
-        body.mini-mode #controls-actions, 
-        body.mini-mode #controls-admin,
-        body.mini-mode #regular-view-container { display: none !important; }
+        body.mini-mode .menu-container, body.mini-mode .detail-left, body.mini-mode .back-btn, 
+        body.mini-mode .content-header, body.mini-mode #controls-actions, 
+        body.mini-mode #controls-admin, body.mini-mode #regular-view-container { display: none !important; }
 
-        /* Reset Containers for Mini */
         body.mini-mode .submenu-container { 
             background: transparent; border: none; box-shadow: none;
             top:0; transform: none; height: 100%; padding: 0 10px; 
@@ -90,23 +84,23 @@
             display: flex; flex-direction: column; justify-content: center; height: 100%; width: 100%; gap: 5px;
         }
 
-        /* --- MICRO VIEW STYLES (3 Lines) --- */
+        /* MICRO VIEW STYLES */
         .micro-view-container { display: none; width: 100%; flex-direction: column; justify-content: space-between; height: 100%; padding: 5px 0; }
         body.mini-mode .micro-view-container { display: flex; }
 
         .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         
-        /* Line 1: Title & Price */
+        /* Line 1 */
         .line-1 { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
         .mini-title { font-size: 1.1em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%; }
         .mini-price { font-size: 1.2em; font-weight: 800; color: var(--primary); }
 
-        /* Line 2: Bidder & Timer */
+        /* Line 2 */
         .line-2 { color: #ccc; font-size: 0.9em; }
         .mini-bidder { max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .mini-timer { color: var(--warning-red); font-weight: bold; }
 
-        /* Line 3: Input Area */
+        /* Line 3 */
         .line-3 { height: 30px; }
         .mini-input-group { display: flex; width: 100%; gap: 5px; }
         .mini-input { 
@@ -119,6 +113,7 @@
         }
         .mini-btn:hover { background: var(--primary); color: black; }
         
+        /* Error/Warning Text Area */
         .mini-warning { width: 100%; text-align: center; color: var(--warning-red); font-weight: bold; letter-spacing: 2px; font-size: 0.9em; padding-top: 5px; }
 
         /* Minimize Button */
@@ -516,7 +511,7 @@
         .then(res => res.json()).then(data => {
             if (data && data.status === "success") {
                 isAuthenticated = true; document.getElementById('login-screen').style.display = 'none';
-                if(data.msg === "PIN Set") alert("Your PIN has been set to: " + pin + ". Don't forget it!");
+                // No Alert - just enter
                 document.body.classList.remove('docked-mode');
                 enterMarket();
             } else if (data && data.status === "error" && data.msg.includes("ID Not Found")) {
@@ -795,10 +790,12 @@
 
     function updateAllTimers() {
         const now = new Date().getTime();
+        // Grid Timers
         document.querySelectorAll('.card-timer').forEach(el => {
             const end = parseInt(el.getAttribute('data-end'));
             el.innerHTML = `<i class="far fa-clock"></i> ${formatTime(end - now)}`;
         });
+        // Detail Timer
         if(currentDetailId && document.getElementById('view-detail').style.display !== 'none') {
             const item = currentData.find(i => String(i.id) === String(currentDetailId));
             if(item) {
@@ -821,8 +818,9 @@
         
         if(!amt) return;
         
-        if(amt % 1 != 0) { alert("WHOLE NUMBERS ONLY"); return; }
-        if(parseInt(amt) > userData.wallet) { alert("INSUFFICIENT FUNDS"); return; }
+        // ERROR HANDLING VISUALS
+        if(amt % 1 != 0) { showBidError("WHOLE NUMBERS"); return; }
+        if(parseInt(amt) > userData.wallet) { showBidError("NO FUNDS"); return; }
 
         fetch(CONST_GOOGLE_URL, {
             method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"},
@@ -835,6 +833,26 @@
                 setTimeout(() => { status.innerText = ""; }, 3000);
             }
         });
+    }
+    
+    // Helper to show error in mini or regular mode
+    function showBidError(msg) {
+        if(document.body.classList.contains('mini-mode')) {
+            const warn = document.getElementById('mini-warning');
+            const inputs = document.getElementById('mini-input-container');
+            inputs.style.display = 'none';
+            warn.style.display = 'block';
+            warn.innerText = msg;
+            setTimeout(() => {
+                warn.style.display = 'none';
+                inputs.style.display = 'flex';
+            }, 2000);
+        } else {
+            const status = document.getElementById('bid-status');
+            status.innerText = msg;
+            status.style.color = "#ff4444";
+            setTimeout(() => { status.innerText = ""; }, 3000);
+        }
     }
 
     // ... [Rest of standard functions remain identical] ...
@@ -868,6 +886,7 @@
         const wrapper = document.getElementById('pivot-wrapper');
         document.body.classList.toggle('mini-mode');
         
+        // RE-RENDER DETAIL TO SWITCH LAYOUTS
         if(currentDetailId) {
              const item = currentData.find(i => String(i.id) === String(currentDetailId));
              if(item) renderDetail(item);
