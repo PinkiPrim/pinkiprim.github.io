@@ -66,30 +66,25 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* --- MINI MODE WIDGET (COMPACT 2-LINE) --- */
+        /* --- MINI MODE WIDGET (REFINED) --- */
         body.mini-mode .pivot-wrapper { 
             width: 320px !important; height: auto !important; 
             transform: none !important; margin: 0; position: fixed !important;
             cursor: move; z-index: 9999;
         }
         
-        /* HIDE ELEMENTS IN MINI MODE */
         body.mini-mode .menu-container, 
         body.mini-mode .detail-left, 
         body.mini-mode .back-btn, 
         body.mini-mode .content-header, 
         body.mini-mode #controls-actions, 
-        body.mini-mode #controls-admin,
-        body.mini-mode #detail-live-timer { /* Hide big timer, maybe show small in corner if needed, but saving space */
-            display: none !important; 
-        }
+        body.mini-mode #controls-admin { display: none !important; }
 
-        /* MINI CONTAINER */
         body.mini-mode .submenu-container { 
             background: rgba(0, 10, 20, 0.98); 
             border: 2px solid var(--primary); 
             top:0; transform: none; height: auto; 
-            padding: 5px 10px; 
+            padding: 8px 12px; 
             border-radius: 5px; 
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
@@ -98,18 +93,28 @@
         body.mini-mode .detail-layout { display: block !important; height: auto !important; margin: 0 !important; }
         body.mini-mode .detail-right { 
             overflow: visible !important; padding: 0 !important; border: none !important; background: transparent !important; 
-            display: flex; flex-direction: column; gap: 2px;
+            display: flex; flex-direction: column; gap: 4px;
         }
 
-        /* LINE 1: Title (left) - Price (Right) */
-        body.mini-mode #detail-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 2px; margin-bottom: 2px; }
-        body.mini-mode #detail-title { font-size: 1.1em; margin: 0; border: none; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
-        body.mini-mode #detail-price { font-size: 1.2em; margin: 0; color: var(--primary); }
+        /* Line 1: Title (L) - Price (R) */
+        body.mini-mode #detail-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 2px; }
+        body.mini-mode #detail-title { font-size: 1.1em; margin: 0; border: none; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; font-weight: 700; }
+        body.mini-mode #detail-price { font-size: 1.2em; margin: 0; color: var(--primary); font-weight: bold; }
 
-        /* LINE 2: Bidder (Left) - Inputs (Right) */
-        body.mini-mode #detail-action-row { display: flex; justify-content: space-between; align-items: center; height: 30px; }
-        body.mini-mode #detail-bidder-info { font-size: 0.8em; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+        /* Line 2: Bidder (L) - Timer (M) - Action (R) */
+        body.mini-mode #detail-action-row { display: flex; justify-content: space-between; align-items: center; height: 32px; }
+        body.mini-mode #detail-bidder-info { font-size: 0.85em; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30%; }
         
+        /* Explicit Timer Display for Mini */
+        body.mini-mode #detail-live-timer { 
+            display: block !important; 
+            font-size: 0.9em; 
+            color: #ff4444; 
+            margin: 0 10px; 
+            white-space: nowrap;
+        }
+
+        /* Input/Button Area */
         body.mini-mode #controls-bid { 
             display: flex !important; 
             gap: 5px; 
@@ -117,17 +122,18 @@
             width: auto; 
             align-items: center;
         }
-        
-        /* Compact Input/Button */
         body.mini-mode #detail-bid-input { 
-            height: 24px; width: 80px; padding: 2px 5px; font-size: 0.9em; border: 1px solid #444; background: #111; 
+            height: 26px; width: 70px; padding: 2px 5px; font-size: 0.9em; border: 1px solid #444; background: #111; 
         }
         body.mini-mode #controls-bid .action-btn { 
-            height: 24px; padding: 0 10px; font-size: 0.8em; margin: 0; width: auto; 
+            height: 26px; padding: 0 12px; font-size: 0.85em; margin: 0; width: auto; 
         }
-        body.mini-mode #bid-status { display:none; } /* Hide status text in mini to save space, rely on visual */
+        /* Hide regular status text in mini */
+        body.mini-mode #bid-status { display:none; } 
 
-        /* Minimize Button */
+        /* Self-Bid Warning Styling for Mini */
+        .self-bid-warning { color: #ff4444; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+
         body.mini-mode #min-btn { 
             position: absolute; top: -10px; right: -10px; 
             font-size: 0.8em; padding: 2px 6px; 
@@ -332,7 +338,7 @@
                                 
                                 <div id="controls-bid" style="display:none;">
                                     <input type="number" id="detail-bid-input" placeholder="Amount...">
-                                    <button class="action-btn" onclick="placeBid()">CONFIRM BID</button>
+                                    <button class="action-btn" onclick="placeBid()">CONFIRM</button>
                                     <div id="bid-status" style="margin-top:5px; font-size:0.8em; text-align:center;"></div> 
                                 </div>
                             </div>
@@ -386,13 +392,12 @@
     let pollingInterval = null;
     let countdownInterval = null;
     let pendingAdminAction = null;
-    let miniModePos = null; // Memory for mini pos
+    let miniModePos = null; 
 
     function openExternal(url) {
         try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); }
     }
 
-    // --- DOCK & DRAG ---
     function startAppFlow() {
         document.body.classList.remove('docked-mode');
         if (isAuthenticated) {
@@ -539,7 +544,6 @@
     function closeApp() {
         isMenuOpen = false;
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
-        // Reset to docked mode instead of disconnect
         document.body.classList.add('docked-mode');
         document.getElementById('pivot-wrapper').style.display = 'none';
         document.getElementById('link-screen').style.display = 'none';
@@ -604,7 +608,6 @@
         data.forEach(item => {
             let status = item.status;
             if (status === "Active" && now > item.endTime) status = "Ended";
-            // FORMAT: "2x Item Name"
             let qtyDisplay = (item.quantity > 1) ? `<span style="color:#00ffff; font-weight:bold;">${item.quantity}x</span> ` : "";
             let imgHTML = (item.img && item.img.startsWith('http')) ? `<img src="${item.img}" class="card-img" onerror="this.style.display='none'">` : '';
             let timerHTML = (status === 'Active') ? `<div class="card-timer" data-end="${item.endTime}"><i class="far fa-clock"></i> ...</div>` : '';
@@ -658,7 +661,8 @@
     function renderUsers(data) {
         const list = document.getElementById('user-list'); list.innerHTML = '';
         data.forEach(user => {
-            let row = document.createElement('div'); row.className = 'user-list-item';
+            let row = document.createElement('div');
+            row.className = 'user-list-item';
             let select = document.createElement('select');
             ['Requested', 'Whitelisted', 'Blacklisted'].forEach(opt => {
                 let option = document.createElement('option');
@@ -709,14 +713,29 @@
         if (item.img && item.img.startsWith('http')) imgContainer.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain;">`;
         else imgContainer.innerHTML = `<span style="color:#555;">NO IMAGE</span>`;
 
-        document.getElementById('controls-bid').style.display = 'none';
+        // Check if self-bid
+        const isSeller = (String(item.sellerId) === String(userData.id));
+        const controlsBid = document.getElementById('controls-bid');
+        
+        // Reset controls
+        controlsBid.style.display = 'none';
         document.getElementById('controls-actions').style.display = 'none';
         document.getElementById('controls-admin').style.display = 'none';
         document.getElementById('action-buttons').innerHTML = ''; 
 
+        // If Mini Mode, inject warning if seller
+        if (document.body.classList.contains('mini-mode') && isSeller) {
+             // We manipulate the controls-bid container to show warning instead of inputs
+             controlsBid.innerHTML = '<span class="self-bid-warning">(YOUR ITEM)</span>';
+             controlsBid.style.display = 'block'; 
+        } else if (document.body.classList.contains('mini-mode')) {
+             // Reset to input fields for non-sellers
+             controlsBid.innerHTML = '<input type="number" id="detail-bid-input" placeholder="Amount..."><button class="action-btn" onclick="placeBid()">CONFIRM</button>';
+             controlsBid.style.display = 'flex'; 
+        }
+
         const sellerID = cleanID(item.sellerId); const buyerID = cleanID(item.bidderId);
         const myID = cleanID(userData.id); const adminID = cleanID(ADMIN_ID);
-        const isSeller = (sellerID === myID); const isBuyer = (buyerID === myID);
         const isAdmin = (myID === adminID);
         const noBids = (buyerID == "0" || item.highBidder == "None" || item.highBidder == "No Bids");
 
@@ -725,8 +744,15 @@
         if(isAdmin) document.getElementById('controls-admin').style.display = 'block';
 
         if (displayStatus === 'Active') {
-            if(!isSeller) document.getElementById('controls-bid').style.display = 'block';
-            else { document.getElementById('controls-actions').style.display = 'block'; document.getElementById('action-msg').innerText = "AUCTION IN PROGRESS"; }
+            if(!isSeller) {
+                if(!document.body.classList.contains('mini-mode')) document.getElementById('controls-bid').style.display = 'block';
+            }
+            else { 
+                if(!document.body.classList.contains('mini-mode')) {
+                    document.getElementById('controls-actions').style.display = 'block'; 
+                    document.getElementById('action-msg').innerText = "AUCTION IN PROGRESS"; 
+                }
+            }
         } 
         else if (displayStatus === 'Ended') {
             document.getElementById('controls-actions').style.display = 'block';
