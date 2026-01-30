@@ -398,6 +398,7 @@
         try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); }
     }
 
+    // --- DOCK & DRAG ---
     function startAppFlow() {
         document.body.classList.remove('docked-mode');
         if (isAuthenticated) {
@@ -544,6 +545,7 @@
     function closeApp() {
         isMenuOpen = false;
         fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(e=>{});
+        // Reset to docked mode instead of disconnect
         document.body.classList.add('docked-mode');
         document.getElementById('pivot-wrapper').style.display = 'none';
         document.getElementById('link-screen').style.display = 'none';
@@ -556,6 +558,7 @@
         document.getElementById('main-menu').style.opacity = '0'; document.getElementById('main-menu').style.pointerEvents = 'none';
         document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
         document.getElementById('view-' + view).style.display = 'flex';
+        
         if(view === 'browse' || view === 'mylistings' || view === 'hk' || view === 'users') fetchData(view);
         setTimeout(() => document.getElementById('submenu-layer').classList.add('active'), 300);
     }
