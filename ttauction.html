@@ -10,13 +10,12 @@
         :root {
             --primary: #00ffff;
             --primary-dim: rgba(0, 255, 255, 0.1);
-            --bg-dark: rgba(10, 10, 10, 0.98); /* Matched Bus App */
+            --bg-dark: rgba(10, 10, 10, 0.98); 
             --border: 1px solid rgba(0, 255, 255, 0.5);
             --glass: blur(4px);
             --admin-color: #ff0055;
             --warning-red: #ff4444;
             --heart-color: #ff4081;
-            --green: #00e676; /* Added from Bus App */
         }
 
         * { box-sizing: border-box; user-select: none; }
@@ -55,16 +54,15 @@
         .pivot-wrapper { position: relative; width: 450px; height: 600px; transform-style: preserve-3d; transition: transform 0.1s ease-out, width 0.5s ease; display: none; }
         .pivot-wrapper.expanded { width: 950px; height: 700px; }
 
-        /* --- MINI MODE WIDGET (BUS OPS STYLE) --- */
+        /* --- MINI MODE WIDGET (3-LINE LAYOUT) --- */
         body.mini-mode .pivot-wrapper { 
-            width: 400px !important;  /* Wider like Bus Ops */
-            height: 80px !important; /* Fixed Height like Bus Ops */
-            min-height: 80px !important;
+            width: 350px !important; 
+            height: 110px !important; /* Increased height for 3 lines */
+            min-height: 110px !important;
             transform: none !important; margin: 0; position: fixed !important;
-            /* Top/Left set via JS for memory position */
             cursor: move; z-index: 9999;
-            border-radius: 12px; /* Bus Ops Radius */
-            background: var(--bg-dark); /* Bus Ops BG */
+            border-radius: 12px;
+            background: var(--bg-dark);
             border: 1px solid var(--primary);
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
@@ -76,10 +74,7 @@
         body.mini-mode .content-header, 
         body.mini-mode #controls-actions, 
         body.mini-mode #controls-admin,
-        body.mini-mode #detail-title, /* Hiding original elements to use new micro-view structure */
-        body.mini-mode #detail-price,
-        body.mini-mode #detail-live-timer,
-        body.mini-mode #detail-bidder-info { display: none !important; }
+        body.mini-mode #regular-view-container { display: none !important; }
 
         /* Reset Containers for Mini */
         body.mini-mode .submenu-container { 
@@ -91,41 +86,44 @@
         body.mini-mode #view-detail { height: 100% !important; display: flex !important; justify-content: center; }
         body.mini-mode .detail-layout { display: block !important; height: 100% !important; margin: 0 !important; width: 100%; }
         body.mini-mode .detail-right { 
-            overflow: visible !important; padding: 0 !important; border: none !important; background: transparent !important; 
-            display: flex; flex-direction: column; justify-content: center; height: 100%; width: 100%;
+            overflow: visible !important; padding: 5px !important; border: none !important; background: transparent !important; 
+            display: flex; flex-direction: column; justify-content: center; height: 100%; width: 100%; gap: 5px;
         }
 
-        /* --- MICRO VIEW STYLES (FROM BUS OPS) --- */
-        .micro-view-container { display: none; width: 100%; flex-direction: column; gap: 4px; }
+        /* --- MICRO VIEW STYLES (3 Lines) --- */
+        .micro-view-container { display: none; width: 100%; flex-direction: column; justify-content: space-between; height: 100%; padding: 5px 0; }
         body.mini-mode .micro-view-container { display: flex; }
 
         .micro-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .micro-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
         
-        .micro-label { color: #aaaaaa; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-        .micro-val { color: #fff; font-weight: 700; font-size: 1.1em; }
-        .micro-val.highlight { color: var(--primary); }
-        .micro-val.active { color: var(--green); }
-        .micro-val.urgent { color: var(--warning-red); }
+        /* Line 1: Title & Price */
+        .line-1 { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
+        .mini-title { font-size: 1.1em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%; }
+        .mini-price { font-size: 1.2em; font-weight: 800; color: var(--primary); }
 
-        /* Compact Controls */
-        body.mini-mode #controls-bid { 
-            display: flex !important; gap: 4px; margin: 0 !important; align-items: center; 
-        }
-        body.mini-mode #detail-bid-input { 
-            height: 22px; width: 80px; padding: 0 5px; font-size: 0.9em; 
-            border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); border-radius: 3px;
-        }
-        body.mini-mode #controls-bid .action-btn { 
-            height: 22px; padding: 0 8px; font-size: 0.8em; margin: 0; width: auto; 
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; border-radius: 3px;
-        }
-        body.mini-mode #controls-bid .action-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
-        body.mini-mode #bid-status { display:none; } 
+        /* Line 2: Bidder & Timer */
+        .line-2 { color: #ccc; font-size: 0.9em; }
+        .mini-bidder { max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mini-timer { color: var(--warning-red); font-weight: bold; }
 
-        /* Minimize Button (Using Bus App Micro-Btn style) */
+        /* Line 3: Input Area */
+        .line-3 { height: 30px; }
+        .mini-input-group { display: flex; width: 100%; gap: 5px; }
+        .mini-input { 
+            flex: 1; height: 26px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); 
+            color: white; padding: 0 8px; border-radius: 4px; font-family: inherit; font-size: 0.9em;
+        }
+        .mini-btn { 
+            height: 26px; background: var(--primary-dim); border: 1px solid var(--primary); color: white; 
+            padding: 0 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85em; 
+        }
+        .mini-btn:hover { background: var(--primary); color: black; }
+        
+        .mini-warning { width: 100%; text-align: center; color: var(--warning-red); font-weight: bold; letter-spacing: 2px; font-size: 0.9em; padding-top: 5px; }
+
+        /* Minimize Button */
         body.mini-mode #min-btn { 
-            position: absolute; top: 6px; right: 6px; 
+            position: absolute; top: 4px; right: 4px; 
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
             color: #aaa; padding: 0px 6px; border-radius: 3px; 
             font-size: 0.7em; cursor: pointer; text-transform: uppercase; z-index: 10002; 
@@ -315,22 +313,32 @@
                             <div id="debug-id-match"></div>
                         </div>
                         <div class="detail-right">
-                            <button id="min-btn" onclick="toggleMiniMode()">EXPAND</button>
+                            <button id="min-btn" onclick="toggleMiniMode()">[-]</button>
                             
                             <div class="micro-view-container">
-                                <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;">
-                                    <div class="micro-group"><span id="mini-qty" style="color:var(--primary); font-weight:bold;">1x</span> <span class="micro-val" id="mini-title" style="max-width:180px; overflow:hidden; text-overflow:ellipsis;">Item</span></div>
-                                    <div class="micro-group"><span class="micro-val highlight" id="mini-price">$0</span></div>
-                                </div>
-                                <div class="micro-row">
-                                    <div class="micro-group" style="width:40%;"><span class="micro-label">BIDDER:</span> <span class="micro-val" id="mini-bidder" style="font-size:0.9em; color:#ccc;">None</span></div>
-                                    <div class="micro-group" style="flex:1; justify-content:center;"><span class="micro-val urgent" id="mini-timer">00:00</span></div>
-                                    
-                                    <div id="controls-bid" style="display:none;">
-                                        <input type="number" id="detail-bid-input" placeholder="Amount...">
-                                        <button class="action-btn" onclick="placeBid()">CONFIRM</button>
+                                <div class="micro-row line-1">
+                                    <div class="micro-group">
+                                        <span id="mini-qty" style="color:var(--primary); font-weight:bold; font-size:1.1em">1x</span> 
+                                        <span class="mini-title" id="mini-title">Item Name</span>
                                     </div>
-                                    <div id="mini-warning" style="display:none; color:#ff4444; font-size:0.8em; font-weight:bold;">(YOUR ITEM)</div>
+                                    <div class="micro-group"><span class="mini-price" id="mini-price">$0</span></div>
+                                </div>
+                                
+                                <div class="micro-row line-2">
+                                    <div class="micro-group" style="width:50%;">
+                                        <span class="micro-label">TOP:</span> <span class="mini-bidder" id="mini-bidder">None</span>
+                                    </div>
+                                    <div class="micro-group">
+                                        <i class="far fa-clock" style="font-size:0.8em; color:#666;"></i> <span class="mini-timer" id="mini-timer">00:00</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="micro-row line-3">
+                                    <div id="mini-input-container" class="mini-input-group">
+                                        <input type="number" id="mini-bid-input" class="mini-input" placeholder="Amount...">
+                                        <button class="mini-btn" onclick="placeBid()">BID</button>
+                                    </div>
+                                    <div id="mini-warning" class="mini-warning" style="display:none;">(YOUR ITEM)</div>
                                 </div>
                             </div>
 
@@ -725,7 +733,6 @@
         document.getElementById('mini-qty').innerText = (item.quantity > 1) ? `${item.quantity}x` : "";
         document.getElementById('mini-price').innerText = "$" + parseInt(item.price).toLocaleString();
         document.getElementById('mini-bidder').innerText = (item.highBidder === "No Bids" || item.highBidder === "None") ? "None" : item.highBidder;
-        // Timer for mini is updated by loop, but set initial state here
         
         // 3. LOGIC (Seller vs Buyer)
         const isSeller = (String(item.sellerId) === String(userData.id));
@@ -733,15 +740,19 @@
         // Reset Visibility
         document.getElementById('regular-view-container').style.display = document.body.classList.contains('mini-mode') ? 'none' : 'block';
         document.getElementById('controls-bid-reg').style.display = 'none';
-        document.getElementById('controls-bid').style.display = 'none'; // Mini input
-        document.getElementById('mini-warning').style.display = 'none';
+        
+        // MINI MODE ELEMENTS
+        const miniInput = document.getElementById('mini-input-container');
+        const miniWarning = document.getElementById('mini-warning');
+        
         document.getElementById('controls-actions').style.display = 'none';
         
         if (displayStatus === 'Active') {
             if (isSeller) {
                 // SELLER VIEW
                 if(document.body.classList.contains('mini-mode')) {
-                    document.getElementById('mini-warning').style.display = 'block';
+                    miniInput.style.display = 'none';
+                    miniWarning.style.display = 'block';
                 } else {
                     document.getElementById('controls-actions').style.display = 'block'; 
                     document.getElementById('action-msg').innerText = "AUCTION IN PROGRESS";
@@ -749,20 +760,20 @@
             } else {
                 // BUYER VIEW
                 if(document.body.classList.contains('mini-mode')) {
-                    document.getElementById('controls-bid').style.display = 'flex';
+                    miniInput.style.display = 'flex';
+                    miniWarning.style.display = 'none';
                 } else {
                     document.getElementById('controls-bid-reg').style.display = 'block';
                 }
             }
         } 
         
-        // ... (Ended/Completed logic remains same as before, simplified for this snippet) ...
-        // ENDED LOGIC
+        // ENDED/COMPLETED LOGIC
         else if (displayStatus === 'Ended') {
              if(!document.body.classList.contains('mini-mode')) {
                 document.getElementById('controls-actions').style.display = 'block';
                 const btnContainer = document.getElementById('action-buttons');
-                btnContainer.innerHTML = ''; // Clear prev buttons
+                btnContainer.innerHTML = ''; 
                 if (isSeller) {
                     document.getElementById('action-msg').innerText = "AUCTION ENDED - ACTION REQUIRED";
                     const btn = document.createElement('button'); btn.className = 'action-btn';
@@ -773,18 +784,21 @@
                 } else {
                     document.getElementById('action-msg').innerText = "ENDED - WAITING FOR SELLER";
                 }
+             } else {
+                 // In mini mode, just hide inputs
+                 miniInput.style.display = 'none';
+                 miniWarning.style.display = 'block';
+                 miniWarning.innerText = "ENDED";
              }
         }
     }
 
     function updateAllTimers() {
         const now = new Date().getTime();
-        // Grid Timers
         document.querySelectorAll('.card-timer').forEach(el => {
             const end = parseInt(el.getAttribute('data-end'));
             el.innerHTML = `<i class="far fa-clock"></i> ${formatTime(end - now)}`;
         });
-        // Detail Timer
         if(currentDetailId && document.getElementById('view-detail').style.display !== 'none') {
             const item = currentData.find(i => String(i.id) === String(currentDetailId));
             if(item) {
@@ -800,11 +814,9 @@
         return `${h}h ${m}m ${s}s`;
     }
 
-    // --- SHARED ACTIONS ---
     function placeBid() {
-        // Determine which input to use based on mode
         let isMini = document.body.classList.contains('mini-mode');
-        let inputId = isMini ? 'detail-bid-input' : 'detail-bid-input-reg';
+        let inputId = isMini ? 'mini-bid-input' : 'detail-bid-input-reg';
         let amt = document.getElementById(inputId).value;
         
         if(!amt) return;
@@ -817,7 +829,6 @@
             body: JSON.stringify({ action: "bid", id: currentDetailId, amount: amt, bidderName: userData.name, bidderId: userData.id, pin: userData.pin })
         }).then(() => { 
             document.getElementById(inputId).value = "";
-            // Visual feedback
             if(!isMini) {
                 let status = document.getElementById('bid-status');
                 status.innerText = "BID PLACED"; status.style.color = "#2ecc71";
@@ -826,10 +837,9 @@
         });
     }
 
-    // ... [Rest of standard functions: promptAdminAction, submitAdminAction, removeListing, updateStatus, toggleImgInput, previewImg, postAuction] ...
-    // These remain exactly as they were in the previous verified working code block.
+    // ... [Rest of standard functions remain identical] ...
+    // promptAdminAction, closePinModal, submitAdminAction, removeListing, updateStatus, toggleImgInput, previewImg, postAuction
     
-    // Paste standard functions here if you need the full block, otherwise assume they carry over.
     function promptAdminAction(actionType, extraData) { pendingAdminAction = { type: actionType, data: extraData }; document.getElementById('pin-modal').style.display = 'flex'; document.getElementById('admin-pin-input').value = ''; document.getElementById('admin-pin-input').focus(); }
     function closePinModal() { document.getElementById('pin-modal').style.display = 'none'; pendingAdminAction = null; }
     function submitAdminAction() { const pin = document.getElementById('admin-pin-input').value; if (!pin) return; let payload = { requesterId: userData.id, pin: pin }; if (pendingAdminAction.type === 'Delete') { payload.action = 'delete'; payload.id = currentDetailId; } else if (pendingAdminAction.type === 'Completed') { payload.action = 'updateStatus'; payload.id = currentDetailId; payload.newStatus = 'Completed'; } else if (pendingAdminAction.type === 'UserStatus') { payload.action = 'updateUserStatus'; payload.adminId = userData.id; payload.targetId = pendingAdminAction.data.targetId; payload.newStatus = pendingAdminAction.data.newStatus; } fetch(CONST_GOOGLE_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) }).then(() => { closePinModal(); if(pendingAdminAction.type === 'UserStatus') fetchData('users'); else returnToLastView(); }); }
@@ -846,7 +856,6 @@
         // Reset to Center
         wrapper.style.top = ''; wrapper.style.left = ''; wrapper.style.right = ''; wrapper.style.bottom = ''; 
         
-        // Reset display of regular/mini containers
         document.getElementById('regular-view-container').style.display = 'block';
         document.getElementById('view-detail').style.display = 'none';
         
@@ -859,7 +868,6 @@
         const wrapper = document.getElementById('pivot-wrapper');
         document.body.classList.toggle('mini-mode');
         
-        // RE-RENDER DETAIL TO SWITCH LAYOUTS
         if(currentDetailId) {
              const item = currentData.find(i => String(i.id) === String(currentDetailId));
              if(item) renderDetail(item);
