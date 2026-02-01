@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT EXP Manager v1.7 (Active Fix)</title>
+    <title>TT EXP Manager v1.8 (Deep Clean)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
@@ -292,7 +292,6 @@ window.addEventListener('load', () => {
     window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_bonuses", name: "(EXP Manager) Redeem Bonuses" }, "*");
     window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_tokens", name: "(EXP Manager) Redeem Tokens" }, "*");
     
-    // Poll BOTH Inventory AND Identity repeatedly to ensure sync
     setInterval(requestData, 2000); 
     timerInterval = setInterval(updateTimers, 1000);
 });
@@ -319,7 +318,6 @@ window.addEventListener('message', (event) => {
     if (data.menu_choices) {
         try {
             let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
-            // Scan for Identity Tab
             let idHtml = menu.find(m => m[0] === "Identity")?.[1];
             if (idHtml) {
                 isSynced = true;
@@ -331,15 +329,30 @@ window.addEventListener('message', (event) => {
     }
 });
 
+// Helper to decode HTML entities like &#37; to %
+function decodeEntities(encodedString) {
+    var textArea = document.createElement('textarea');
+    textArea.innerHTML = encodedString;
+    return textArea.value;
+}
+
 function parseActiveBuffs(html) {
-    let decoded = html.replace(/&#(\d+);/g, (m, d) => String.fromCharCode(d));
-    let lines = decoded.split(/<br\s*\/?>/i);
+    // 1. Decode entities (Turns &#37; -> %)
+    let cleanedHtml = decodeEntities(html);
+    // 2. Strip tags
+    let rawText = cleanedHtml.replace(/<[^>]*>/g, "\n");
+    let lines = rawText.split("\n");
+    
     let foundBuffs = [];
     
+    // Strict matching loop
     Object.values(BOOSTS).forEach(boostName => {
-        const escapedName = boostName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // Robust Regex: Matches Name followed by any whitespace, then (Expires...)
-        const regex = new RegExp(escapedName + ".*?\\((Expires.*?)\\)", "i");
+        // Escape the boost name for regex usage
+        const safeName = boostName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // Match:  "Name (Expires ...)"
+        // Note: The whitespace between Name and (Expires) might vary
+        const regex = new RegExp(safeName + ".*?\\((Expires.*?)\\)", "i");
         
         lines.forEach(line => {
             let match = line.match(regex);
@@ -347,7 +360,10 @@ function parseActiveBuffs(html) {
                 let expiryText = match[1];
                 let endTime = null;
                 
+                // Expiry Logic A: "Expires in 01h 41m"
                 let timeMatch = expiryText.match(/Expires in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/i);
+                
+                // Expiry Logic B: "Expires February 03rd"
                 let dateMatch = expiryText.match(/Expires\s+([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?)/i);
 
                 if (timeMatch) {
@@ -387,14 +403,15 @@ function updateTimers() {
     const alertBox = document.getElementById('global-alert');
     const alertText = document.getElementById('alert-text');
     
-    // Always show container if buffs exist
-    if (activeBuffs.length === 0 && pendingBuffs.length === 0) {
+    // Always force display if we have ANY buffs found
+    if (activeBuffs.length > 0 || pendingBuffs.length > 0) {
+        container.style.display = 'block';
+    } else {
         container.style.display = 'none';
         alertBox.style.display = 'none';
         return;
     }
 
-    container.style.display = 'block';
     list.innerHTML = "";
     
     let now = Date.now();
