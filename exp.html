@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT EXP Manager v2.6 (Compact Alert)</title>
+    <title>TT EXP Manager v2.7 (Persistence)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
@@ -17,7 +17,6 @@
             --border: 1px solid rgba(124, 77, 255, 0.4);
             --green: #00e676;
             --red: #ff5252;
-            /* Slightly more transparent warning bg for less invasive feel */
             --warning-bg: rgba(255, 23, 68, 0.85);
         }
 
@@ -31,12 +30,9 @@
             user-select: none;
         }
 
-        /* --- SYNC BLOCKER OVERLAY --- */
         #sync-blocker {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 10, 15, 0.98);
-            z-index: 2000;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.98); z-index: 2000;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             text-align: center; backdrop-filter: blur(5px);
@@ -47,30 +43,23 @@
         .sync-msg b { color: #fff; }
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
 
-        /* --- GLOBAL ALERT (COMPACT) --- */
         #global-alert {
             position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
             background: var(--warning-bg);
-            /* Thinner border and tighter padding */
             border: 1px solid rgba(255,255,255,0.8);
-            padding: 5px 15px;
-            border-radius: 4px; z-index: 9999;
-            /* Softer initial shadow */
+            padding: 5px 15px; border-radius: 4px; z-index: 9999;
             box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
             display: none; flex-direction: column; align-items: center; text-align: center;
             animation: pulseAlert 2s infinite; pointer-events: none;
         }
-        /* Much subtler pulse animation */
         @keyframes pulseAlert {
             0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px rgba(255,0,0,0.5); }
             50% { transform: translateX(-50%) scale(1.02); box-shadow: 0 0 20px rgba(255,0,0,0.7); }
             100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px rgba(255,0,0,0.5); }
         }
-        /* Smaller fonts */
         .alert-title { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 0.95em; text-transform: uppercase; color: #fff; text-shadow: 1px 1px 0px #000; margin-bottom: 0px; letter-spacing: 1px; }
         .alert-msg { font-size: 0.8em; font-weight: 600; color: #fff; text-shadow: 1px 1px 0px #000; }
 
-        /* MINIMIZE BUTTON */
         #minimize-icon {
             position: absolute; top: 75%; right: 0; width: 30px; height: 40px;
             background: var(--primary); border-radius: 4px 0 0 4px;
@@ -81,7 +70,6 @@
         #minimize-icon:hover { width: 40px; }
         #minimize-arrow { font-size: 1.2em; font-weight: bold; color: white; }
 
-        /* MAIN APP */
         #exp-app {
             position: absolute; top: 100px; left: 100px;
             width: 360px; background: var(--bg-glass);
@@ -280,19 +268,26 @@ const TOKENS = {
 
 let currentTab = 'bonuses';
 let inventory = {};
-let activeBuffs = {}; // Keyed Object for Stability
+let activeBuffs = {}; 
 let pendingBuffs = []; 
 let timerInterval = null;
-const WARNING_THRESHOLD_MS = 1 * 60 * 1000; // 1 Minute Alert
+const WARNING_THRESHOLD_MS = 1 * 60 * 1000; 
 let isSynced = false;
+let savedChecks = [];
 
 window.addEventListener('load', () => {
+    // Restore Position
     const pos = JSON.parse(localStorage.getItem('exp_mgr_pos'));
     const app = document.getElementById('exp-app');
     if (pos) {
         app.style.left = pos.left + 'px';
         app.style.top = pos.top + 'px';
     }
+
+    // Restore Checks
+    try {
+        savedChecks = JSON.parse(localStorage.getItem('exp_mgr_checks')) || [];
+    } catch(e) { savedChecks = []; }
     
     window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_bonuses", name: "(EXP Manager) Redeem Bonuses" }, "*");
     window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_tokens", name: "(EXP Manager) Redeem Tokens" }, "*");
@@ -355,7 +350,6 @@ function parseActiveBuffs(html) {
                 if (expiryMatch) {
                     let expiryText = expiryMatch[1]; 
                     
-                    // ANTI-BOUNCE: Only update if text actually changes
                     if (activeBuffs[boostName]) {
                         if (activeBuffs[boostName].lastRaw === expiryText) {
                             foundThisScan.push(boostName);
@@ -364,17 +358,13 @@ function parseActiveBuffs(html) {
                     }
 
                     let endTime = null;
-                    
-                    // Logic A: "in 01h 41m"
                     let timeMatch = expiryText.match(/in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/i);
-                    // Logic B: "February 03rd"
                     let dateMatch = expiryText.match(/([A-Za-z]+\s+\d{1,2})/i); 
 
                     if (timeMatch) {
                         let days = parseInt(timeMatch[1] || 0);
                         let hours = parseInt(timeMatch[2] || 0);
                         let mins = parseInt(timeMatch[3] || 0);
-                        // Add 59 seconds buffer because "17m" usually means 17m 59s in games
                         let msRemaining = ((days * 24 * 60) + (hours * 60) + mins) * 60000 + 59000;
                         endTime = Date.now() + msRemaining;
                     } 
@@ -432,7 +422,6 @@ function updateTimers() {
     let now = Date.now();
     let expiringItems = [];
 
-    // Filter expired
     displayBuffs = displayBuffs.filter(b => b.endTime > now || b.timestamp); 
 
     displayBuffs.forEach(buff => {
@@ -479,6 +468,16 @@ function updateTimers() {
     }
 }
 
+// --- CHECKBOX PERSISTENCE LOGIC ---
+function toggleCheck(id, isChecked) {
+    if (isChecked) {
+        if (!savedChecks.includes(id)) savedChecks.push(id);
+    } else {
+        savedChecks = savedChecks.filter(item => item !== id);
+    }
+    localStorage.setItem('exp_mgr_checks', JSON.stringify(savedChecks));
+}
+
 function renderLists() {
     renderCategory('bonuses', BOOSTS, 'list-bonuses');
     renderCategory('tokens', TOKENS, 'list-tokens');
@@ -487,9 +486,8 @@ function renderLists() {
 function renderCategory(type, map, elementId) {
     const container = document.getElementById(elementId);
     let hasItems = false;
-    let checkedItems = [];
-    container.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => checkedItems.push(cb.value));
-
+    
+    // Instead of reading DOM, rely on savedChecks for "checked" state
     container.innerHTML = "";
 
     for (let [id, label] of Object.entries(map)) {
@@ -497,7 +495,7 @@ function renderCategory(type, map, elementId) {
             let amt = inventory[id].amount || inventory[id];
             if (amt > 0) {
                 hasItems = true;
-                let isChecked = checkedItems.includes(id) ? "checked" : "";
+                let isChecked = savedChecks.includes(id) ? "checked" : "";
                 let rowClass = isChecked ? "item-row selected" : "item-row";
                 
                 let div = document.createElement('div');
@@ -506,12 +504,13 @@ function renderCategory(type, map, elementId) {
                     if(e.target.type !== 'checkbox') {
                         let cb = div.querySelector('input'); 
                         cb.checked = !cb.checked; 
+                        toggleCheck(id, cb.checked);
                         toggleRowStyle(div, cb.checked);
                     }
                 };
 
                 div.innerHTML = `
-                    <input type="checkbox" class="item-cb" value="${id}" ${isChecked} onchange="toggleRowStyle(this.parentNode, this.checked)">
+                    <input type="checkbox" class="item-cb" value="${id}" ${isChecked} onchange="toggleCheck('${id}', this.checked); toggleRowStyle(this.parentNode, this.checked)">
                     <div class="item-info">
                         <span class="item-name">${label}</span>
                         <span class="item-qty">Owned: <b>${amt.toLocaleString()}</b></span>
@@ -543,10 +542,13 @@ function switchTab(tab) {
 function toggleSelectAll() {
     const container = document.getElementById(`list-${currentTab}`);
     const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    
     let allChecked = true;
     checkboxes.forEach(cb => { if(!cb.checked) allChecked = false; });
+    
     checkboxes.forEach(cb => {
         cb.checked = !allChecked;
+        toggleCheck(cb.value, cb.checked);
         toggleRowStyle(cb.parentNode, cb.checked);
     });
 }
