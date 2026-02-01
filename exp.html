@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT EXP Manager v1.6 (Robust Parse)</title>
+    <title>TT EXP Manager v1.7 (Active Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
@@ -126,7 +126,7 @@
             border: 1px dashed var(--green); border-radius: 4px;
             display: none;
         }
-        .timer-header { font-size: 0.75em; color: var(--green); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+        .timer-header { font-size: 0.75em; color: var(--green); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; }
         
         .active-timer-row {
             display: flex; flex-direction: column; 
@@ -213,7 +213,10 @@
 
         <div id="tab-bonuses" class="tab-content active">
             <div id="active-timers-container">
-                <div class="timer-header">ACTIVE BUFFS</div>
+                <div class="timer-header">
+                    <span>ACTIVE BUFFS</span>
+                    <span id="timer-status" style="font-size:0.8em; opacity:0.7;">(WAITING)</span>
+                </div>
                 <div id="active-timers-list"></div>
             </div>
             <div id="list-bonuses">
@@ -289,6 +292,7 @@ window.addEventListener('load', () => {
     window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_bonuses", name: "(EXP Manager) Redeem Bonuses" }, "*");
     window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_tokens", name: "(EXP Manager) Redeem Tokens" }, "*");
     
+    // Poll BOTH Inventory AND Identity repeatedly to ensure sync
     setInterval(requestData, 2000); 
     timerInterval = setInterval(updateTimers, 1000);
 });
@@ -315,10 +319,12 @@ window.addEventListener('message', (event) => {
     if (data.menu_choices) {
         try {
             let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
+            // Scan for Identity Tab
             let idHtml = menu.find(m => m[0] === "Identity")?.[1];
             if (idHtml) {
                 isSynced = true;
                 document.getElementById('sync-blocker').style.display = 'none';
+                document.getElementById('timer-status').innerText = "(SCANNING...)";
                 parseActiveBuffs(idHtml);
             }
         } catch(e) {}
@@ -330,26 +336,18 @@ function parseActiveBuffs(html) {
     let lines = decoded.split(/<br\s*\/?>/i);
     let foundBuffs = [];
     
-    // Iterate over strict whitelist of Boosts
     Object.values(BOOSTS).forEach(boostName => {
-        
-        // Escape special chars for regex
         const escapedName = boostName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        
-        // Match Pattern: "Boost Name (Expires ...)"
-        const regex = new RegExp(escapedName + "\\s*\\((Expires.*?)\\)", "i");
+        // Robust Regex: Matches Name followed by any whitespace, then (Expires...)
+        const regex = new RegExp(escapedName + ".*?\\((Expires.*?)\\)", "i");
         
         lines.forEach(line => {
             let match = line.match(regex);
             if (match) {
-                let expiryText = match[1]; // e.g. "Expires in 01h 41m" or "Expires February 03rd"
-                
+                let expiryText = match[1];
                 let endTime = null;
                 
-                // Case A: Relative Time "Expires in XXh YYm"
                 let timeMatch = expiryText.match(/Expires in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/i);
-                
-                // Case B: Date "Expires February 03rd"
                 let dateMatch = expiryText.match(/Expires\s+([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?)/i);
 
                 if (timeMatch) {
@@ -360,9 +358,8 @@ function parseActiveBuffs(html) {
                     endTime = Date.now() + msRemaining;
                 } 
                 else if (dateMatch) {
-                    let dateStr = dateMatch[1].replace(/(st|nd|rd|th)/g, ""); // Remove ordinal
+                    let dateStr = dateMatch[1].replace(/(st|nd|rd|th)/g, ""); 
                     let targetDate = new Date(dateStr + ", " + new Date().getFullYear());
-                    // Rollover check
                     if (targetDate < new Date()) {
                         targetDate.setFullYear(targetDate.getFullYear() + 1);
                     }
@@ -376,11 +373,10 @@ function parseActiveBuffs(html) {
         });
     });
 
-    // Merge logic: If we found buffs, update. If not, don't clear pending unless synced?
-    // User wants it to show. So we just update state.
     if (foundBuffs.length > 0) {
         activeBuffs = foundBuffs;
         pendingBuffs = []; 
+        document.getElementById('timer-status').innerText = "(UPDATED)";
         updateTimers();
     }
 }
