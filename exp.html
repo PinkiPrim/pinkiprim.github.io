@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT EXP Manager v2.3 (Line Parser)</title>
+    <title>TT EXP Manager v2.4 (Stable Timer)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
@@ -210,7 +210,7 @@
             <div id="active-timers-container">
                 <div class="timer-header">
                     <span>ACTIVE BUFFS</span>
-                    <span id="timer-status" style="font-size:0.8em; opacity:0.7;">(WAITING...)</span>
+                    <span id="timer-status" style="font-size:0.8em; opacity:0.7;">(WAITING)</span>
                 </div>
                 <div id="active-timers-list">
                     <div style="font-size:0.8em; color:#666; text-align:center; padding:5px;">Scanning...</div>
@@ -273,7 +273,7 @@ const TOKENS = {
 
 let currentTab = 'bonuses';
 let inventory = {};
-let activeBuffs = []; 
+let activeBuffs = {}; // Changed to Object for Keyed Lookup
 let pendingBuffs = []; 
 let timerInterval = null;
 const WARNING_THRESHOLD_MS = 10 * 60 * 1000; 
@@ -327,7 +327,6 @@ window.addEventListener('message', (event) => {
     }
 });
 
-// Helper to decode HTML entities
 function decodeEntities(encodedString) {
     var textArea = document.createElement('textarea');
     textArea.innerHTML = encodedString;
@@ -336,57 +335,79 @@ function decodeEntities(encodedString) {
 
 function parseActiveBuffs(html) {
     let decoded = decodeEntities(html);
-    
-    // Split by <br> tags (Identity tabs use them for line breaks)
     let lines = decoded.split(/<br\s*\/?>/i);
     
-    let foundBuffs = [];
-    
+    // We do NOT clear activeBuffs here anymore. We update them in place to preserve stability.
+    let foundThisScan = [];
+
     lines.forEach(rawLine => {
-        // Clean each line: strip tags, trim whitespace
         let cleanLine = rawLine.replace(/<[^>]*>/g, "").trim();
         
-        // Loop through our known BOOSTS list to see if this line contains one
         Object.values(BOOSTS).forEach(boostName => {
             if (cleanLine.includes(boostName)) {
-                // We found a line with a boost name!
-                // Now parse the expiry from THIS SPECIFIC LINE.
-                let endTime = null;
+                let expiryMatch = cleanLine.match(/\(Expires (.*?)\)/);
                 
-                // Expiry Logic A: "Expires in 01h 41m"
-                let timeMatch = cleanLine.match(/Expires in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/i);
-                
-                // Expiry Logic B: "Expires February 03rd"
-                let dateMatch = cleanLine.match(/Expires\s+([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?)/i);
-
-                if (timeMatch) {
-                    let days = parseInt(timeMatch[1] || 0);
-                    let hours = parseInt(timeMatch[2] || 0);
-                    let mins = parseInt(timeMatch[3] || 0);
-                    let msRemaining = ((days * 24 * 60) + (hours * 60) + mins) * 60000;
-                    endTime = Date.now() + msRemaining;
-                } 
-                else if (dateMatch) {
-                    // Remove ordinal suffixes (st, nd, rd, th) before parsing
-                    let dateStr = dateMatch[1].replace(/(st|nd|rd|th)/g, ""); 
-                    let targetDate = new Date(dateStr + ", " + new Date().getFullYear());
-                    // Rollover check if date is in past
-                    if (targetDate < new Date()) {
-                        targetDate.setFullYear(targetDate.getFullYear() + 1);
+                if (expiryMatch) {
+                    let expiryText = expiryMatch[1]; 
+                    
+                    // Check if we already have this buff
+                    if (activeBuffs[boostName]) {
+                        // Anti-Bounce Logic:
+                        // If the text hasn't changed (e.g. still "in 00h 18m"), IGNORE IT.
+                        // We assume our internal clock is more accurate than a stale UI string.
+                        if (activeBuffs[boostName].lastRaw === expiryText) {
+                            foundThisScan.push(boostName);
+                            return; 
+                        }
                     }
-                    endTime = targetDate.getTime();
-                }
 
-                if (endTime) {
-                    foundBuffs.push({ name: boostName, endTime: endTime });
+                    let endTime = null;
+                    
+                    // Expiry Logic
+                    let timeMatch = expiryText.match(/in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/i);
+                    let dateMatch = expiryText.match(/([A-Za-z]+\s+\d{1,2})/i); // Simplified Date Regex
+
+                    if (timeMatch) {
+                        let days = parseInt(timeMatch[1] || 0);
+                        let hours = parseInt(timeMatch[2] || 0);
+                        let mins = parseInt(timeMatch[3] || 0);
+                        let msRemaining = ((days * 24 * 60) + (hours * 60) + mins) * 60000;
+                        endTime = Date.now() + msRemaining;
+                    } 
+                    else if (dateMatch) {
+                        let dateStr = dateMatch[1].replace(/(st|nd|rd|th)/g, ""); 
+                        let targetDate = new Date(dateStr + ", " + new Date().getFullYear());
+                        if (targetDate < new Date()) { targetDate.setFullYear(targetDate.getFullYear() + 1); }
+                        endTime = targetDate.getTime();
+                    }
+
+                    if (endTime) {
+                        activeBuffs[boostName] = { 
+                            name: boostName, 
+                            endTime: endTime,
+                            lastRaw: expiryText // Store the text to compare next time
+                        };
+                        foundThisScan.push(boostName);
+                    }
                 }
             }
         });
     });
 
-    activeBuffs = foundBuffs;
-    pendingBuffs = []; 
-    document.getElementById('timer-status').innerText = "(UPDATED)";
+    // Clean up buffs that are no longer in the Identity list (e.g., expired)
+    // Only if we actually found *something* to verify the tab is open/valid
+    if (lines.length > 5) { // Simple check to ensure we parsed a valid identity block
+        for (let key in activeBuffs) {
+            if (!foundThisScan.includes(key)) {
+                delete activeBuffs[key];
+            }
+        }
+    }
+
+    if (Object.keys(activeBuffs).length > 0) {
+        document.getElementById('timer-status').innerText = "(UPDATED)";
+        pendingBuffs = []; 
+    }
     updateTimers();
 }
 
@@ -397,8 +418,8 @@ function updateTimers() {
     
     list.innerHTML = "";
     
-    // Combine active and pending
-    let displayBuffs = [...activeBuffs, ...pendingBuffs];
+    let buffArray = Object.values(activeBuffs);
+    let displayBuffs = [...buffArray, ...pendingBuffs];
     
     if (displayBuffs.length === 0) {
         list.innerHTML = `<div style="font-size:0.8em; color:#666; text-align:center; padding:5px;">No active bonuses found.</div>`;
@@ -409,7 +430,6 @@ function updateTimers() {
     let now = Date.now();
     let expiringItems = [];
 
-    // Filter out expired
     displayBuffs = displayBuffs.filter(b => b.endTime > now || b.timestamp); 
 
     displayBuffs.forEach(buff => {
