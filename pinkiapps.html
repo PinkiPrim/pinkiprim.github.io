@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiApps v6.0</title>
+    <title>PinkiApps v6.1</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
 
@@ -13,8 +13,11 @@
             --text-main: #e0e0e0;
             --text-dim: #9e9e9e;
             --heart-color: #ff4081; /* Pinki Pink */
-            --accent-job: #00e5ff;  /* Cyan for Jobs */
-            --accent-util: #b388ff; /* Purple for Utils */
+            
+            /* Scrollbar Colors */
+            --sb-track: #0a0a0a;
+            --sb-thumb: #333;
+            --sb-thumb-hover: #555;
         }
 
         /* --- TRANSPARENCY FIX --- */
@@ -44,7 +47,7 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
         }
 
         h1 {
@@ -80,6 +83,42 @@
             flex: 1;
             height: 1px;
             background: rgba(255,255,255,0.1);
+        }
+
+        /* --- SCROLL CONTAINER (JOB APPS) --- */
+        /* Limits height to approx 3 rows + gap */
+        .scroll-container {
+            max-height: 175px; 
+            overflow-y: auto;
+            padding-right: 5px; /* Space for scrollbar */
+            margin-bottom: 10px;
+        }
+
+        /* --- SLICK BLACK SCROLLBAR --- */
+        /* Firefox */
+        .scroll-container {
+            scrollbar-width: thin;
+            scrollbar-color: var(--sb-thumb) var(--sb-track);
+        }
+
+        /* Chrome/Safari/Webkit */
+        .scroll-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scroll-container::-webkit-scrollbar-track {
+            background: var(--sb-track);
+            border-radius: 4px;
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: var(--sb-thumb);
+            border-radius: 4px;
+            border: 1px solid var(--sb-track);
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb:hover {
+            background: var(--sb-thumb-hover);
         }
 
         /* --- GRIDS --- */
@@ -149,7 +188,7 @@
 
         /* --- SUPPORT FOOTER --- */
         .support-footer {
-            margin-top: 10px;
+            margin-top: 5px;
             padding-top: 15px;
             border-top: 1px solid rgba(255,255,255,0.1);
         }
@@ -190,63 +229,66 @@
         <h1>PinkiApps</h1>
 
         <div class="section-label">Job Apps</div>
-        <div class="grid-wrapper">
-            
-            <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
-                <span class="icon">🔥</span> Fire Ops
-            </a>
+        
+        <div class="scroll-container">
+            <div class="grid-wrapper">
+                
+                <a href="https://pinkiprim.github.io/fire-app/index.html" class="nav-btn fire">
+                    <span class="icon">🔥</span> Fire Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
-                <span class="icon">🔧</span> Mechanic
-            </a>
+                <a href="https://pinkiprim.github.io/mechanic-app/mechanic.html" class="nav-btn mech">
+                    <span class="icon">🔧</span> Mechanic
+                </a>
 
-            <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
-                <span class="icon">🚑</span> EMS Ops
-            </a>
+                <a href="https://pinkiprim.github.io/ems-app/ems.html" class="nav-btn ems">
+                    <span class="icon">🚑</span> EMS Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
-                <span class="icon">✈️</span> Cargo Ops
-            </a>
+                <a href="https://pinkiprim.github.io/cargo-app/cargo.html" class="nav-btn cargo">
+                    <span class="icon">✈️</span> Cargo Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/hunter-app/hunter.html" class="nav-btn hunter">
-                <span class="icon">🦌</span> Hunter Ops
-            </a>
+                <a href="https://pinkiprim.github.io/hunter-app/hunter.html" class="nav-btn hunter">
+                    <span class="icon">🦌</span> Hunter Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/helipilot-app/helipilot.html" class="nav-btn heli">
-                <span class="icon">🚁</span> Heli Ops
-            </a>
+                <a href="https://pinkiprim.github.io/helipilot-app/helipilot.html" class="nav-btn heli">
+                    <span class="icon">🚁</span> Heli Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/train-app/train.html" class="nav-btn train">
-                <span class="icon">🚂</span> Train Ops
-            </a>
+                <a href="https://pinkiprim.github.io/train-app/train.html" class="nav-btn train">
+                    <span class="icon">🚂</span> Train Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/bus-app/bus.html" class="nav-btn bus">
-                <span class="icon">🚌</span> Bus Ops
-            </a>
+                <a href="https://pinkiprim.github.io/bus-app/bus.html" class="nav-btn bus">
+                    <span class="icon">🚌</span> Bus Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/airline-app/airline.html" class="nav-btn airline">
-                <span class="icon">✈️</span> Airline Ops
-            </a>
+                <a href="https://pinkiprim.github.io/airline-app/airline.html" class="nav-btn airline">
+                    <span class="icon">✈️</span> Airline Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/garbage-app/garbage.html" class="nav-btn garbage">
-                <span class="icon">🗑️</span> Garbage Ops
-            </a>
+                <a href="https://pinkiprim.github.io/garbage-app/garbage.html" class="nav-btn garbage">
+                    <span class="icon">🗑️</span> Garbage Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/postop-app/postop.html" class="nav-btn postop">
-                <span class="icon">📦</span> PostOP Ops
-            </a>
+                <a href="https://pinkiprim.github.io/postop-app/postop.html" class="nav-btn postop">
+                    <span class="icon">📦</span> PostOP Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/rts-app/rts.html" class="nav-btn rts">
-                <span class="icon">🚛</span> R.T.S. Ops
-            </a>
+                <a href="https://pinkiprim.github.io/rts-app/rts.html" class="nav-btn rts">
+                    <span class="icon">🚛</span> R.T.S. Ops
+                </a>
 
-            <a href="https://pinkiprim.github.io/cabbie-app/cabbie.html" class="nav-btn cabbie">
-                <span class="icon">🚕</span> Cabbie Ops
-            </a>
+                <a href="https://pinkiprim.github.io/cabbie-app/cabbie.html" class="nav-btn cabbie">
+                    <span class="icon">🚕</span> Cabbie Ops
+                </a>
 
+            </div>
         </div>
 
-        <div class="section-label" style="margin-top: 10px;">Other Apps</div>
+        <div class="section-label" style="margin-top: 5px;">Other Apps</div>
         <div class="grid-wrapper">
             
             <a href="https://pinkiprim.github.io/exp.html" class="nav-btn exp">
