@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT EXP Manager v1.8 (Deep Clean)</title>
+    <title>TT EXP Manager v1.9 (Parsing Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
@@ -337,34 +337,34 @@ function decodeEntities(encodedString) {
 }
 
 function parseActiveBuffs(html) {
-    // 1. Decode entities (Turns &#37; -> %)
-    let cleanedHtml = decodeEntities(html);
-    // 2. Strip tags
-    let rawText = cleanedHtml.replace(/<[^>]*>/g, "\n");
-    let lines = rawText.split("\n");
+    // 1. Clean HTML: Entities -> Chars -> Strip Tags
+    let decoded = decodeEntities(html);
+    let rawText = decoded.replace(/<[^>]*>/g, " "); // Replace tags with space to avoid merging words
     
     let foundBuffs = [];
     
     // Strict matching loop
     Object.values(BOOSTS).forEach(boostName => {
-        // Escape the boost name for regex usage
-        const safeName = boostName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Find index of Boost Name
+        const nameIndex = rawText.indexOf(boostName);
         
-        // Match:  "Name (Expires ...)"
-        // Note: The whitespace between Name and (Expires) might vary
-        const regex = new RegExp(safeName + ".*?\\((Expires.*?)\\)", "i");
-        
-        lines.forEach(line => {
-            let match = line.match(regex);
-            if (match) {
-                let expiryText = match[1];
+        if (nameIndex !== -1) {
+            // Found the boost name! Now look forward from there for "(Expires ...)"
+            // We take a substring starting from the name to ensure we find the expiry closest to it
+            let remainingText = rawText.substring(nameIndex);
+            
+            // Regex to find the very next expiry block
+            let expiryMatch = remainingText.match(/\(Expires (.*?)\)/);
+            
+            if (expiryMatch) {
+                let expiryText = expiryMatch[1]; // "in 01h 41m" OR "February 03rd"
                 let endTime = null;
                 
-                // Expiry Logic A: "Expires in 01h 41m"
-                let timeMatch = expiryText.match(/Expires in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/i);
+                // Expiry Logic A: "in 01h 41m"
+                let timeMatch = expiryText.match(/in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/i);
                 
-                // Expiry Logic B: "Expires February 03rd"
-                let dateMatch = expiryText.match(/Expires\s+([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?)/i);
+                // Expiry Logic B: "February 03rd" (Month Day)
+                let dateMatch = expiryText.match(/([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?)/i);
 
                 if (timeMatch) {
                     let days = parseInt(timeMatch[1] || 0);
@@ -376,6 +376,7 @@ function parseActiveBuffs(html) {
                 else if (dateMatch) {
                     let dateStr = dateMatch[1].replace(/(st|nd|rd|th)/g, ""); 
                     let targetDate = new Date(dateStr + ", " + new Date().getFullYear());
+                    // Rollover check
                     if (targetDate < new Date()) {
                         targetDate.setFullYear(targetDate.getFullYear() + 1);
                     }
@@ -386,7 +387,7 @@ function parseActiveBuffs(html) {
                     foundBuffs.push({ name: boostName, endTime: endTime });
                 }
             }
-        });
+        }
     });
 
     if (foundBuffs.length > 0) {
@@ -403,7 +404,7 @@ function updateTimers() {
     const alertBox = document.getElementById('global-alert');
     const alertText = document.getElementById('alert-text');
     
-    // Always force display if we have ANY buffs found
+    // Always force display if buffs exist
     if (activeBuffs.length > 0 || pendingBuffs.length > 0) {
         container.style.display = 'block';
     } else {
