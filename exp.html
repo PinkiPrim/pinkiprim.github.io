@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT EXP Manager v1.9 (Parsing Fix)</title>
+    <title>TT EXP Manager v2.0 (Full Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
@@ -31,10 +31,8 @@
         }
 
         #sync-blocker {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 10, 15, 0.98);
-            z-index: 2000;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.98); z-index: 2000;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             text-align: center; backdrop-filter: blur(5px);
@@ -46,17 +44,13 @@
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
 
         #global-alert {
-            position: absolute;
-            top: 10%; left: 50%;
+            position: absolute; top: 10%; left: 50%;
             transform: translateX(-50%);
             background: var(--warning-bg);
             border: 2px solid #fff;
             box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
-            padding: 15px 30px;
-            border-radius: 8px;
-            z-index: 9999;
-            display: none;
-            flex-direction: column; align-items: center; text-align: center;
+            padding: 15px 30px; border-radius: 8px; z-index: 9999;
+            display: none; flex-direction: column; align-items: center; text-align: center;
             animation: pulseAlert 2s infinite; pointer-events: none;
         }
         @keyframes pulseAlert {
@@ -74,8 +68,7 @@
             border-radius: 4px 0 0 4px;
             display: none; align-items: center; justify-content: center;
             cursor: pointer; box-shadow: -2px 0 10px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2); border-right: none;
-            z-index: 1000;
+            border: 1px solid rgba(255,255,255,0.2); border-right: none; z-index: 1000;
         }
         #minimize-icon:hover { width: 40px; }
         #minimize-arrow { font-size: 1.2em; font-weight: bold; color: white; }
@@ -199,7 +192,7 @@
             </div>
         </div>
 
-        <header id="drag-handle">
+        <header id="drag-handle" onmousedown="dragStart(event)">
             <div class="app-title">EXP MANAGER</div>
             <div class="header-controls">
                 <button onclick="minimizeApp()">_</button>
@@ -329,7 +322,7 @@ window.addEventListener('message', (event) => {
     }
 });
 
-// Helper to decode HTML entities like &#37; to %
+// Helper to decode HTML entities
 function decodeEntities(encodedString) {
     var textArea = document.createElement('textarea');
     textArea.innerHTML = encodedString;
@@ -337,27 +330,30 @@ function decodeEntities(encodedString) {
 }
 
 function parseActiveBuffs(html) {
-    // 1. Clean HTML: Entities -> Chars -> Strip Tags
+    // Clean text: Decode entities -> Strip tags -> Unified string
     let decoded = decodeEntities(html);
-    let rawText = decoded.replace(/<[^>]*>/g, " "); // Replace tags with space to avoid merging words
+    let rawText = decoded.replace(/<[^>]*>/g, " "); 
+    // Normalize spaces (convert multiple spaces/newlines to single space)
+    rawText = rawText.replace(/\s+/g, " ");
     
     let foundBuffs = [];
     
-    // Strict matching loop
     Object.values(BOOSTS).forEach(boostName => {
-        // Find index of Boost Name
+        // Find if the boost name exists in the text
+        // We use a simple indexOf for speed and accuracy
         const nameIndex = rawText.indexOf(boostName);
         
         if (nameIndex !== -1) {
-            // Found the boost name! Now look forward from there for "(Expires ...)"
-            // We take a substring starting from the name to ensure we find the expiry closest to it
+            // Found the boost name. Now look FORWARD from this point for "(Expires ...)"
+            // This handles cases where Expires is on the next line or separated by tags.
             let remainingText = rawText.substring(nameIndex);
             
-            // Regex to find the very next expiry block
+            // Regex to find the very next expiry parenthesis pattern
+            // Matches: (Expires [anything until close paren])
             let expiryMatch = remainingText.match(/\(Expires (.*?)\)/);
             
             if (expiryMatch) {
-                let expiryText = expiryMatch[1]; // "in 01h 41m" OR "February 03rd"
+                let expiryText = expiryMatch[1]; // e.g. "in 01h 41m" or "February 03rd"
                 let endTime = null;
                 
                 // Expiry Logic A: "in 01h 41m"
@@ -376,7 +372,7 @@ function parseActiveBuffs(html) {
                 else if (dateMatch) {
                     let dateStr = dateMatch[1].replace(/(st|nd|rd|th)/g, ""); 
                     let targetDate = new Date(dateStr + ", " + new Date().getFullYear());
-                    // Rollover check
+                    // Rollover check if date is in past
                     if (targetDate < new Date()) {
                         targetDate.setFullYear(targetDate.getFullYear() + 1);
                     }
@@ -404,7 +400,7 @@ function updateTimers() {
     const alertBox = document.getElementById('global-alert');
     const alertText = document.getElementById('alert-text');
     
-    // Always force display if buffs exist
+    // FORCE DISPLAY if we have active buffs
     if (activeBuffs.length > 0 || pendingBuffs.length > 0) {
         container.style.display = 'block';
     } else {
@@ -456,6 +452,7 @@ function updateTimers() {
     }
 }
 
+// --- RENDER INVENTORY ---
 function renderLists() {
     renderCategory('bonuses', BOOSTS, 'list-bonuses');
     renderCategory('tokens', TOKENS, 'list-tokens');
@@ -555,6 +552,7 @@ function redeemCategory(cat) {
     });
 }
 
+// --- MINIMIZE / DRAG ---
 function minimizeApp() {
     document.getElementById('exp-app').classList.add('hidden');
     document.getElementById('minimize-icon').style.display = 'flex';
@@ -565,36 +563,25 @@ document.getElementById('minimize-icon').addEventListener('click', () => {
     document.getElementById('exp-app').classList.remove('hidden');
 });
 
-const elm = document.getElementById("exp-app");
-const header = document.getElementById("drag-handle");
-let isDragging = false, startX, startY, initLeft, initTop;
-
-header.addEventListener("mousedown", (e) => {
-    if(e.target.tagName === 'BUTTON') return;
-    e.preventDefault(); isDragging = true;
-    startX = e.clientX; startY = e.clientY;
-    const r = elm.getBoundingClientRect();
-    initLeft = r.left; initTop = r.top;
-    window.addEventListener("mousemove", drag);
-    window.addEventListener("mouseup", stopDrag);
-});
-
-function drag(e) {
-    if (!isDragging) return;
-    let newLeft = initLeft + e.clientX - startX;
-    let newTop = initTop + e.clientY - startY;
-    elm.style.left = newLeft + "px";
-    elm.style.top = newTop + "px";
+// DRAG LOGIC (Cabbie Style)
+let isDragging = false, dragStartX, dragStartY, initialLeft, initialTop;
+function dragStart(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+    e.preventDefault(); isDragging = true; dragStartX = e.clientX; dragStartY = e.clientY;
+    let app = document.getElementById('exp-app'); let rect = app.getBoundingClientRect();
+    initialLeft = rect.left; initialTop = rect.top;
+    window.addEventListener('mousemove', onDrag); window.addEventListener('mouseup', stopDrag);
 }
-
+function onDrag(e) {
+    if (!isDragging) return;
+    let app = document.getElementById('exp-app');
+    app.style.left = (initialLeft + e.clientX - dragStartX) + 'px';
+    app.style.top = (initialTop + e.clientY - dragStartY) + 'px';
+}
 function stopDrag() {
-    isDragging = false;
-    window.removeEventListener("mousemove", drag);
-    window.removeEventListener("mouseup", stopDrag);
-    localStorage.setItem('exp_mgr_pos', JSON.stringify({
-        left: elm.offsetLeft,
-        top: elm.offsetTop
-    }));
+    isDragging = false; window.removeEventListener('mousemove', onDrag); window.removeEventListener('mouseup', stopDrag);
+    let app = document.getElementById('exp-app');
+    localStorage.setItem('exp_mgr_pos', JSON.stringify({ left: app.offsetLeft, top: app.offsetTop }));
 }
 
 </script>
