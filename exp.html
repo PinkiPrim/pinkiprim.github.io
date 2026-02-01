@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT EXP Manager v1.0</title>
+    <title>TT EXP Manager v1.1 (Token Fix)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -29,14 +29,14 @@
             user-select: none;
         }
 
-        /* --- MINIMIZE BUTTON (Fixed Right) --- */
+        /* --- MINIMIZE BUTTON --- */
         #minimize-icon {
             position: absolute;
             top: 75%; right: 0;
             width: 30px; height: 40px;
             background: var(--primary);
             border-radius: 4px 0 0 4px;
-            display: none; /* Hidden by default */
+            display: none;
             align-items: center; justify-content: center;
             cursor: pointer;
             box-shadow: -2px 0 10px rgba(0,0,0,0.5);
@@ -220,7 +220,7 @@ const TOKENS = {
 // --- STATE ---
 let currentTab = 'bonuses';
 let inventory = {};
-let activeBuffs = []; // Stores { name: "5%...", endTime: timestamp }
+let activeBuffs = []; 
 let timerInterval = null;
 
 // --- INIT ---
@@ -238,13 +238,12 @@ window.addEventListener('load', () => {
     window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_tokens", name: "(EXP App) Redeem Tokens" }, "*");
     
     // Start Engine
-    setInterval(requestData, 2000); // Poll inventory/identity
-    timerInterval = setInterval(updateTimers, 1000); // Local clock tick
+    setInterval(requestData, 2000); 
+    timerInterval = setInterval(updateTimers, 1000);
 });
 
 function requestData() {
     window.parent.postMessage({ type: "getData" }, "*");
-    // We also need Identity HTML to track active buffs
     window.parent.postMessage({ type: "getNamedData", keys: ["menu_choices"] }, "*");
 }
 
@@ -273,7 +272,6 @@ window.addEventListener('message', (event) => {
     if (data.menu_choices) {
         try {
             let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
-            // Look for "Identity" entry
             let idHtml = menu.find(m => m[0] === "Identity")?.[1];
             if (idHtml) parseActiveBuffs(idHtml);
         } catch(e) {}
@@ -282,17 +280,11 @@ window.addEventListener('message', (event) => {
 
 // --- PARSING LOGIC ---
 function parseActiveBuffs(html) {
-    // Decodes HTML and looks for "Expires in Xh Ym"
-    // We only update our list if we find NEW info, otherwise we let our local clock run
-    // actually, refreshing from source is better to keep sync
-    
     let decoded = html.replace(/&#(\d+);/g, (m, d) => String.fromCharCode(d));
     let lines = decoded.split(/<br\s*\/?>/i);
     let foundBuffs = [];
 
     lines.forEach(line => {
-        // Regex for "Name (Expires in 08h 30m)"
-        // Flexible regex to catch minutes, hours, days
         let timeMatch = line.match(/(.*?)\(Expires in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?\)/i);
         
         if (timeMatch) {
@@ -301,9 +293,7 @@ function parseActiveBuffs(html) {
             let hours = parseInt(timeMatch[3] || 0);
             let mins = parseInt(timeMatch[4] || 0);
             
-            // Calculate expiry timestamp
             let msRemaining = ((days * 24 * 60) + (hours * 60) + mins) * 60000;
-            // Add a buffer so it doesn't expire instantly
             let endTime = Date.now() + msRemaining;
 
             foundBuffs.push({ name: name, endTime: endTime });
@@ -312,7 +302,7 @@ function parseActiveBuffs(html) {
 
     if (foundBuffs.length > 0) {
         activeBuffs = foundBuffs;
-        updateTimers(); // Force immediate update
+        updateTimers();
     }
 }
 
@@ -329,12 +319,10 @@ function updateTimers() {
     list.innerHTML = "";
     
     let now = Date.now();
-    // Filter expired
     activeBuffs = activeBuffs.filter(b => b.endTime > now);
 
     activeBuffs.forEach(buff => {
         let diff = buff.endTime - now;
-        
         let d = Math.floor(diff / (1000 * 60 * 60 * 24));
         let h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -360,14 +348,7 @@ function renderLists() {
 
 function renderCategory(type, map, elementId) {
     const container = document.getElementById(elementId);
-    // We only want to rebuild if the DOM count implies a change, OR just rebuild to update Qty.
-    // For simplicity/stability, we'll clear and rebuild. It's efficient enough for 20 items.
-    
-    let currentHtml = "";
     let hasItems = false;
-
-    // Get checked state from DOM before wiping, if possible? 
-    // Or save state to a var. Let's try preserving checks.
     let checkedItems = [];
     container.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => checkedItems.push(cb.value));
 
@@ -419,7 +400,6 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
-    // Find active buttons by text logic or index? Simple index matches text
     let btns = document.querySelectorAll('.tab-btn');
     if(tab === 'bonuses') btns[0].classList.add('active');
     else btns[1].classList.add('active');
@@ -431,11 +411,9 @@ function toggleSelectAll() {
     const container = document.getElementById(`list-${currentTab}`);
     const checkboxes = container.querySelectorAll('input[type="checkbox"]');
     
-    // Check if all are currently checked
     let allChecked = true;
     checkboxes.forEach(cb => { if(!cb.checked) allChecked = false; });
     
-    // Toggle
     checkboxes.forEach(cb => {
         cb.checked = !allChecked;
         toggleRowStyle(cb.parentNode, cb.checked);
@@ -443,7 +421,6 @@ function toggleSelectAll() {
 }
 
 function redeemSelected() {
-    // Redeem based on current tab
     redeemCategory(currentTab);
 }
 
@@ -451,10 +428,14 @@ function redeemCategory(cat) {
     const container = document.getElementById(`list-${cat}`);
     const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
     
-    if (checkboxes.length === 0) return; // Silent fail if nothing selected
+    if (checkboxes.length === 0) return; 
 
     checkboxes.forEach(cb => {
-        const cmd = `item ${cb.value} redeem`;
+        // USE 'use' for Tokens (Standard Consume)
+        // USE 'redeem' for Boosts (Special Consume)
+        // This differentiation handles the server logic correctly.
+        let action = (cat === 'tokens') ? 'use' : 'redeem';
+        const cmd = `item ${cb.value} ${action}`;
         window.parent.postMessage({ type: "sendCommand", command: cmd }, "*");
     });
 }
@@ -497,7 +478,6 @@ function stopDrag() {
     isDragging = false;
     window.removeEventListener("mousemove", drag);
     window.removeEventListener("mouseup", stopDrag);
-    // Save Pos
     localStorage.setItem('exp_mgr_pos', JSON.stringify({
         left: elm.offsetLeft,
         top: elm.offsetTop
