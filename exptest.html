@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TT EXP Manager v3.0 (Ghost Fix)</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --primary: #7c4dff;
+            --primary-dim: #5c00d2;
+            --accent: #b388ff;
+            --bg-glass: rgba(15, 15, 20, 0.98);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: 1px solid rgba(124, 77, 255, 0.4);
+            --green: #00e676;
+            --red: #ff5252;
+            --warning-bg: rgba(255, 23, 68, 0.85);
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none;
+        }
+
+        /* --- SYNC BLOCKER --- */
+        #sync-blocker {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.98); z-index: 2000;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; backdrop-filter: blur(5px);
+        }
+        .sync-icon { font-size: 3em; margin-bottom: 10px; animation: pulse 1.5s infinite; }
+        .sync-title { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 1.4em; color: var(--red); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .sync-msg { font-size: 0.9em; color: #ccc; max-width: 80%; line-height: 1.4; }
+        .sync-msg b { color: #fff; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* --- GLOBAL ALERT --- */
+        #global-alert {
+            position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
+            background: var(--warning-bg);
+            border: 1px solid rgba(255,255,255,0.8);
+            padding: 5px 15px; border-radius: 4px; z-index: 9999;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            display: none; flex-direction: column; align-items: center; text-align: center;
+            animation: pulseAlert 2s infinite; pointer-events: none;
+        }
+        @keyframes pulseAlert {
+            0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px rgba(255,0,0,0.5); }
+            50% { transform: translateX(-50%) scale(1.02); box-shadow: 0 0 20px rgba(255,0,0,0.7); }
+            100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px rgba(255,0,0,0.5); }
+        }
+        .alert-title { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 0.95em; text-transform: uppercase; color: #fff; text-shadow: 1px 1px 0px #000; margin-bottom: 0px; letter-spacing: 1px; }
+        .alert-msg { font-size: 0.8em; font-weight: 600; color: #fff; text-shadow: 1px 1px 0px #000; }
+
+        /* MINIMIZE BUTTON */
+        #minimize-icon {
+            position: absolute; top: 75%; right: 0; width: 30px; height: 40px;
+            background: var(--primary); border-radius: 4px 0 0 4px;
+            display: none; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2); border-right: none; z-index: 1000;
+        }
+        #minimize-icon:hover { width: 40px; }
+        #minimize-arrow { font-size: 1.2em; font-weight: bold; color: white; }
+
+        /* MAIN APP */
+        #exp-app {
+            position: absolute; top: 100px; left: 100px;
+            width: 360px; background: var(--bg-glass);
+            border: var(--border); border-radius: 8px;
+            display: flex; flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.9);
+            min-height: 350px; max-height: 600px;
+            transition: opacity 0.2s; overflow: hidden;
+        }
+        #exp-app.hidden { display: none; }
+
+        header {
+            height: 40px; background: linear-gradient(90deg, var(--primary-dim), rgba(15,15,20,0.9));
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 10px; cursor: move;
+        }
+        .app-title { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.1em; letter-spacing: 1px; text-transform: uppercase; }
+        .header-controls button {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; border-radius: 4px; padding: 2px 8px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: bold;
+        }
+        .header-controls button:hover { background: var(--red); color: white; }
+
+        .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .tab-btn {
+            flex: 1; padding: 10px; text-align: center;
+            background: rgba(255,255,255,0.02); cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            color: var(--text-dim); border-right: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.2s;
+        }
+        .tab-btn:last-child { border-right: none; }
+        .tab-btn.active { background: rgba(124, 77, 255, 0.2); color: #fff; border-bottom: 2px solid var(--accent); }
+        .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.05); }
+
+        .tab-content { padding: 10px; flex: 1; overflow-y: auto; display: none; }
+        .tab-content.active { display: block; }
+
+        #active-timers-container {
+            margin-bottom: 10px; padding: 8px;
+            background: rgba(0, 230, 118, 0.05);
+            border: 1px dashed var(--green); border-radius: 4px;
+            display: block; /* ALWAYS SHOW */
+        }
+        .timer-header { font-size: 0.75em; color: var(--green); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        
+        .active-timer-row {
+            display: flex; flex-direction: column; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            padding: 4px 0; margin-bottom: 2px;
+        }
+        .timer-main { display: flex; justify-content: space-between; align-items: center; }
+        .timer-name { color: #fff; font-size: 0.85em; font-weight: bold; }
+        .timer-val { font-family: 'Rajdhani', sans-serif; font-weight: bold; color: var(--accent); font-size: 0.9em; }
+        
+        .timer-warning-line {
+            font-size: 0.7em; color: var(--alert); font-weight: bold; margin-top: 2px;
+            animation: flashText 1.5s infinite;
+        }
+        @keyframes flashText { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .item-row {
+            display: flex; align-items: center; padding: 6px;
+            background: rgba(255,255,255,0.03); border-radius: 4px;
+            margin-bottom: 4px; border: 1px solid transparent;
+            transition: background 0.2s;
+        }
+        .item-row:hover { background: rgba(255,255,255,0.08); }
+        .item-row.selected { border-color: var(--primary); background: rgba(124, 77, 255, 0.1); }
+        
+        .item-cb { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
+        .item-info { flex: 1; display: flex; flex-direction: column; cursor: pointer; }
+        .item-name { font-weight: bold; font-size: 0.9em; }
+        .item-qty { font-size: 0.75em; color: var(--text-dim); }
+        .item-qty b { color: var(--accent); }
+
+        .footer { padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 5px; flex-direction: column; }
+        .footer-btns { display: flex; gap: 5px; width: 100%; }
+        .action-btn {
+            flex: 1; padding: 8px; border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
+            color: #ccc; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold;
+            transition: all 0.2s;
+        }
+        .action-btn:hover { background: var(--primary); color: white; border-color: var(--accent); }
+        .action-btn.redeem { background: rgba(0, 230, 118, 0.1); border-color: var(--green); color: var(--green); }
+        .action-btn.redeem:hover { background: var(--green); color: black; }
+
+        .keybind-help {
+            text-align: center; font-size: 0.7em; color: #666; margin-top: 5px;
+            font-style: italic; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 5px;
+        }
+        .keybind-help b { color: var(--accent); }
+
+        .empty-msg { text-align: center; color: #666; font-style: italic; margin-top: 20px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+    <div id="global-alert">
+        <div class="alert-title">⚠ CAUTION ⚠</div>
+        <div class="alert-msg" id="alert-text">EXP BOOST EXPIRING!</div>
+    </div>
+
+    <div id="minimize-icon" title="Restore EXP Manager">
+        <span id="minimize-arrow">❮</span>
+    </div>
+
+    <div id="exp-app">
+        <div id="sync-blocker">
+            <div class="sync-icon">⚠</div>
+            <div class="sync-title">SYNC REQUIRED</div>
+            <div class="sync-msg">
+                Please open your <b>IDENTITY TAB</b><br>to synchronize timers.
+            </div>
+        </div>
+
+        <header id="drag-handle" onmousedown="dragStart(event)">
+            <div class="app-title">EXP MANAGER</div>
+            <div class="header-controls">
+                <button onclick="minimizeApp()">_</button>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <div class="tab-btn active" onclick="switchTab('bonuses')">TIMED BONUSES</div>
+            <div class="tab-btn" onclick="switchTab('tokens')">SKILL TOKENS</div>
+        </div>
+
+        <div id="tab-bonuses" class="tab-content active">
+            <div id="active-timers-container">
+                <div class="timer-header">
+                    <span>ACTIVE BUFFS</span>
+                    <span id="timer-status" style="font-size:0.8em; opacity:0.7;">(WAITING)</span>
+                </div>
+                <div id="active-timers-list">
+                    <div style="font-size:0.8em; color:#666; text-align:center; padding:5px;">Scanning...</div>
+                </div>
+            </div>
+            
+            <div id="list-bonuses">
+                <div class="empty-msg">Scanning Inventory...</div>
+            </div>
+        </div>
+
+        <div id="tab-tokens" class="tab-content">
+            <div id="list-tokens">
+                <div class="empty-msg">Scanning Inventory...</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-btns">
+                <button class="action-btn" onclick="toggleSelectAll()">Toggle All</button>
+                <button class="action-btn redeem" onclick="redeemSelected()">ACTIVATE CHECKED</button>
+            </div>
+            <div class="keybind-help">
+                To use keybinds, go to:<br>
+                <b>Settings > Key Bindings > FiveM</b><br>
+                Look for "EXP Manager" triggers.
+            </div>
+        </div>
+    </div>
+
+<script>
+const BOOSTS = {
+    "exp_bonus_ee": "15% Exp Bonus (1 Hour)",
+    "exp_bonus_day": "10% Exp Bonus (One Day)",
+    "exp_bonus_ee2": "10% Exp Bonus (90 Minutes)",
+    "exp_bonus_week": "5% Exp Bonus (One Week)",
+    "exp_bonus_ee3": "5% Exp Bonus (2 Hours)",
+    "exp_bonus_15": "50% Exp Bonus (30 Mins)"
+};
+
+const TOKENS = {
+    "exp_token|piloting|piloting": "Airline Pilot",
+    "exp_token|train|bus": "Bus Driver",
+    "exp_token|business|business": "Business",
+    "exp_token|piloting|cargos": "Cargo Pilot",
+    "exp_token|train|train": "Conductor",
+    "exp_token|ems|ems": "EMS",
+    "exp_token|ems|fire": "Fire Fighter",
+    "exp_token|farming|fishing": "Fishing",
+    "exp_token|trucking|garbage": "Garbage",
+    "exp_token|piloting|heli": "Heli Pilot",
+    "exp_token|hunting|skill": "Hunting",
+    "exp_token|farming|mining": "Mining",
+    "exp_token|player|player": "Player (Level)",
+    "exp_token|trucking|postop": "PostOP",
+    "exp_token|player|racing": "Racing",
+    "exp_token|physical|strength": "Strength",
+    "exp_token|trucking|trucking": "Trucking"
+};
+
+let currentTab = 'bonuses';
+let inventory = {};
+let activeBuffs = {}; 
+let pendingBuffs = []; 
+let timerInterval = null;
+const WARNING_THRESHOLD_MS = 1 * 60 * 1000; 
+let isSynced = false;
+let savedChecks = [];
+
+// State Tracking for Triggers
+let triggersEnabled = false; 
+let lastBonusTriggerVal = null;
+let lastTokenTriggerVal = null;
+
+// --- INIT ---
+window.addEventListener('load', () => {
+    const pos = JSON.parse(localStorage.getItem('exp_mgr_pos'));
+    const app = document.getElementById('exp-app');
+    if (pos) {
+        app.style.left = pos.left + 'px';
+        app.style.top = pos.top + 'px';
+    }
+
+    try { savedChecks = JSON.parse(localStorage.getItem('exp_mgr_checks')) || []; } catch(e) { savedChecks = []; }
+    
+    registerTriggers();
+    setTimeout(registerTriggers, 1000); 
+    
+    // SAFETY LOCK: Enable triggers after 3s
+    setTimeout(() => {
+        triggersEnabled = true;
+        console.log("EXP Manager: Triggers Enabled");
+    }, 3000);
+    
+    setInterval(requestData, 2000); 
+    timerInterval = setInterval(updateTimers, 1000);
+});
+
+function registerTriggers() {
+    console.log("EXP Manager: Registering Triggers...");
+    window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_bonuses", name: "(EXP Manager) Redeem Bonuses" }, "*");
+    window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_tokens", name: "(EXP Manager) Redeem Tokens" }, "*");
+}
+
+function requestData() {
+    window.parent.postMessage({ type: "getData" }, "*");
+    window.parent.postMessage({ type: "getNamedData", keys: ["menu_choices"] }, "*");
+}
+
+// --- MESSAGE HANDLER (GHOST FIX) ---
+window.addEventListener('message', (event) => {
+    const data = event.data.type === 'data' ? event.data.data : event.data;
+    if (!data) return;
+
+    // --- TRIGGER LOGIC WITH STATE TRACKING ---
+    
+    // 1. Bonus Trigger
+    if (data.trigger_redeem_selected_bonuses !== undefined) {
+        let currentVal = data.trigger_redeem_selected_bonuses;
+        
+        // If this is the first time we see it (startup), just memorize it
+        if (lastBonusTriggerVal === null) {
+            lastBonusTriggerVal = currentVal;
+        } 
+        // If the value CHANGED, it means user pressed the key
+        else if (lastBonusTriggerVal !== currentVal) {
+            lastBonusTriggerVal = currentVal; // Update last seen
+            if (triggersEnabled) {
+                console.log("EXP Manager: BONUS TRIGGER VALIDATED");
+                redeemCategory('bonuses');
+            }
+        }
+        // If value matches lastBonusTriggerVal, it's a ghost/echo. Ignore it.
+    }
+
+    // 2. Token Trigger
+    if (data.trigger_redeem_selected_tokens !== undefined) {
+        let currentVal = data.trigger_redeem_selected_tokens;
+        
+        if (lastTokenTriggerVal === null) {
+            lastTokenTriggerVal = currentVal;
+        } 
+        else if (lastTokenTriggerVal !== currentVal) {
+            lastTokenTriggerVal = currentVal;
+            if (triggersEnabled) {
+                console.log("EXP Manager: TOKEN TRIGGER VALIDATED");
+                redeemCategory('tokens');
+            }
+        }
+    }
+
+    // --- STANDARD DATA PROCESSING ---
+    if (data.inventory) {
+        try {
+            inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
+            renderLists();
+        } catch(e) {}
+    }
+
+    if (data.menu_choices) {
+        try {
+            let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
+            let idHtml = menu.find(m => m[0] === "Identity")?.[1];
+            if (idHtml) {
+                isSynced = true;
+                document.getElementById('sync-blocker').style.display = 'none';
+                document.getElementById('timer-status').innerText = "(SCANNING...)";
+                parseActiveBuffs(idHtml);
+            }
+        } catch(e) {}
+    }
+});
+
+function decodeEntities(encodedString) {
+    var textArea = document.createElement('textarea');
+    textArea.innerHTML = encodedString;
+    return textArea.value;
+}
+
+function parseActiveBuffs(html) {
+    let decoded = decodeEntities(html);
+    let lines = decoded.split(/<br\s*\/?>/i);
+    let foundThisScan = [];
+
+    lines.forEach(rawLine => {
+        let cleanLine = rawLine.replace(/<[^>]*>/g, "").trim();
+        
+        Object.values(BOOSTS).forEach(boostName => {
+            if (cleanLine.includes(boostName)) {
+                let expiryMatch = cleanLine.match(/\(Expires (.*?)\)/);
+                
+                if (expiryMatch) {
+                    let expiryText = expiryMatch[1]; 
+                    
+                    if (activeBuffs[boostName]) {
+                        if (activeBuffs[boostName].lastRaw === expiryText) {
+                            foundThisScan.push(boostName);
+                            return; 
+                        }
+                    }
+
+                    let endTime = null;
+                    let timeMatch = expiryText.match(/in\s*(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/i);
+                    let dateMatch = expiryText.match(/([A-Za-z]+\s+\d{1,2})/i); 
+
+                    if (timeMatch) {
+                        let days = parseInt(timeMatch[1] || 0);
+                        let hours = parseInt(timeMatch[2] || 0);
+                        let mins = parseInt(timeMatch[3] || 0);
+                        let msRemaining = ((days * 24 * 60) + (hours * 60) + mins) * 60000 + 59000;
+                        endTime = Date.now() + msRemaining;
+                    } 
+                    else if (dateMatch) {
+                        let dateStr = dateMatch[1].replace(/(st|nd|rd|th)/g, ""); 
+                        let targetDate = new Date(dateStr + ", " + new Date().getFullYear());
+                        if (targetDate < new Date()) { targetDate.setFullYear(targetDate.getFullYear() + 1); }
+                        endTime = targetDate.getTime();
+                    }
+
+                    if (endTime) {
+                        activeBuffs[boostName] = { 
+                            name: boostName, 
+                            endTime: endTime,
+                            lastRaw: expiryText 
+                        };
+                        foundThisScan.push(boostName);
+                    }
+                }
+            }
+        });
+    });
+
+    if (lines.length > 5) { 
+        for (let key in activeBuffs) {
+            if (!foundThisScan.includes(key)) {
+                delete activeBuffs[key];
+            }
+        }
+    }
+
+    if (Object.keys(activeBuffs).length > 0) {
+        document.getElementById('timer-status').innerText = "(UPDATED)";
+        pendingBuffs = []; 
+    }
+    updateTimers();
+}
+
+function updateTimers() {
+    const list = document.getElementById('active-timers-list');
+    const alertBox = document.getElementById('global-alert');
+    const alertText = document.getElementById('alert-text');
+    
+    list.innerHTML = "";
+    
+    let buffArray = Object.values(activeBuffs);
+    let displayBuffs = [...buffArray, ...pendingBuffs];
+    
+    if (displayBuffs.length === 0) {
+        list.innerHTML = `<div style="font-size:0.8em; color:#666; text-align:center; padding:5px;">No active bonuses found.</div>`;
+        alertBox.style.display = 'none';
+        return;
+    }
+    
+    let now = Date.now();
+    let expiringItems = [];
+
+    displayBuffs = displayBuffs.filter(b => b.endTime > now || b.timestamp); 
+
+    displayBuffs.forEach(buff => {
+        let timeStr = "Waiting...";
+        let isExpiring = false;
+
+        if (buff.endTime) {
+            let diff = buff.endTime - now;
+            if (diff < WARNING_THRESHOLD_MS) {
+                isExpiring = true;
+                expiringItems.push(buff.name);
+            }
+
+            let d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            let h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            let s = Math.floor((diff % (1000 * 60)) / 1000);
+
+            timeStr = "";
+            if (d > 0) timeStr += `${d}d `;
+            if (h > 0) timeStr += `${h}h `;
+            timeStr += `${m}m ${s}s`;
+        }
+
+        let row = document.createElement('div');
+        row.className = 'active-timer-row';
+        let warningHtml = isExpiring ? `<div class="timer-warning-line">⚠ EXPIRING SOON ⚠</div>` : ``;
+
+        row.innerHTML = `
+            <div class="timer-main">
+                <span class="timer-name">${buff.name}</span>
+                <span class="timer-val" style="${isExpiring ? 'color:var(--red)' : ''}">${timeStr}</span>
+            </div>
+            ${warningHtml}
+        `;
+        list.appendChild(row);
+    });
+
+    if (expiringItems.length > 0) {
+        alertBox.style.display = 'flex';
+        alertText.innerText = expiringItems[0] + (expiringItems.length > 1 ? ` (+${expiringItems.length-1} others)` : "") + " IS RUNNING OUT!";
+    } else {
+        alertBox.style.display = 'none';
+    }
+}
+
+// --- CHECKBOX PERSISTENCE LOGIC ---
+function toggleCheck(id, isChecked) {
+    if (isChecked) {
+        if (!savedChecks.includes(id)) savedChecks.push(id);
+    } else {
+        savedChecks = savedChecks.filter(item => item !== id);
+    }
+    localStorage.setItem('exp_mgr_checks', JSON.stringify(savedChecks));
+}
+
+function renderLists() {
+    renderCategory('bonuses', BOOSTS, 'list-bonuses');
+    renderCategory('tokens', TOKENS, 'list-tokens');
+}
+
+function renderCategory(type, map, elementId) {
+    const container = document.getElementById(elementId);
+    let hasItems = false;
+    
+    container.innerHTML = "";
+
+    for (let [id, label] of Object.entries(map)) {
+        if (inventory[id]) {
+            let amt = inventory[id].amount || inventory[id];
+            if (amt > 0) {
+                hasItems = true;
+                let isChecked = savedChecks.includes(id) ? "checked" : "";
+                let rowClass = isChecked ? "item-row selected" : "item-row";
+                
+                let div = document.createElement('div');
+                div.className = rowClass;
+                div.onclick = (e) => { 
+                    if(e.target.type !== 'checkbox') {
+                        let cb = div.querySelector('input'); 
+                        cb.checked = !cb.checked; 
+                        toggleCheck(id, cb.checked);
+                        toggleRowStyle(div, cb.checked);
+                    }
+                };
+
+                div.innerHTML = `
+                    <input type="checkbox" class="item-cb" value="${id}" ${isChecked} onchange="toggleCheck('${id}', this.checked); toggleRowStyle(this.parentNode, this.checked)">
+                    <div class="item-info">
+                        <span class="item-name">${label}</span>
+                        <span class="item-qty">Owned: <b>${amt.toLocaleString()}</b></span>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        }
+    }
+
+    if (!hasItems) container.innerHTML = `<div class="empty-msg">No items found in inventory.</div>`;
+}
+
+function toggleRowStyle(div, isChecked) {
+    if (isChecked) div.classList.add('selected');
+    else div.classList.remove('selected');
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    let btns = document.querySelectorAll('.tab-btn');
+    if(tab === 'bonuses') btns[0].classList.add('active');
+    else btns[1].classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+function toggleSelectAll() {
+    const container = document.getElementById(`list-${currentTab}`);
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    
+    let allChecked = true;
+    checkboxes.forEach(cb => { if(!cb.checked) allChecked = false; });
+    
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+        toggleCheck(cb.value, cb.checked);
+        toggleRowStyle(cb.parentNode, cb.checked);
+    });
+}
+
+function redeemSelected() {
+    redeemCategory(currentTab);
+}
+
+function redeemCategory(cat) {
+    const container = document.getElementById(`list-${cat}`);
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    if (checkboxes.length === 0) return; 
+
+    checkboxes.forEach(cb => {
+        let action = (cat === 'tokens') ? 'convert' : 'redeem';
+        const cmd = `item ${cb.value} ${action}`;
+        window.parent.postMessage({ type: "sendCommand", command: cmd }, "*");
+        
+        if (cat === 'bonuses') {
+            let label = BOOSTS[cb.value] || "Unknown Boost";
+            pendingBuffs.push({ name: label, timestamp: Date.now() });
+            updateTimers(); 
+        }
+    });
+}
+
+function minimizeApp() {
+    document.getElementById('exp-app').classList.add('hidden');
+    document.getElementById('minimize-icon').style.display = 'flex';
+}
+
+document.getElementById('minimize-icon').addEventListener('click', () => {
+    document.getElementById('minimize-icon').style.display = 'none';
+    document.getElementById('exp-app').classList.remove('hidden');
+});
+
+// DRAG LOGIC (Cabbie Style)
+let isDragging = false, dragStartX, dragStartY, initialLeft, initialTop;
+function dragStart(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+    e.preventDefault(); isDragging = true; dragStartX = e.clientX; dragStartY = e.clientY;
+    let app = document.getElementById('exp-app'); let rect = app.getBoundingClientRect();
+    initialLeft = rect.left; initialTop = rect.top;
+    window.addEventListener('mousemove', onDrag); window.addEventListener('mouseup', stopDrag);
+}
+function onDrag(e) {
+    if (!isDragging) return;
+    let app = document.getElementById('exp-app');
+    app.style.left = (initialLeft + e.clientX - dragStartX) + 'px';
+    app.style.top = (initialTop + e.clientY - dragStartY) + 'px';
+}
+function stopDrag() {
+    isDragging = false; window.removeEventListener('mousemove', onDrag); window.removeEventListener('mouseup', stopDrag);
+    let app = document.getElementById('exp-app');
+    localStorage.setItem('exp_mgr_pos', JSON.stringify({ left: app.offsetLeft, top: app.offsetTop }));
+}
+
+</script>
+</body>
+</html>
