@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT EXP Manager v2.8 (Keybind Fix)</title>
+    <title>TT EXP Manager v2.7 (Persistence)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
@@ -30,12 +30,9 @@
             user-select: none;
         }
 
-        /* --- SYNC BLOCKER OVERLAY --- */
         #sync-blocker {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 10, 15, 0.98);
-            z-index: 2000;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.98); z-index: 2000;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             text-align: center; backdrop-filter: blur(5px);
@@ -46,7 +43,6 @@
         .sync-msg b { color: #fff; }
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
 
-        /* --- GLOBAL ALERT --- */
         #global-alert {
             position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
             background: var(--warning-bg);
@@ -64,7 +60,6 @@
         .alert-title { font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 0.95em; text-transform: uppercase; color: #fff; text-shadow: 1px 1px 0px #000; margin-bottom: 0px; letter-spacing: 1px; }
         .alert-msg { font-size: 0.8em; font-weight: 600; color: #fff; text-shadow: 1px 1px 0px #000; }
 
-        /* MINIMIZE BUTTON */
         #minimize-icon {
             position: absolute; top: 75%; right: 0; width: 30px; height: 40px;
             background: var(--primary); border-radius: 4px 0 0 4px;
@@ -75,7 +70,6 @@
         #minimize-icon:hover { width: 40px; }
         #minimize-arrow { font-size: 1.2em; font-weight: bold; color: white; }
 
-        /* MAIN APP */
         #exp-app {
             position: absolute; top: 100px; left: 100px;
             width: 360px; background: var(--bg-glass);
@@ -281,8 +275,8 @@ const WARNING_THRESHOLD_MS = 1 * 60 * 1000;
 let isSynced = false;
 let savedChecks = [];
 
-// --- INIT ---
 window.addEventListener('load', () => {
+    // Restore Position
     const pos = JSON.parse(localStorage.getItem('exp_mgr_pos'));
     const app = document.getElementById('exp-app');
     if (pos) {
@@ -290,45 +284,30 @@ window.addEventListener('load', () => {
         app.style.top = pos.top + 'px';
     }
 
-    try { savedChecks = JSON.parse(localStorage.getItem('exp_mgr_checks')) || []; } catch(e) { savedChecks = []; }
+    // Restore Checks
+    try {
+        savedChecks = JSON.parse(localStorage.getItem('exp_mgr_checks')) || [];
+    } catch(e) { savedChecks = []; }
     
-    // REDUNDANT REGISTRATION TO ENSURE IT WORKS
-    registerTriggers();
-    setTimeout(registerTriggers, 1000); // Try again after 1 sec
+    window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_bonuses", name: "(EXP Manager) Redeem Bonuses" }, "*");
+    window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_tokens", name: "(EXP Manager) Redeem Tokens" }, "*");
     
     setInterval(requestData, 2000); 
     timerInterval = setInterval(updateTimers, 1000);
 });
-
-function registerTriggers() {
-    console.log("EXP Manager: Registering Triggers...");
-    window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_bonuses", name: "(EXP Manager) Redeem Bonuses" }, "*");
-    window.parent.postMessage({ type: "registerTrigger", trigger: "redeem_selected_tokens", name: "(EXP Manager) Redeem Tokens" }, "*");
-}
 
 function requestData() {
     window.parent.postMessage({ type: "getData" }, "*");
     window.parent.postMessage({ type: "getNamedData", keys: ["menu_choices"] }, "*");
 }
 
-// --- MESSAGE HANDLER (FIXED) ---
 window.addEventListener('message', (event) => {
-    // 1. Normalize Data
     const data = event.data.type === 'data' ? event.data.data : event.data;
     if (!data) return;
 
-    // 2. CHECK KEYBINDS ON NORMALIZED DATA
-    // We check 'data' because 'event.data' might be the wrapper
-    if (data.trigger_redeem_selected_bonuses) {
-        console.log("EXP Manager: BONUS TRIGGER RECEIVED");
-        redeemCategory('bonuses');
-    }
-    if (data.trigger_redeem_selected_tokens) {
-        console.log("EXP Manager: TOKEN TRIGGER RECEIVED");
-        redeemCategory('tokens');
-    }
+    if (event.data.trigger_redeem_selected_bonuses) { redeemCategory('bonuses'); }
+    if (event.data.trigger_redeem_selected_tokens) { redeemCategory('tokens'); }
 
-    // 3. Process Inventory
     if (data.inventory) {
         try {
             inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
@@ -336,7 +315,6 @@ window.addEventListener('message', (event) => {
         } catch(e) {}
     }
 
-    // 4. Process Menu (Identity)
     if (data.menu_choices) {
         try {
             let menu = (typeof data.menu_choices === 'string') ? JSON.parse(data.menu_choices) : data.menu_choices;
@@ -509,6 +487,7 @@ function renderCategory(type, map, elementId) {
     const container = document.getElementById(elementId);
     let hasItems = false;
     
+    // Instead of reading DOM, rely on savedChecks for "checked" state
     container.innerHTML = "";
 
     for (let [id, label] of Object.entries(map)) {
