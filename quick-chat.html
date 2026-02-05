@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Chat Assistant v22.1 (Favorites)</title>
+    <title>TT Chat Assistant v22.2 (Home Button)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     
     <style>
@@ -86,6 +86,16 @@
             cursor: move; border-bottom: var(--border);
             height: 36px; flex-shrink: 0;
         }
+
+        .title-group {
+            display: flex; align-items: center;
+        }
+
+        .home-btn {
+            text-decoration: none; font-size: 1.2em; cursor: pointer; 
+            color: var(--text-dim); margin-right: 10px; transition: color 0.2s;
+        }
+        .home-btn:hover { color: #fff; }
 
         .title {
             font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 1.2em;
@@ -321,7 +331,10 @@
     </div>
 
     <header id="drag-handle">
-        <div class="title"><span>💬</span> Chat Assistant</div>
+        <div class="title-group">
+            <a href="https://pinkiprim.github.io/pinkiapps.html" class="home-btn">🏠</a>
+            <div class="title"><span>💬</span> Chat Assistant</div>
+        </div>
         <div style="display:flex; gap:5px;">
             <button class="win-btn" onclick="window.toggleMini()">MINI</button>
             <button class="win-btn close" onclick="window.closeApp()">✕</button>
