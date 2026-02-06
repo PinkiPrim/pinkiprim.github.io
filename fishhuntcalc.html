@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pinki's Hunting & Fishing Calc (Compact)</title>
+    <title>Pinki's Hunting & Fishing Calc v1.2</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
@@ -34,7 +34,7 @@
 
         #app {
             position: absolute; top: 50px; left: 50px;
-            width: 800px; height: 500px; /* More compact size */
+            width: 800px; height: 530px; /* Slight height bump for new toggles */
             background: var(--bg-body);
             border-radius: 8px;
             border: 1px solid var(--primary);
@@ -58,7 +58,7 @@
 
         /* SIDEBAR (MULTIPLIERS) */
         .sidebar {
-            width: 240px; background: rgba(0,0,0,0.2);
+            width: 250px; background: rgba(0,0,0,0.2);
             border-right: var(--border); padding: 10px;
             display: flex; flex-direction: column; gap: 8px;
             flex-shrink: 0;
@@ -74,7 +74,10 @@
         .boost-grid { display: flex; flex-direction: column; gap: 2px; }
         .boost-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.8em; }
         .boost-label { color: #ccc; }
-        input[type="checkbox"] { transform: scale(1); cursor: pointer; }
+        /* DX P Special Style */
+        .dxp-label { color: var(--accent); font-weight: bold; }
+        
+        input[type="checkbox"] { transform: scale(1); cursor: pointer; accent-color: var(--primary); }
 
         .perk-input { 
             width: 100%; background: #222; border: 1px solid #444; color: #fff; 
@@ -108,6 +111,7 @@
             background: var(--primary-dim); border: none; color: #fff; padding: 2px 6px; 
             border-radius: 3px; cursor: pointer; font-size: 0.7em; font-weight: bold; width: 100%; margin-top: 2px;
         }
+        .sync-btn:active { transform: translateY(1px); }
 
         .remaining-text { text-align: right; font-family: 'Rajdhani'; font-size: 0.9em; color: #888; margin-top: 2px; }
         .remaining-val { color: var(--primary); font-weight: bold; font-size: 1.1em; }
@@ -158,6 +162,7 @@
                 <div>
                     <div class="section-header">Active Multipliers</div>
                     <div class="boost-grid">
+                        <div class="boost-row"><span class="boost-label dxp-label">DXP (x2)</span><input type="checkbox" id="dxp-check" onchange="calc()"></div>
                         <div class="boost-row"><span class="boost-label">Discord (5%)</span><input type="checkbox" class="boost-cb" value="5" checked></div>
                         <div class="boost-row"><span class="boost-label">Faction (5%)</span><input type="checkbox" class="boost-cb" value="5"></div>
                         <div class="boost-row"><span class="boost-label">Voice (10%)</span><input type="checkbox" class="boost-cb" value="10"></div>
@@ -172,15 +177,14 @@
                 </div>
 
                 <div>
-                    <div class="section-header">Token</div>
-                    <select id="token-select" class="perk-input" style="text-align:left;" onchange="calc()">
-                        <option value="0|0">None</option>
-                        <option value="15|60">15% - 1 Hr</option>
-                        <option value="10|90">10% - 90m</option>
-                        <option value="5|10080">5% - 1 Wk</option>
-                        <option value="10|1440">10% - 1 Day</option>
-                        <option value="5|120">5% - 2 Hr</option>
-                    </select>
+                    <div class="section-header">Active Tokens</div>
+                    <div class="boost-grid">
+                        <div class="boost-row"><span class="boost-label">15% (1 Hr)</span><input type="checkbox" class="token-cb" data-xp="15" data-mins="60"></div>
+                        <div class="boost-row"><span class="boost-label">10% (90m)</span><input type="checkbox" class="token-cb" data-xp="10" data-mins="90"></div>
+                        <div class="boost-row"><span class="boost-label">5% (1 Wk)</span><input type="checkbox" class="token-cb" data-xp="5" data-mins="10080"></div>
+                        <div class="boost-row"><span class="boost-label">10% (1 Day)</span><input type="checkbox" class="token-cb" data-xp="10" data-mins="1440"></div>
+                        <div class="boost-row"><span class="boost-label">5% (2 Hr)</span><input type="checkbox" class="token-cb" data-xp="5" data-mins="120"></div>
+                    </div>
                 </div>
 
                 <div class="total-mult-box">
@@ -230,8 +234,9 @@
                         <div class="res-item"><span class="res-label">Boosted XP</span><span class="res-val" id="hunt-boosted" style="color:var(--primary)">0</span></div>
                         <div class="res-item"><span class="res-label">Needed</span><span class="res-val res-highlight" id="hunt-needed">0</span></div>
                         <div class="res-item"><span class="res-label">Time</span><span class="res-val" id="hunt-time">0h 0m</span></div>
-                        <div class="res-item" style="grid-column: span 2; border:none; margin-top:5px;">
-                            <span class="res-label">Tokens Needed:</span> 
+                        
+                        <div class="res-item" id="token-row" style="grid-column: span 2; border:none; margin-top:5px; display:none;">
+                            <span class="res-label">Est. Refills:</span> 
                             <span class="res-val" id="hunt-tokens" style="color:var(--accent); float:right;">0</span>
                         </div>
                     </div>
@@ -305,7 +310,8 @@ window.onload = function() {
         document.getElementById('app').style.top = pos.top + 'px';
     }
 
-    document.querySelectorAll('.boost-cb').forEach(cb => {
+    // Attach listeners
+    document.querySelectorAll('.boost-cb, .token-cb').forEach(cb => {
         cb.addEventListener('change', calc);
     });
 
@@ -316,65 +322,110 @@ function openExternal(url) {
     try { window.invokeNative('openUrl', url); } catch(e) { window.open(url, '_blank'); }
 }
 
-function getMultiplier() {
-    let base = 100;
-    document.querySelectorAll('.boost-cb:checked').forEach(cb => { base += parseFloat(cb.value); });
+// --- CORE CALCULATIONS ---
+function getMultiplierAndTokens() {
+    let base = 100; // 100% base
+    
+    // 1. Standard Boosts
+    document.querySelectorAll('.boost-cb:checked').forEach(cb => {
+        base += parseFloat(cb.value);
+    });
+
+    // 2. Perks
     let perks = parseInt(document.getElementById('perk-count').value) || 0;
-    if (perks > 0) { base += 5; if (perks > 1) base += (perks - 1) * 2.5; }
-    let tokenVal = document.getElementById('token-select').value.split('|')[0];
-    base += parseFloat(tokenVal);
-    return base / 100;
+    if (perks > 0) {
+        base += 5; // First perk
+        if (perks > 1) base += (perks - 1) * 2.5;
+    }
+    if(base > (100 + 50 + 100)) {} 
+
+    // 3. Tokens (Stackable)
+    let minDuration = Infinity;
+    let tokensActive = false;
+
+    document.querySelectorAll('.token-cb:checked').forEach(cb => {
+        let xpVal = parseFloat(cb.dataset.xp);
+        let mins = parseFloat(cb.dataset.mins);
+        
+        base += xpVal;
+        tokensActive = true;
+        if (mins < minDuration) minDuration = mins; // Find constraining token
+    });
+
+    let multiplier = base / 100;
+
+    // 4. DXP Check (Doubles EVERYTHING)
+    if (document.getElementById('dxp-check').checked) {
+        multiplier *= 2;
+    }
+
+    return { 
+        val: multiplier, 
+        tokenDuration: tokensActive ? minDuration : 0 
+    };
 }
 
 function calc() {
-    let mult = getMultiplier();
+    let result = getMultiplierAndTokens();
+    let mult = result.val;
+    
     document.getElementById('disp-mult').innerText = mult.toFixed(2) + "x";
 
     let curXP = parseFloat(document.getElementById('current-xp').value) || 0;
     let tarXP = parseFloat(document.getElementById('target-xp').value) || 0;
+    
     let remXP = Math.max(0, tarXP - curXP);
     document.getElementById('disp-remaining').innerText = remXP.toLocaleString();
 
-    // HUNTING
+    // --- HUNTING ---
     let baseAnimalXP = parseFloat(document.getElementById('animal-select').value) || 0;
     let boostedAnimalXP = baseAnimalXP * mult;
+    
     document.getElementById('hunt-base').innerText = baseAnimalXP.toFixed(1);
     document.getElementById('hunt-boosted').innerText = boostedAnimalXP.toFixed(2);
 
     let animalsNeeded = remXP > 0 ? Math.ceil(remXP / boostedAnimalXP) : 0;
     document.getElementById('hunt-needed').innerText = animalsNeeded.toLocaleString();
 
+    // Time & Tokens
     let rate = parseFloat(document.getElementById('hunt-rate').value) || 1;
     let hoursNeeded = animalsNeeded / rate;
+    
     let h = Math.floor(hoursNeeded);
     let m = Math.round((hoursNeeded - h) * 60);
     document.getElementById('hunt-time').innerText = `${h}h ${m}m`;
 
-    let tokenData = document.getElementById('token-select').value.split('|');
-    let tokenMins = parseFloat(tokenData[1]);
-    if (tokenMins > 0 && hoursNeeded > 0) {
+    let tokenRow = document.getElementById('token-row');
+    if (result.tokenDuration > 0 && hoursNeeded > 0) {
+        tokenRow.style.display = 'flex';
         let totalMins = hoursNeeded * 60;
-        let tokens = Math.ceil(totalMins / tokenMins);
-        document.getElementById('hunt-tokens').innerText = tokens + "x";
+        let tokens = Math.ceil(totalMins / result.tokenDuration);
+        document.getElementById('hunt-tokens').innerText = tokens + "x (" + result.tokenDuration + "m ea)";
     } else {
-        document.getElementById('hunt-tokens').innerText = "N/A";
+        tokenRow.style.display = 'none';
     }
 
-    // FISHING
+    // --- FISHING ---
     let weight = parseFloat(document.getElementById('fish-weight').value) || 0;
     let amount = parseFloat(document.getElementById('fish-amount').value) || 1;
-    
+
+    // Pole: max(0.1, weight / 15)
     let poleBase = Math.max(0.1, weight / 15);
     let poleBoosted = poleBase * mult;
+    
+    // Tug: max(0.1, weight / 20) * amount
     let tugBase = Math.max(0.1, weight / 20) * amount;
     let tugBoosted = tugBase * mult;
 
     document.getElementById('fish-pole').innerText = poleBoosted.toFixed(2);
     document.getElementById('fish-tug').innerText = tugBoosted.toFixed(2);
+
     document.getElementById('pole-needed').innerText = remXP > 0 ? Math.ceil(remXP / poleBoosted).toLocaleString() : 0;
     document.getElementById('tug-needed').innerText = remXP > 0 ? Math.ceil(remXP / tugBoosted).toLocaleString() : 0;
 }
 
+// --- LEVEL MATH ---
+// Formula: Total XP = 2.5 * L * (L+1)
 function lvlToXp() {
     let lvl = parseInt(document.getElementById('target-lvl').value);
     if (isNaN(lvl)) return;
@@ -386,17 +437,21 @@ function lvlToXp() {
 function calcMeat() {
     let reg = parseFloat(document.getElementById('meat-reg').value) || 0;
     let prem = parseFloat(document.getElementById('meat-prem').value) || 0;
+    
     let xp = (reg / 200) + (prem / 100);
     document.getElementById('meat-result').innerText = xp.toFixed(2) + " XP";
 }
 
+// --- UI TABS ---
 function switchMode(mode) {
     document.querySelectorAll('.calc-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('panel-' + mode).classList.add('active');
+    
     document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
     event.target.classList.add('active');
 }
 
+// --- NUI BRIDGE ---
 function requestSync() {
     window.parent.postMessage({ type: "getData" }, "*");
 }
@@ -404,14 +459,21 @@ function requestSync() {
 window.addEventListener('message', (event) => {
     const data = event.data.type === 'data' ? event.data.data : event.data;
     if (data.exp_hunting_skill || data.exp_farming_fishing) {
+        // ONLY UPDATE ON FETCH BUTTON CLICK via requestSync -> message loop
         let huntXP = data.exp_hunting_skill || 0;
         let fishXP = data.exp_farming_fishing || 0;
+        
+        // Use active tab to decide which XP to grabbing
         let isHunting = document.getElementById('panel-hunting').classList.contains('active');
-        document.getElementById('current-xp').value = isHunting ? huntXP : fishXP;
+        let newVal = isHunting ? huntXP : fishXP;
+        
+        // Update input
+        document.getElementById('current-xp').value = newVal;
         calc();
     }
 });
 
+// --- DRAG LOGIC ---
 const elm = document.getElementById("app");
 const header = document.getElementById("drag-handle");
 let isDragging = false, startX, startY, initLeft, initTop;
@@ -438,6 +500,7 @@ function stopDrag() {
     window.removeEventListener("mouseup", stopDrag);
     localStorage.setItem('tt_huntcalc_pos', JSON.stringify({ left: elm.offsetLeft, top: elm.offsetTop }));
 }
+
 </script>
 </body>
 </html>
