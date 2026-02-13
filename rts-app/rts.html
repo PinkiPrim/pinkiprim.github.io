@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT R.T.S. Ops v3.3</title>
+    <title>TT R.T.S. Ops v3.4 (Persistence)</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -359,6 +359,9 @@ function openExternal(url) {
 }
 
 // --- STATE ---
+const STORAGE_KEY_MINI = "tt_rts_mini";
+const STORAGE_KEY_POS = "tt_rts_pos";
+
 let STATE = {
     actions: 0, 
     jobType: "rts_professional",
@@ -373,6 +376,21 @@ let STATE = {
     isOnJob: false,
     lastStreak: "0"
 };
+
+// --- INIT PERSISTENCE ---
+window.onload = function() {
+    const savedPos = JSON.parse(localStorage.getItem(STORAGE_KEY_POS));
+    if (savedPos) {
+        document.getElementById('tracker-app').style.left = savedPos.left + 'px';
+        document.getElementById('tracker-app').style.top = savedPos.top + 'px';
+    }
+
+    const savedMini = localStorage.getItem(STORAGE_KEY_MINI);
+    if (savedMini === "true") {
+        document.getElementById('tracker-app').classList.add('mini-mode');
+    }
+};
+
 let MEMORY = { inventory: {} };
 
 // --- KEYS ---
@@ -386,6 +404,7 @@ const KEY_MAP = {
 function toggleMini() { 
     const app = document.getElementById('tracker-app');
     app.classList.toggle('mini-mode');
+    localStorage.setItem(STORAGE_KEY_MINI, app.classList.contains('mini-mode'));
 }
 function setCalc(val) { document.getElementById('target-input').value = val; runCalculator(); }
 
@@ -571,16 +590,63 @@ setInterval(() => {
     document.getElementById('clock').innerText = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }, 1000);
 
+// --- UNIFIED DRAG & SAVE LOGIC ---
+const appEl = document.getElementById('tracker-app');
 const dH = document.getElementById("drag-handle");
-let dr=false, sx, sy, ox, oy;
-dH.onmousedown = e => { if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return; dr=true; sx=e.clientX; sy=e.clientY; let r=document.getElementById('tracker-app').getBoundingClientRect(); ox=r.left; oy=r.top; };
-window.onmousemove = e => { if(dr){ let a=document.getElementById('tracker-app'); a.style.left=(ox+e.clientX-sx)+'px'; a.style.top=(oy+e.clientY-sy)+'px'; }};
-window.onmouseup = () => dr=false;
+const mV = document.getElementById("micro-view");
+let dr = false, sx, sy, ox, oy;
 
+function startDrag(e) {
+    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'A') return;
+    e.preventDefault();
+    dr = true;
+    sx = e.clientX; 
+    sy = e.clientY; 
+    let r = appEl.getBoundingClientRect(); 
+    ox = r.left; 
+    oy = r.top;
+    
+    window.addEventListener('mousemove', dragMove);
+    window.addEventListener('mouseup', endDrag);
+}
+
+function dragMove(e) {
+    if(dr) {
+        appEl.style.left = (ox + e.clientX - sx) + 'px'; 
+        appEl.style.top = (oy + e.clientY - sy) + 'px'; 
+    }
+}
+
+function endDrag() {
+    if (!dr) return;
+    dr = false;
+    window.removeEventListener('mousemove', dragMove);
+    window.removeEventListener('mouseup', endDrag);
+    
+    // Save position
+    localStorage.setItem(STORAGE_KEY_POS, JSON.stringify({ left: appEl.offsetLeft, top: appEl.offsetTop }));
+}
+
+dH.addEventListener('mousedown', startDrag);
+mV.addEventListener('mousedown', startDrag);
+
+// --- RESIZE LOGIC ---
 const rh = document.getElementById('resize-handle');
-rh.onmousedown = e => { e.preventDefault(); window.addEventListener('mousemove', rs); window.addEventListener('mouseup', rsEnd); };
-function rs(e) { let a=document.getElementById('tracker-app'); if(!a.classList.contains('mini-mode')) { a.style.width=Math.max(280, e.clientX-a.getBoundingClientRect().left)+'px'; a.style.height=Math.max(200, e.clientY-a.getBoundingClientRect().top)+'px'; } }
-function rsEnd() { window.removeEventListener('mousemove', rs); window.removeEventListener('mouseup', rsEnd); }
+rh.onmousedown = e => { 
+    e.preventDefault(); 
+    window.addEventListener('mousemove', rs); 
+    window.addEventListener('mouseup', rsEnd); 
+};
+function rs(e) { 
+    if(!appEl.classList.contains('mini-mode')) { 
+        appEl.style.width = Math.max(280, e.clientX - appEl.getBoundingClientRect().left) + 'px'; 
+        appEl.style.height = Math.max(200, e.clientY - appEl.getBoundingClientRect().top) + 'px'; 
+    } 
+}
+function rsEnd() { 
+    window.removeEventListener('mousemove', rs); 
+    window.removeEventListener('mouseup', rsEnd); 
+}
 
 </script>
 </body>
