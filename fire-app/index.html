@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Firefighting Helper</title>
+    <title>TT Firefighting Helper v1.1 (Persistence)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -31,7 +31,7 @@
 
         #app-container {
             position: absolute;
-            top: 50px; left: 50px;
+            top: 50px; left: 50px; /* Default position */
             width: 320px;
             background: var(--bg-glass);
             border: var(--border);
@@ -227,9 +227,9 @@
 <div id="app-container">
     <div id="water-layer">
         <div id="splash-overlay"></div>
-        </div>
+    </div>
 
-    <div id="micro-view" onmousedown="dragMouseDown(event)">
+    <div id="micro-view">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
         
         <div class="micro-row" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -332,6 +332,7 @@
     const KEYS = { XP: "exp_ems_fire", BXP: "exp_token_a|ems|fire" };
     const STORAGE_KEY_CALC = "target_xp_fire";
     const STORAGE_KEY_MINI = "mini_mode_fire";
+    const STORAGE_KEY_POS = "fire_app_pos"; // Added positional memory
 
     const STATE = {
         currentXP: 0, currentBXP: 0, 
@@ -340,6 +341,13 @@
     };
 
     // --- INIT ---
+    // Restore App Position
+    const savedPos = JSON.parse(localStorage.getItem(STORAGE_KEY_POS));
+    if (savedPos) {
+        document.getElementById('app-container').style.left = savedPos.left + 'px';
+        document.getElementById('app-container').style.top = savedPos.top + 'px';
+    }
+
     const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
     if (savedTarget) document.getElementById('target-input').value = savedTarget;
 
@@ -573,10 +581,15 @@
         elmnt.style.top = `${initialTop + dy}px`;
     }
 
+    // Save position upon dropping
     function dragEnd() {
+        if (!isDragging) return;
         isDragging = false;
         document.removeEventListener("mousemove", dragMove);
         document.removeEventListener("mouseup", dragEnd);
+        
+        const rect = elmnt.getBoundingClientRect();
+        localStorage.setItem(STORAGE_KEY_POS, JSON.stringify({ left: rect.left, top: rect.top }));
     }
 </script>
 </body>
