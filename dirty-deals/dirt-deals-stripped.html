@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Notifications v14.9</title>
+    <title>Dirty Deals - Discord Integration v15.1</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -174,7 +174,7 @@
 
         /* ORDER LAYOUT */
         .selection-area { flex: 2; padding: 20px; overflow-y: hidden; border-right: var(--border); background: #141414; display: flex; flex-direction: column; }
-        .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; min-width: 340px; }
+        .details-area { flex: 1; padding: 25px; background: #181818; display: flex; flex-direction: column; gap: 15px; min-width: 340px; overflow-y: auto; }
         
         .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
         .tab-btn { flex: 1; background: #252525; border: 1px solid #333; color: #888; padding: 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; text-transform: uppercase; text-align: center; }
@@ -209,6 +209,14 @@
         .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         .btn-order.active { opacity: 1; pointer-events: all; }
         
+        /* NEW: DISCORD BOX */
+        .discord-box { background: rgba(88, 101, 242, 0.1); border: 1px solid #5865F2; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .discord-box .title { font-weight: bold; color: #5865F2; display: flex; align-items: center; gap: 5px; font-size: 0.9em; text-transform: uppercase; }
+        .discord-box input { background: rgba(0,0,0,0.5); border: 1px solid rgba(88, 101, 242, 0.3); color: white; padding: 8px; border-radius: 4px; outline: none; font-family: monospace; font-size: 0.9em; flex: 1; }
+        .discord-box input:focus { border-color: #5865F2; }
+        .discord-box button { background: #5865F2; color: white; border: none; font-weight: bold; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; font-family: 'Rajdhani'; }
+        .discord-box button:hover { background: #4752C4; }
+
         /* TICKET SYSTEM STYLES */
         .ticket-list-container { flex: 1; display: flex; gap: 20px; height: 100%; overflow: hidden; }
         .ticket-list { width: 250px; background: #111; border: 1px solid #333; overflow-y: auto; display: flex; flex-direction: column; }
@@ -531,6 +539,16 @@
                         <option value="Playboy Mansion">Playboy Mansion</option>
                     </select>
                 </div>
+                
+                <div class="discord-box">
+                    <div class="title">🤖 Discord Notifications</div>
+                    <div style="font-size: 0.75em; color: rgba(255,255,255,0.8);">Enter your <strong style="color:white;">Numeric Discord ID</strong> to be pinged when this is complete.</div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="discord-id-input" placeholder="e.g. 123456789012345678">
+                        <button onclick="saveDiscordId()">SAVE</button>
+                    </div>
+                    <div id="discord-status" style="font-size:0.8em; color:#2ecc71; display:none;">Saved!</div>
+                </div>
 
                 <div class="total-box"><div class="label">Total Price</div><div class="total-price" id="disp-total">$0</div></div>
                 <div>
@@ -686,7 +704,7 @@
     var CATEGORIES = {}; 
     var currentAdminOrders = []; 
     
-    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false, isHardcodedAdmin: false, genRules: "No", grindRules: "No", isStaff: "No", config: {}, items: [], knownOrders: {} };
+    var state = { category: "Bonus EXP", item: null, qty: 1, priority: 'normal', username: "Guest", userId: "0", userPin: "", isGrinder: false, grinderRank: "", activeOrders: 0, completedOrders: 0, showMyHistoryDone: false, showGrinderDone: false, customOrderMode: false, miniView: 'orders', isAdmin: false, isHardcodedAdmin: false, genRules: "No", grindRules: "No", isStaff: "No", discordId: "", config: {}, items: [], knownOrders: {} };
     var activeTicketId = null;
     var ticketList = [];
     var pendingRulesType = "";
@@ -755,6 +773,24 @@
     function closeToast() {
         document.getElementById('order-toast').style.display = 'none';
     }
+    
+    function saveDiscordId() {
+        var val = document.getElementById('discord-id-input').value.trim();
+        var statusEl = document.getElementById('discord-status');
+        statusEl.style.display = 'block';
+        statusEl.innerText = "Saving...";
+        statusEl.style.color = "orange";
+        
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateDiscord", userId: state.userId, pin: state.userPin, discordId: val })
+        }).then(() => {
+            state.discordId = val;
+            statusEl.innerText = "Saved!";
+            statusEl.style.color = "#2ecc71";
+            setTimeout(() => statusEl.style.display = 'none', 3000);
+        });
+    }
 
     // --- GOD MODE FUNCTIONS ---
     function fetchAppConfig() {
@@ -815,13 +851,37 @@
             if(search && !i.name.toLowerCase().includes(search)) return;
             let row = document.createElement('div');
             row.className = 'god-item';
-            row.innerHTML = `
-                <span style="flex:1">${i.name}</span>
-                <input type="text" class="god-input" style="width:70px" id="god-price-${i.name}" value="${i.price}" title="Price">
-                <input type="text" class="god-input" style="width:70px" id="god-limit-${i.name}" value="${i.limit}" title="Limit">
-                <input type="text" class="god-input" style="width:50px; border-color:var(--gold);" id="god-cut-${i.name}" value="${i.cut}" title="Grinder Cut %">
-                <button class="god-btn" style="width:50px" onclick="saveItem('${i.name}')">SAVE</button>
-            `;
+            
+            // Rebuilt without innerHTML to prevent quote breaking
+            let nameSpan = document.createElement('span');
+            nameSpan.style.flex = "1";
+            nameSpan.innerText = i.name;
+            
+            let priceInput = document.createElement('input');
+            priceInput.type = "text"; priceInput.className = "god-input"; priceInput.style.width = "70px";
+            priceInput.id = "god-price-" + i.name.replace(/[^a-zA-Z0-9]/g, '');
+            priceInput.value = i.price;
+            
+            let limitInput = document.createElement('input');
+            limitInput.type = "text"; limitInput.className = "god-input"; limitInput.style.width = "70px";
+            limitInput.id = "god-limit-" + i.name.replace(/[^a-zA-Z0-9]/g, '');
+            limitInput.value = i.limit;
+            
+            let cutInput = document.createElement('input');
+            cutInput.type = "text"; cutInput.className = "god-input"; cutInput.style.width = "50px"; cutInput.style.borderColor = "var(--gold)";
+            cutInput.id = "god-cut-" + i.name.replace(/[^a-zA-Z0-9]/g, '');
+            cutInput.value = i.cut;
+            
+            let saveBtn = document.createElement('button');
+            saveBtn.className = "god-btn"; saveBtn.style.width = "50px"; saveBtn.innerText = "SAVE";
+            saveBtn.onclick = function() { saveItem(i.name); };
+            
+            row.appendChild(nameSpan);
+            row.appendChild(priceInput);
+            row.appendChild(limitInput);
+            row.appendChild(cutInput);
+            row.appendChild(saveBtn);
+            
             itemList.appendChild(row);
         });
     }
@@ -842,9 +902,10 @@
     }
 
     function saveItem(name) {
-        let price = document.getElementById(`god-price-${name}`).value;
-        let limit = document.getElementById(`god-limit-${name}`).value;
-        let cut = document.getElementById(`god-cut-${name}`).value;
+        let safeName = name.replace(/[^a-zA-Z0-9]/g, '');
+        let price = document.getElementById(`god-price-${safeName}`).value;
+        let limit = document.getElementById(`god-limit-${safeName}`).value;
+        let cut = document.getElementById(`god-cut-${safeName}`).value;
         showGodMsg("Saving...", "orange");
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
@@ -959,35 +1020,22 @@
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendMessage", orderTimestamp: ts, orderUserId: uid, sender: state.username, message: msg, userId: state.userId, pin: state.userPin }) }).then(() => { if(document.getElementById('view-history').style.display === 'flex') fetchMyOrders(); else fetchGlobalOrders(); }); 
     }
     
-    // --- BACKGROUND POLLER (Handles Orders AND Mail) ---
     function pollBackgroundData() { 
         if(!state.userPin) return; 
         fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`)
         .then(function(r){ return r.json(); })
         .then(function(data) { 
             if(!data || !Array.isArray(data)) return; 
-            
-            var hasUnread = false; 
             for(var i=0; i<data.length; i++) { 
-                if(String(data[i].userId).trim() === String(state.userId).trim() || state.isStaff==="Yes") { 
-                    if(data[i].chat && !data[i].chat.trim().endsWith(state.username)) { hasUnread = true; } 
-                } 
-                
                 if (String(data[i].userId).trim() === String(state.userId).trim()) {
                     let oId = data[i].timestamp;
                     let stat = data[i].status;
-                    
                     if (state.knownOrders[oId] && state.knownOrders[oId] !== 'Completed' && stat === 'Completed') {
                         showOrderCompleteToast(data[i].item);
                     }
                     state.knownOrders[oId] = stat;
                 }
             } 
-            
-            var icon = document.getElementById('mail-alert'); 
-            if (icon) {
-                if(hasUnread) icon.classList.add('has-mail'); else icon.classList.remove('has-mail'); 
-            }
         }); 
     }
 
@@ -1079,10 +1127,12 @@
                 state.genRules = data.genRules || "No";
                 state.grindRules = data.grindRules || "No";
                 state.isStaff = data.isStaff || "No";
+                state.discordId = data.discordId || "";
                 state.isHardcodedAdmin = ADMIN_IDS.includes(String(state.userId));
                 state.isAdmin = state.isHardcodedAdmin || state.isStaff === "Yes";
                 
                 document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('discord-id-input').value = state.discordId;
                 
                 fetchAppConfig();
 
@@ -1268,7 +1318,7 @@
     
     function fetchAdminOrders() { 
         fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ 
-            currentAdminOrders = orders;
+            currentAdminOrders = orders; // Cache for safe modal opening
             let c = document.getElementById('hk-order-list'); c.innerHTML = ''; 
             orders.forEach((o, idx) => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit(${idx})">EDIT</button></td></tr>`; }); 
         }); 
@@ -1293,9 +1343,12 @@
         
         if (state.isHardcodedAdmin) {
             document.getElementById('admin-only-wrapper').style.display = 'block';
+            
+            // Populate Price
             let priceRaw = o.price ? o.price.toString().replace(/[^0-9]/g, '') : "0";
             document.getElementById('ae-price').value = priceRaw ? "$" + parseInt(priceRaw).toLocaleString() : "$0";
             
+            // Populate Commission
             let commStr = o.commission || "";
             if (commStr.includes('%')) {
                 adminEditState.commMode = 'percent';
@@ -1311,7 +1364,9 @@
             
             adminEditState.linked = true;
             let chainBtn = document.getElementById('ae-chain-btn');
-            chainBtn.innerText = "🔗 Linked"; chainBtn.style.color = "#2ecc71"; chainBtn.style.borderColor = "#2ecc71";
+            chainBtn.innerText = "🔗 Linked";
+            chainBtn.style.color = "#2ecc71";
+            chainBtn.style.borderColor = "#2ecc71";
             
             if(isBundle) {
                 document.getElementById('admin-only-items-box').style.display = 'block';
@@ -1340,8 +1395,10 @@
     function toggleCommType() {
         adminEditState.commMode = (adminEditState.commMode === 'percent') ? 'amount' : 'percent';
         document.getElementById('ae-comm-toggle').innerText = (adminEditState.commMode === 'percent') ? '%' : '$';
+        
         let priceRaw = parseInt(document.getElementById('ae-price').value.replace(/[^0-9]/g, '')) || 0;
         let commRaw = parseFloat(document.getElementById('ae-comm').value.replace(/[^0-9.]/g, '')) || 0;
+        
         if (priceRaw > 0) {
             if (adminEditState.commMode === 'percent') { document.getElementById('ae-comm').value = ((commRaw / priceRaw) * 100).toFixed(1).replace('.0',''); } 
             else { document.getElementById('ae-comm').value = "$" + Math.floor(priceRaw * (commRaw / 100)).toLocaleString(); }
@@ -1350,37 +1407,60 @@
     }
 
     function handleAdminEditInput(source) {
-        let priceInput = document.getElementById('ae-price'); let commInput = document.getElementById('ae-comm');
+        let priceInput = document.getElementById('ae-price');
+        let commInput = document.getElementById('ae-comm');
+        
         if (source === 'price') {
-            let val = priceInput.value.replace(/[^0-9]/g, ''); priceInput.value = val ? "$" + parseInt(val).toLocaleString() : "";
+            let val = priceInput.value.replace(/[^0-9]/g, '');
+            priceInput.value = val ? "$" + parseInt(val).toLocaleString() : "";
         } else if (source === 'comm') {
-            if (adminEditState.commMode === 'amount') { let val = commInput.value.replace(/[^0-9]/g, ''); commInput.value = val ? "$" + parseInt(val).toLocaleString() : ""; } 
-            else { let val = commInput.value.replace(/[^0-9.]/g, ''); commInput.value = val; }
+            if (adminEditState.commMode === 'amount') {
+                let val = commInput.value.replace(/[^0-9]/g, '');
+                commInput.value = val ? "$" + parseInt(val).toLocaleString() : "";
+            } else {
+                let val = commInput.value.replace(/[^0-9.]/g, '');
+                commInput.value = val;
+            }
         }
         recalcAdminEdit();
     }
 
     function recalcAdminEdit() {
         let priceRaw = parseInt(document.getElementById('ae-price').value.replace(/[^0-9]/g, '')) || 0;
-        let commStr = document.getElementById('ae-comm').value; let commRaw = parseFloat(commStr.replace(/[^0-9.]/g, '')) || 0; let finalComm = "";
+        let commStr = document.getElementById('ae-comm').value;
+        let commRaw = parseFloat(commStr.replace(/[^0-9.]/g, '')) || 0;
+        let finalComm = "";
+
         if (adminEditState.linked && priceRaw > 0) {
-            if (adminEditState.commMode === 'percent') { let calcAmount = Math.floor(priceRaw * (commRaw / 100)); finalComm = "$" + calcAmount.toLocaleString() + " (" + commRaw + "%)"; } 
-            else { let calcPercent = ((commRaw / priceRaw) * 100).toFixed(1).replace('.0',''); finalComm = "$" + commRaw.toLocaleString() + " (" + calcPercent + "%)"; }
+            if (adminEditState.commMode === 'percent') {
+                let calcAmount = Math.floor(priceRaw * (commRaw / 100));
+                finalComm = "$" + calcAmount.toLocaleString() + " (" + commRaw + "%)";
+            } else {
+                let calcPercent = ((commRaw / priceRaw) * 100).toFixed(1).replace('.0','');
+                finalComm = "$" + commRaw.toLocaleString() + " (" + calcPercent + "%)";
+            }
         } else {
-            if (adminEditState.commMode === 'percent') { finalComm = commRaw + "%"; } else { finalComm = "$" + commRaw.toLocaleString(); }
+            if (adminEditState.commMode === 'percent') { finalComm = commRaw + "%"; } 
+            else { finalComm = "$" + commRaw.toLocaleString(); }
         }
-        document.getElementById('ae-comm-preview').innerText = "Final Cut: " + finalComm; document.getElementById('ae-comm-final').value = finalComm;
+
+        document.getElementById('ae-comm-preview').innerText = "Final Cut: " + finalComm;
+        document.getElementById('ae-comm-final').value = finalComm;
     }
     
     function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
     
     function saveAdminOrder() { 
-        let ts = document.getElementById('ae-ts').value; let uid = document.getElementById('ae-uid').value; 
-        let stat = document.getElementById('ae-status').value; let grind = document.getElementById('ae-grinder').value; 
+        let ts = document.getElementById('ae-ts').value; 
+        let uid = document.getElementById('ae-uid').value; 
+        let stat = document.getElementById('ae-status').value; 
+        let grind = document.getElementById('ae-grinder').value; 
         let prog = document.getElementById('ae-progress').value;
+        
         let comm = state.isHardcodedAdmin ? document.getElementById('ae-comm-final').value : null;
         let price = state.isHardcodedAdmin ? document.getElementById('ae-price').value : null;
         let items = state.isHardcodedAdmin && document.getElementById('admin-only-items-box').style.display === 'block' ? document.getElementById('ae-items').value : null;
+
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: prog, userId: state.userId, pin: state.userPin }) });
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind, newCommission: comm, newPrice: price, newItems: items }) }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); }); 
     }
