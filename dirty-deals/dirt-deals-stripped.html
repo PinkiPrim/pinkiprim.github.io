@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Discord Integration v15.1</title>
+    <title>Dirty Deals - Anti-Spam v15.5</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -100,6 +100,8 @@
         .login-btn { width: 100%; padding: 12px; background: var(--accent); border: none; color: white; font-weight: bold; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.2em; transition: 0.2s; }
         .login-btn:hover { background: var(--accent-hover); }
         .login-status { margin-top: 15px; font-size: 0.8em; color: #888; }
+        
+        button:disabled { opacity: 0.5; cursor: not-allowed !important; pointer-events: none; }
 
         /* --- MAIN APP CONTAINER --- */
         #app-container { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 1050px; height: 680px; background: var(--bg-glass); border: var(--border); border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.95); flex-direction: column; overflow: hidden; z-index: 1000; transition: opacity 0.2s ease; }
@@ -204,13 +206,17 @@
 
         .custom-toggle { display: none; width: 100%; background: #2c3e50; border: 1px dashed #34495e; color: #bdc3c7; padding: 8px; margin-top: 5px; cursor: pointer; border-radius: 4px; font-size: 0.8em; text-transform: uppercase; }
         .custom-toggle.active { background: #8e44ad; border-color: #9b59b6; color: white; }
+        
+        .btn-text-link { background: transparent; border: none; color: var(--accent); font-family: 'Rajdhani', sans-serif; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.85em; padding: 5px 0; display: block; margin-top: 5px; transition: 0.2s; width: 100%; text-align: left; }
+        .btn-text-link:hover { color: var(--accent-hover); }
+
         .total-box { margin-top: auto; text-align: right; border-top: 1px solid #333; padding-top: 10px; margin-bottom: 5px; flex-shrink: 0; }
         .total-price { font-size: 2.2em; font-weight: 700; color: var(--text-main); font-family: 'Rajdhani', sans-serif; }
         .btn-order { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 4px; font-weight: bold; font-size: 1em; text-transform: uppercase; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         .btn-order.active { opacity: 1; pointer-events: all; }
         
         /* NEW: DISCORD BOX */
-        .discord-box { background: rgba(88, 101, 242, 0.1); border: 1px solid #5865F2; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .discord-box { background: rgba(88, 101, 242, 0.1); border: 1px solid #5865F2; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; flex-shrink:0; }
         .discord-box .title { font-weight: bold; color: #5865F2; display: flex; align-items: center; gap: 5px; font-size: 0.9em; text-transform: uppercase; }
         .discord-box input { background: rgba(0,0,0,0.5); border: 1px solid rgba(88, 101, 242, 0.3); color: white; padding: 8px; border-radius: 4px; outline: none; font-family: monospace; font-size: 0.9em; flex: 1; }
         .discord-box input:focus { border-color: #5865F2; }
@@ -307,7 +313,6 @@
 <body>
 
 <div id="side-dock" onclick="expandApp()"><span>OPEN SYSTEM</span></div>
-
 <div id="notif-tab" onclick="expandApp()">1</div>
 
 <div id="order-toast">
@@ -332,11 +337,9 @@
     <div class="rules-box">
         <div class="rules-header">NEW SUPPORT TICKET</div>
         <input type="text" id="new-ticket-reason" class="login-input" placeholder="Describe your issue..." maxlength="60">
-        
         <div id="ticket-error-msg" style="color:#e74c3c; font-size:0.9em; margin-bottom:10px; display:none;">
             Sorry, there was an issue linking your account. Please refresh the app.
         </div>
-        
         <div class="modal-btn-row">
             <button class="modal-btn btn-confirm" id="btn-create-ticket" onclick="submitNewTicket()">CREATE</button>
             <button class="modal-btn btn-cancel" onclick="closeNewTicketModal()">CANCEL</button>
@@ -358,12 +361,10 @@
 <div id="special-order-modal">
     <div class="special-box">
         <div class="sp-header">SPECIAL REQUEST OPS</div>
-        
         <div class="input-group">
             <label class="label">REQUESTER</label>
             <select id="sp-requester"><option>Loading...</option></select>
         </div>
-
         <div class="input-group">
             <label class="label">ITEMS BUNDLE</label>
             <div class="sp-row">
@@ -373,12 +374,10 @@
             </div>
             <div id="sp-item-list" class="sp-list"></div>
         </div>
-
         <div class="input-group">
             <label class="label">ASSIGN GRINDERS</label>
             <div id="sp-grinder-list" class="sp-list" style="height:100px;"></div>
         </div>
-
         <div class="sp-row">
             <div class="input-group" style="flex:1">
                 <label class="label">DISCOUNT %</label>
@@ -393,9 +392,7 @@
                 <input type="text" id="sp-comm" class="login-input" placeholder="Auto-Calc">
             </div>
         </div>
-        
         <div id="sp-status-msg" style="height:20px; color:#e74c3c; font-weight:bold; font-size:0.9em;"></div>
-
         <div class="modal-btn-row">
             <button class="modal-btn btn-gold" id="btn-submit-sp" onclick="submitSpecialOrder()">SUBMIT SPECIAL ORDER</button>
             <button class="modal-btn btn-cancel" onclick="document.getElementById('special-order-modal').style.display='none'">CANCEL</button>
@@ -514,8 +511,9 @@
                         <option value="high">High Priority (+5% Fee)</option>
                     </select>
                 </div>
+                
                 <div class="input-group">
-                    <div class="label">Storage Location</div>
+                    <div class="label">Storage Location 1</div>
                     <select id="input-storage">
                         <option value="I'll Collect">I'll Collect</option>
                         <option value="Big House Storage LSIA">Big House Storage LSIA</option>
@@ -538,8 +536,36 @@
                         <option value="Collins Petrochemical Corp.">Collins Petrochemical Corp.</option>
                         <option value="Playboy Mansion">Playboy Mansion</option>
                     </select>
+                    <button id="btn-add-storage" class="btn-text-link" onclick="toggleSecondStorage()">+ Need Another Storage Location?</button>
                 </div>
                 
+                <div class="input-group" id="group-storage-2" style="display:none;">
+                    <div class="label">Storage Location 2 <span style="float:right; color:#e74c3c; cursor:pointer;" onclick="toggleSecondStorage()">✖ Remove</span></div>
+                    <select id="input-storage-2">
+                        <option value="None">None</option>
+                        <option value="I'll Collect">I'll Collect</option>
+                        <option value="Big House Storage LSIA">Big House Storage LSIA</option>
+                        <option value="The Secure Unit">The Secure Unit</option>
+                        <option value="Rogers Salvage & Scrap">Rogers Salvage & Scrap</option>
+                        <option value="Palmer-Taylor Power Station">Palmer-Taylor Power Station</option>
+                        <option value="Del Perro">Del Perro</option>
+                        <option value="Paleto Bay">Paleto Bay</option>
+                        <option value="Blaine County Tractor Parts">Blaine County Tractor Parts</option>
+                        <option value="Staunton Island">Staunton Island</option>
+                        <option value="Cayo Perico Airfield">Cayo Perico Airfield</option>
+                        <option value="Trainyard">Trainyard</option>
+                        <option value="Tongva Hills Vineyard">Tongva Hills Vineyard</option>
+                        <option value="Hookies">Hookies</option>
+                        <option value="Grandmas House">Grandmas House</option>
+                        <option value="Yellow Jack">Yellow Jack</option>
+                        <option value="LT Weld Supply Co">LT Weld Supply Co</option>
+                        <option value="Walker Logistics">Walker Logistics</option>
+                        <option value="Los Santos International Airport">Los Santos International Airport</option>
+                        <option value="Collins Petrochemical Corp.">Collins Petrochemical Corp.</option>
+                        <option value="Playboy Mansion">Playboy Mansion</option>
+                    </select>
+                </div>
+
                 <div class="discord-box">
                     <div class="title">🤖 Discord Notifications</div>
                     <div style="font-size: 0.75em; color: rgba(255,255,255,0.8);">Enter your <strong style="color:white;">Numeric Discord ID</strong> to be pinged when this is complete.</div>
@@ -550,7 +576,7 @@
                     <div id="discord-status" style="font-size:0.8em; color:#2ecc71; display:none;">Saved!</div>
                 </div>
 
-                <div class="total-box"><div class="label">Total Price</div><div class="total-price" id="disp-total">$0</div></div>
+                <div class="total-box"><div class="label">Final Total Price</div><div class="total-price" id="disp-total">$0</div></div>
                 <div>
                     <button class="btn-order" id="btn-submit" onclick="submitRealOrder()">CONFIRM ORDER</button>
                     <div id="status-msg" style="text-align:center; font-size:0.75em; margin-top:5px; color:#555;">Waiting for item selection...</div>
@@ -683,7 +709,7 @@
             </div>
 
             <div style="display:flex; gap:10px; margin-top:15px;">
-                <button class="login-btn" onclick="saveAdminOrder()">SAVE</button>
+                <button id="btn-admin-save" class="login-btn" onclick="saveAdminOrder(this)">SAVE</button>
                 <button class="login-btn" style="background:#333;" onclick="closeAdminModal()">CANCEL</button>
             </div>
         </div>
@@ -792,6 +818,19 @@
         });
     }
 
+    function toggleSecondStorage() {
+        let grp = document.getElementById('group-storage-2');
+        let btn = document.getElementById('btn-add-storage');
+        if (grp.style.display === 'none') {
+            grp.style.display = 'block';
+            btn.style.display = 'none';
+        } else {
+            grp.style.display = 'none';
+            btn.style.display = 'block';
+            document.getElementById('input-storage-2').value = "None";
+        }
+    }
+
     // --- GOD MODE FUNCTIONS ---
     function fetchAppConfig() {
         fetch(`${GOOGLE_SCRIPT_URL}?action=getAppConfig&userId=${state.userId}&pin=${state.userPin}`)
@@ -852,7 +891,6 @@
             let row = document.createElement('div');
             row.className = 'god-item';
             
-            // Rebuilt without innerHTML to prevent quote breaking
             let nameSpan = document.createElement('span');
             nameSpan.style.flex = "1";
             nameSpan.innerText = i.name;
@@ -1007,7 +1045,8 @@
     function toggleMyHistoryDone() { state.showMyHistoryDone = !state.showMyHistoryDone; document.getElementById('btn-toggle-my-done').innerText = state.showMyHistoryDone ? "Hide Done" : "Show Done"; fetchMyOrders(); }
     function toggleGrinderDone() { state.showGrinderDone = !state.showGrinderDone; document.getElementById('btn-toggle-grinder-done').innerText = state.showGrinderDone ? "Hide Done" : "Show Done"; fetchGlobalOrders(); }
 
-    function updateOrderStatus(ts, uid, status) { 
+    function updateOrderStatus(btn, ts, uid, status) { 
+        if(btn) { btn.disabled = true; btn.innerText = "..."; setTimeout(()=>{btn.disabled=false; btn.innerText=status.toUpperCase();}, 5000); }
         var payload = { action: "updateOrder", orderTimestamp: ts, orderUserId: uid, newStatus: status, grinderName: state.username, grinderRank: state.grinderRank, userId: state.userId, pin: state.userPin }; 
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(() => setTimeout(fetchGlobalOrders, 1000)); 
     }
@@ -1039,7 +1078,7 @@
         }); 
     }
 
-    function toggleChat(btn) { var area = btn.closest('.history-item').querySelector('.chat-area'); area.style.display = (area.style.display==='block'?'none':'block'); var badge = btn.querySelector('.unread-badge'); if(badge) badge.remove(); }
+    function toggleChat(btn) { var area = btn.closest('.history-item').querySelector('.chat-area'); area.style.display = (area.style.display==='block'?'none':'block'); }
     function sendChatFromBtn(btn, ts, uid) { var input = btn.previousElementSibling; if(!input.value) return; sendChatMessage(ts, uid, input.value); input.value = "Sending..."; }
     function getStepSize(limit) { if (limit >= 250000) return 5000; if (limit >= 50000) return 1000; if (limit >= 15000) return 500; if (limit >= 2500) return 50; if (limit >= 1500) return 25; if (limit >= 1000) return 10; if (limit >= 500) return 5; return 1; }
     
@@ -1091,19 +1130,37 @@
     
     function submitRealOrder() { 
         if (state.username === "Unknown" || state.username === "Guest") { document.getElementById('status-msg').innerText = "Sorry, there was an issue linking your account. Please refresh the app."; document.getElementById('status-msg').style.color = "#e74c3c"; return; }
+        
+        let storage1 = document.getElementById('input-storage').value;
+        let storage2 = document.getElementById('input-storage-2').value;
+        let finalStorage = storage1;
+        if (document.getElementById('group-storage-2').style.display === 'block' && storage2 !== 'None') {
+            finalStorage += " & " + storage2;
+        }
+
         var btn = document.getElementById('btn-submit'); btn.disabled = true; btn.innerText = "SENDING..."; 
-        var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, storage: document.getElementById('input-storage').value, totalPrice: document.getElementById('disp-total').innerText, isCustom: state.customOrderMode, itemCut: state.item.cut }; 
-        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { btn.innerText = "SENT!"; setTimeout(function() { btn.disabled = false; btn.innerText = "CONFIRM ORDER"; fetchMyOrders(); }, 2000); }); 
+        var payload = { action: "placeOrder", username: state.username, userId: state.userId, pin: state.userPin, category: state.category, item: state.item.name, quantity: document.getElementById('input-qty').value, priority: document.getElementById('input-priority').value, storage: finalStorage, totalPrice: document.getElementById('disp-total').innerText, isCustom: state.customOrderMode, itemCut: state.item.cut }; 
+        fetch(GOOGLE_SCRIPT_URL + "?action=getAllOrders&userId=" + state.userId + "&pin=" + state.userPin, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function() { 
+            btn.innerText = "SENT!"; 
+            setTimeout(function() { 
+                btn.disabled = false; 
+                btn.innerText = "CONFIRM ORDER"; 
+                document.getElementById('group-storage-2').style.display = 'none';
+                document.getElementById('btn-add-storage').style.display = 'block';
+                document.getElementById('input-storage-2').value = "None";
+                fetchMyOrders(); 
+            }, 2000); 
+        }); 
     }
     
     function createOrderItem(o, isGrinderView) { 
-        var status = (o.status || 'Pending'); var progress = o.progress || "0"; var controls = ''; var hasUnread = (o.chat && !o.chat.trim().endsWith(state.username)); var chatBadge = hasUnread ? '<div class="unread-badge">1</div>' : ''; 
+        var status = (o.status || 'Pending'); var progress = o.progress || "0"; var controls = ''; 
         if(isGrinderView) { 
             var s = status.toLowerCase(); var maxJobs = GRINDER_LIMITS[state.grinderRank] || 3; var isMyJob = (o.grinder && o.grinder.toLowerCase().includes(state.username.toLowerCase())); 
-            if(s === 'pending') { if (String(o.userId) === String(state.userId)) controls = '<span style="color:#555; font-size:0.7em;">YOUR ORDER</span>'; else controls = '<button class="g-btn gb-accept" onclick="updateOrderStatus(\''+o.timestamp+'\', \''+o.orderUserId+'\', \'Accepted\')">ACCEPT</button>'; } 
-            else if(s === 'accepted' && isMyJob) { controls = `<div class="grinder-action-box"><div class="btn-row"><button class="g-btn gb-complete" onclick="updateOrderStatus('${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button><button class="g-btn gb-chat" onclick="toggleChat(this)">${chatBadge}💬</button></div><input type="text" class="progress-strip" value="${progress}" placeholder="Enter Progress..." onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)"></div>`; } 
+            if(s === 'pending') { if (String(o.userId) === String(state.userId)) controls = '<span style="color:#555; font-size:0.7em;">YOUR ORDER</span>'; else controls = `<button class="g-btn gb-accept" onclick="updateOrderStatus(this, '${o.timestamp}', '${o.orderUserId}', 'Accepted')">ACCEPT</button>`; } 
+            else if(s === 'accepted' && isMyJob) { controls = `<div class="grinder-action-box"><div class="btn-row"><button class="g-btn gb-complete" onclick="updateOrderStatus(this, '${o.timestamp}', '${o.orderUserId}', 'Completed')">COMPLETE</button><button class="g-btn gb-chat" onclick="toggleChat(this)">💬</button></div><input type="text" class="progress-strip" value="${progress}" placeholder="Enter Progress..." onchange="updateProgress('${o.timestamp}', '${o.orderUserId}', this.value)"></div>`; } 
         } else { 
-            if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span><button class="g-btn gb-chat" style="margin-left:10px; padding:4px 8px;" onclick="toggleChat(this)">${chatBadge}💬</button>`; 
+            if(status === 'Accepted') controls = `<span style="font-size:0.9em; color:#2ecc71; font-weight:bold;">Progress: ${progress} / ${o.qty}</span><button class="g-btn gb-chat" style="margin-left:10px; padding:4px 8px;" onclick="toggleChat(this)">💬</button>`; 
         } 
         
         let storageHTML = o.storage && o.storage !== "N/A" ? `<div class="h-row storage">Dropoff: ${o.storage}</div>` : '';
@@ -1318,7 +1375,7 @@
     
     function fetchAdminOrders() { 
         fetch(`${GOOGLE_SCRIPT_URL}?action=getAllOrders&userId=${state.userId}&pin=${state.userPin}&_t=${new Date().getTime()}`).then(r=>r.json()).then(orders=>{ 
-            currentAdminOrders = orders; // Cache for safe modal opening
+            currentAdminOrders = orders;
             let c = document.getElementById('hk-order-list'); c.innerHTML = ''; 
             orders.forEach((o, idx) => { c.innerHTML += `<tr><td>${o.item}</td><td>${o.username}</td><td class="st-${o.status}">${o.status}</td><td>${o.grinder || '-'}</td><td style="color:#2ecc71; font-weight:bold;">${o.commission}</td><td><button class="hk-action-btn" onclick="openAdminEdit(${idx})">EDIT</button></td></tr>`; }); 
         }); 
@@ -1343,12 +1400,9 @@
         
         if (state.isHardcodedAdmin) {
             document.getElementById('admin-only-wrapper').style.display = 'block';
-            
-            // Populate Price
             let priceRaw = o.price ? o.price.toString().replace(/[^0-9]/g, '') : "0";
             document.getElementById('ae-price').value = priceRaw ? "$" + parseInt(priceRaw).toLocaleString() : "$0";
             
-            // Populate Commission
             let commStr = o.commission || "";
             if (commStr.includes('%')) {
                 adminEditState.commMode = 'percent';
@@ -1364,9 +1418,7 @@
             
             adminEditState.linked = true;
             let chainBtn = document.getElementById('ae-chain-btn');
-            chainBtn.innerText = "🔗 Linked";
-            chainBtn.style.color = "#2ecc71";
-            chainBtn.style.borderColor = "#2ecc71";
+            chainBtn.innerText = "🔗 Linked"; chainBtn.style.color = "#2ecc71"; chainBtn.style.borderColor = "#2ecc71";
             
             if(isBundle) {
                 document.getElementById('admin-only-items-box').style.display = 'block';
@@ -1395,10 +1447,8 @@
     function toggleCommType() {
         adminEditState.commMode = (adminEditState.commMode === 'percent') ? 'amount' : 'percent';
         document.getElementById('ae-comm-toggle').innerText = (adminEditState.commMode === 'percent') ? '%' : '$';
-        
         let priceRaw = parseInt(document.getElementById('ae-price').value.replace(/[^0-9]/g, '')) || 0;
         let commRaw = parseFloat(document.getElementById('ae-comm').value.replace(/[^0-9.]/g, '')) || 0;
-        
         if (priceRaw > 0) {
             if (adminEditState.commMode === 'percent') { document.getElementById('ae-comm').value = ((commRaw / priceRaw) * 100).toFixed(1).replace('.0',''); } 
             else { document.getElementById('ae-comm').value = "$" + Math.floor(priceRaw * (commRaw / 100)).toLocaleString(); }
@@ -1407,62 +1457,46 @@
     }
 
     function handleAdminEditInput(source) {
-        let priceInput = document.getElementById('ae-price');
-        let commInput = document.getElementById('ae-comm');
-        
+        let priceInput = document.getElementById('ae-price'); let commInput = document.getElementById('ae-comm');
         if (source === 'price') {
-            let val = priceInput.value.replace(/[^0-9]/g, '');
-            priceInput.value = val ? "$" + parseInt(val).toLocaleString() : "";
+            let val = priceInput.value.replace(/[^0-9]/g, ''); priceInput.value = val ? "$" + parseInt(val).toLocaleString() : "";
         } else if (source === 'comm') {
-            if (adminEditState.commMode === 'amount') {
-                let val = commInput.value.replace(/[^0-9]/g, '');
-                commInput.value = val ? "$" + parseInt(val).toLocaleString() : "";
-            } else {
-                let val = commInput.value.replace(/[^0-9.]/g, '');
-                commInput.value = val;
-            }
+            if (adminEditState.commMode === 'amount') { let val = commInput.value.replace(/[^0-9]/g, ''); commInput.value = val ? "$" + parseInt(val).toLocaleString() : ""; } 
+            else { let val = commInput.value.replace(/[^0-9.]/g, ''); commInput.value = val; }
         }
         recalcAdminEdit();
     }
 
     function recalcAdminEdit() {
         let priceRaw = parseInt(document.getElementById('ae-price').value.replace(/[^0-9]/g, '')) || 0;
-        let commStr = document.getElementById('ae-comm').value;
-        let commRaw = parseFloat(commStr.replace(/[^0-9.]/g, '')) || 0;
-        let finalComm = "";
-
+        let commStr = document.getElementById('ae-comm').value; let commRaw = parseFloat(commStr.replace(/[^0-9.]/g, '')) || 0; let finalComm = "";
         if (adminEditState.linked && priceRaw > 0) {
-            if (adminEditState.commMode === 'percent') {
-                let calcAmount = Math.floor(priceRaw * (commRaw / 100));
-                finalComm = "$" + calcAmount.toLocaleString() + " (" + commRaw + "%)";
-            } else {
-                let calcPercent = ((commRaw / priceRaw) * 100).toFixed(1).replace('.0','');
-                finalComm = "$" + commRaw.toLocaleString() + " (" + calcPercent + "%)";
-            }
+            if (adminEditState.commMode === 'percent') { let calcAmount = Math.floor(priceRaw * (commRaw / 100)); finalComm = "$" + calcAmount.toLocaleString() + " (" + commRaw + "%)"; } 
+            else { let calcPercent = ((commRaw / priceRaw) * 100).toFixed(1).replace('.0',''); finalComm = "$" + commRaw.toLocaleString() + " (" + calcPercent + "%)"; }
         } else {
-            if (adminEditState.commMode === 'percent') { finalComm = commRaw + "%"; } 
-            else { finalComm = "$" + commRaw.toLocaleString(); }
+            if (adminEditState.commMode === 'percent') { finalComm = commRaw + "%"; } else { finalComm = "$" + commRaw.toLocaleString(); }
         }
-
-        document.getElementById('ae-comm-preview').innerText = "Final Cut: " + finalComm;
-        document.getElementById('ae-comm-final').value = finalComm;
+        document.getElementById('ae-comm-preview').innerText = "Final Cut: " + finalComm; document.getElementById('ae-comm-final').value = finalComm;
     }
     
     function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
     
-    function saveAdminOrder() { 
-        let ts = document.getElementById('ae-ts').value; 
-        let uid = document.getElementById('ae-uid').value; 
-        let stat = document.getElementById('ae-status').value; 
-        let grind = document.getElementById('ae-grinder').value; 
+    function saveAdminOrder(btn) { 
+        btn.disabled = true; btn.innerText = "SAVING...";
+
+        let ts = document.getElementById('ae-ts').value; let uid = document.getElementById('ae-uid').value; 
+        let stat = document.getElementById('ae-status').value; let grind = document.getElementById('ae-grinder').value; 
         let prog = document.getElementById('ae-progress').value;
-        
         let comm = state.isHardcodedAdmin ? document.getElementById('ae-comm-final').value : null;
         let price = state.isHardcodedAdmin ? document.getElementById('ae-price').value : null;
         let items = state.isHardcodedAdmin && document.getElementById('admin-only-items-box').style.display === 'block' ? document.getElementById('ae-items').value : null;
 
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateProgress", orderTimestamp: ts, orderUserId: uid, progress: prog, userId: state.userId, pin: state.userPin }) });
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind, newCommission: comm, newPrice: price, newItems: items }) }).then(() => { closeAdminModal(); setTimeout(fetchAdminOrders, 1000); }); 
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "adminUpdateOrder", userId: state.userId, pin: state.userPin, orderTimestamp: ts, orderUserId: uid, newStatus: stat, newGrinder: grind, newCommission: comm, newPrice: price, newItems: items }) }).then(() => { 
+            closeAdminModal(); 
+            setTimeout(fetchAdminOrders, 1000); 
+            setTimeout(() => { btn.disabled = false; btn.innerText = "SAVE"; }, 5000);
+        }); 
     }
     
     function saveUserModification() { let id = document.getElementById('ue-id').value; let role = document.getElementById('ue-role').value; let status = document.getElementById('ue-status').value; let staff = document.getElementById('ue-staff').value; fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "updateUserRole", userId: state.userId, pin: state.userPin, targetId: id, newStatus: status, newRole: role, newStaff: staff }) }).then(() => { closeUserModal(); setTimeout(fetchAdminUsers, 1000); }); }
