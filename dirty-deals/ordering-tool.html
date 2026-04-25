@@ -584,7 +584,6 @@
                 </div>
 
                 <div class="total-box">
-                    <div id="disp-cut-label" style="font-size: 0.8em; color: var(--gold); margin-bottom: 5px; display: none; font-weight: bold;">+ CUT/FEES: $0</div>
                     <div class="label">Final Total Price</div>
                     <div class="total-price" id="disp-total" data-base="0">$0</div>
                 </div>
@@ -768,7 +767,11 @@
                         state.userId = cleanID(d.user_id || d.player_id || d.id);
                         document.getElementById('username-display').innerText = state.username;
                         document.getElementById('userid-display').innerText = "ID: " + state.userId;
-                        document.getElementById('loading-txt').innerText = "IDENTITY CONFIRMED: " + state.username;
+                        
+                        // THE FIX: Correctly targets the diagnostic bar instead of crashing!
+                        var progCont = document.getElementById('login-progress-container');
+                        if(progCont) progCont.style.display = 'none';
+                        
                         document.getElementById('btn-init').style.display = 'none';
                         document.getElementById('auth-fields').style.display = 'block';
                         document.getElementById('login-name').value = state.username;
@@ -1213,7 +1216,7 @@
         
         var baseOrTotal = parseInt(String(o.price).replace(/[^0-9]/g, '')) || 0;
         var commAmt = o.commission ? parseInt(String(o.commission).split('(')[0].replace(/[^0-9]/g, '')) : 0;
-        var displayPrice = isGrinderView ? baseOrTotal : (baseOrTotal + commAmt);
+        var displayPrice = (isGrinderView || state.isAdmin) ? baseOrTotal : (baseOrTotal + commAmt);
         
         var div = document.createElement('div'); div.className = "history-item"; 
         
