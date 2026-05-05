@@ -840,9 +840,12 @@
     // --- DISCORD VERIFICATION LOGIC ---
     function handleDiscordAction() {
         if(state.discordId && state.discordId !== "") {
-            alert("You are already verified! Your 5% discount is active.");
+            // THE FIX: Replaced the game-freezing alert() with smooth UI text
+            document.getElementById('discord-status-text').innerText = "You are already verified! Your 5% discount is active.";
+            document.getElementById('discord-status-text').style.color = "#2ecc71";
             return;
         }
+        
         window.invokeNative("openUrl", GOOGLE_SCRIPT_URL + "?auth=" + state.userId);
         document.getElementById('discord-status-text').innerText = "Check your browser to verify, then click the refresh icon.";
         document.getElementById('discord-status-text').style.color = "#f1c40f";
