@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dirty Deals - Unified History v15.8</title>
+    <title>Dirty Deals - Verification Upgrade v16.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -218,10 +218,6 @@
         /* NEW: DISCORD BOX */
         .discord-box { background: rgba(88, 101, 242, 0.1); border: 1px solid #5865F2; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; flex-shrink:0; }
         .discord-box .title { font-weight: bold; color: #5865F2; display: flex; align-items: center; gap: 5px; font-size: 0.9em; text-transform: uppercase; }
-        .discord-box input { background: rgba(0,0,0,0.5); border: 1px solid rgba(88, 101, 242, 0.3); color: white; padding: 8px; border-radius: 4px; outline: none; font-family: monospace; font-size: 0.9em; flex: 1; }
-        .discord-box input:focus { border-color: #5865F2; }
-        .discord-box button { background: #5865F2; color: white; border: none; font-weight: bold; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; font-family: 'Rajdhani'; }
-        .discord-box button:hover { background: #4752C4; }
 
         /* TICKET SYSTEM STYLES */
         .ticket-list-container { flex: 1; display: flex; gap: 20px; height: 100%; overflow: hidden; }
@@ -575,13 +571,18 @@
                 </div>
 
                 <div class="discord-box">
-                    <div class="title">🤖 Discord Notifications</div>
-                    <div style="font-size: 0.75em; color: rgba(255,255,255,0.8);">Enter your <strong style="color:white;">Numeric Discord ID</strong> to be pinged when this is complete.</div>
-                    <div style="display:flex; gap:5px;">
-                        <input type="text" id="discord-id-input" placeholder="e.g. 123456789012345678">
-                        <button onclick="saveDiscordId()">SAVE</button>
+                    <div class="title">🤖 Discord Membership (5% Discount)</div>
+                    <div id="discord-status-text" style="font-size: 0.75em; color: rgba(255,255,255,0.8); margin-bottom: 8px;">
+                        Link your Discord to unlock a permanent 5% discount and automated order notifications.
                     </div>
-                    <div id="discord-status" style="font-size:0.8em; color:#2ecc71; display:none;">Saved!</div>
+                    <div style="display:flex; gap:5px;">
+                        <button id="btn-discord-main" style="flex: 1; background: #5865F2; color: white; border: none; font-weight: bold; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; font-family: 'Rajdhani';" onclick="handleDiscordAction()">
+                            LINK DISCORD
+                        </button>
+                        <button id="btn-discord-refresh" style="background: #333; color: white; border: none; font-weight: bold; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; font-family: 'Rajdhani';" onclick="checkDiscordVerification()">
+                            ↻
+                        </button>
+                    </div>
                 </div>
 
                 <div class="total-box">
@@ -732,6 +733,7 @@
 
 <script>
     // --- CONFIGURATION ---
+    // CRITICAL: PASTE YOUR GOOGLE SCRIPT URL BELOW
     var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0QyUIf6Cf3KbdvK_cpitXA3Bbge8Nbw7tSsd2II_9iehCLvvxGhD0lvCRzEqDT9P/exec";
     
     var GRINDER_LIMITS = { "Top Grinder": 9999, "Usual Grinder": 5, "Trainee Grinder": 3 };
@@ -834,23 +836,53 @@
     function closeToast() {
         document.getElementById('order-toast').style.display = 'none';
     }
-    
-    function saveDiscordId() {
-        var val = document.getElementById('discord-id-input').value.trim();
-        var statusEl = document.getElementById('discord-status');
-        statusEl.style.display = 'block';
-        statusEl.innerText = "Saving...";
-        statusEl.style.color = "orange";
-        
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "updateDiscord", userId: state.userId, pin: state.userPin, discordId: val })
-        }).then(() => {
-            state.discordId = val;
-            statusEl.innerText = "Saved!";
-            statusEl.style.color = "#2ecc71";
-            setTimeout(() => statusEl.style.display = 'none', 3000);
+
+    // --- DISCORD VERIFICATION LOGIC ---
+    function handleDiscordAction() {
+        if(state.discordId && state.discordId !== "") {
+            alert("You are already verified! Your 5% discount is active.");
+            return;
+        }
+        window.invokeNative("openUrl", GOOGLE_SCRIPT_URL + "?auth=" + state.userId);
+        document.getElementById('discord-status-text').innerText = "Check your browser to verify, then click the refresh icon.";
+        document.getElementById('discord-status-text').style.color = "#f1c40f";
+    }
+
+    function checkDiscordVerification() {
+        let btnRefresh = document.getElementById('btn-discord-refresh');
+        btnRefresh.innerText = "...";
+        btnRefresh.disabled = true;
+
+        fetch(`${GOOGLE_SCRIPT_URL}?action=login&userId=${state.userId}&name=${state.username}&pin=${state.userPin}`)
+        .then(res => res.json())
+        .then(data => {
+            btnRefresh.innerText = "↻";
+            btnRefresh.disabled = false;
+            
+            if(data.discordId && data.discordId !== "") {
+                state.discordId = data.discordId;
+                document.getElementById('btn-discord-main').innerText = "VERIFIED ✅";
+                document.getElementById('btn-discord-main').style.background = "#2ecc71";
+                document.getElementById('discord-status-text').innerText = "5% Membership Discount Unlocked!";
+                document.getElementById('discord-status-text').style.color = "#2ecc71";
+                updateCalc(); 
+            } else {
+                document.getElementById('discord-status-text').innerText = "Verification not found. Please click Link Discord again.";
+                document.getElementById('discord-status-text').style.color = "#e74c3c";
+            }
+        }).catch(err => {
+            btnRefresh.innerText = "↻";
+            btnRefresh.disabled = false;
         });
+    }
+    
+    function applyDiscordUIState() {
+        if(state.discordId && state.discordId !== "") {
+            document.getElementById('btn-discord-main').innerText = "VERIFIED ✅";
+            document.getElementById('btn-discord-main').style.background = "#2ecc71";
+            document.getElementById('discord-status-text').innerText = "5% Membership Discount Unlocked!";
+            document.getElementById('discord-status-text').style.color = "#2ecc71";
+        }
     }
 
     function toggleSecondStorage() {
@@ -1130,6 +1162,9 @@
         var isHigh = (document.getElementById('input-priority').value === 'high'); 
         var isCustom = state.customOrderMode; 
         
+        // --- THE DISCOUNT MULTIPLIER ---
+        var discountMultiplier = (state.discordId && state.discordId !== "") ? 0.95 : 1.0;
+
         if (isCustom) rate += parseFloat(state.config["bonus_cut_custom"] || 0.05);
         else if (isHigh) rate += parseFloat(state.config["bonus_cut_high"] || 0.03);
         
@@ -1139,10 +1174,11 @@
         if (isHigh) extraFees += Math.floor(basePrice * parseFloat(state.config["priority_fee_high"] || 0.05));
         if (isCustom) extraFees += Math.floor(basePrice * parseFloat(state.config["custom_fee"] || 0.10));
         
-        var finalTotal = basePrice + commissionAmt + extraFees;
+        // Final Total Calculation w/ Auto-Discount
+        var finalTotal = Math.floor((basePrice + commissionAmt + extraFees) * discountMultiplier);
         
         document.getElementById('disp-total').innerText = "$" + finalTotal.toLocaleString(); 
-        document.getElementById('disp-total').setAttribute('data-base', basePrice + extraFees);
+        document.getElementById('disp-total').setAttribute('data-base', finalTotal);
     }
     
     function toggleCustomOrder() { 
@@ -1268,7 +1304,7 @@
                 state.isHardcodedAdmin = ADMIN_IDS.includes(String(state.userId));
                 state.isAdmin = state.isHardcodedAdmin || state.isStaff === "Yes";
                 
-                document.getElementById('discord-id-input').value = state.discordId;
+                applyDiscordUIState();
                 
                 fetchAppConfig();
                 renderGrid(); fetchMyOrders(); pollTickets();
