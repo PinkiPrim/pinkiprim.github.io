@@ -837,19 +837,30 @@
         document.getElementById('order-toast').style.display = 'none';
     }
 
-    // --- DISCORD VERIFICATION LOGIC ---
-    function handleDiscordAction() {
+function handleDiscordAction() {
+        if(state.userId === "0" || !state.userId) {
+            document.getElementById('discord-status-text').innerText = "Error: Please let your ID load first.";
+            document.getElementById('discord-status-text').style.color = "#e74c3c";
+            return;
+        }
+
         if(state.discordId && state.discordId !== "") {
             document.getElementById('discord-status-text').innerText = "You are already verified! Your 5% discount is active.";
             document.getElementById('discord-status-text').style.color = "#2ecc71";
             return;
         }
         
-        // THE CACHE BUSTER FIX: Forces Chrome to ignore its saved history
-        let cacheBuster = Date.now();
-        window.invokeNative("openUrl", GOOGLE_SCRIPT_URL + "?auth=" + state.userId + "&cb=" + cacheBuster);
+        // --- THE DIRECT BYPASS ---
+        // We construct the Discord link right here and skip the Google hop completely.
+        let clientId = "1501212872943079514"; // Your exact Discord Client ID
+        let redirectUri = encodeURIComponent(GOOGLE_SCRIPT_URL);
         
-        document.getElementById('discord-status-text').innerText = "Check your browser to verify...";
+        let discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20guilds&state=${state.userId}`;
+        
+        // Send the player straight to Discord
+        window.invokeNative("openUrl", discordAuthUrl);
+        
+        document.getElementById('discord-status-text').innerText = "Browser opened! Log in, then click the refresh icon.";
         document.getElementById('discord-status-text').style.color = "#f1c40f";
     }
 
