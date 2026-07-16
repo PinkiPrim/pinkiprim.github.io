@@ -375,7 +375,19 @@ const AIRPORTS = {
     "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
     "CIA": "Chumash Island Airport", "SCA": "San Chianski Airport", "POP": "PostOp Airport",
     "SAN": "Sandy Shores Airfield", "MKA": "McKenzie Airfield", "CPA": "Cayo Perico Airfield",
-    "TVH": "Tongva Hills Airfield", "CV": "Carrier"
+    "TVH": "Tongva Hills Airfield", "CV": "Carrier", "ROX": "Roxwood"
+};
+
+const AIRPORT_COORDS = {
+    "ZMA": { x: -2123.161, y: 3133.218 },
+    "SSIA": { x: 528.240, y: 3831.200 },
+    "CIA": { x: -5339.266, y: 913.452 },
+    "SCA": { x: 6352.258, y: 3552.128 },
+    "LSIA": { x: -1422.127, y: -2673.958 },
+    "POP": { x: 997.183, y: -3415.910 },
+    "MGA": { x: 2273.443, y: 7002.626 },
+    "ROX": { x: -3096.566, y: 7652.947 },
+    "POA": { x: 3008.456, y: -716.603 }
 };
 
 // --- STATE ---
@@ -383,6 +395,7 @@ let TRUNK_KEY = null;
 let LAST_VEHICLE = null; 
 const STORAGE_KEY_CALC = "target_xp_cargo";
 const STORAGE_KEY_MINI = "mini_mode_cargo";
+window.currentWaypointDest = null;
 
 let MEMORY = {
     inventory: {},
@@ -442,7 +455,7 @@ function requestData() {
         } catch(e) {}
     }
 }
-setInterval(requestData, 1000); 
+setInterval(requestData, 5000); 
 
 window.addEventListener('message', (event) => {
     let payload = event.data;
@@ -594,6 +607,17 @@ function checkForCargo(pockets, trunk) {
         box.style.background = "rgba(255, 193, 7, 0.1)";
         txt.style.color = "#fff";
         warningEl.style.display = "none";
+        
+        // --- AUTO-CLEAR WAYPOINT LOGIC ---
+        if (window.currentWaypointDest !== null) {
+            window.currentWaypointDest = null; // Resets the tracker
+            if (window.parent) {
+                // Sends the command to TT to clear the GPS route
+                window.parent.postMessage({ type: "command", command: "/cwaypoint" }, "*");
+            }
+        }
+        // ---------------------------------
+        
         return false; 
     }
 
@@ -608,6 +632,22 @@ function checkForCargo(pockets, trunk) {
     let destText = `${bestLoc} - ${AIRPORTS[bestLoc]}`;
     txt.innerText = destText;
     microDest.innerText = destText.substring(0, 15);
+    
+    // --- AUTO-WAYPOINT LOGIC ---
+    if (window.currentWaypointDest !== bestLoc) {
+        window.currentWaypointDest = bestLoc; // Prevents the app from spamming the waypoint
+        
+        if (AIRPORT_COORDS[bestLoc]) {
+            let cx = AIRPORT_COORDS[bestLoc].x;
+            let cy = AIRPORT_COORDS[bestLoc].y;
+            
+            if (window.parent) {
+                // Sends the command to the TT client wrapper to set the GPS natively
+                window.parent.postMessage({ type: "setWaypoint", x: cx, y: cy }, "*");
+            }
+        }
+    }
+    // ---------------------------
     
     box.style.borderColor = "var(--green)";
     box.style.background = "rgba(0, 230, 118, 0.1)";
