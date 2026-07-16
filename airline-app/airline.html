@@ -568,12 +568,14 @@ window.addEventListener('keydown', function(e) {
 // --- RELEASE FOCUS FUNCTION ---
 function releaseFocus() {
     if(window.GetParentResourceName) {
-        fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' }).catch(err => {});
+        fetch(`https://${GetParentResourceName()}/pin`, { method: 'POST' }).catch(err => {});
     }
     
     // Legacy/Alternative callback method
     try {
-        window.parent.postMessage({ type: "close" }, "*");
+        if (window.parent) {
+            window.parent.postMessage({ type: "pin" }, "*");
+        }
     } catch(e) {}
 }
 
