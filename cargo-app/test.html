@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cargo Pilot Helper v2.0 (Restored)</title>
+    <title>TT Cargo Pilot Helper</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -16,7 +16,6 @@
             --green: #00e676;
             --orange: #ff9800;
             --accent: #ffc107;
-            --heart-color: #ff4081; /* Pinki Pink */
         }
 
         body {
@@ -27,7 +26,6 @@
             overflow: hidden;
             height: 100vh; width: 100vw;
             user-select: none;
-            outline: none;
         }
 
         #tracker-app {
@@ -42,7 +40,6 @@
             resize: both; overflow: hidden;
             min-height: 200px;
             transition: width 0.2s ease, height 0.2s ease;
-            outline: none;
         }
 
         /* --- MINI MODE --- */
@@ -58,8 +55,7 @@
 
         #tracker-app.mini-mode header, 
         #tracker-app.mini-mode #sky-container,
-        #tracker-app.mini-mode #content,
-        #tracker-app.mini-mode .support-footer { display: none !important; }
+        #tracker-app.mini-mode #content { display: none !important; }
 
         #micro-view {
             display: none;
@@ -93,7 +89,7 @@
         /* --- HEADER & ANIMATION --- */
         header {
             background: linear-gradient(180deg, var(--primary-dim), rgba(2, 119, 189, 0.2));
-            height: 70px;
+            height: 70px; /* Taller for drops */
             padding: 0 10px;
             cursor: move;
             position: relative;
@@ -126,27 +122,39 @@
         /* PARACHUTE & CRATE GROUP */
         .drop-group {
             position: absolute;
-            top: -90px;
+            top: -90px; /* Start higher up due to larger size */
             display: flex; flex-direction: column; align-items: center;
             opacity: 0.8;
         }
 
-        .parachute { font-size: 2.2em; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); z-index: 6; }
-        .crate {
-            font-size: 1.8em; margin-top: -5px;
-            animation: crateWiggle 2s ease-in-out infinite alternate;
+        .parachute {
+            font-size: 2.2em; /* Increased size further */
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
-            transform-origin: top center;
+            z-index: 6;
         }
 
+        .crate {
+            font-size: 1.8em; /* Increased size further */
+            margin-top: -5px; /* Connect visually */
+            animation: crateWiggle 2s ease-in-out infinite alternate;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+            transform-origin: top center; /* Swing from top */
+        }
+
+        /* ANIMATIONS */
         @keyframes dropFall {
             0% { top: -90px; opacity: 0; }
             10% { opacity: 1; }
             90% { opacity: 1; }
-            100% { top: 110px; opacity: 0; }
+            100% { top: 110px; opacity: 0; } /* Fall past bottom */
         }
-        @keyframes crateWiggle { from { transform: rotate(-15deg); } to { transform: rotate(15deg); } }
 
+        @keyframes crateWiggle {
+            from { transform: rotate(-15deg); }
+            to { transform: rotate(15deg); }
+        }
+
+        /* 5 UNIQUE DROPS */
         .drop-1 { left: 10%; animation: dropFall 8s linear infinite; transform: scale(0.8); }
         .drop-2 { left: 30%; animation: dropFall 6s linear infinite 2s; transform: scale(1); }
         .drop-3 { left: 50%; animation: dropFall 9s linear infinite 1s; transform: scale(0.7); }
@@ -210,40 +218,10 @@
         .quick-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.7em; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; flex: 1; }
         .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
-        #resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nwse-resize; z-index: 100; }
-
-        /* --- SUPPORT FOOTER --- */
-        .support-footer {
-            width: 100%;
-            text-align: center;
-            padding: 4px 0;
-            background: rgba(0,0,0,0.3);
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .support-link {
-            font-size: 0.65em;
-            color: var(--text-dim);
-            text-decoration: none;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 600;
-            letter-spacing: 1px;
-            opacity: 0.6;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .support-link:hover { opacity: 1; color: #fff; }
-        .heart-spin {
-            display: inline-block;
-            color: var(--heart-color);
-            margin-left: 2px;
-            font-size: 1.1em;
-            animation: spinHeart 2.5s infinite linear;
-        }
-        @keyframes spinHeart { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
-
+        #settings-panel, #job-list, #summary-table { display: none !important; }
     </style>
 </head>
-<body tabindex="0">
+<body>
 
 <div id="tracker-app">
     <div id="micro-view" onmousedown="dragMouseDown(event)">
@@ -377,25 +355,19 @@
         </div>
 
     </div>
-    
-    <div class="support-footer">
-        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
-            Support PinkiPrim <span class="heart-spin">❤</span>
-        </div>
-    </div>
-    
     <div id="resize-handle" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:nwse-resize;"></div>
 </div>
 
-<script>
-function openExternal(url) {
-    try {
-        window.invokeNative('openUrl', url);
-    } catch(e) {
-        window.open(url, '_blank');
-    }
-}
+<div id="settings-icon" style="display:none;"></div>
+<div id="settings-panel" style="display:none;">
+    <input type="checkbox" id="toggle-bxp"><input type="checkbox" id="toggle-current-level">
+    <button id="reset-exp-log"></button>
+    <div id="xp-font-size-value"></div>
+</div>
+<div id="job-list" style="display:none;"></div>
+<table id="summary-table" style="display:none;"></table>
 
+<script>
 // --- AIRPORT DATABASE ---
 const AIRPORTS = {
     "LSIA": "Los Santos INTL.", "SSIA": "Sandy Sh. INTL. Airport", "ZMA": "Zancudo Military Airport",
@@ -403,7 +375,19 @@ const AIRPORTS = {
     "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
     "CIA": "Chumash Island Airport", "SCA": "San Chianski Airport", "POP": "PostOp Airport",
     "SAN": "Sandy Shores Airfield", "MKA": "McKenzie Airfield", "CPA": "Cayo Perico Airfield",
-    "TVH": "Tongva Hills Airfield", "CV": "Carrier"
+    "TVH": "Tongva Hills Airfield", "CV": "Carrier", "ROX": "Roxwood"
+};
+
+const AIRPORT_COORDS = {
+    "ZMA": { x: -2123.161, y: 3133.218 },
+    "SSIA": { x: 528.240, y: 3831.200 },
+    "CIA": { x: -5339.266, y: 913.452 },
+    "SCA": { x: 6352.258, y: 3552.128 },
+    "LSIA": { x: -1422.127, y: -2673.958 },
+    "POP": { x: 997.183, y: -3415.910 },
+    "MGA": { x: 2273.443, y: 7002.626 },
+    "ROX": { x: -3096.566, y: 7652.947 },
+    "POA": { x: 3008.456, y: -716.603 }
 };
 
 // --- STATE ---
@@ -411,6 +395,7 @@ let TRUNK_KEY = null;
 let LAST_VEHICLE = null; 
 const STORAGE_KEY_CALC = "target_xp_cargo";
 const STORAGE_KEY_MINI = "mini_mode_cargo";
+window.currentWaypointDest = null;
 
 let MEMORY = {
     inventory: {},
@@ -420,8 +405,7 @@ let MEMORY = {
 };
 
 const JOB_EXP_KEY = "exp_piloting_cargos";
-const JOB_BXP_KEY_BONUS = "exp_token_a|piloting|cargos"; 
-const JOB_BXP_KEY_TOKEN = "exp_token|piloting|cargos"; 
+const JOB_BXP_KEY = "exp_token_a|piloting|cargos";
 
 const STATE = {
     currentXP: 0, 
@@ -432,8 +416,6 @@ const STATE = {
     totalRunXP: 0, 
     avgRunXP: 0
 };
-
-let hasInitialFocus = false;
 
 // --- INIT ---
 const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
@@ -458,39 +440,12 @@ setInterval(() => {
     document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }, 1000);
 
-// --- KEYDOWN LISTENER FOR ESC ---
-window.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' || e.keyCode === 27) { 
-        if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-            document.activeElement.blur();
-            return;
-        }
-        // Release focus but keep app visible
-        releaseFocus();
-    }
-});
-
-function releaseFocus() {
-    // Legacy/Alternative callback method if available
-    try {
-        window.parent.postMessage({ type: "close" }, "*");
-    } catch(e) {}
-    
-    // Safety blur on JS side
-    window.blur();
-    document.body.blur();
-    
-    // DO NOT SEND CLOSE TO PARENT HERE TO AVOID CLOSING THE APP
-    // If your resource requires a close call to unlock controls, you need a separate NUI callback for 'focusOff'
-}
-
-
 // --- ENGINE ---
 function requestData() {
     if(window.parent) {
         try { 
             let keys = [
-                JOB_EXP_KEY, JOB_BXP_KEY_BONUS, JOB_BXP_KEY_TOKEN, 
+                "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
                 "inventory", "vehicle", "plate", 
                 "chest", "trunkCapacity", "trunkWeight"
             ];
@@ -500,19 +455,12 @@ function requestData() {
         } catch(e) {}
     }
 }
-setInterval(requestData, 1000); 
+setInterval(requestData, 5000); 
 
 window.addEventListener('message', (event) => {
     let payload = event.data;
     if (payload && payload.type === 'data' && payload.data) payload = payload.data;
     if (!payload) return;
-
-    // --- AUTO FOCUS ON FIRST LOAD ---
-    if (!hasInitialFocus) {
-        window.focus();
-        document.body.focus();
-        hasInitialFocus = true;
-    }
 
     processPayload(payload);
 });
@@ -601,16 +549,9 @@ function processPayload(data) {
         document.getElementById('micro-weight').innerText = txt;
     }
 
-    // 7. BXP LOGIC (Bonus - Active)
-    let bxp = data[JOB_BXP_KEY_BONUS];
-    if(!bxp && MEMORY.inventory[JOB_BXP_KEY_BONUS]) bxp = MEMORY.inventory[JOB_BXP_KEY_BONUS];
-    
-    // Fallback for non-exact match if needed
-    if(!bxp && MEMORY.inventory) {
-         let foundKey = Object.keys(MEMORY.inventory).find(k => k.includes("exp_token_a") && k.includes("cargos"));
-         if(foundKey) bxp = MEMORY.inventory[foundKey];
-    }
-
+    // 7. BXP LOGIC
+    let bxp = data[JOB_BXP_KEY];
+    if(!bxp && MEMORY.inventory[JOB_BXP_KEY]) bxp = MEMORY.inventory[JOB_BXP_KEY];
     if (bxp) {
         let val = (typeof bxp === 'object') ? bxp.amount : bxp;
         let txt = formatNumber(val);
@@ -622,13 +563,16 @@ function processPayload(data) {
 // --- FLIGHT SESSION LOGIC ---
 
 function checkForCargo(pockets, trunk) {
-    let cargoCounts = {}; 
+    let cargoCounts = {}; // { "LSIA": 5, "SCA": 100 }
     let cargoFound = false;
 
+    // Helper: Scans an inventory object and counts cargo types
     const scan = (inv) => {
         if(!inv) return;
         for (const key in inv) {
             const item = inv[key];
+            
+            // Normalize quantity (handle different data structures)
             let qty = 0;
             if (typeof item === 'number') qty = item;
             else if (typeof item === 'object') qty = item.amount || item.count || 0;
@@ -663,6 +607,17 @@ function checkForCargo(pockets, trunk) {
         box.style.background = "rgba(255, 193, 7, 0.1)";
         txt.style.color = "#fff";
         warningEl.style.display = "none";
+        
+        // --- AUTO-CLEAR WAYPOINT LOGIC ---
+        if (window.currentWaypointDest !== null) {
+            window.currentWaypointDest = null; // Resets the tracker
+            if (window.parent) {
+                // Sends the command to TT to clear the GPS route
+                window.parent.postMessage({ type: "command", command: "/cwaypoint" }, "*");
+            }
+        }
+        // ---------------------------------
+        
         return false; 
     }
 
@@ -677,6 +632,22 @@ function checkForCargo(pockets, trunk) {
     let destText = `${bestLoc} - ${AIRPORTS[bestLoc]}`;
     txt.innerText = destText;
     microDest.innerText = destText.substring(0, 15);
+    
+    // --- AUTO-WAYPOINT LOGIC ---
+    if (window.currentWaypointDest !== bestLoc) {
+        window.currentWaypointDest = bestLoc; // Prevents the app from spamming the waypoint
+        
+        if (AIRPORT_COORDS[bestLoc]) {
+            let cx = AIRPORT_COORDS[bestLoc].x;
+            let cy = AIRPORT_COORDS[bestLoc].y;
+            
+            if (window.parent) {
+                // Sends the command to the TT client wrapper to set the GPS natively
+                window.parent.postMessage({ type: "setWaypoint", x: cx, y: cy }, "*");
+            }
+        }
+    }
+    // ---------------------------
     
     box.style.borderColor = "var(--green)";
     box.style.background = "rgba(0, 230, 118, 0.1)";
@@ -755,11 +726,7 @@ function formatNumber(num) {
 
 function getLevelInfo(exp) {
     let level = 0, xpCap = 5;
-    while (exp >= xpCap) {
-        exp -= xpCap;
-        level++;
-        xpCap = (level + 1) * 5;
-    }
+    while (exp >= xpCap) { exp -= xpCap; level++; xpCap = (level + 1) * 5; }
     return { level, expInLevel: exp, expForNext: xpCap };
 }
 
@@ -767,15 +734,33 @@ function getPercentValue(exp, cap) {
     return Math.min(100, Math.max(0, ((exp / cap) * 100))).toFixed(1);
 }
 
+// --- CALCULATOR ---
+const calcInput = document.getElementById('target-input');
+if(calcInput) calcInput.addEventListener('input', runCalculator);
+
+function setCalc(amount) {
+    document.getElementById('target-input').value = amount;
+    runCalculator();
+}
+
 function runCalculator() {
-    const inp = document.getElementById('target-input');
-    if(!inp) return;
-    const val = inp.value;
+    const val = document.getElementById('target-input').value;
     const el = document.getElementById('calc-result');
+    const microEl = document.getElementById('micro-calc');
     
     localStorage.setItem(STORAGE_KEY_CALC, val);
-    if (!val) { if(el) el.innerText = ""; return; }
-    
+
+    if (STATE.avgRunXP === 0) { 
+        el.innerHTML = "<i>Complete 1 flight to calibrate...</i>"; 
+        microEl.innerText = "Wait..";
+        return; 
+    }
+    if (!val) { 
+        el.innerText = "Enter target above."; 
+        microEl.innerText = "Set..";
+        return; 
+    }
+
     let inputVal = parseInt(val.replace(/,/g, ''));
     let targetXP = inputVal;
     
@@ -787,52 +772,89 @@ function runCalculator() {
 
     if (targetXP > STATE.currentXP) {
         const diff = targetXP - STATE.currentXP;
-        const avgDrop = (STATE.avgXP > 0) ? STATE.avgXP : 1; 
-        const estDrops = Math.ceil(diff / avgDrop);
-        if(el) el.innerHTML = `Need: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(estDrops)}</b></span>`;
+        const ops = Math.ceil(diff / STATE.avgRunXP);
+        el.innerHTML = `Remaining: <b>${formatNumber(diff)} XP</b><br><span style="color:var(--primary)">Est. Flights: <b>${formatNumber(ops)}</b></span>`;
+        microEl.innerText = formatNumber(ops);
     } else {
-        if(el) el.innerHTML = `Target Reached!`;
+        el.innerHTML = `Target reached.`;
+        microEl.innerText = "Done";
     }
 }
 
-// Drag & Resize Logic
-const elm = document.getElementById("tracker-app");
-const head = document.getElementById("drag-handle");
-const microView = document.getElementById("micro-view");
-let isDragging = false, startX, startY, initLeft, initTop;
+// --- TRUNK LIST UI ---
+function renderTrunkList(trunk) {
+    const el = document.getElementById('trunk-list');
+    el.innerHTML = "";
+    
+    if((!trunk || Object.keys(trunk).length === 0) && MEMORY.weight > 0) {
+        el.innerHTML = "<div style='color:var(--orange); font-style:italic;'>⚠ Cargo Detected<br>(Open Trunk to Sync)</div>";
+        return;
+    }
+    
+    if(!trunk || Object.keys(trunk).length === 0) {
+        el.innerHTML = "Cargo hold is empty.";
+        return;
+    }
 
-const startDrag = (e) => {
-    if(e.target.closest('button') || e.target.closest('input') || e.target.closest('a')) return;
-    e.preventDefault(); isDragging = true;
-    startX = e.clientX; startY = e.clientY;
-    const r = elm.getBoundingClientRect();
-    initLeft = r.left; initTop = r.top;
+    for(let key in trunk) {
+        let item = trunk[key];
+        let qty = item.amount || item.count || item;
+        if(qty > 0) {
+            el.innerHTML += `<div class="trunk-item"><span>${key}</span><span>x${qty}</span></div>`;
+        }
+    }
+}
+
+// --- DRAG HANDLER ---
+let elmnt = document.getElementById("tracker-app");
+let header = document.getElementById("drag-handle");
+let microView = document.getElementById("micro-view");
+let isDragging = false;
+let startX, startY, initialLeft, initialTop;
+
+header.addEventListener("mousedown", dragStart);
+microView.addEventListener("mousedown", dragStart);
+
+function dragStart(e) {
+    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A') return;
+    e.preventDefault();
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = elmnt.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
     document.addEventListener("mousemove", dragMove);
     document.addEventListener("mouseup", dragEnd);
-};
-const dragMove = (e) => {
-    if(!isDragging) return;
-    elm.style.left = (initLeft + e.clientX - startX) + "px";
-    elm.style.top = (initTop + e.clientY - startY) + "px";
-};
-const dragEnd = () => {
+}
+
+function dragMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    elmnt.style.left = `${initialLeft + dx}px`;
+    elmnt.style.top = `${initialTop + dy}px`;
+}
+
+function dragEnd() {
     isDragging = false;
     document.removeEventListener("mousemove", dragMove);
     document.removeEventListener("mouseup", dragEnd);
-};
-head.addEventListener("mousedown", startDrag);
-microView.addEventListener("mousedown", startDrag);
+}
 
 const rh = document.getElementById('resize-handle');
-rh.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    window.addEventListener('mousemove', resize);
-    window.addEventListener('mouseup', stopResize);
-});
+if (rh) {
+    rh.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResize);
+    });
+}
 function resize(e) {
-    if(elm.classList.contains('mini-mode')) return;
-    elm.style.width = Math.max(280, e.clientX - elm.getBoundingClientRect().left) + 'px';
-    elm.style.height = Math.max(250, e.clientY - elm.getBoundingClientRect().top) + 'px';
+    if(elmnt.classList.contains('mini-mode')) return;
+    elmnt.style.width = Math.max(280, e.clientX - elmnt.getBoundingClientRect().left) + 'px';
+    elmnt.style.height = Math.max(200, e.clientY - elmnt.getBoundingClientRect().top) + 'px';
 }
 function stopResize() {
     window.removeEventListener('mousemove', resize);
