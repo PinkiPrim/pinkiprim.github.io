@@ -474,6 +474,25 @@
         localStorage.setItem("mini_mode_hunter", isMini);
     };
 
+
+    // --- ESCAPE KEY PIN FEATURE ---
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Remove focus from any active input or control
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+
+            // Gives control back to the game while keeping the app visible
+            if (window.parent) {
+                window.parent.postMessage({ type: 'pin' }, '*');
+            }
+        }
+    });
+
     // --- CONFIG ---
     const KEYS = { XP: "exp_hunting_skill", BXP: "exp_token_a|hunting|skill" };
     const STORAGE_KEY_CALC = "target_xp_hunter";
