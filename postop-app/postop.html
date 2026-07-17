@@ -355,6 +355,25 @@ function openExternal(url) {
     }
 }
 
+
+// --- ESCAPE KEY PIN FEATURE ---
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Remove focus from any active input or control
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+
+        // Gives control back to the game while keeping the app visible
+        if (window.parent) {
+            window.parent.postMessage({ type: 'pin' }, '*');
+        }
+    }
+});
+
 // --- CONFIG ---
 const JOB_EXP_KEY = "exp_trucking_postop";
 const JOB_TOK_KEY = "exp_token|trucking|postop";
