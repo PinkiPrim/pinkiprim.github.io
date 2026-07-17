@@ -316,6 +316,8 @@ const KEYS = {
     HELI_BXP: "exp_token_a|piloting|heli"
 };
 
+const STORAGE_KEY_POS = "ems_app_pos";
+
 // --- STATE ---
 let STATE = {
     emsXP: 0, heliXP: 0,
@@ -592,7 +594,23 @@ function getXPFromLevel(targetLvl) {
 let dragItem = document.getElementById("tracker-app");
 let header = document.getElementById("drag-handle");
 let micro = document.getElementById("micro-view");
-let active = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+let active = false, currentX = 0, currentY = 0, initialX = 0, initialY = 0, xOffset = 0, yOffset = 0;
+
+// Restore the app's last saved screen position.
+try {
+    const savedPos = JSON.parse(localStorage.getItem(STORAGE_KEY_POS));
+    if (savedPos && Number.isFinite(savedPos.x) && Number.isFinite(savedPos.y)) {
+        xOffset = savedPos.x;
+        yOffset = savedPos.y;
+        currentX = xOffset;
+        currentY = yOffset;
+        initialX = xOffset;
+        initialY = yOffset;
+        setTranslate(xOffset, yOffset, dragItem);
+    }
+} catch(e) {
+    localStorage.removeItem(STORAGE_KEY_POS);
+}
 
 header.addEventListener("mousedown", dragStart);
 micro.addEventListener("mousedown", dragStart);
@@ -625,9 +643,17 @@ function setTranslate(xPos, yPos, el) {
 }
 
 function dragEnd() {
+    if (!active) return;
+
     initialX = currentX;
     initialY = currentY;
     active = false;
+
+    // Remember the final position for the next time the app is opened.
+    localStorage.setItem(STORAGE_KEY_POS, JSON.stringify({
+        x: xOffset,
+        y: yOffset
+    }));
 }
 
 const resizeHandle = document.getElementById('resize-handle');
