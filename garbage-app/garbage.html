@@ -438,6 +438,25 @@ window.setCalc = function(amount) {
     runCalculator();
 };
 
+
+// --- ESCAPE KEY PIN FEATURE ---
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Remove focus from any active input or control
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+
+        // Gives control back to the game while keeping the app visible
+        if (window.parent) {
+            window.parent.postMessage({ type: 'pin' }, '*');
+        }
+    }
+});
+
 // --- CLOCK ---
 setInterval(() => {
     document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
