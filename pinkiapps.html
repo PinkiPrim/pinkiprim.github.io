@@ -186,6 +186,24 @@
             font-size: 1.2em; 
         }
 
+        .nav-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.1;
+        }
+
+        .nav-note {
+            margin-top: 4px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.52em;
+            font-weight: 400;
+            line-height: 1.2;
+            text-transform: none;
+            color: var(--text-dim);
+            text-align: left;
+        }
+
         /* --- SUPPORT FOOTER --- */
         .support-footer {
             margin-top: 5px;
@@ -296,7 +314,11 @@
             </a>
 
             <a href="https://pinkiprim.github.io/quick-chat.html" class="nav-btn chat">
-                <span class="icon">💬</span> Quick Chat
+                <span class="icon">💬</span>
+                <span class="nav-text">
+                    <span>Quick Chat</span>
+                    <span class="nav-note">For visual purposes only as TT no longer supports User Apps inputting messages to the game</span>
+                </span>
             </a>
 
             <a href="https://pinkiprim.github.io/ttauction.html" class="nav-btn auction">
