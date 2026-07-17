@@ -426,6 +426,7 @@ const KEYS = {
 };
 const STORAGE_KEY_CALC = "target_xp_heli";
 const STORAGE_KEY_MINI = "mini_mode_heli";
+const STORAGE_KEY_POS = "heli_app_pos";
 
 const STATE = {
     currentXP: 0, startXP: null,
@@ -434,6 +435,13 @@ const STATE = {
 };
 
 // --- INIT ---
+// Restore App Position
+const savedPos = JSON.parse(localStorage.getItem(STORAGE_KEY_POS));
+if (savedPos) {
+    document.getElementById('tracker-app').style.left = savedPos.left + 'px';
+    document.getElementById('tracker-app').style.top = savedPos.top + 'px';
+}
+
 const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
 if (savedTarget) document.getElementById('target-input').value = savedTarget;
 
@@ -724,10 +732,18 @@ function dragMove(e) {
     elmnt.style.top = (initialTop + dy) + "px";
 }
 
+// Save position upon dropping
 function dragEnd() {
+    if (!isDragging) return;
     isDragging = false;
     document.removeEventListener("mousemove", dragMove);
     document.removeEventListener("mouseup", dragEnd);
+
+    const rect = elmnt.getBoundingClientRect();
+    localStorage.setItem(STORAGE_KEY_POS, JSON.stringify({
+        left: rect.left,
+        top: rect.top
+    }));
 }
 
 const rh = document.getElementById('resize-handle');
