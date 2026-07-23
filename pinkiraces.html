@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.11</title>
+    <title>PinkiRaces v1.13</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -398,20 +398,18 @@
             pointer-events: none;
             min-width: 170px;
             padding: 8px 16px 7px;
-            border-radius: 10px;
-            background: rgba(8, 8, 12, 0.80);
-            border: 1px solid rgba(255, 213, 79, 0.75);
-            box-shadow:
-                0 0 18px rgba(255, 213, 79, 0.18),
-                0 6px 20px rgba(0,0,0,0.55);
-            backdrop-filter: blur(2px);
+
+            /* Transparent HUD-style navigation:
+               no black box/panel behind the pointer. */
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
         }
 
         #checkpoint-beacon.finish {
-            border-color: rgba(0, 230, 118, 0.9);
-            box-shadow:
-                0 0 24px rgba(0, 230, 118, 0.24),
-                0 6px 20px rgba(0,0,0,0.55);
+            border: none;
+            box-shadow: none;
         }
 
         #checkpoint-arrow-wrap {
@@ -510,6 +508,16 @@
             color: white;
             text-shadow: 0 0 25px var(--primary), 0 4px 12px black;
             animation: pop .35s ease;
+        }
+
+        #countdown-text.false-start {
+            font-size: 3.8em;
+            color: var(--red);
+            text-align: center;
+            letter-spacing: 3px;
+            text-shadow:
+                0 0 28px rgba(255,82,82,.92),
+                0 4px 12px black;
         }
 
         @keyframes pop {
@@ -902,7 +910,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.11.0";
+const APP_VERSION = "1.13.0";
 
 /*
     Client-side builder visibility allowlist.
@@ -2229,33 +2237,132 @@ function runCountdown(token) {
 
     setRaceStatus("COUNTDOWN", "ready");
 
-    const overlay = document.getElementById("countdown-overlay");
-    const text = document.getElementById("countdown-text");
+    const overlay =
+        document.getElementById("countdown-overlay");
+
+    const text =
+        document.getElementById("countdown-text");
 
     overlay.style.display = "flex";
+    text.classList.remove("false-start");
 
     let count = 3;
+    let countdownTimer = null;
+    let movementWatcher = null;
+    let falseStarted = false;
 
     text.innerText = count;
 
-    const timer = setInterval(() => {
+    function cleanupCountdownTimers() {
+        if (countdownTimer) {
+            clearInterval(countdownTimer);
+            countdownTimer = null;
+        }
+
+        if (movementWatcher) {
+            clearInterval(movementWatcher);
+            movementWatcher = null;
+        }
+    }
+
+    function triggerFalseStart() {
+        if (
+            falseStarted ||
+            token !== RACE.countdownToken ||
+            RACE.phase !== "countdown"
+        ) {
+            return;
+        }
+
+        falseStarted = true;
+        cleanupCountdownTimers();
+
+        // Fully stop/reset the armed race. No result or timing is recorded.
+        cancelRace(null);
+
+        text.classList.add("false-start");
+        text.innerText = "FALSE START";
+        overlay.style.display = "flex";
+
+        setRaceStatus(
+            "FALSE START",
+            "invalid"
+        );
+
+        setValidity(
+            "FALSE START",
+            "invalid"
+        );
+
+        document.getElementById("split-line").innerText =
+            "False Start — moved 3 m or more before GO.";
+
+        toast(
+            "False Start",
+            "bad",
+            3000
+        );
+
+        // Keep the warning visible long enough to be unmistakable,
+        // then return the UI to its normal ready/idle state.
+        setTimeout(() => {
+            text.classList.remove("false-start");
+            overlay.style.display = "none";
+
+            if (RACE.phase === "idle") {
+                setRaceStatus("IDLE");
+                setValidity("READY");
+
+                document.getElementById("split-line").innerText =
+                    "False Start — arm the race again when ready.";
+            }
+        }, 1800);
+    }
+
+    /*
+        False-start detection runs independently of the 1-second countdown.
+        This closes the gap where a player could move during the final
+        fraction of a second before GO.
+
+        Threshold: 3.0 metres or more from the position where ARM RACE
+        began the countdown.
+    */
+    movementWatcher = setInterval(() => {
         if (
             token !== RACE.countdownToken ||
             RACE.phase !== "countdown"
         ) {
-            clearInterval(timer);
-            overlay.style.display = "none";
+            cleanupCountdownTimers();
             return;
         }
 
-        const nowPos = livePos();
+        const nowPos =
+            livePos();
 
         if (
             nowPos &&
             RACE.countdownStartPos &&
-            dist2D(nowPos, RACE.countdownStartPos) > 5
+            dist2D(
+                nowPos,
+                RACE.countdownStartPos
+            ) >= 3
         ) {
-            invalidateRace("False start: vehicle moved before GO.");
+            triggerFalseStart();
+        }
+    }, 50);
+
+    countdownTimer = setInterval(() => {
+        if (
+            token !== RACE.countdownToken ||
+            RACE.phase !== "countdown"
+        ) {
+            cleanupCountdownTimers();
+
+            if (!falseStarted) {
+                overlay.style.display = "none";
+            }
+
+            return;
         }
 
         count -= 1;
@@ -2265,24 +2372,49 @@ function runCountdown(token) {
             text.style.animation = "none";
             void text.offsetWidth;
             text.style.animation = "pop .35s ease";
-        } else {
-            clearInterval(timer);
-
-            text.innerText = "GO!";
-
-            postTT({
-                type: "sfx",
-                sfx: 3
-            });
-
-            startRace();
-
-            setTimeout(() => {
-                if (token === RACE.countdownToken) {
-                    overlay.style.display = "none";
-                }
-            }, 650);
+            return;
         }
+
+        /*
+            One final synchronous position check immediately before GO.
+            This prevents movement in the tiny interval between the last
+            50ms watcher tick and the GO transition.
+        */
+        const goPos =
+            livePos();
+
+        if (
+            goPos &&
+            RACE.countdownStartPos &&
+            dist2D(
+                goPos,
+                RACE.countdownStartPos
+            ) >= 3
+        ) {
+            triggerFalseStart();
+            return;
+        }
+
+        cleanupCountdownTimers();
+
+        text.classList.remove("false-start");
+        text.innerText = "GO!";
+
+        postTT({
+            type: "sfx",
+            sfx: 3
+        });
+
+        startRace();
+
+        setTimeout(() => {
+            if (
+                token === RACE.countdownToken &&
+                RACE.phase === "racing"
+            ) {
+                overlay.style.display = "none";
+            }
+        }, 650);
     }, 1000);
 }
 
