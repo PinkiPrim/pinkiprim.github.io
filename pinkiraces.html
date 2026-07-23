@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.17</title>
+    <title>PinkiRaces v1.18</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -1164,7 +1164,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.17.0";
+const APP_VERSION = "1.18.0";
 
 /*
     Client-side builder visibility allowlist.
@@ -1176,14 +1176,13 @@ const APP_VERSION = "1.17.0";
 */
 const ALLOWED_BUILDER_IDS = [
     757858 // Prim
-    229051 // Poire
 ];
 
 /*
     Paste your deployed Google Apps Script Web App /exec URL here.
     Leave blank for local-only leaderboard testing.
 */
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPgFXE7NqJ2oYN29i_T6-JHgqyJt_W-HNqKscRycK3i1QS60vWHB0P-10ZoaCFNwhE/exec";
+const GOOGLE_SCRIPT_URL = "";
 
 /*
     You can hard-code global courses here later if you prefer.
@@ -1312,7 +1311,11 @@ let MULTI = {
     lastLobbyBroadcast: 0,
     lastLiveBroadcast: 0,
     lastLobbyRender: 0,
-    podiumShownForRun: ""
+    podiumShownForRun: "",
+
+    // Multiplayer-only shared-data refresh.
+    // This is started ONLY after joining a lobby and stopped when leaving.
+    sharedRefreshTimer: null
 };
 
 const MULTI_KEYS = {
@@ -2320,7 +2323,7 @@ function requireBuilderAccess() {
 function requestData() {
     /*
         Request the normal TT dataset ONCE at startup.
-        We do not poll getData.
+        Never poll the full getData payload.
     */
     postTT({
         type: "getData"
@@ -2329,13 +2332,11 @@ function requestData() {
 
 function requestMultiplayerSharedData() {
     /*
-        Multiplayer is different from normal TT player data.
+        Only refresh the two multiplayer aggregation keys.
+        This function is NEVER called during normal app startup.
 
-        shareServerData values are exposed through players_<key>.
-        These two keys are lightweight and must be refreshed so this client
-        can see lobby/live-race state published by OTHER PinkiRaces users.
-
-        This is intentionally NOT a getData loop.
+        It runs only while the player is actively participating in
+        a PinkiRaces multiplayer lobby/race.
     */
     postTT({
         type: "getNamedData",
@@ -2346,12 +2347,46 @@ function requestMultiplayerSharedData() {
     });
 }
 
-// Lightweight multiplayer-only refresh.
-// Keeps lobby/live standings synchronized without hammering the full TT dataset.
-setInterval(
-    requestMultiplayerSharedData,
-    750
-);
+function startMultiplayerSharedRefresh() {
+    if (MULTI.sharedRefreshTimer) {
+        return;
+    }
+
+    // Let the TT User Apps bridge already be fully established before
+    // making the first named-data request.
+    setTimeout(() => {
+        if (
+            MULTI.joined ||
+            MULTI.active ||
+            RACE.multiplayer
+        ) {
+            requestMultiplayerSharedData();
+        }
+    }, 350);
+
+    MULTI.sharedRefreshTimer =
+        setInterval(() => {
+            if (
+                MULTI.joined ||
+                MULTI.active ||
+                RACE.multiplayer
+            ) {
+                requestMultiplayerSharedData();
+            }
+        }, 1000);
+}
+
+function stopMultiplayerSharedRefresh() {
+    if (!MULTI.sharedRefreshTimer) {
+        return;
+    }
+
+    clearInterval(
+        MULTI.sharedRefreshTimer
+    );
+
+    MULTI.sharedRefreshTimer = null;
+}
 
 window.addEventListener("message", event => {
     let data = event.data;
@@ -3026,10 +3061,12 @@ function broadcastLobbyState(force = false) {
         buildLocalLobbyPayload()
     );
 
-    setTimeout(
-        requestMultiplayerSharedData,
-        150
-    );
+    // Pull the aggregated lobby shortly after publishing our own state.
+    setTimeout(() => {
+        if (MULTI.joined) {
+            requestMultiplayerSharedData();
+        }
+    }, 250);
 }
 
 function broadcastLobbyLeave() {
@@ -3046,11 +3083,6 @@ function broadcastLobbyLeave() {
             phase: "left",
             updated_at: Date.now()
         }
-    );
-
-    setTimeout(
-        requestMultiplayerSharedData,
-        150
     );
 }
 
@@ -3122,6 +3154,10 @@ function joinMultiplayerLobby() {
     MULTI.runId = "";
     MULTI.active = false;
 
+    // Multiplayer shared-data refresh begins only after a deliberate lobby join.
+    // Nothing multiplayer-specific is polled during normal app startup.
+    startMultiplayerSharedRefresh();
+
     document.getElementById("lobby-join-btn").disabled = true;
     document.getElementById("lobby-ready-btn").disabled = false;
     document.getElementById("lobby-leave-btn").disabled = false;
@@ -3157,6 +3193,13 @@ function leaveMultiplayerLobby(silent = false) {
 
     setLobbyStatus("OFFLINE");
     updateMultiplayerLobby();
+
+    if (
+        !MULTI.active &&
+        !RACE.multiplayer
+    ) {
+        stopMultiplayerSharedRefresh();
+    }
 
     if (!silent) {
         toast(
@@ -3743,10 +3786,14 @@ function broadcastLiveRaceState(force = false) {
         payload
     );
 
-    setTimeout(
-        requestMultiplayerSharedData,
-        150
-    );
+    setTimeout(() => {
+        if (
+            MULTI.active ||
+            RACE.multiplayer
+        ) {
+            requestMultiplayerSharedData();
+        }
+    }, 250);
 }
 
 function getLivePlayersForRun(runId) {
@@ -4256,6 +4303,8 @@ function clearMultiplayerRunState() {
     MULTI.active = false;
     MULTI.finishedAt = 0;
 
+    stopMultiplayerSharedRefresh();
+
     RACE.multiplayer = false;
     RACE.multiplayerRunId = "";
     RACE.multiplayerParticipants = [];
@@ -4622,6 +4671,8 @@ function startRace() {
         MULTI.runId =
             RACE.multiplayerRunId;
 
+        startMultiplayerSharedRefresh();
+
         // The live run replaces lobby state.
         MULTI.ready = false;
 
@@ -4676,6 +4727,7 @@ function cancelRace(reason = "Race cancelled") {
         MULTI.active = false;
         MULTI.runId = "";
         hideRaceStandings();
+        stopMultiplayerSharedRefresh();
     }
 
     document.getElementById("countdown-overlay").style.display = "none";
@@ -6177,7 +6229,6 @@ window.addEventListener("load", () => {
     onBuilderTypeChanged(true);
 
     requestData();
-    requestMultiplayerSharedData();
     updateClock();
 
     // Quiet catalogue refresh. Active races remain on their frozen local snapshot.
