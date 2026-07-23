@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.9</title>
+    <title>PinkiRaces v1.11</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -902,7 +902,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.9.0";
+const APP_VERSION = "1.11.0";
 
 /*
     Client-side builder visibility allowlist.
@@ -1746,17 +1746,20 @@ function applyBuilderAccess() {
 }
 
 function requireBuilderAccess() {
-    if (!isAllowedBuilderId(LIVE.user_id)) {
-        toast(
-            "Builder access denied for this TT player ID.",
-            "bad",
-            4000
-        );
+    const rawUserId =
+        LIVE.user_id;
 
+    // Builder access is intentionally silent.
+    // Non-builders simply do not see or gain access to Builder features.
+    if (
+        rawUserId === null ||
+        rawUserId === undefined ||
+        String(rawUserId).trim() === ""
+    ) {
         return false;
     }
 
-    return true;
+    return isAllowedBuilderId(rawUserId);
 }
 
 // -----------------------------
@@ -2975,8 +2978,11 @@ function getBuilderLaps() {
     );
 }
 
-function onBuilderTypeChanged() {
-    if (!requireBuilderAccess()) {
+function onBuilderTypeChanged(skipAccessCheck = false) {
+    if (
+        !skipAccessCheck &&
+        !requireBuilderAccess()
+    ) {
         return;
     }
 
@@ -3791,7 +3797,10 @@ window.addEventListener("load", () => {
     applyBuilderAccess();
     loadCourses();
     renderBuilder();
-    onBuilderTypeChanged();
+
+    // Initialize Builder controls only.
+    // Do not perform an authorization check before TT has supplied user_id.
+    onBuilderTypeChanged(true);
 
     requestData();
     updateClock();
