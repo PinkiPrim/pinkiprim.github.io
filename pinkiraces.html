@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.7</title>
+    <title>PinkiRaces v1.8</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -34,54 +34,40 @@
             user-select: none;
         }
 
-        /* --- SESSION BOOTSTRAP GATE --- */
-        #session-gate {
+        /* --- NON-BLOCKING SESSION STATUS --- */
+        #session-status-badge {
             position: absolute;
-            inset: 0;
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(5, 5, 9, 0.96);
-            color: #fff;
-            font-family: 'Rajdhani', sans-serif;
-        }
-
-        #session-gate.hidden {
+            top: 8px;
+            right: 74px;
+            z-index: 3000;
             display: none;
-        }
-
-        .session-gate-card {
-            width: 360px;
-            max-width: 82vw;
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 64, 129, 0.55);
-            background: rgba(14, 14, 20, 0.98);
-            text-align: center;
-            box-shadow: 0 10px 35px rgba(0,0,0,0.75);
-        }
-
-        .session-gate-title {
-            color: var(--primary);
-            font: 900 1.5em 'Rajdhani', sans-serif;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .session-gate-status {
-            margin-top: 8px;
-            color: var(--accent);
-            font: 800 .9em 'Rajdhani', sans-serif;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .session-gate-sub {
-            margin-top: 7px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: rgba(0,0,0,.45);
+            border: 1px solid rgba(255,255,255,.12);
             color: var(--dim);
-            font-size: .76em;
-            line-height: 1.4;
+            font: 800 .62em 'Rajdhani', sans-serif;
+            letter-spacing: .6px;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+
+        #session-status-badge.ready {
+            display: block;
+            color: var(--green);
+            border-color: rgba(0,230,118,.45);
+        }
+
+        #session-status-badge.pending {
+            display: block;
+            color: var(--accent);
+            border-color: rgba(255,213,79,.45);
+        }
+
+        #session-status-badge.offline {
+            display: block;
+            color: var(--red);
+            border-color: rgba(255,82,82,.45);
         }
 
         #race-app {
@@ -688,16 +674,6 @@
 </head>
 <body>
 
-<div id="session-gate">
-    <div class="session-gate-card">
-        <div class="session-gate-title">PinkiRaces</div>
-        <div class="session-gate-status" id="session-gate-status">Reading Transport Tycoon identity...</div>
-        <div class="session-gate-sub" id="session-gate-sub">
-            Race data is preparing locally while your session is stamped.
-        </div>
-    </div>
-</div>
-
 <div id="toast-container"></div>
 
 <div id="checkpoint-beacon">
@@ -714,6 +690,7 @@
 </div>
 
 <div id="race-app">
+    <div id="session-status-badge">SESSION</div>
     <div id="micro-view">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
 
@@ -962,7 +939,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.7.0";
+const APP_VERSION = "1.8.0";
 
 /*
     Client-side builder visibility allowlist.
@@ -1803,45 +1780,31 @@ function identitySnapshot() {
 }
 
 function identityReady() {
-    const hasStableIdentifier =
-        !!(
-            LIVE.fivem ||
-            LIVE.license ||
-            LIVE.license2 ||
-            LIVE.steam ||
-            LIVE.discord
-        );
-
     return (
         LIVE.user_id !== null &&
         LIVE.user_id !== undefined &&
         String(LIVE.user_id) !== "" &&
+        LIVE.source !== null &&
+        LIVE.source !== undefined &&
+        String(LIVE.source) !== "" &&
         LIVE.name &&
-        LIVE.name !== "Unknown" &&
-        hasStableIdentifier
+        LIVE.name !== "Unknown"
     );
 }
 
-function setSessionGate(status, subText) {
-    const statusEl =
-        document.getElementById("session-gate-status");
+function setSessionStatus(state, text) {
+    const badge =
+        document.getElementById("session-status-badge");
 
-    const subEl =
-        document.getElementById("session-gate-sub");
-
-    if (statusEl) {
-        statusEl.innerText = status;
+    if (!badge) {
+        return;
     }
 
-    if (subEl && subText) {
-        subEl.innerText = subText;
-    }
-}
+    badge.className =
+        `session-status-badge ${state}`.trim();
 
-function revealSessionGate() {
-    document
-        .getElementById("session-gate")
-        .classList.add("hidden");
+    badge.innerText =
+        text || "SESSION";
 }
 
 async function openStampedSession(builderToken = "") {
@@ -1850,12 +1813,11 @@ async function openStampedSession(builderToken = "") {
         SESSION.builderAllowed = false;
         SESSION.builderAuthorized = false;
 
-        setSessionGate(
-            "Offline database mode",
-            "Racing can continue locally. Builder publishing is disabled."
+        setSessionStatus(
+            "offline",
+            "LOCAL ONLY"
         );
 
-        setTimeout(revealSessionGate, 450);
         applyBuilderAccess();
 
         return false;
@@ -1871,9 +1833,9 @@ async function openStampedSession(builderToken = "") {
 
     SESSION.state = "opening";
 
-    setSessionGate(
-        "Stamping session...",
-        "Capturing the initial Transport Tycoon identity snapshot before access is granted."
+    setSessionStatus(
+        "pending",
+        "STAMPING"
     );
 
     SESSION.openingPromise = (async () => {
@@ -1918,16 +1880,14 @@ async function openStampedSession(builderToken = "") {
                 Date.now() +
                 (Number(data.expiresInSeconds || 1800) * 1000);
 
-            setSessionGate(
-                "Session verified",
+            setSessionStatus(
+                "ready",
                 SESSION.builderAuthorized
-                    ? "Builder identity verified."
-                    : "Race session stamped."
+                    ? "BUILDER VERIFIED"
+                    : "SESSION READY"
             );
 
             applyBuilderAccess();
-
-            setTimeout(revealSessionGate, 260);
 
             return true;
 
@@ -1937,14 +1897,12 @@ async function openStampedSession(builderToken = "") {
             SESSION.builderAllowed = false;
             SESSION.builderAuthorized = false;
 
-            setSessionGate(
-                "Database verification unavailable",
-                "Local racing remains available. Builder publishing and stamped online results are disabled."
+            setSessionStatus(
+                "offline",
+                "SESSION OFFLINE"
             );
 
             applyBuilderAccess();
-
-            setTimeout(revealSessionGate, 1200);
 
             return false;
 
@@ -1996,7 +1954,7 @@ async function ensureBuilderSession() {
 
     if (!builderToken) {
         toast(
-            "Enter your builder token once to authorize this device session.",
+            "Enter your builder token once to authorize publishing on this device.",
             "bad",
             3800
         );
@@ -2045,9 +2003,9 @@ function maybeOpenInitialSession() {
         return;
     }
 
-    setSessionGate(
-        "Identity received...",
-        "Allowing the Transport Tycoon data snapshot to settle before the backend stamp is created."
+    setSessionStatus(
+        "pending",
+        "STAMPING"
     );
 
     SESSION.bootstrapTimer =
@@ -2064,7 +2022,7 @@ function maybeOpenInitialSession() {
                     );
                 }
             },
-            750
+            150
         );
 }
 
@@ -2087,10 +2045,10 @@ function applyBuilderAccess() {
     const builderPane =
         document.getElementById("tab-builder");
 
+    // UI access is immediate from TT's normal user_id data.
+    // Backend publishing permission is checked separately and authoritatively.
     const allowed =
-        isAllowedBuilderId(LIVE.user_id) &&
-        SESSION.state === "ready" &&
-        SESSION.builderAllowed === true;
+        isAllowedBuilderId(LIVE.user_id);
 
     builderTab.style.display =
         allowed ? "" : "none";
@@ -2140,13 +2098,9 @@ function applyBuilderAccess() {
 }
 
 function requireBuilderAccess() {
-    if (
-        !isAllowedBuilderId(LIVE.user_id) ||
-        SESSION.state !== "ready" ||
-        SESSION.builderAllowed !== true
-    ) {
+    if (!isAllowedBuilderId(LIVE.user_id)) {
         toast(
-            "Builder access denied by the PinkiRaces backend.",
+            "Builder access denied for this TT player ID.",
             "bad",
             4000
         );
@@ -4214,12 +4168,10 @@ window.addEventListener("load", () => {
     if (!GOOGLE_SCRIPT_URL) {
         SESSION.state = "offline";
 
-        setSessionGate(
-            "Local database mode",
-            "No Google Apps Script URL is configured. Builder publishing is disabled."
+        setSessionStatus(
+            "offline",
+            "LOCAL ONLY"
         );
-
-        setTimeout(revealSessionGate, 650);
     }
     requestData();
     updateClock();
@@ -4232,29 +4184,6 @@ window.addEventListener("load", () => {
         );
     }
 
-    // Failsafe: never leave ordinary racing permanently hidden if verification
-    // cannot complete. Builder publishing remains disabled in fallback mode.
-    setTimeout(
-        () => {
-            if (
-                SESSION.state === "waiting" ||
-                SESSION.state === "opening"
-            ) {
-                SESSION.state = "offline";
-                SESSION.builderAllowed = false;
-                SESSION.builderAuthorized = false;
-
-                setSessionGate(
-                    "Verification timed out",
-                    "Local racing is available. Builder publishing and stamped online submissions remain disabled until a session can be verified."
-                );
-
-                applyBuilderAccess();
-                setTimeout(revealSessionGate, 900);
-            }
-        },
-        12000
-    );
 });
 </script>
 </body>
