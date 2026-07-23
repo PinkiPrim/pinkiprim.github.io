@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.8</title>
+    <title>PinkiRaces v1.9</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -32,42 +32,6 @@
             color: var(--text);
             font-family: 'Roboto', sans-serif;
             user-select: none;
-        }
-
-        /* --- NON-BLOCKING SESSION STATUS --- */
-        #session-status-badge {
-            position: absolute;
-            top: 8px;
-            right: 74px;
-            z-index: 3000;
-            display: none;
-            padding: 3px 7px;
-            border-radius: 999px;
-            background: rgba(0,0,0,.45);
-            border: 1px solid rgba(255,255,255,.12);
-            color: var(--dim);
-            font: 800 .62em 'Rajdhani', sans-serif;
-            letter-spacing: .6px;
-            text-transform: uppercase;
-            pointer-events: none;
-        }
-
-        #session-status-badge.ready {
-            display: block;
-            color: var(--green);
-            border-color: rgba(0,230,118,.45);
-        }
-
-        #session-status-badge.pending {
-            display: block;
-            color: var(--accent);
-            border-color: rgba(255,213,79,.45);
-        }
-
-        #session-status-badge.offline {
-            display: block;
-            color: var(--red);
-            border-color: rgba(255,82,82,.45);
         }
 
         #race-app {
@@ -690,7 +654,6 @@
 </div>
 
 <div id="race-app">
-    <div id="session-status-badge">SESSION</div>
     <div id="micro-view">
         <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
 
@@ -886,7 +849,7 @@
                     Sprint uses a separate Start and Finish.
                 </div>
 
-                <input id="publisher-key" type="password" placeholder="Builder token (first authorization only; saved on this PC)" style="margin-top:6px;">
+                
 
                 <div class="btn-row">
                     <button class="btn warn" onclick="captureStart()">CAPTURE START</button>
@@ -939,7 +902,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.8.0";
+const APP_VERSION = "1.9.0";
 
 /*
     Client-side builder visibility allowlist.
@@ -974,9 +937,6 @@ const STORAGE = {
     REMOTE_COURSES: "pinkiraces_remote_courses_cache_v1",
     REMOTE_SYNCED_AT: "pinkiraces_remote_courses_synced_at_v1",
 
-    // Per-builder credential. Only exists on an authorised builder's own PC.
-    BUILDER_TOKEN: "pinkiraces_builder_token_v1",
-
     RESULTS: "pinkiraces_local_results_v1",
     MINI: "pinkiraces_mini_v1",
     POS: "pinkiraces_pos_v1"
@@ -989,7 +949,6 @@ const BLIP_IDS = {
 
 const DATA_KEYS = [
     "user_id", "source", "name",
-    "discord", "fivem", "license", "license2", "steam", "endpoint", "pkey",
     "vehicle", "vehicleName", "vehicleMake", "vehicleClass", "vehicleClassName",
     "car", "speed", "engine", "fuel",
     "pos_x", "pos_y", "pos_z", "pos_h",
@@ -1001,13 +960,6 @@ let LIVE = {
     user_id: null,
     source: null,
     name: "Unknown",
-    discord: "",
-    fivem: "",
-    license: "",
-    license2: "",
-    steam: "",
-    endpoint: "",
-    pkey: "",
     vehicle: "onFoot",
     vehicleName: "On Foot",
     vehicleMake: "",
@@ -1029,17 +981,6 @@ let BUILDER = {
     finish: null
 };
 
-let SESSION = {
-    state: "waiting", // waiting | opening | ready | offline
-    token: "",
-    fingerprint: "",
-    userId: null,
-    builderAllowed: false,
-    builderAuthorized: false,
-    expiresAt: 0,
-    openingPromise: null,
-    bootstrapTimer: null
-};
 
 let RACE = {
     phase: "idle", // idle | armed | countdown | racing | finished
@@ -1762,271 +1703,6 @@ function populateRaceSelects(options = {}) {
 }
 
 // -----------------------------
-// Startup session stamp
-// -----------------------------
-function identitySnapshot() {
-    return {
-        user_id: LIVE.user_id ?? "",
-        source: LIVE.source ?? "",
-        name: String(LIVE.name || ""),
-        discord: String(LIVE.discord || ""),
-        fivem: String(LIVE.fivem || ""),
-        license: String(LIVE.license || ""),
-        license2: String(LIVE.license2 || ""),
-        steam: String(LIVE.steam || ""),
-        endpoint: String(LIVE.endpoint || ""),
-        pkey: String(LIVE.pkey || "")
-    };
-}
-
-function identityReady() {
-    return (
-        LIVE.user_id !== null &&
-        LIVE.user_id !== undefined &&
-        String(LIVE.user_id) !== "" &&
-        LIVE.source !== null &&
-        LIVE.source !== undefined &&
-        String(LIVE.source) !== "" &&
-        LIVE.name &&
-        LIVE.name !== "Unknown"
-    );
-}
-
-function setSessionStatus(state, text) {
-    const badge =
-        document.getElementById("session-status-badge");
-
-    if (!badge) {
-        return;
-    }
-
-    badge.className =
-        `session-status-badge ${state}`.trim();
-
-    badge.innerText =
-        text || "SESSION";
-}
-
-async function openStampedSession(builderToken = "") {
-    if (!GOOGLE_SCRIPT_URL) {
-        SESSION.state = "offline";
-        SESSION.builderAllowed = false;
-        SESSION.builderAuthorized = false;
-
-        setSessionStatus(
-            "offline",
-            "LOCAL ONLY"
-        );
-
-        applyBuilderAccess();
-
-        return false;
-    }
-
-    if (!identityReady()) {
-        return false;
-    }
-
-    if (SESSION.state === "opening" && SESSION.openingPromise) {
-        return SESSION.openingPromise;
-    }
-
-    SESSION.state = "opening";
-
-    setSessionStatus(
-        "pending",
-        "STAMPING"
-    );
-
-    SESSION.openingPromise = (async () => {
-        try {
-            const response = await fetch(
-                GOOGLE_SCRIPT_URL,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "text/plain;charset=utf-8"
-                    },
-                    body: JSON.stringify({
-                        action: "openSession",
-                        identity: identitySnapshot(),
-                        builderToken: builderToken || "",
-                        clientVersion: APP_VERSION
-                    })
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (!data || data.ok === false) {
-                throw new Error(
-                    data && data.error
-                        ? data.error
-                        : "Session stamp failed"
-                );
-            }
-
-            SESSION.state = "ready";
-            SESSION.token = String(data.sessionToken || "");
-            SESSION.fingerprint = String(data.fingerprint || "");
-            SESSION.userId = data.userId ?? LIVE.user_id;
-            SESSION.builderAllowed = data.builderAllowed === true;
-            SESSION.builderAuthorized = data.builderAuthorized === true;
-            SESSION.expiresAt =
-                Date.now() +
-                (Number(data.expiresInSeconds || 1800) * 1000);
-
-            setSessionStatus(
-                "ready",
-                SESSION.builderAuthorized
-                    ? "BUILDER VERIFIED"
-                    : "SESSION READY"
-            );
-
-            applyBuilderAccess();
-
-            return true;
-
-        } catch (error) {
-            SESSION.state = "offline";
-            SESSION.token = "";
-            SESSION.builderAllowed = false;
-            SESSION.builderAuthorized = false;
-
-            setSessionStatus(
-                "offline",
-                "SESSION OFFLINE"
-            );
-
-            applyBuilderAccess();
-
-            return false;
-
-        } finally {
-            SESSION.openingPromise = null;
-        }
-    })();
-
-    return SESSION.openingPromise;
-}
-
-async function ensureStampedSession() {
-    if (
-        SESSION.state === "ready" &&
-        SESSION.token &&
-        Date.now() < (SESSION.expiresAt - 60000)
-    ) {
-        return true;
-    }
-
-    return openStampedSession(
-        localStorage.getItem(STORAGE.BUILDER_TOKEN) || ""
-    );
-}
-
-async function ensureBuilderSession() {
-    if (!isAllowedBuilderId(LIVE.user_id)) {
-        return false;
-    }
-
-    if (
-        SESSION.state === "ready" &&
-        SESSION.builderAuthorized &&
-        SESSION.token &&
-        Date.now() < (SESSION.expiresAt - 60000)
-    ) {
-        return true;
-    }
-
-    const tokenInput =
-        document.getElementById("publisher-key");
-
-    const builderToken =
-        (
-            (tokenInput ? tokenInput.value.trim() : "") ||
-            localStorage.getItem(STORAGE.BUILDER_TOKEN) ||
-            ""
-        );
-
-    if (!builderToken) {
-        toast(
-            "Enter your builder token once to authorize publishing on this device.",
-            "bad",
-            3800
-        );
-
-        return false;
-    }
-
-    const opened =
-        await openStampedSession(builderToken);
-
-    if (
-        opened &&
-        SESSION.builderAuthorized
-    ) {
-        localStorage.setItem(
-            STORAGE.BUILDER_TOKEN,
-            builderToken
-        );
-
-        if (tokenInput) {
-            tokenInput.value =
-                builderToken;
-        }
-
-        return true;
-    }
-
-    toast(
-        "Backend declined builder authorization.",
-        "bad",
-        4200
-    );
-
-    return false;
-}
-
-function maybeOpenInitialSession() {
-    if (
-        SESSION.state !== "waiting" ||
-        !identityReady()
-    ) {
-        return;
-    }
-
-    if (SESSION.bootstrapTimer) {
-        return;
-    }
-
-    setSessionStatus(
-        "pending",
-        "STAMPING"
-    );
-
-    SESSION.bootstrapTimer =
-        setTimeout(
-            () => {
-                SESSION.bootstrapTimer = null;
-
-                if (
-                    SESSION.state === "waiting" &&
-                    identityReady()
-                ) {
-                    openStampedSession(
-                        localStorage.getItem(STORAGE.BUILDER_TOKEN) || ""
-                    );
-                }
-            },
-            150
-        );
-}
-
-// -----------------------------
 // Builder access
 // -----------------------------
 function isAllowedBuilderId(userId) {
@@ -2045,55 +1721,27 @@ function applyBuilderAccess() {
     const builderPane =
         document.getElementById("tab-builder");
 
-    // UI access is immediate from TT's normal user_id data.
-    // Backend publishing permission is checked separately and authoritatively.
+    // Simple UI allowlist: Prim (757858) is currently the only builder.
     const allowed =
         isAllowedBuilderId(LIVE.user_id);
 
-    builderTab.style.display =
-        allowed ? "" : "none";
+    if (builderTab) {
+        builderTab.style.display =
+            allowed ? "" : "none";
+    }
 
     if (builderPane) {
         builderPane.dataset.authorized =
             allowed ? "true" : "false";
     }
 
-    if (!allowed) {
-        // Never leave an unauthorized player sitting inside Builder.
+    if (!allowed && builderPane) {
         const builderIsOpen =
-            document.getElementById("tab-builder")
-                .classList.contains("active");
+            builderPane.classList.contains("active");
 
         if (builderIsOpen) {
             switchTab("races");
         }
-
-        const tokenInput =
-            document.getElementById("publisher-key");
-
-        if (tokenInput) {
-            tokenInput.value = "";
-        }
-
-        return;
-    }
-
-    // Authorized builder: restore their locally saved per-builder token.
-    const savedToken =
-        localStorage.getItem(
-            STORAGE.BUILDER_TOKEN
-        ) || "";
-
-    const tokenInput =
-        document.getElementById("publisher-key");
-
-    if (
-        tokenInput &&
-        savedToken &&
-        !tokenInput.value
-    ) {
-        tokenInput.value =
-            savedToken;
     }
 }
 
@@ -2150,7 +1798,6 @@ window.addEventListener("message", event => {
             : (LIVE.vehicle || "Unknown");
     }
 
-    maybeOpenInitialSession();
     applyBuilderAccess();
     updateLiveIdentity();
 });
@@ -3044,15 +2691,6 @@ async function submitRemoteResult(result) {
     }
 
     try {
-        const stamped =
-            await ensureStampedSession();
-
-        if (!stamped || !SESSION.token) {
-            throw new Error(
-                "No verified PinkiRaces session"
-            );
-        }
-
         const response = await fetch(
             GOOGLE_SCRIPT_URL,
             {
@@ -3062,8 +2700,6 @@ async function submitRemoteResult(result) {
                 },
                 body: JSON.stringify({
                     action: "submitResult",
-                    sessionToken: SESSION.token,
-                    identity: identitySnapshot(),
                     payload: result
                 })
             }
@@ -3091,7 +2727,7 @@ async function submitRemoteResult(result) {
 
     } catch (e) {
         toast(
-            "Remote leaderboard unavailable or session declined. Result saved locally.",
+            "Remote leaderboard unavailable. Result saved locally.",
             "bad",
             3500
         );
@@ -3709,13 +3345,6 @@ async function publishBuiltCourse() {
         return;
     }
 
-    const builderSessionReady =
-        await ensureBuilderSession();
-
-    if (!builderSessionReady) {
-        return;
-    }
-
     const course = buildCourseFromForm();
 
     if (!course) {
@@ -3741,8 +3370,7 @@ async function publishBuiltCourse() {
                 },
                 body: JSON.stringify({
                     action: "saveCourse",
-                    sessionToken: SESSION.token,
-                    identity: identitySnapshot(),
+                    builderUserId: Number(LIVE.user_id),
                     payload: course
                 })
             }
@@ -4165,14 +3793,6 @@ window.addEventListener("load", () => {
     renderBuilder();
     onBuilderTypeChanged();
 
-    if (!GOOGLE_SCRIPT_URL) {
-        SESSION.state = "offline";
-
-        setSessionStatus(
-            "offline",
-            "LOCAL ONLY"
-        );
-    }
     requestData();
     updateClock();
 
