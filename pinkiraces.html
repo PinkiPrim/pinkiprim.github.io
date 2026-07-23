@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.4</title>
+    <title>PinkiRaces v1.5</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -884,7 +884,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.5.0";
 
 /*
     Paste your deployed Google Apps Script Web App /exec URL here.
@@ -899,7 +899,14 @@ const GOOGLE_SCRIPT_URL = "";
 const BUILT_IN_RACES = [];
 
 const STORAGE = {
+    // Courses created/saved locally by this user.
     COURSES: "pinkiraces_courses_v1",
+
+    // Last successfully downloaded published catalogue from Google Sheets.
+    // This is the race data used instantly on future app loads.
+    REMOTE_COURSES: "pinkiraces_remote_courses_cache_v1",
+    REMOTE_SYNCED_AT: "pinkiraces_remote_courses_synced_at_v1",
+
     RESULTS: "pinkiraces_local_results_v1",
     MINI: "pinkiraces_mini_v1",
     POS: "pinkiraces_pos_v1"
@@ -1337,31 +1344,41 @@ function totalRaceTargets(course) {
 // -----------------------------
 // Course persistence
 // -----------------------------
-function loadCourses() {
-    const saved = safeJsonParse(localStorage.getItem(STORAGE.COURSES) || "[]", []);
+function getLocalCourses() {
+    const saved = safeJsonParse(
+        localStorage.getItem(STORAGE.COURSES) || "[]",
+        []
+    );
 
-    mergeCourses([
-        ...BUILT_IN_RACES,
-        ...(Array.isArray(saved) ? saved : [])
-    ]);
-
-    populateRaceSelects();
-
-    if (GOOGLE_SCRIPT_URL) {
-        fetchRemoteCourses();
-    }
+    return Array.isArray(saved) ? saved : [];
 }
 
-function mergeCourses(incoming) {
+function getCachedRemoteCourses() {
+    const cached = safeJsonParse(
+        localStorage.getItem(STORAGE.REMOTE_COURSES) || "[]",
+        []
+    );
+
+    return Array.isArray(cached) ? cached : [];
+}
+
+function rebuildCourseCatalogue() {
+    /*
+        Precedence:
+        1. Built-in defaults
+        2. Locally-created/test races
+        3. Published Google catalogue (official copy wins on matching ID)
+
+        Everything here is already local memory/localStorage.
+        No live race ever needs Google to resolve a checkpoint.
+    */
     const byId = new Map();
 
-    COURSES.forEach(course => {
-        if (course && course.id) {
-            byId.set(course.id, course);
-        }
-    });
-
-    (Array.isArray(incoming) ? incoming : [])
+    [
+        ...BUILT_IN_RACES,
+        ...getLocalCourses(),
+        ...getCachedRemoteCourses()
+    ]
         .map(normalizeCourse)
         .filter(Boolean)
         .forEach(course => {
@@ -1372,35 +1389,172 @@ function mergeCourses(incoming) {
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-async function fetchRemoteCourses() {
-    try {
-        const url = `${GOOGLE_SCRIPT_URL}?action=courses&_=${Date.now()}`;
-        const response = await fetch(url, {
-            method: "GET",
-            cache: "no-store"
-        });
+function loadCourses() {
+    // 1. Build instantly from localStorage cache.
+    rebuildCourseCatalogue();
 
-        const data = await response.json();
+    // Do not trigger blip/race-selection side effects during boot.
+    populateRaceSelects({
+        runSelectionHandler: RACE.phase === "idle" || RACE.phase === "finished"
+    });
 
-        if (!data || data.ok === false) {
-            throw new Error(data && data.error ? data.error : "Bad course response");
-        }
+    updateCatalogueStatusFromCache();
 
-        mergeCourses(Array.isArray(data.courses) ? data.courses : []);
-        populateRaceSelects();
-
-        document.getElementById("backend-pill").innerText = "SHEETS";
-        document.getElementById("backend-pill").className = "status-pill racing";
-    } catch (e) {
-        toast("Shared race catalogue unavailable. Local courses still work.", "bad", 3500);
+    // 2. Refresh published catalogue quietly in the background.
+    // Active races never depend on this request.
+    if (GOOGLE_SCRIPT_URL) {
+        fetchRemoteCourses();
     }
 }
 
 function saveCourses() {
-    localStorage.setItem(STORAGE.COURSES, JSON.stringify(COURSES));
+    // Only locally-created/test courses belong in STORAGE.COURSES.
+    localStorage.setItem(
+        STORAGE.COURSES,
+        JSON.stringify(getLocalCoursesFromCurrentCatalogue())
+    );
 }
 
-function populateRaceSelects() {
+function getLocalCoursesFromCurrentCatalogue() {
+    const remoteIds = new Set(
+        getCachedRemoteCourses()
+            .map(normalizeCourse)
+            .filter(Boolean)
+            .map(course => course.id)
+    );
+
+    return COURSES
+        .filter(course => !remoteIds.has(course.id))
+        .map(course => JSON.parse(JSON.stringify(course)));
+}
+
+function updateCatalogueStatusFromCache() {
+    const pill = document.getElementById("backend-pill");
+
+    if (!GOOGLE_SCRIPT_URL) {
+        pill.innerText = "LOCAL";
+        pill.className = "status-pill";
+        return;
+    }
+
+    const cached = getCachedRemoteCourses();
+    const syncedAt = localStorage.getItem(STORAGE.REMOTE_SYNCED_AT);
+
+    if (cached.length > 0) {
+        pill.innerText = "CACHED";
+        pill.className = "status-pill ready";
+
+        if (syncedAt) {
+            pill.title = `Published races cached: ${new Date(syncedAt).toLocaleString()}`;
+        }
+    } else {
+        pill.innerText = "SYNCING";
+        pill.className = "status-pill ready";
+    }
+}
+
+async function fetchRemoteCourses() {
+    const pill = document.getElementById("backend-pill");
+
+    if (getCachedRemoteCourses().length === 0) {
+        pill.innerText = "SYNCING";
+        pill.className = "status-pill ready";
+    }
+
+    try {
+        const url =
+            `${GOOGLE_SCRIPT_URL}?action=courses&_=${Date.now()}`;
+
+        const response = await fetch(
+            url,
+            {
+                method: "GET",
+                cache: "no-store"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data || data.ok === false) {
+            throw new Error(
+                data && data.error
+                    ? data.error
+                    : "Bad course response"
+            );
+        }
+
+        const downloaded = (
+            Array.isArray(data.courses)
+                ? data.courses
+                : []
+        )
+            .map(normalizeCourse)
+            .filter(Boolean);
+
+        // Persist the entire published catalogue locally before touching UI.
+        localStorage.setItem(
+            STORAGE.REMOTE_COURSES,
+            JSON.stringify(downloaded)
+        );
+
+        localStorage.setItem(
+            STORAGE.REMOTE_SYNCED_AT,
+            new Date().toISOString()
+        );
+
+        // Rebuild local in-memory catalogue from cache.
+        rebuildCourseCatalogue();
+
+        /*
+            CRITICAL:
+            Never call onRaceSelected() while a race is armed/counting/racing.
+            That function manages blips and could interfere with live navigation.
+        */
+        const raceIsBusy =
+            RACE.phase === "armed" ||
+            RACE.phase === "countdown" ||
+            RACE.phase === "racing";
+
+        populateRaceSelects({
+            runSelectionHandler: !raceIsBusy
+        });
+
+        pill.innerText = "SYNCED";
+        pill.className = "status-pill racing";
+        pill.title = `Published races synced: ${new Date().toLocaleString()}`;
+
+    } catch (e) {
+        // Cached catalogue remains fully usable offline.
+        const cachedCount = getCachedRemoteCourses().length;
+
+        if (cachedCount > 0) {
+            pill.innerText = "CACHE";
+            pill.className = "status-pill ready";
+            pill.title = "Google sync unavailable; using locally cached published races.";
+        } else {
+            pill.innerText = "OFFLINE";
+            pill.className = "status-pill invalid";
+            pill.title = "No published race cache is available yet.";
+        }
+
+        toast(
+            cachedCount > 0
+                ? "Could not refresh Google catalogue. Using cached published races."
+                : "Could not download the published race catalogue.",
+            "bad",
+            3500
+        );
+    }
+}
+
+function populateRaceSelects(options = {}) {
+    const runSelectionHandler =
+        options.runSelectionHandler !== false;
+
     const selects = [
         document.getElementById("race-select"),
         document.getElementById("leader-race-select")
@@ -1414,7 +1568,11 @@ function populateRaceSelects() {
         if (COURSES.length === 0) {
             const option = document.createElement("option");
             option.value = "";
-            option.textContent = "No races saved yet";
+            option.textContent =
+                GOOGLE_SCRIPT_URL
+                    ? "Waiting for published races..."
+                    : "No races saved yet";
+
             select.appendChild(option);
             return;
         }
@@ -1428,12 +1586,17 @@ function populateRaceSelects() {
             select.appendChild(option);
         });
 
-        if (COURSES.some(course => course.id === oldValue)) {
+        if (
+            oldValue &&
+            COURSES.some(course => course.id === oldValue)
+        ) {
             select.value = oldValue;
         }
     });
 
-    onRaceSelected();
+    if (runSelectionHandler) {
+        onRaceSelected();
+    }
 }
 
 // -----------------------------
@@ -1829,7 +1992,11 @@ function armRace() {
     }
 
     RACE.phase = "armed";
-    RACE.course = course;
+
+    // Freeze a private local snapshot for this entire run.
+    // Background Google syncs cannot mutate or replace live checkpoint data.
+    RACE.course = JSON.parse(JSON.stringify(course));
+
     RACE.checkpointIndex = 0;
     RACE.splits = [];
     RACE.valid = true;
@@ -2742,19 +2909,31 @@ function saveBuiltCourse() {
         return;
     }
 
+    const localCourses = getLocalCourses()
+        .map(normalizeCourse)
+        .filter(Boolean);
+
     const index =
-        COURSES.findIndex(
+        localCourses.findIndex(
             existing => existing.id === course.id
         );
 
     if (index >= 0) {
-        COURSES[index] = course;
+        localCourses[index] = course;
     } else {
-        COURSES.push(course);
+        localCourses.push(course);
     }
 
-    saveCourses();
-    populateRaceSelects();
+    localStorage.setItem(
+        STORAGE.COURSES,
+        JSON.stringify(localCourses)
+    );
+
+    rebuildCourseCatalogue();
+
+    populateRaceSelects({
+        runSelectionHandler: true
+    });
 
     document.getElementById("race-select").value =
         course.id;
@@ -2768,7 +2947,7 @@ function saveBuiltCourse() {
     onRaceSelected();
 
     toast(
-        `Saved ${course.name}.`,
+        `Saved ${course.name} locally.`,
         "good"
     );
 }
@@ -2829,16 +3008,37 @@ async function publishBuiltCourse() {
             );
         }
 
-        const index = COURSES.findIndex(existing => existing.id === course.id);
+        // Update the published catalogue cache immediately.
+        const cachedRemote = getCachedRemoteCourses()
+            .map(normalizeCourse)
+            .filter(Boolean);
 
-        if (index >= 0) {
-            COURSES[index] = course;
+        const remoteIndex =
+            cachedRemote.findIndex(
+                existing => existing.id === course.id
+            );
+
+        if (remoteIndex >= 0) {
+            cachedRemote[remoteIndex] = course;
         } else {
-            COURSES.push(course);
+            cachedRemote.push(course);
         }
 
-        saveCourses();
-        populateRaceSelects();
+        localStorage.setItem(
+            STORAGE.REMOTE_COURSES,
+            JSON.stringify(cachedRemote)
+        );
+
+        localStorage.setItem(
+            STORAGE.REMOTE_SYNCED_AT,
+            new Date().toISOString()
+        );
+
+        rebuildCourseCatalogue();
+
+        populateRaceSelects({
+            runSelectionHandler: RACE.phase === "idle" || RACE.phase === "finished"
+        });
 
         document.getElementById("race-select").value = course.id;
         document.getElementById("leader-race-select").value = course.id;
@@ -2968,16 +3168,42 @@ function deleteSelectedRace() {
         return;
     }
 
-    COURSES =
-        COURSES.filter(
+    const localCourses = getLocalCourses()
+        .map(normalizeCourse)
+        .filter(Boolean);
+
+    const existedLocally =
+        localCourses.some(
+            item => item.id === course.id
+        );
+
+    if (!existedLocally) {
+        toast(
+            "That race is published/cached, not a local draft. Delete it from the database instead.",
+            "info",
+            3800
+        );
+        return;
+    }
+
+    const updated =
+        localCourses.filter(
             item => item.id !== course.id
         );
 
-    saveCourses();
-    populateRaceSelects();
+    localStorage.setItem(
+        STORAGE.COURSES,
+        JSON.stringify(updated)
+    );
+
+    rebuildCourseCatalogue();
+
+    populateRaceSelects({
+        runSelectionHandler: true
+    });
 
     toast(
-        `Deleted ${course.name}.`,
+        `Deleted local copy of ${course.name}.`,
         "info"
     );
 }
@@ -3165,6 +3391,14 @@ window.addEventListener("load", () => {
     renderBuilder();
     requestData();
     updateClock();
+
+    // Quiet catalogue refresh. Active races remain on their frozen local snapshot.
+    if (GOOGLE_SCRIPT_URL) {
+        setInterval(
+            fetchRemoteCourses,
+            5 * 60 * 1000
+        );
+    }
 });
 </script>
 </body>
