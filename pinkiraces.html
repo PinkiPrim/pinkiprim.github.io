@@ -1,0 +1,2775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PinkiRaces v1.1</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            --primary: #ff4081;
+            --primary-dim: #ad1457;
+            --accent: #ffd54f;
+            --green: #00e676;
+            --red: #ff5252;
+            --blue: #29b6f6;
+            --bg: rgba(12, 12, 18, 0.97);
+            --panel: rgba(255,255,255,0.045);
+            --text: #ffffff;
+            --dim: #a7a7b2;
+            --border: 1px solid rgba(255, 64, 129, 0.38);
+            --heart: #ff4081;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent !important;
+            color: var(--text);
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+        }
+
+        #race-app {
+            position: absolute;
+            left: 50px;
+            top: 50px;
+            width: 390px;
+            min-width: 330px;
+            min-height: 270px;
+            max-height: 760px;
+            background: var(--bg);
+            border: var(--border);
+            border-radius: 10px;
+            box-shadow: 0 12px 34px rgba(0,0,0,0.72);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            resize: both;
+        }
+
+        #race-app.mini-mode {
+            width: 500px !important;
+            height: 82px !important;
+            min-height: 82px !important;
+            resize: none;
+            border-color: var(--accent);
+        }
+
+        #race-app.mini-mode header,
+        #race-app.mini-mode #tabs,
+        #race-app.mini-mode #main-content,
+        #race-app.mini-mode #support-footer {
+            display: none !important;
+        }
+
+        #micro-view {
+            display: none;
+            height: 100%;
+            padding: 7px 12px;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: move;
+        }
+
+        #race-app.mini-mode #micro-view { display: flex; }
+
+        .micro-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .micro-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .micro-label {
+            color: var(--dim);
+            font-size: 0.72em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .micro-val {
+            font-size: 0.92em;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .micro-val.primary { color: var(--primary); }
+        .micro-val.accent { color: var(--accent); }
+        .micro-val.green { color: var(--green); }
+
+        .micro-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.07);
+            color: #ccc;
+            border-radius: 3px;
+            font: 700 0.62em 'Rajdhani', sans-serif;
+            cursor: pointer;
+            padding: 1px 5px;
+            z-index: 50;
+        }
+
+        .micro-btn:hover { background: var(--primary); color: white; }
+
+        header {
+            height: 72px;
+            flex: 0 0 72px;
+            padding: 6px 10px;
+            position: relative;
+            overflow: hidden;
+            cursor: move;
+            background:
+                radial-gradient(circle at 50% 130%, rgba(255,213,79,0.22), transparent 48%),
+                linear-gradient(135deg, #240711 0%, var(--primary-dim) 50%, #10070c 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.11);
+        }
+
+        .header-title {
+            position: absolute;
+            left: 50%;
+            top: 9px;
+            transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.35em;
+            font-weight: 900;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 8px rgba(0,0,0,.7);
+            white-space: nowrap;
+        }
+
+        .header-sub {
+            position: absolute;
+            left: 50%;
+            top: 35px;
+            transform: translateX(-50%);
+            font: 700 .78em 'Rajdhani', sans-serif;
+            color: var(--accent);
+            letter-spacing: 1px;
+            max-width: 62%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .finish-line {
+            position: absolute;
+            left: -10px;
+            right: -10px;
+            bottom: 0;
+            height: 17px;
+            opacity: .28;
+            background:
+                linear-gradient(45deg, #fff 25%, transparent 25%) 0 0/16px 16px,
+                linear-gradient(45deg, transparent 75%, #fff 75%) 0 0/16px 16px,
+                linear-gradient(45deg, transparent 75%, #fff 75%) 8px -8px/16px 16px,
+                linear-gradient(45deg, #fff 25%, #111 25%) 8px -8px/16px 16px;
+        }
+
+        .header-left, .header-right {
+            position: absolute;
+            top: 8px;
+            z-index: 10;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .header-left { left: 10px; }
+        .header-right {
+            right: 10px;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .home-link {
+            color: #ddd;
+            text-decoration: none;
+            font-size: 1.15em;
+        }
+
+        .small-btn {
+            border: 1px solid rgba(255,255,255,.18);
+            background: rgba(0,0,0,.28);
+            color: #ddd;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font: 800 .72em 'Rajdhani', sans-serif;
+            cursor: pointer;
+        }
+
+        .small-btn:hover { background: var(--primary); color: white; }
+
+        #clock {
+            color: #ddd;
+            font: 700 .78em 'Rajdhani', sans-serif;
+        }
+
+        #tabs {
+            display: flex;
+            flex: 0 0 auto;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            background: rgba(255,255,255,.015);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px 4px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--dim);
+            font: 800 .78em 'Rajdhani', sans-serif;
+            letter-spacing: .7px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: white;
+            background: rgba(255,64,129,.08);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-btn:hover { color: white; }
+
+        #main-content {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 10px;
+            scrollbar-width: thin;
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 7px;
+            padding: 9px;
+            margin-bottom: 9px;
+        }
+
+        .card-title {
+            font: 900 .8em 'Rajdhani', sans-serif;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 7px;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .muted { color: var(--dim); }
+        .tiny { font-size: .72em; line-height: 1.35; }
+        .small { font-size: .82em; line-height: 1.4; }
+
+        select, input, textarea {
+            width: 100%;
+            border: 1px solid #3f3f49;
+            background: rgba(0,0,0,.45);
+            color: white;
+            border-radius: 5px;
+            padding: 7px;
+            font-family: 'Roboto', sans-serif;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            user-select: text;
+        }
+
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 7px;
+        }
+
+        .btn {
+            flex: 1;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(255,255,255,.06);
+            color: #ddd;
+            border-radius: 5px;
+            padding: 7px;
+            cursor: pointer;
+            font: 800 .78em 'Rajdhani', sans-serif;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+        }
+
+        .btn:hover { background: rgba(255,255,255,.11); color: white; }
+        .btn.primary {
+            border-color: var(--primary);
+            color: white;
+            background: rgba(255,64,129,.14);
+        }
+        .btn.primary:hover { background: var(--primary); }
+        .btn.good { border-color: var(--green); color: var(--green); }
+        .btn.good:hover { background: var(--green); color: #05130b; }
+        .btn.warn { border-color: var(--accent); color: var(--accent); }
+        .btn.warn:hover { background: var(--accent); color: #171200; }
+        .btn.danger { border-color: var(--red); color: var(--red); }
+        .btn.danger:hover { background: var(--red); color: white; }
+        .btn:disabled { opacity: .36; cursor: not-allowed; }
+
+        .race-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .stat {
+            padding: 7px;
+            background: rgba(0,0,0,.24);
+            border-radius: 5px;
+            min-width: 0;
+        }
+
+        .stat-label {
+            color: var(--dim);
+            font: 700 .65em 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+        }
+
+        .stat-value {
+            margin-top: 2px;
+            font: 800 .95em 'Rajdhani', sans-serif;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .progress-bg {
+            position: relative;
+            width: 100%;
+            height: 13px;
+            overflow: hidden;
+            background: rgba(0,0,0,.55);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 6px;
+            margin-top: 7px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transition: width .2s ease;
+        }
+
+        #countdown-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 5000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,.34);
+            pointer-events: none;
+        }
+
+        #countdown-text {
+            font: 900 6em 'Rajdhani', sans-serif;
+            color: white;
+            text-shadow: 0 0 25px var(--primary), 0 4px 12px black;
+            animation: pop .35s ease;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(.6); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #toast-container {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 6000;
+            width: min(440px, 86vw);
+            pointer-events: none;
+        }
+
+        .toast {
+            margin-bottom: 6px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: rgba(12,12,18,.97);
+            border: 1px solid rgba(255,255,255,.13);
+            box-shadow: 0 5px 18px rgba(0,0,0,.55);
+            font-size: .82em;
+            text-align: center;
+        }
+
+        .toast.good { border-color: var(--green); }
+        .toast.bad { border-color: var(--red); }
+        .toast.info { border-color: var(--blue); }
+
+        .leader-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .76em;
+        }
+
+        .leader-table th, .leader-table td {
+            padding: 6px 4px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            text-align: left;
+        }
+
+        .leader-table th {
+            color: var(--accent);
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .leader-table td.time {
+            color: var(--green);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .leader-table tr.me { background: rgba(255,64,129,.08); }
+
+        .builder-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 5px;
+            margin-top: 6px;
+        }
+
+        .builder-point {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 5px 7px;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+            font-size: .74em;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.12);
+            font: 800 .65em 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .status-pill.ready { color: var(--accent); border-color: var(--accent); }
+        .status-pill.racing { color: var(--green); border-color: var(--green); }
+        .status-pill.invalid { color: var(--red); border-color: var(--red); }
+
+        #support-footer {
+            flex: 0 0 auto;
+            text-align: center;
+            padding: 4px 0;
+            border-top: 1px solid rgba(255,255,255,.07);
+            background: rgba(0,0,0,.2);
+        }
+
+        .support-link {
+            color: var(--dim);
+            font: 600 .65em 'Rajdhani', sans-serif;
+            opacity: .65;
+            cursor: pointer;
+        }
+
+        .support-link:hover { color: white; opacity: 1; }
+
+        .heart {
+            color: var(--heart);
+            display: inline-block;
+            animation: spinHeart 2.5s linear infinite;
+        }
+
+        @keyframes spinHeart { to { transform: rotateY(360deg); } }
+
+        #resize-handle {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 15px;
+            height: 15px;
+            cursor: nwse-resize;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div id="countdown-overlay">
+    <div id="countdown-text">3</div>
+</div>
+
+<div id="race-app">
+    <div id="micro-view">
+        <button class="micro-btn" onclick="toggleMini()">EXPAND</button>
+
+        <div class="micro-row">
+            <div class="micro-group" style="max-width:45%">
+                <span>🏁</span>
+                <span class="micro-val primary" id="micro-race">PinkiRaces</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">CP</span>
+                <span class="micro-val accent" id="micro-cp">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Time</span>
+                <span class="micro-val green" id="micro-time">00:00.000</span>
+            </div>
+        </div>
+
+        <div class="micro-row">
+            <div class="micro-group" style="max-width:52%">
+                <span class="micro-label">Vehicle</span>
+                <span class="micro-val" id="micro-vehicle">On Foot</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Next</span>
+                <span class="micro-val" id="micro-dist">--</span>
+            </div>
+            <div class="micro-group">
+                <span class="micro-label">Speed</span>
+                <span class="micro-val" id="micro-speed">0</span>
+            </div>
+        </div>
+    </div>
+
+    <header id="drag-handle">
+        <div class="header-left">
+            <a class="home-link" href="https://pinkiprim.github.io/pinkiapps.html">🏠</a>
+        </div>
+
+        <div class="header-title">PinkiRaces</div>
+        <div class="header-sub" id="header-sub">COURSE RACING</div>
+
+        <div class="header-right">
+            <button class="small-btn" onclick="toggleMini()">MINI</button>
+            <span id="clock">00:00</span>
+        </div>
+
+        <div class="finish-line"></div>
+    </header>
+
+    <div id="tabs">
+        <div class="tab-btn active" data-tab="races" onclick="switchTab('races')">RACES</div>
+        <div class="tab-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')">LEADERBOARD</div>
+        <div class="tab-btn" data-tab="builder" onclick="switchTab('builder')">BUILDER</div>
+    </div>
+
+    <div id="main-content">
+        <div id="tab-races" class="tab-pane active">
+            <div class="card">
+                <div class="card-title">
+                    <span>Select Race</span>
+                    <span id="backend-pill" class="status-pill">LOCAL</span>
+                </div>
+
+                <select id="race-select" onchange="onRaceSelected()"></select>
+                <div class="tiny muted" id="race-description" style="margin-top:6px;">
+                    Create a course in Builder to begin.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>Race Control</span>
+                    <span id="race-status-pill" class="status-pill">IDLE</span>
+                </div>
+
+                <div class="race-summary">
+                    <div class="stat">
+                        <div class="stat-label">Player</div>
+                        <div class="stat-value" id="stat-player">Waiting...</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-label">Vehicle</div>
+                        <div class="stat-value" id="stat-vehicle">On Foot</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-label">Start Distance</div>
+                        <div class="stat-value" id="stat-start-dist">--</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-label">Personal Best</div>
+                        <div class="stat-value" id="stat-pb">--</div>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn warn" id="route-start-btn" onclick="routeToStart()">ROUTE TO START</button>
+                    <button class="btn primary" id="start-btn" onclick="armRace()">ARM RACE</button>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn danger" id="cancel-btn" onclick="cancelRace('Race cancelled')" disabled>CANCEL</button>
+                </div>
+            </div>
+
+            <div class="card" id="live-race-card">
+                <div class="card-title">
+                    <span>Live Run</span>
+                    <span id="validity-text" class="status-pill">READY</span>
+                </div>
+
+                <div class="race-summary">
+                    <div class="stat">
+                        <div class="stat-label">Time</div>
+                        <div class="stat-value" id="live-time" style="color:var(--green)">00:00.000</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-label">Checkpoint</div>
+                        <div class="stat-value" id="live-checkpoint">-- / --</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-label">Next Distance</div>
+                        <div class="stat-value" id="live-distance">--</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-label">Vehicle Locked</div>
+                        <div class="stat-value" id="locked-vehicle">--</div>
+                    </div>
+                </div>
+
+                <div class="progress-bg">
+                    <div class="progress-fill" id="race-progress"></div>
+                </div>
+
+                <div class="tiny muted" id="split-line" style="margin-top:7px;">
+                    Splits will appear as checkpoints are completed.
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-leaderboard" class="tab-pane">
+            <div class="card">
+                <div class="card-title">
+                    <span>Race Leaderboard</span>
+                    <button class="small-btn" onclick="refreshLeaderboard()">REFRESH</button>
+                </div>
+
+                <select id="leader-race-select" onchange="refreshLeaderboard()"></select>
+                <div class="tiny muted" id="leader-status" style="margin:6px 0;">Select a race.</div>
+                <div id="leaderboard-container"></div>
+            </div>
+        </div>
+
+        <div id="tab-builder" class="tab-pane">
+            <div class="card">
+                <div class="card-title">
+                    <span>Course Builder</span>
+                    <span class="status-pill ready">LIVE COORDS</span>
+                </div>
+
+                <div class="tiny muted">
+                    Drive to each location and capture it in order. Start and Finish are separate from the intermediate checkpoints.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Course Details</div>
+
+                <input id="builder-name" placeholder="Race name, e.g. Pinki LSIA Sprint">
+                <input id="builder-id" placeholder="Race ID, e.g. pinki_lsia_sprint" style="margin-top:6px;">
+                <input id="builder-description" placeholder="Short description" style="margin-top:6px;">
+                <input id="publisher-key" type="password" placeholder="Publisher key (only needed to publish globally)" style="margin-top:6px;">
+
+                <div class="btn-row">
+                    <button class="btn warn" onclick="captureStart()">CAPTURE START</button>
+                    <button class="btn" onclick="captureCheckpoint()">+ CHECKPOINT</button>
+                    <button class="btn good" onclick="captureFinish()">CAPTURE FINISH</button>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn danger" onclick="resetBuilder()">RESET BUILDER</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Captured Route</div>
+                <div class="tiny muted" id="builder-summary">No points captured.</div>
+                <div class="builder-list" id="builder-points"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Save / Export</div>
+
+                <div class="btn-row">
+                    <button class="btn primary" onclick="saveBuiltCourse()">SAVE LOCAL</button>
+                    <button class="btn good" onclick="publishBuiltCourse()">PUBLISH GLOBAL</button>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn" onclick="exportBuiltCourse()">COPY JSON</button>
+                    <button class="btn" onclick="loadImportBox()">IMPORT JSON</button>
+                    <button class="btn danger" onclick="deleteSelectedRace()">DELETE LOCAL</button>
+                </div>
+
+                <textarea id="builder-json" placeholder="Course JSON appears here for export/import." style="margin-top:7px;"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div id="support-footer">
+        <div onclick="openExternal('https://www.paypal.com/paypalme/pinkiprim')" class="support-link">
+            Support PinkiPrim <span class="heart">❤</span>
+        </div>
+    </div>
+
+    <div id="resize-handle"></div>
+</div>
+
+<script>
+// ============================================================
+// PinkiRaces v1.0
+// Feedback uses in-app toasts and TT notifications only.
+// ============================================================
+
+const APP_VERSION = "1.1.0";
+
+/*
+    Paste your deployed Google Apps Script Web App /exec URL here.
+    Leave blank for local-only leaderboard testing.
+*/
+const GOOGLE_SCRIPT_URL = "";
+
+/*
+    You can hard-code global courses here later if you prefer.
+    Builder-created courses are stored locally in localStorage.
+*/
+const BUILT_IN_RACES = [];
+
+const STORAGE = {
+    COURSES: "pinkiraces_courses_v1",
+    RESULTS: "pinkiraces_local_results_v1",
+    MINI: "pinkiraces_mini_v1",
+    POS: "pinkiraces_pos_v1"
+};
+
+const BLIP_IDS = {
+    START: "pinki_race_start",
+    NEXT: "pinki_race_next"
+};
+
+const DATA_KEYS = [
+    "user_id", "source", "name",
+    "vehicle", "vehicleName", "vehicleMake", "vehicleClass", "vehicleClassName",
+    "car", "speed", "engine", "fuel",
+    "pos_x", "pos_y", "pos_z", "pos_h",
+    "zone", "zoneName", "street",
+    "pinned", "focused", "tabbed"
+];
+
+let LIVE = {
+    user_id: null,
+    source: null,
+    name: "Unknown",
+    vehicle: "onFoot",
+    vehicleName: "On Foot",
+    vehicleMake: "",
+    vehicleClass: null,
+    vehicleClassName: "",
+    speed: 0,
+    pos_x: null,
+    pos_y: null,
+    pos_z: null,
+    pos_h: 0
+};
+
+let COURSES = [];
+
+let BUILDER = {
+    start: null,
+    checkpoints: [],
+    finish: null
+};
+
+let RACE = {
+    phase: "idle", // idle | armed | countdown | racing | finished
+    course: null,
+    checkpointIndex: 0,
+    startedAtPerf: 0,
+    finishedAtPerf: 0,
+    splits: [],
+    vehicleLock: null,
+    valid: true,
+    invalidReason: "",
+    distanceTravelled: 0,
+    lastPos: null,
+    countdownToken: 0,
+    countdownStartPos: null
+};
+
+// -----------------------------
+// Generic helpers
+// -----------------------------
+function openExternal(url) {
+    try {
+        window.invokeNative("openUrl", url);
+    } catch (e) {
+        window.open(url, "_blank");
+    }
+}
+
+function postTT(payload) {
+    try {
+        if (window.parent) {
+            window.parent.postMessage(payload, "*");
+        }
+    } catch (e) {}
+}
+
+function ttNotify(text) {
+    postTT({ type: "notification", text: String(text) });
+    toast(text, "info");
+}
+
+function toast(text, type = "info", duration = 2600) {
+    const container = document.getElementById("toast-container");
+    const el = document.createElement("div");
+
+    el.className = `toast ${type}`;
+    el.innerText = text;
+
+    container.appendChild(el);
+
+    setTimeout(() => {
+        if (el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
+    }, duration);
+}
+
+function safeJsonParse(value, fallback) {
+    try {
+        return JSON.parse(value);
+    } catch (e) {
+        return fallback;
+    }
+}
+
+function slugify(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .substring(0, 64);
+}
+
+function formatTime(ms) {
+    if (!Number.isFinite(ms) || ms < 0) {
+        return "00:00.000";
+    }
+
+    const total = Math.floor(ms);
+    const minutes = Math.floor(total / 60000);
+    const seconds = Math.floor((total % 60000) / 1000);
+    const millis = total % 1000;
+
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
+}
+
+function dist2D(a, b) {
+    if (!a || !b) {
+        return Infinity;
+    }
+
+    const dx = Number(a.x) - Number(b.x);
+    const dy = Number(a.y) - Number(b.y);
+
+    return Math.sqrt((dx * dx) + (dy * dy));
+}
+
+function livePos() {
+    if (!Number.isFinite(Number(LIVE.pos_x)) || !Number.isFinite(Number(LIVE.pos_y))) {
+        return null;
+    }
+
+    return {
+        x: Number(LIVE.pos_x),
+        y: Number(LIVE.pos_y),
+        z: Number(LIVE.pos_z || 0),
+        h: Number(LIVE.pos_h || 0)
+    };
+}
+
+function clonePoint(point, defaultRadius = 14) {
+    return {
+        x: Number(point.x),
+        y: Number(point.y),
+        z: Number(point.z || 0),
+        h: Number(point.h || 0),
+        radius: Number(point.radius || defaultRadius)
+    };
+}
+
+function normalizeCourse(raw) {
+    if (!raw || typeof raw !== "object") {
+        return null;
+    }
+
+    const id = slugify(raw.id || raw.name);
+    const name = String(raw.name || id || "Unnamed Race").trim();
+
+    if (!id || !raw.start || !raw.finish) {
+        return null;
+    }
+
+    const checkpoints = Array.isArray(raw.checkpoints)
+        ? raw.checkpoints.map(point => clonePoint(point, 14))
+        : [];
+
+    return {
+        id: id,
+        name: name,
+        description: String(raw.description || ""),
+        author: String(raw.author || "PinkiRaces"),
+        start: clonePoint(raw.start, 18),
+        checkpoints: checkpoints,
+        finish: clonePoint(raw.finish, 18),
+        createdAt: raw.createdAt || new Date().toISOString()
+    };
+}
+
+function getSelectedRace() {
+    const id = document.getElementById("race-select").value;
+    return COURSES.find(race => race.id === id) || null;
+}
+
+function currentTarget() {
+    if (!RACE.course || RACE.phase !== "racing") {
+        return null;
+    }
+
+    if (RACE.checkpointIndex < RACE.course.checkpoints.length) {
+        return {
+            type: "checkpoint",
+            index: RACE.checkpointIndex,
+            point: RACE.course.checkpoints[RACE.checkpointIndex]
+        };
+    }
+
+    return {
+        type: "finish",
+        index: RACE.course.checkpoints.length,
+        point: RACE.course.finish
+    };
+}
+
+function totalRaceTargets(course) {
+    return (course && course.checkpoints ? course.checkpoints.length : 0) + 1;
+}
+
+// -----------------------------
+// Course persistence
+// -----------------------------
+function loadCourses() {
+    const saved = safeJsonParse(localStorage.getItem(STORAGE.COURSES) || "[]", []);
+
+    mergeCourses([
+        ...BUILT_IN_RACES,
+        ...(Array.isArray(saved) ? saved : [])
+    ]);
+
+    populateRaceSelects();
+
+    if (GOOGLE_SCRIPT_URL) {
+        fetchRemoteCourses();
+    }
+}
+
+function mergeCourses(incoming) {
+    const byId = new Map();
+
+    COURSES.forEach(course => {
+        if (course && course.id) {
+            byId.set(course.id, course);
+        }
+    });
+
+    (Array.isArray(incoming) ? incoming : [])
+        .map(normalizeCourse)
+        .filter(Boolean)
+        .forEach(course => {
+            byId.set(course.id, course);
+        });
+
+    COURSES = Array.from(byId.values())
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function fetchRemoteCourses() {
+    try {
+        const url = `${GOOGLE_SCRIPT_URL}?action=courses&_=${Date.now()}`;
+        const response = await fetch(url, {
+            method: "GET",
+            cache: "no-store"
+        });
+
+        const data = await response.json();
+
+        if (!data || data.ok === false) {
+            throw new Error(data && data.error ? data.error : "Bad course response");
+        }
+
+        mergeCourses(Array.isArray(data.courses) ? data.courses : []);
+        populateRaceSelects();
+
+        document.getElementById("backend-pill").innerText = "SHEETS";
+        document.getElementById("backend-pill").className = "status-pill racing";
+    } catch (e) {
+        toast("Shared race catalogue unavailable. Local courses still work.", "bad", 3500);
+    }
+}
+
+function saveCourses() {
+    localStorage.setItem(STORAGE.COURSES, JSON.stringify(COURSES));
+}
+
+function populateRaceSelects() {
+    const selects = [
+        document.getElementById("race-select"),
+        document.getElementById("leader-race-select")
+    ];
+
+    selects.forEach(select => {
+        const oldValue = select.value;
+
+        select.innerHTML = "";
+
+        if (COURSES.length === 0) {
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = "No races saved yet";
+            select.appendChild(option);
+            return;
+        }
+
+        COURSES.forEach(course => {
+            const option = document.createElement("option");
+
+            option.value = course.id;
+            option.textContent = course.name;
+
+            select.appendChild(option);
+        });
+
+        if (COURSES.some(course => course.id === oldValue)) {
+            select.value = oldValue;
+        }
+    });
+
+    onRaceSelected();
+}
+
+// -----------------------------
+// TT data
+// -----------------------------
+function requestData() {
+    postTT({
+        type: "getNamedData",
+        keys: DATA_KEYS
+    });
+
+    postTT({
+        type: "getData"
+    });
+}
+
+setInterval(requestData, 500);
+
+window.addEventListener("message", event => {
+    let data = event.data;
+
+    if (data && data.type === "data" && data.data) {
+        data = data.data;
+    }
+
+    if (!data || typeof data !== "object") {
+        return;
+    }
+
+    DATA_KEYS.forEach(key => {
+        if (data[key] !== undefined) {
+            LIVE[key] = data[key];
+        }
+    });
+
+    if (!LIVE.vehicleName || LIVE.vehicle === "onFoot") {
+        LIVE.vehicleName = LIVE.vehicle === "onFoot"
+            ? "On Foot"
+            : (LIVE.vehicle || "Unknown");
+    }
+
+    updateLiveIdentity();
+});
+
+function updateLiveIdentity() {
+    document.getElementById("stat-player").innerText =
+        LIVE.name
+            ? `${LIVE.name}${LIVE.user_id ? ` (#${LIVE.user_id})` : ""}`
+            : "Waiting...";
+
+    const vehicleDisplay = LIVE.vehicle === "onFoot"
+        ? "On Foot"
+        : [LIVE.vehicleMake, LIVE.vehicleName || LIVE.vehicle]
+            .filter(Boolean)
+            .join(" ");
+
+    document.getElementById("stat-vehicle").innerText =
+        vehicleDisplay || "Unknown";
+
+    document.getElementById("micro-vehicle").innerText =
+        vehicleDisplay || "Unknown";
+
+    document.getElementById("micro-speed").innerText =
+        Number.isFinite(Number(LIVE.speed))
+            ? Number(LIVE.speed).toFixed(0)
+            : "0";
+
+    updateStartDistance();
+}
+
+function updateStartDistance() {
+    const course = getSelectedRace();
+    const pos = livePos();
+    const el = document.getElementById("stat-start-dist");
+
+    if (!course || !pos) {
+        el.innerText = "--";
+        return;
+    }
+
+    el.innerText = `${Math.round(dist2D(pos, course.start))} m`;
+}
+
+// -----------------------------
+// ESC -> pin
+// -----------------------------
+window.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+
+        postTT({
+            type: "pin"
+        });
+    }
+});
+
+// -----------------------------
+// UI / mini / tabs
+// -----------------------------
+function toggleMini() {
+    const app = document.getElementById("race-app");
+
+    app.classList.toggle("mini-mode");
+
+    localStorage.setItem(
+        STORAGE.MINI,
+        app.classList.contains("mini-mode")
+    );
+}
+
+function switchTab(name) {
+    document.querySelectorAll(".tab-btn").forEach(button => {
+        button.classList.toggle(
+            "active",
+            button.dataset.tab === name
+        );
+    });
+
+    document.querySelectorAll(".tab-pane").forEach(pane => {
+        pane.classList.toggle(
+            "active",
+            pane.id === `tab-${name}`
+        );
+    });
+
+    if (name === "leaderboard") {
+        refreshLeaderboard();
+    }
+}
+
+function onRaceSelected() {
+    const course = getSelectedRace();
+    const description = document.getElementById("race-description");
+    const headerSub = document.getElementById("header-sub");
+
+    clearRaceBlips();
+
+    if (!course) {
+        description.innerText = "Create a course in Builder to begin.";
+        headerSub.innerText = "COURSE RACING";
+
+        document.getElementById("start-btn").disabled = true;
+        document.getElementById("route-start-btn").disabled = true;
+        document.getElementById("micro-race").innerText = "PinkiRaces";
+        document.getElementById("stat-pb").innerText = "--";
+
+        return;
+    }
+
+    description.innerText =
+        course.description ||
+        `${course.checkpoints.length} checkpoints + finish`;
+
+    headerSub.innerText = course.name;
+    document.getElementById("micro-race").innerText = course.name;
+
+    document.getElementById("start-btn").disabled = false;
+    document.getElementById("route-start-btn").disabled = false;
+
+    document.getElementById("stat-pb").innerText =
+        getPersonalBestText(course.id);
+
+    showStartBlip(course);
+    updateStartDistance();
+
+    const leaderSelect = document.getElementById("leader-race-select");
+
+    if (
+        leaderSelect &&
+        Array.from(leaderSelect.options).some(option => option.value === course.id)
+    ) {
+        leaderSelect.value = course.id;
+    }
+}
+
+function setRaceStatus(text, cssClass = "") {
+    const pill = document.getElementById("race-status-pill");
+
+    pill.innerText = text;
+    pill.className = `status-pill ${cssClass}`.trim();
+}
+
+function setValidity(text, cssClass = "") {
+    const element = document.getElementById("validity-text");
+
+    element.innerText = text;
+    element.className = `status-pill ${cssClass}`.trim();
+}
+
+// -----------------------------
+// Blips / routing
+// -----------------------------
+function clearRaceBlips() {
+    postTT({
+        type: "removeBlip",
+        id: BLIP_IDS.START
+    });
+
+    postTT({
+        type: "removeBlip",
+        id: BLIP_IDS.NEXT
+    });
+}
+
+function showStartBlip(course) {
+    if (!course) {
+        return;
+    }
+
+    postTT({
+        type: "removeBlip",
+        id: BLIP_IDS.START
+    });
+
+    postTT({
+        type: "addBlip",
+        id: BLIP_IDS.START,
+        x: course.start.x,
+        y: course.start.y
+    });
+
+    postTT({
+        type: "setBlipName",
+        id: BLIP_IDS.START,
+        name: `${course.name} - Start`
+    });
+
+    postTT({
+        type: "showNumberOnBlip",
+        id: BLIP_IDS.START,
+        number: 0
+    });
+}
+
+function routeToStart() {
+    const course = getSelectedRace();
+
+    if (!course) {
+        toast("No race selected.", "bad");
+        return;
+    }
+
+    showStartBlip(course);
+
+    postTT({
+        type: "setBlipRoute",
+        id: BLIP_IDS.START,
+        route: true
+    });
+
+    postTT({
+        type: "setWaypoint",
+        x: course.start.x,
+        y: course.start.y
+    });
+
+    ttNotify(`Route set to ${course.name} start.`);
+}
+
+function showTargetBlip() {
+    const target = currentTarget();
+
+    if (!target) {
+        return;
+    }
+
+    const point = target.point;
+
+    postTT({
+        type: "removeBlip",
+        id: BLIP_IDS.NEXT
+    });
+
+    postTT({
+        type: "addBlip",
+        id: BLIP_IDS.NEXT,
+        x: point.x,
+        y: point.y
+    });
+
+    postTT({
+        type: "setBlipName",
+        id: BLIP_IDS.NEXT,
+        name: target.type === "finish"
+            ? `${RACE.course.name} - Finish`
+            : `${RACE.course.name} - Checkpoint ${target.index + 1}`
+    });
+
+    postTT({
+        type: "showNumberOnBlip",
+        id: BLIP_IDS.NEXT,
+        number: target.type === "finish"
+            ? totalRaceTargets(RACE.course)
+            : target.index + 1
+    });
+
+    postTT({
+        type: "setBlipRoute",
+        id: BLIP_IDS.NEXT,
+        route: true
+    });
+}
+
+// -----------------------------
+// Race lifecycle
+// -----------------------------
+function armRace() {
+    if (RACE.phase !== "idle" && RACE.phase !== "finished") {
+        toast("A race is already armed or running.", "bad");
+        return;
+    }
+
+    const course = getSelectedRace();
+    const pos = livePos();
+
+    if (!course) {
+        toast("Select a race first.", "bad");
+        return;
+    }
+
+    if (!pos) {
+        toast("Waiting for player position data.", "bad");
+        return;
+    }
+
+    if (LIVE.vehicle === "onFoot") {
+        toast("Enter a vehicle before arming the race.", "bad");
+        return;
+    }
+
+    const startDistance = dist2D(pos, course.start);
+
+    if (startDistance > course.start.radius) {
+        routeToStart();
+
+        toast(
+            `Move within ${Math.round(course.start.radius)} m of the start. You are ${Math.round(startDistance)} m away.`,
+            "info",
+            3500
+        );
+
+        return;
+    }
+
+    RACE.phase = "armed";
+    RACE.course = course;
+    RACE.checkpointIndex = 0;
+    RACE.splits = [];
+    RACE.valid = true;
+    RACE.invalidReason = "";
+    RACE.distanceTravelled = 0;
+    RACE.lastPos = pos;
+    RACE.countdownStartPos = pos;
+    RACE.vehicleLock = captureVehicle();
+    RACE.countdownToken += 1;
+
+    document.getElementById("locked-vehicle").innerText =
+        RACE.vehicleLock.display;
+
+    document.getElementById("cancel-btn").disabled = false;
+
+    setRaceStatus("ARMED", "ready");
+    setValidity("VALID", "racing");
+
+    postTT({
+        type: "removeBlip",
+        id: BLIP_IDS.START
+    });
+
+    runCountdown(RACE.countdownToken);
+}
+
+function captureVehicle() {
+    return {
+        model: String(LIVE.vehicle || ""),
+        name: String(LIVE.vehicleName || LIVE.vehicle || "Unknown"),
+        make: String(LIVE.vehicleMake || ""),
+        classId: LIVE.vehicleClass ?? "",
+        className: String(LIVE.vehicleClassName || ""),
+        display:
+            [LIVE.vehicleMake, LIVE.vehicleName || LIVE.vehicle]
+                .filter(Boolean)
+                .join(" ") ||
+            String(LIVE.vehicle || "Unknown")
+    };
+}
+
+function runCountdown(token) {
+    RACE.phase = "countdown";
+
+    setRaceStatus("COUNTDOWN", "ready");
+
+    const overlay = document.getElementById("countdown-overlay");
+    const text = document.getElementById("countdown-text");
+
+    overlay.style.display = "flex";
+
+    let count = 3;
+
+    text.innerText = count;
+
+    const timer = setInterval(() => {
+        if (
+            token !== RACE.countdownToken ||
+            RACE.phase !== "countdown"
+        ) {
+            clearInterval(timer);
+            overlay.style.display = "none";
+            return;
+        }
+
+        const nowPos = livePos();
+
+        if (
+            nowPos &&
+            RACE.countdownStartPos &&
+            dist2D(nowPos, RACE.countdownStartPos) > 5
+        ) {
+            invalidateRace("False start: vehicle moved before GO.");
+        }
+
+        count -= 1;
+
+        if (count > 0) {
+            text.innerText = count;
+            text.style.animation = "none";
+            void text.offsetWidth;
+            text.style.animation = "pop .35s ease";
+        } else {
+            clearInterval(timer);
+
+            text.innerText = "GO!";
+
+            postTT({
+                type: "sfx",
+                sfx: 3
+            });
+
+            startRace();
+
+            setTimeout(() => {
+                if (token === RACE.countdownToken) {
+                    overlay.style.display = "none";
+                }
+            }, 650);
+        }
+    }, 1000);
+}
+
+function startRace() {
+    if (RACE.phase !== "countdown") {
+        return;
+    }
+
+    RACE.phase = "racing";
+    RACE.startedAtPerf = performance.now();
+    RACE.finishedAtPerf = 0;
+    RACE.checkpointIndex = 0;
+    RACE.splits = [];
+    RACE.lastPos = livePos();
+    RACE.distanceTravelled = 0;
+
+    setRaceStatus("RACING", "racing");
+
+    setValidity(
+        RACE.valid ? "VALID" : "INVALID",
+        RACE.valid ? "racing" : "invalid"
+    );
+
+    document.getElementById("split-line").innerText =
+        RACE.valid
+            ? "Race started."
+            : `Race started invalid: ${RACE.invalidReason}`;
+
+    showTargetBlip();
+}
+
+function invalidateRace(reason) {
+    if (!RACE.valid) {
+        return;
+    }
+
+    RACE.valid = false;
+    RACE.invalidReason = reason;
+
+    setValidity("INVALID", "invalid");
+
+    toast(reason, "bad", 3500);
+}
+
+function cancelRace(reason = "Race cancelled") {
+    RACE.countdownToken += 1;
+    RACE.phase = "idle";
+    RACE.course = null;
+    RACE.checkpointIndex = 0;
+    RACE.startedAtPerf = 0;
+    RACE.finishedAtPerf = 0;
+    RACE.splits = [];
+    RACE.vehicleLock = null;
+    RACE.valid = true;
+    RACE.invalidReason = "";
+    RACE.distanceTravelled = 0;
+    RACE.lastPos = null;
+    RACE.countdownStartPos = null;
+
+    document.getElementById("countdown-overlay").style.display = "none";
+    document.getElementById("cancel-btn").disabled = true;
+    document.getElementById("locked-vehicle").innerText = "--";
+    document.getElementById("live-time").innerText = "00:00.000";
+    document.getElementById("live-checkpoint").innerText = "-- / --";
+    document.getElementById("live-distance").innerText = "--";
+    document.getElementById("race-progress").style.width = "0%";
+    document.getElementById("split-line").innerText =
+        "Splits will appear as checkpoints are completed.";
+
+    setRaceStatus("IDLE");
+    setValidity("READY");
+
+    clearRaceBlips();
+
+    const selected = getSelectedRace();
+
+    if (selected) {
+        showStartBlip(selected);
+    }
+
+    if (reason) {
+        toast(reason, "info");
+    }
+}
+
+function finishRace() {
+    if (RACE.phase !== "racing") {
+        return;
+    }
+
+    RACE.phase = "finished";
+    RACE.finishedAtPerf = performance.now();
+
+    const elapsed = Math.max(
+        0,
+        RACE.finishedAtPerf - RACE.startedAtPerf
+    );
+
+    const result = buildResult(elapsed);
+
+    postTT({
+        type: "removeBlip",
+        id: BLIP_IDS.NEXT
+    });
+
+    postTT({
+        type: "sfx",
+        sfx: 2
+    });
+
+    setRaceStatus("FINISHED", "racing");
+
+    document.getElementById("cancel-btn").disabled = true;
+    document.getElementById("live-time").innerText = formatTime(elapsed);
+    document.getElementById("micro-time").innerText = formatTime(elapsed);
+
+    if (result.validity === "valid") {
+        toast(
+            `Finished ${RACE.course.name} in ${formatTime(elapsed)}!`,
+            "good",
+            4200
+        );
+
+        ttNotify(
+            `${RACE.course.name}: ${formatTime(elapsed)}`
+        );
+    } else {
+        toast(
+            `Finished, but run is invalid: ${result.invalid_reason}`,
+            "bad",
+            4500
+        );
+    }
+
+    saveLocalResult(result);
+    submitRemoteResult(result);
+
+    document.getElementById("stat-pb").innerText =
+        getPersonalBestText(RACE.course.id);
+
+    const leaderSelect =
+        document.getElementById("leader-race-select");
+
+    if (leaderSelect) {
+        leaderSelect.value = RACE.course.id;
+    }
+
+    setTimeout(() => {
+        switchTab("leaderboard");
+    }, 700);
+}
+
+function buildResult(elapsed) {
+    const course = RACE.course;
+    const vehicle = RACE.vehicleLock || captureVehicle();
+
+    return {
+        result_id:
+            `${course.id}_${LIVE.user_id || "unknown"}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+
+        race_id: course.id,
+        race_name: course.name,
+
+        user_id: LIVE.user_id ?? "",
+        player_name: LIVE.name || "Unknown",
+        source: LIVE.source ?? "",
+
+        vehicle_model: vehicle.model,
+        vehicle_name: vehicle.name,
+        vehicle_make: vehicle.make,
+        vehicle_class: vehicle.classId,
+        vehicle_class_name: vehicle.className,
+
+        time_ms: Math.round(elapsed),
+        time_formatted: formatTime(elapsed),
+
+        splits: RACE.splits.map(split => Math.round(split)),
+        checkpoint_count: totalRaceTargets(course),
+
+        distance_m: Math.round(RACE.distanceTravelled),
+
+        completed_at_utc: new Date().toISOString(),
+        client_version: APP_VERSION,
+
+        validity: RACE.valid ? "valid" : "invalid",
+        invalid_reason: RACE.invalidReason || ""
+    };
+}
+
+// -----------------------------
+// Race tick
+// -----------------------------
+function tickRace() {
+    updateClock();
+    updateStartDistance();
+
+    if (RACE.phase !== "racing") {
+        document.getElementById("micro-cp").innerText = "--";
+        document.getElementById("micro-dist").innerText = "--";
+        return;
+    }
+
+    const now = performance.now();
+    const elapsed = now - RACE.startedAtPerf;
+    const pos = livePos();
+    const target = currentTarget();
+
+    document.getElementById("live-time").innerText =
+        formatTime(elapsed);
+
+    document.getElementById("micro-time").innerText =
+        formatTime(elapsed);
+
+    if (
+        RACE.vehicleLock &&
+        LIVE.vehicle !== RACE.vehicleLock.model
+    ) {
+        invalidateRace(
+            `Vehicle changed from ${RACE.vehicleLock.name} during the run.`
+        );
+    }
+
+    if (!pos || !target) {
+        return;
+    }
+
+    if (RACE.lastPos) {
+        const delta = dist2D(pos, RACE.lastPos);
+
+        if (Number.isFinite(delta) && delta < 300) {
+            RACE.distanceTravelled += delta;
+        }
+    }
+
+    RACE.lastPos = pos;
+
+    const distance = dist2D(pos, target.point);
+    const total = totalRaceTargets(RACE.course);
+    const currentNum = Math.min(
+        RACE.checkpointIndex + 1,
+        total
+    );
+
+    document.getElementById("live-checkpoint").innerText =
+        `${currentNum} / ${total}`;
+
+    document.getElementById("live-distance").innerText =
+        `${Math.round(distance)} m`;
+
+    document.getElementById("micro-cp").innerText =
+        `${currentNum}/${total}`;
+
+    document.getElementById("micro-dist").innerText =
+        `${Math.round(distance)}m`;
+
+    const completed = RACE.checkpointIndex;
+    const progress = Math.min(
+        100,
+        (completed / total) * 100
+    );
+
+    document.getElementById("race-progress").style.width =
+        `${progress}%`;
+
+    const radius = Number(target.point.radius || 14);
+
+    if (distance <= radius) {
+        const split = now - RACE.startedAtPerf;
+
+        RACE.splits.push(split);
+
+        if (target.type === "checkpoint") {
+            postTT({
+                type: "sfx",
+                sfx: 2
+            });
+
+            document.getElementById("split-line").innerText =
+                `Checkpoint ${target.index + 1}: ${formatTime(split)}`;
+
+            RACE.checkpointIndex += 1;
+
+            document.getElementById("race-progress").style.width =
+                `${Math.min(100, (RACE.checkpointIndex / total) * 100)}%`;
+
+            showTargetBlip();
+        } else {
+            document.getElementById("race-progress").style.width = "100%";
+
+            finishRace();
+        }
+    }
+}
+
+setInterval(tickRace, 100);
+
+function updateClock() {
+    document.getElementById("clock").innerText =
+        new Date().toLocaleTimeString(
+            [],
+            {
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+}
+
+// -----------------------------
+// Results / leaderboard
+// -----------------------------
+function loadLocalResults() {
+    const value = safeJsonParse(
+        localStorage.getItem(STORAGE.RESULTS) || "[]",
+        []
+    );
+
+    return Array.isArray(value) ? value : [];
+}
+
+function saveLocalResult(result) {
+    const results = loadLocalResults();
+
+    results.push(result);
+
+    localStorage.setItem(
+        STORAGE.RESULTS,
+        JSON.stringify(results.slice(-1000))
+    );
+}
+
+function getPersonalBestText(raceId) {
+    const valid = loadLocalResults()
+        .filter(result =>
+            result.race_id === raceId &&
+            result.validity === "valid" &&
+            String(result.user_id) === String(LIVE.user_id)
+        )
+        .sort(
+            (a, b) =>
+                Number(a.time_ms) - Number(b.time_ms)
+        );
+
+    return valid.length
+        ? formatTime(Number(valid[0].time_ms))
+        : "--";
+}
+
+async function submitRemoteResult(result) {
+    if (!GOOGLE_SCRIPT_URL) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            GOOGLE_SCRIPT_URL,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify({
+                    action: "submitResult",
+                    payload: result
+                })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response
+            .json()
+            .catch(() => null);
+
+        if (data && data.ok === false) {
+            throw new Error(
+                data.error || "Submission rejected"
+            );
+        }
+
+        toast(
+            "Leaderboard result submitted.",
+            "good"
+        );
+    } catch (e) {
+        toast(
+            "Remote leaderboard unavailable. Result saved locally.",
+            "bad",
+            3500
+        );
+    }
+}
+
+async function refreshLeaderboard() {
+    const raceId =
+        document.getElementById("leader-race-select").value;
+
+    const status =
+        document.getElementById("leader-status");
+
+    const container =
+        document.getElementById("leaderboard-container");
+
+    if (!raceId) {
+        status.innerText = "No race selected.";
+        container.innerHTML = "";
+        return;
+    }
+
+    status.innerText =
+        GOOGLE_SCRIPT_URL
+            ? "Loading leaderboard..."
+            : "Showing local leaderboard.";
+
+    document.getElementById("backend-pill").innerText =
+        GOOGLE_SCRIPT_URL ? "SHEETS" : "LOCAL";
+
+    document.getElementById("backend-pill").className =
+        `status-pill ${GOOGLE_SCRIPT_URL ? "racing" : ""}`.trim();
+
+    let rows = [];
+
+    if (GOOGLE_SCRIPT_URL) {
+        try {
+            const url =
+                `${GOOGLE_SCRIPT_URL}?action=leaderboard&raceId=${encodeURIComponent(raceId)}&limit=50&_=${Date.now()}`;
+
+            const response = await fetch(
+                url,
+                {
+                    method: "GET",
+                    cache: "no-store"
+                }
+            );
+
+            const data = await response.json();
+
+            if (!data || data.ok === false) {
+                throw new Error(
+                    data && data.error
+                        ? data.error
+                        : "Bad response"
+                );
+            }
+
+            rows = Array.isArray(data.results)
+                ? data.results
+                : [];
+
+            status.innerText =
+                `${rows.length} recorded result${rows.length === 1 ? "" : "s"}.`;
+        } catch (e) {
+            rows = localLeaderboard(raceId);
+
+            status.innerText =
+                "Remote leaderboard unavailable — showing local results.";
+        }
+    } else {
+        rows = localLeaderboard(raceId);
+
+        status.innerText =
+            `${rows.length} local result${rows.length === 1 ? "" : "s"}.`;
+    }
+
+    renderLeaderboard(rows);
+}
+
+function localLeaderboard(raceId) {
+    return loadLocalResults()
+        .filter(result =>
+            result.race_id === raceId &&
+            result.validity === "valid"
+        )
+        .sort(
+            (a, b) =>
+                Number(a.time_ms) - Number(b.time_ms)
+        )
+        .slice(0, 50);
+}
+
+function renderLeaderboard(rows) {
+    const container =
+        document.getElementById("leaderboard-container");
+
+    if (!rows.length) {
+        container.innerHTML =
+            `<div class="tiny muted" style="padding:10px 0;">No valid finishes recorded yet.</div>`;
+        return;
+    }
+
+    const table = document.createElement("table");
+
+    table.className = "leader-table";
+
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Driver</th>
+                <th>Time</th>
+                <th>Vehicle</th>
+                <th>IRL</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
+
+    rows.forEach((row, index) => {
+        const tr = document.createElement("tr");
+
+        if (
+            String(row.user_id) ===
+            String(LIVE.user_id)
+        ) {
+            tr.classList.add("me");
+        }
+
+        const completed =
+            row.completed_at_utc
+                ? new Date(row.completed_at_utc)
+                : null;
+
+        const irl =
+            completed &&
+            !isNaN(completed)
+                ? completed.toLocaleDateString(
+                    [],
+                    {
+                        day: "2-digit",
+                        month: "short",
+                        year: "2-digit"
+                    }
+                )
+                : "--";
+
+        const driver =
+            escapeHtml(row.player_name || "Unknown");
+
+        const vehicle =
+            escapeHtml(
+                [
+                    row.vehicle_make,
+                    row.vehicle_name || row.vehicle_model
+                ]
+                    .filter(Boolean)
+                    .join(" ") ||
+                "Unknown"
+            );
+
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${driver}</td>
+            <td class="time">${escapeHtml(
+                row.time_formatted ||
+                formatTime(Number(row.time_ms))
+            )}</td>
+            <td title="${vehicle}">${vehicle}</td>
+            <td>${escapeHtml(irl)}</td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+
+    container.innerHTML = "";
+    container.appendChild(table);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// -----------------------------
+// Course Builder
+// -----------------------------
+function captureCurrentPoint(radius) {
+    const pos = livePos();
+
+    if (!pos) {
+        toast(
+            "No live position available yet.",
+            "bad"
+        );
+
+        return null;
+    }
+
+    return {
+        x: Number(pos.x.toFixed(4)),
+        y: Number(pos.y.toFixed(4)),
+        z: Number(pos.z.toFixed(4)),
+        h: Number(pos.h.toFixed(4)),
+        radius: radius
+    };
+}
+
+function captureStart() {
+    const point = captureCurrentPoint(18);
+
+    if (!point) {
+        return;
+    }
+
+    BUILDER.start = point;
+
+    renderBuilder();
+
+    toast(
+        "Start captured.",
+        "good"
+    );
+}
+
+function captureCheckpoint() {
+    const point = captureCurrentPoint(14);
+
+    if (!point) {
+        return;
+    }
+
+    BUILDER.checkpoints.push(point);
+
+    renderBuilder();
+
+    toast(
+        `Checkpoint ${BUILDER.checkpoints.length} captured.`,
+        "good"
+    );
+}
+
+function captureFinish() {
+    const point = captureCurrentPoint(18);
+
+    if (!point) {
+        return;
+    }
+
+    BUILDER.finish = point;
+
+    renderBuilder();
+
+    toast(
+        "Finish captured.",
+        "good"
+    );
+}
+
+function resetBuilder() {
+    BUILDER = {
+        start: null,
+        checkpoints: [],
+        finish: null
+    };
+
+    document.getElementById("builder-json").value = "";
+
+    renderBuilder();
+
+    toast(
+        "Builder reset.",
+        "info"
+    );
+}
+
+function renderBuilder() {
+    const summary =
+        document.getElementById("builder-summary");
+
+    const list =
+        document.getElementById("builder-points");
+
+    const parts = [
+        BUILDER.start ? "Start ✓" : "Start —",
+        `${BUILDER.checkpoints.length} checkpoint${BUILDER.checkpoints.length === 1 ? "" : "s"}`,
+        BUILDER.finish ? "Finish ✓" : "Finish —"
+    ];
+
+    summary.innerText = parts.join(" • ");
+
+    list.innerHTML = "";
+
+    const addRow = (label, point) => {
+        const row = document.createElement("div");
+
+        row.className = "builder-point";
+
+        row.innerHTML = `
+            <span>${escapeHtml(label)}</span>
+            <span class="muted">
+                ${Number(point.x).toFixed(1)},
+                ${Number(point.y).toFixed(1)},
+                ${Number(point.z).toFixed(1)}
+            </span>
+        `;
+
+        list.appendChild(row);
+    };
+
+    if (BUILDER.start) {
+        addRow("START", BUILDER.start);
+    }
+
+    BUILDER.checkpoints.forEach(
+        (point, index) => {
+            addRow(
+                `CP ${index + 1}`,
+                point
+            );
+        }
+    );
+
+    if (BUILDER.finish) {
+        addRow("FINISH", BUILDER.finish);
+    }
+}
+
+function buildCourseFromForm() {
+    const name =
+        document.getElementById("builder-name").value.trim();
+
+    let id =
+        document.getElementById("builder-id").value.trim();
+
+    const description =
+        document.getElementById("builder-description").value.trim();
+
+    if (!name) {
+        toast(
+            "Give the race a name.",
+            "bad"
+        );
+
+        return null;
+    }
+
+    if (!id) {
+        id = slugify(name);
+    }
+
+    id = slugify(id);
+
+    if (!id) {
+        toast(
+            "Race ID is invalid.",
+            "bad"
+        );
+
+        return null;
+    }
+
+    if (!BUILDER.start) {
+        toast(
+            "Capture a start point.",
+            "bad"
+        );
+
+        return null;
+    }
+
+    if (!BUILDER.finish) {
+        toast(
+            "Capture a finish point.",
+            "bad"
+        );
+
+        return null;
+    }
+
+    return normalizeCourse({
+        id: id,
+        name: name,
+        description: description,
+        author: LIVE.name || "Prim",
+        start: BUILDER.start,
+        checkpoints: BUILDER.checkpoints,
+        finish: BUILDER.finish,
+        createdAt: new Date().toISOString()
+    });
+}
+
+function saveBuiltCourse() {
+    const course = buildCourseFromForm();
+
+    if (!course) {
+        return;
+    }
+
+    const index =
+        COURSES.findIndex(
+            existing => existing.id === course.id
+        );
+
+    if (index >= 0) {
+        COURSES[index] = course;
+    } else {
+        COURSES.push(course);
+    }
+
+    saveCourses();
+    populateRaceSelects();
+
+    document.getElementById("race-select").value =
+        course.id;
+
+    document.getElementById("leader-race-select").value =
+        course.id;
+
+    document.getElementById("builder-json").value =
+        JSON.stringify(course, null, 4);
+
+    onRaceSelected();
+
+    toast(
+        `Saved ${course.name}.`,
+        "good"
+    );
+}
+
+async function publishBuiltCourse() {
+    const course = buildCourseFromForm();
+
+    if (!course) {
+        return;
+    }
+
+    if (!GOOGLE_SCRIPT_URL) {
+        toast(
+            "Set GOOGLE_SCRIPT_URL before publishing a global course.",
+            "bad",
+            3500
+        );
+        return;
+    }
+
+    const adminKey = document.getElementById("publisher-key").value.trim();
+
+    if (!adminKey) {
+        toast(
+            "Enter your publisher key before publishing.",
+            "bad"
+        );
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            GOOGLE_SCRIPT_URL,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify({
+                    action: "saveCourse",
+                    adminKey: adminKey,
+                    payload: course
+                })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data || data.ok === false) {
+            throw new Error(
+                data && data.error
+                    ? data.error
+                    : "Course publish failed"
+            );
+        }
+
+        const index = COURSES.findIndex(existing => existing.id === course.id);
+
+        if (index >= 0) {
+            COURSES[index] = course;
+        } else {
+            COURSES.push(course);
+        }
+
+        saveCourses();
+        populateRaceSelects();
+
+        document.getElementById("race-select").value = course.id;
+        document.getElementById("leader-race-select").value = course.id;
+
+        onRaceSelected();
+
+        toast(
+            `${course.name} published globally.`,
+            "good",
+            3500
+        );
+    } catch (e) {
+        toast(
+            `Global publish failed: ${e.message}`,
+            "bad",
+            4500
+        );
+    }
+}
+
+async function exportBuiltCourse() {
+    const course = buildCourseFromForm();
+
+    if (!course) {
+        return;
+    }
+
+    const text =
+        JSON.stringify(course, null, 4);
+
+    document.getElementById("builder-json").value =
+        text;
+
+    let copied = false;
+
+    try {
+        if (
+            navigator.clipboard &&
+            navigator.clipboard.writeText
+        ) {
+            await navigator.clipboard.writeText(text);
+            copied = true;
+        }
+    } catch (e) {}
+
+    if (!copied) {
+        const box =
+            document.getElementById("builder-json");
+
+        box.focus();
+        box.select();
+
+        try {
+            copied =
+                document.execCommand("copy");
+        } catch (e) {}
+
+        box.blur();
+    }
+
+    toast(
+        copied
+            ? "Course JSON copied."
+            : "Course JSON placed in the box.",
+        copied ? "good" : "info"
+    );
+}
+
+function loadImportBox() {
+    const text =
+        document.getElementById("builder-json").value.trim();
+
+    if (!text) {
+        toast(
+            "Paste course JSON into the box first.",
+            "bad"
+        );
+
+        return;
+    }
+
+    const parsed =
+        safeJsonParse(text, null);
+
+    const course =
+        normalizeCourse(parsed);
+
+    if (!course) {
+        toast(
+            "That course JSON is invalid.",
+            "bad"
+        );
+
+        return;
+    }
+
+    BUILDER.start = course.start;
+    BUILDER.checkpoints = course.checkpoints;
+    BUILDER.finish = course.finish;
+
+    document.getElementById("builder-name").value =
+        course.name;
+
+    document.getElementById("builder-id").value =
+        course.id;
+
+    document.getElementById("builder-description").value =
+        course.description || "";
+
+    renderBuilder();
+
+    toast(
+        `Loaded ${course.name} into Builder.`,
+        "good"
+    );
+}
+
+function deleteSelectedRace() {
+    const course = getSelectedRace();
+
+    if (!course) {
+        toast(
+            "No saved race selected.",
+            "bad"
+        );
+
+        return;
+    }
+
+    COURSES =
+        COURSES.filter(
+            item => item.id !== course.id
+        );
+
+    saveCourses();
+    populateRaceSelects();
+
+    toast(
+        `Deleted ${course.name}.`,
+        "info"
+    );
+}
+
+// -----------------------------
+// Drag / resize / persistence
+// -----------------------------
+const appEl =
+    document.getElementById("race-app");
+
+const dragHandle =
+    document.getElementById("drag-handle");
+
+const microView =
+    document.getElementById("micro-view");
+
+let dragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let startLeft = 0;
+let startTop = 0;
+
+function dragStart(e) {
+    if (
+        e.target.closest("button") ||
+        e.target.closest("input") ||
+        e.target.closest("select") ||
+        e.target.closest("textarea") ||
+        e.target.closest("a")
+    ) {
+        return;
+    }
+
+    e.preventDefault();
+
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+
+    const rect =
+        appEl.getBoundingClientRect();
+
+    startLeft = rect.left;
+    startTop = rect.top;
+
+    window.addEventListener(
+        "mousemove",
+        dragMove
+    );
+
+    window.addEventListener(
+        "mouseup",
+        dragEnd
+    );
+}
+
+function dragMove(e) {
+    if (!dragging) {
+        return;
+    }
+
+    appEl.style.left =
+        `${startLeft + e.clientX - dragStartX}px`;
+
+    appEl.style.top =
+        `${startTop + e.clientY - dragStartY}px`;
+}
+
+function dragEnd() {
+    if (!dragging) {
+        return;
+    }
+
+    dragging = false;
+
+    window.removeEventListener(
+        "mousemove",
+        dragMove
+    );
+
+    window.removeEventListener(
+        "mouseup",
+        dragEnd
+    );
+
+    localStorage.setItem(
+        STORAGE.POS,
+        JSON.stringify({
+            left: appEl.offsetLeft,
+            top: appEl.offsetTop
+        })
+    );
+}
+
+dragHandle.addEventListener(
+    "mousedown",
+    dragStart
+);
+
+microView.addEventListener(
+    "mousedown",
+    dragStart
+);
+
+const resizeHandle =
+    document.getElementById("resize-handle");
+
+function resizeMove(e) {
+    if (
+        appEl.classList.contains("mini-mode")
+    ) {
+        return;
+    }
+
+    const rect =
+        appEl.getBoundingClientRect();
+
+    appEl.style.width =
+        `${Math.max(330, e.clientX - rect.left)}px`;
+
+    appEl.style.height =
+        `${Math.max(270, e.clientY - rect.top)}px`;
+}
+
+function resizeEnd() {
+    window.removeEventListener(
+        "mousemove",
+        resizeMove
+    );
+
+    window.removeEventListener(
+        "mouseup",
+        resizeEnd
+    );
+}
+
+resizeHandle.addEventListener(
+    "mousedown",
+    e => {
+        e.preventDefault();
+
+        window.addEventListener(
+            "mousemove",
+            resizeMove
+        );
+
+        window.addEventListener(
+            "mouseup",
+            resizeEnd
+        );
+    }
+);
+
+// -----------------------------
+// Boot
+// -----------------------------
+window.addEventListener("load", () => {
+    const pos =
+        safeJsonParse(
+            localStorage.getItem(STORAGE.POS) || "null",
+            null
+        );
+
+    if (pos) {
+        appEl.style.left =
+            `${Number(pos.left) || 50}px`;
+
+        appEl.style.top =
+            `${Number(pos.top) || 50}px`;
+    }
+
+    if (
+        localStorage.getItem(STORAGE.MINI) === "true"
+    ) {
+        appEl.classList.add("mini-mode");
+    }
+
+    document.getElementById("backend-pill").innerText =
+        GOOGLE_SCRIPT_URL ? "SHEETS" : "LOCAL";
+
+    document.getElementById("backend-pill").className =
+        `status-pill ${GOOGLE_SCRIPT_URL ? "racing" : ""}`.trim();
+
+    loadCourses();
+    renderBuilder();
+    requestData();
+    updateClock();
+});
+</script>
+</body>
+</html>
