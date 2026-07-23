@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.18</title>
+    <title>PinkiRaces v1.20</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -579,7 +579,7 @@
 
         .leader-table tr.me { background: rgba(255,64,129,.08); }
 
-        /* --- MULTIPLAYER LOBBY --- */
+        /* --- GOOGLE MULTIPLAYER LOBBY --- */
         .lobby-list {
             margin-top: 7px;
             border: 1px solid rgba(255,255,255,.07);
@@ -589,7 +589,7 @@
 
         .lobby-player {
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: minmax(90px,1fr) auto;
             gap: 8px;
             align-items: center;
             padding: 6px 8px;
@@ -602,7 +602,7 @@
         }
 
         .lobby-player.me {
-            background: rgba(255,64,129,.08);
+            background: rgba(255,64,129,.09);
         }
 
         .lobby-ready {
@@ -617,21 +617,20 @@
             letter-spacing: .7px;
         }
 
-        /* --- LIVE MULTIPLAYER STANDINGS HUD --- */
+        /* --- LIVE STANDINGS HUD --- */
         #race-standings-hud {
             position: absolute;
             top: 2.5%;
             left: 1.25%;
             z-index: 4450;
-            width: min(350px, 34vw);
+            width: min(365px, 36vw);
             display: none;
             pointer-events: none;
-            background: rgba(0, 0, 0, 0.30);
+            background: rgba(0,0,0,.30);
             border: 1px solid rgba(255,255,255,.16);
             border-radius: 7px;
             overflow: hidden;
             box-shadow: 0 5px 18px rgba(0,0,0,.18);
-            backdrop-filter: blur(1px);
         }
 
         #race-standings-title {
@@ -640,27 +639,23 @@
             align-items: center;
             gap: 8px;
             padding: 6px 8px;
-            background: rgba(0,0,0,.20);
             border-bottom: 1px solid rgba(255,255,255,.10);
+            background: rgba(0,0,0,.18);
+            color: var(--accent);
             font: 900 .76em 'Rajdhani', sans-serif;
             letter-spacing: 1px;
             text-transform: uppercase;
-            color: var(--accent);
-        }
-
-        #race-standings-body {
-            width: 100%;
         }
 
         .race-standing-row {
             display: grid;
-            grid-template-columns: 28px minmax(80px,1fr) 76px 66px;
-            align-items: center;
+            grid-template-columns: 27px minmax(82px,1fr) 76px 66px;
             gap: 5px;
+            align-items: center;
             padding: 5px 7px;
             border-bottom: 1px solid rgba(255,255,255,.07);
             font-size: .72em;
-            text-shadow: 0 1px 2px rgba(0,0,0,.85);
+            text-shadow: 0 1px 2px #000;
         }
 
         .race-standing-row:last-child {
@@ -671,45 +666,40 @@
             background: rgba(255,64,129,.14);
         }
 
-        .race-standing-pos {
+        .standing-pos {
             color: var(--accent);
             font: 900 1.05em 'Rajdhani', sans-serif;
             text-align: center;
         }
 
-        .race-standing-name {
+        .standing-name {
             overflow: hidden;
-            white-space: nowrap;
             text-overflow: ellipsis;
-            font-weight: 700;
+            white-space: nowrap;
+            font-weight: 800;
         }
 
-        .race-standing-time {
+        .standing-time {
             color: var(--green);
             font-variant-numeric: tabular-nums;
-            white-space: nowrap;
             text-align: right;
+            white-space: nowrap;
         }
 
-        .race-standing-gap {
+        .standing-gap {
             color: #fff;
             font-variant-numeric: tabular-nums;
-            white-space: nowrap;
             text-align: right;
+            white-space: nowrap;
         }
 
-        .race-standing-gap.ahead {
-            color: #64b5f6;
-        }
+        .standing-gap.ahead { color: #64b5f6; }
+        .standing-gap.behind { color: #ffca6b; }
 
-        .race-standing-gap.behind {
-            color: #ffca6b;
-        }
-
-        /* --- FINAL PODIUM HUD --- */
+        /* --- PODIUM HUD --- */
         #podium-hud {
             position: absolute;
-            top: 3%;
+            top: 2.5%;
             left: 1.25%;
             z-index: 4700;
             width: min(365px, 36vw);
@@ -719,50 +709,31 @@
             border-radius: 8px;
             background: rgba(0,0,0,.32);
             border: 1px solid rgba(255,255,255,.17);
-            box-shadow: 0 8px 24px rgba(0,0,0,.28);
+            box-shadow: 0 8px 24px rgba(0,0,0,.25);
         }
 
         #podium-title {
+            margin-bottom: 5px;
             color: var(--accent);
             font: 900 .92em 'Rajdhani', sans-serif;
-            letter-spacing: 1.4px;
+            letter-spacing: 1.3px;
             text-transform: uppercase;
-            margin-bottom: 6px;
         }
 
         .podium-row {
             display: grid;
-            grid-template-columns: 32px 1fr auto;
+            grid-template-columns: 34px 1fr auto;
             gap: 7px;
             align-items: center;
-            padding: 6px 5px;
+            padding: 6px 4px;
             border-top: 1px solid rgba(255,255,255,.07);
-            font-size: .78em;
+            font-size: .79em;
         }
 
-        .podium-medal {
-            font-size: 1.35em;
-            text-align: center;
-        }
-
-        .podium-name {
-            font-weight: 800;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-
-        .podium-time {
-            color: var(--green);
-            font-weight: 800;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .podium-note {
-            margin-top: 6px;
-            color: var(--dim);
-            font-size: .68em;
-        }
+        .podium-medal { font-size: 1.35em; text-align: center; }
+        .podium-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .podium-time { color: var(--green); font-weight: 800; font-variant-numeric: tabular-nums; }
+        .podium-note { margin-top: 6px; color: var(--dim); font-size: .68em; }
 
         .builder-list {
             max-height: 150px;
@@ -851,7 +822,7 @@
 <div id="race-standings-hud">
     <div id="race-standings-title">
         <span>LIVE RACE</span>
-        <span id="race-standings-lap">--</span>
+        <span id="race-standings-meta">--</span>
     </div>
     <div id="race-standings-body"></div>
 </div>
@@ -991,35 +962,35 @@
                 </div>
             </div>
 
-            <div class="card" id="multiplayer-lobby-card">
+            <div class="card" id="google-multiplayer-card">
                 <div class="card-title">
                     <span>Multiplayer Lobby</span>
-                    <span id="lobby-status-pill" class="status-pill">OFFLINE</span>
+                    <span id="multi-status-pill" class="status-pill">OFFLINE</span>
                 </div>
 
-                <div class="tiny muted" id="lobby-help">
-                    Join while you are at the selected race start. A majority Ready vote starts a 15-second race countdown.
+                <div class="tiny muted" id="multi-help">
+                    Join while you are at a published race start. Google syncs the lobby and live race about every 3 seconds.
                 </div>
 
                 <div class="race-summary" style="margin-top:7px;">
                     <div class="stat">
                         <div class="stat-label">In Lobby</div>
-                        <div class="stat-value" id="lobby-count">0</div>
+                        <div class="stat-value" id="multi-lobby-count">0</div>
                     </div>
 
                     <div class="stat">
                         <div class="stat-label">Ready Vote</div>
-                        <div class="stat-value" id="lobby-ready-count">0 / 0</div>
+                        <div class="stat-value" id="multi-ready-count">0 / 0</div>
                     </div>
                 </div>
 
                 <div class="btn-row">
-                    <button class="btn primary" id="lobby-join-btn" onclick="joinMultiplayerLobby()">JOIN LOBBY</button>
-                    <button class="btn good" id="lobby-ready-btn" onclick="toggleLobbyReady()" disabled>READY</button>
-                    <button class="btn danger" id="lobby-leave-btn" onclick="leaveMultiplayerLobby()" disabled>LEAVE</button>
+                    <button class="btn primary" id="multi-join-btn" onclick="joinGoogleLobby()">JOIN LOBBY</button>
+                    <button class="btn good" id="multi-ready-btn" onclick="toggleGoogleReady()" disabled>READY</button>
+                    <button class="btn danger" id="multi-leave-btn" onclick="leaveGoogleLobby()" disabled>LEAVE</button>
                 </div>
 
-                <div class="lobby-list" id="lobby-player-list">
+                <div class="lobby-list" id="multi-lobby-list">
                     <div class="tiny muted" style="padding:7px;">No racers in this lobby yet.</div>
                 </div>
             </div>
@@ -1164,7 +1135,16 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.18.0";
+const APP_VERSION = "1.20.0";
+
+/*
+    GOOGLE MULTIPLAYER BUILD
+
+    Live multiplayer uses Google Apps Script + dedicated sheet tabs.
+    No TT players_* shared-data polling is used.
+
+    Normal single-player racing remains completely local while running.
+*/
 
 /*
     Client-side builder visibility allowlist.
@@ -1221,11 +1201,7 @@ const DATA_KEYS = [
     "car", "speed", "engine", "fuel",
     "pos_x", "pos_y", "pos_z", "pos_h",
     "zone", "zoneName", "street",
-    "pinned", "focused", "tabbed",
-
-    // TT shareServerData aggregates each player's value under players_<key>.
-    "players_pinki_races_lobby",
-    "players_pinki_races_live"
+    "pinned", "focused", "tabbed"
 ];
 
 let LIVE = {
@@ -1242,10 +1218,7 @@ let LIVE = {
     pos_y: null,
     pos_z: null,
     pos_h: 0,
-    cam_heading: 0,
-
-    players_pinki_races_lobby: null,
-    players_pinki_races_live: null
+    cam_heading: 0
 };
 
 let COURSES = [];
@@ -1293,36 +1266,23 @@ let MULTI = {
     joined: false,
     ready: false,
     raceId: "",
-    joinedAt: 0,
-
-    // Host-controlled start sequence.
-    countdownSeq: "",
-    countdownThreeAt: 0,
-    participants: [],
-
-    // Current multiplayer run.
     runId: "",
-    active: false,
-    finishedAt: 0,
-
-    // Parsed network snapshots.
-    lobbyPlayers: [],
-    livePlayers: [],
-
-    lastLobbyBroadcast: 0,
-    lastLiveBroadcast: 0,
-    lastLobbyRender: 0,
-    podiumShownForRun: "",
-
-    // Multiplayer-only shared-data refresh.
-    // This is started ONLY after joining a lobby and stopped when leaving.
-    sharedRefreshTimer: null
+    participants: [],
+    state: "idle", // idle | lobby | countdown | racing | finished
+    pollTimer: null,
+    overlayTimer: null,
+    inFlight: false,
+    consecutiveFailures: 0,
+    serverOffsetMs: 0,
+    threeAtMs: 0,
+    goAtMs: 0,
+    latestLobby: [],
+    latestLive: [],
+    finishedAtPerf: 0,
+    podiumShown: false
 };
 
-const MULTI_KEYS = {
-    LOBBY: "pinki_races_lobby",
-    LIVE: "pinki_races_live"
-};
+const MULTI_POLL_MS = 3000;
 
 
 // -----------------------------
@@ -1342,120 +1302,6 @@ function postTT(payload) {
             window.parent.postMessage(payload, "*");
         }
     } catch (e) {}
-}
-
-function shareServerData(key, value) {
-    postTT({
-        type: "shareServerData",
-        key: key,
-        value:
-            typeof value === "string"
-                ? value
-                : JSON.stringify(value)
-    });
-}
-
-function unwrapSharedValue(value) {
-    let current = value;
-
-    // Be tolerant of wrapper shapes used by different TT UI updates.
-    for (let i = 0; i < 3; i += 1) {
-        if (
-            current &&
-            typeof current === "object" &&
-            !Array.isArray(current) &&
-            current.value !== undefined
-        ) {
-            current = current.value;
-            continue;
-        }
-
-        break;
-    }
-
-    if (typeof current === "string") {
-        return safeJsonParse(current, null);
-    }
-
-    return current;
-}
-
-function parseSharedPlayers(raw) {
-    if (!raw) {
-        return [];
-    }
-
-    let value = raw;
-
-    if (typeof value === "string") {
-        value = safeJsonParse(value, null);
-    }
-
-    if (!value) {
-        return [];
-    }
-
-    const entries = [];
-
-    if (Array.isArray(value)) {
-        value.forEach((item, index) => {
-            const parsed = unwrapSharedValue(item);
-
-            if (parsed && typeof parsed === "object") {
-                entries.push({
-                    ...parsed,
-                    _sharedKey: String(parsed.user_id || index)
-                });
-            }
-        });
-
-        return entries;
-    }
-
-    if (typeof value !== "object") {
-        return [];
-    }
-
-    const source =
-        value.players &&
-        typeof value.players === "object"
-            ? value.players
-            : value;
-
-    Object.entries(source).forEach(([key, item]) => {
-        const parsed = unwrapSharedValue(item);
-
-        if (
-            parsed &&
-            typeof parsed === "object"
-        ) {
-            entries.push({
-                ...parsed,
-                _sharedKey: String(key)
-            });
-        }
-    });
-
-    return entries;
-}
-
-function freshSharedEntries(entries, maxAgeMs = 6500) {
-    const now = Date.now();
-
-    return entries.filter(entry => {
-        if (!entry || entry.active === false) {
-            return false;
-        }
-
-        const updated =
-            Number(entry.updated_at || 0);
-
-        if (!updated) {
-            return true;
-        }
-
-        return (now - updated) <= maxAgeMs;
-    });
 }
 
 function ttNotify(text) {
@@ -2323,70 +2169,55 @@ function requireBuilderAccess() {
 // -----------------------------
 function requestData() {
     /*
-        Request the normal TT dataset ONCE at startup.
-        Never poll the full getData payload.
+        Request normal TT data once at startup.
+        Multiplayer never uses TT players_* shared-data polling.
     */
     postTT({
         type: "getData"
     });
 }
 
-function requestMultiplayerSharedData() {
-    /*
-        Only refresh the two multiplayer aggregation keys.
-        This function is NEVER called during normal app startup.
-
-        It runs only while the player is actively participating in
-        a PinkiRaces multiplayer lobby/race.
-    */
-    postTT({
-        type: "getNamedData",
-        keys: [
-            "players_pinki_races_lobby",
-            "players_pinki_races_live"
-        ]
-    });
-}
-
-function startMultiplayerSharedRefresh() {
-    if (MULTI.sharedRefreshTimer) {
-        return;
-    }
-
-    // Let the TT User Apps bridge already be fully established before
-    // making the first named-data request.
-    setTimeout(() => {
-        if (
-            MULTI.joined ||
-            MULTI.active ||
-            RACE.multiplayer
-        ) {
-            requestMultiplayerSharedData();
-        }
-    }, 350);
-
-    MULTI.sharedRefreshTimer =
-        setInterval(() => {
-            if (
-                MULTI.joined ||
-                MULTI.active ||
-                RACE.multiplayer
-            ) {
-                requestMultiplayerSharedData();
-            }
-        }, 1000);
-}
-
-function stopMultiplayerSharedRefresh() {
-    if (!MULTI.sharedRefreshTimer) {
-        return;
-    }
-
-    clearInterval(
-        MULTI.sharedRefreshTimer
+async function googleJsonRequest(url, options = {}) {
+    const response = await fetch(
+        url,
+        options
     );
 
-    MULTI.sharedRefreshTimer = null;
+    if (!response.ok) {
+        throw new Error(
+            `HTTP ${response.status}`
+        );
+    }
+
+    const text =
+        await response.text();
+
+    if (!text || !text.trim()) {
+        throw new Error(
+            "Empty response from Google Apps Script"
+        );
+    }
+
+    const data =
+        safeJsonParse(
+            text,
+            null
+        );
+
+    if (!data) {
+        throw new Error(
+            "Invalid JSON from Google Apps Script"
+        );
+    }
+
+    if (data.ok === false) {
+        throw new Error(
+            data.error ||
+            "Google Apps Script request declined"
+        );
+    }
+
+    return data;
 }
 
 window.addEventListener("message", event => {
@@ -2414,7 +2245,6 @@ window.addEventListener("message", event => {
 
     applyBuilderAccess();
     updateLiveIdentity();
-    processMultiplayerSharedData();
 });
 
 function updateLiveIdentity() {
@@ -2454,8 +2284,6 @@ function updateStartDistance() {
     }
 
     el.innerText = `${Math.round(dist2D(pos, course.start))} m`;
-
-    updateMultiplayerLobby();
 }
 
 // -----------------------------
@@ -2626,10 +2454,10 @@ function onRaceSelected() {
     if (
         MULTI.joined &&
         course &&
-        MULTI.raceId &&
-        String(course.id) !== String(MULTI.raceId)
+        String(course.id) !==
+            String(MULTI.raceId)
     ) {
-        leaveMultiplayerLobby(true);
+        leaveGoogleLobby(true);
     }
     const description = document.getElementById("race-description");
     const headerSub = document.getElementById("header-sub");
@@ -2698,8 +2526,6 @@ function setValidity(text, cssClass = "") {
 // -----------------------------
 function clearRaceBlips() {
     [BLIP_IDS.START, BLIP_IDS.NEXT].forEach(id => {
-        // Route and displayed number are explicitly disabled before removal.
-        // This prevents the old yellow "0" start marker surviving a finish.
         postTT({
             type: "setBlipRoute",
             id: id,
@@ -2717,8 +2543,8 @@ function clearRaceBlips() {
         });
     });
 
-    // A second removal pass handles clients that process route removal
-    // and blip removal on adjacent UI ticks.
+    // A second pass handles clients that process route/number removal
+    // one UI tick before removing the blip itself.
     setTimeout(() => {
         [BLIP_IDS.START, BLIP_IDS.NEXT].forEach(id => {
             postTT({
@@ -2881,326 +2707,389 @@ function showTargetBlip() {
 }
 
 // -----------------------------
-// Multiplayer lobby / live race
+// Google multiplayer
 // -----------------------------
-function selectedLobbyCourse() {
-    const course = getSelectedRace();
+function multiNow() {
+    return Date.now() + Number(MULTI.serverOffsetMs || 0);
+}
 
-    if (!course) {
+function selectedPublishedRace() {
+    const course =
+        getSelectedRace();
+
+    if (
+        !course ||
+        course._source !== "published"
+    ) {
         return null;
     }
 
     return course;
 }
 
-function lobbyStartDistance(course) {
-    const pos = livePos();
+function multiPlayerPayload() {
+    const pos =
+        livePos();
 
-    if (!course || !pos) {
-        return Infinity;
-    }
-
-    return dist2D(pos, course.start);
-}
-
-function getLobbyPlayersForRace(raceId) {
-    const entries =
-        freshSharedEntries(
-            parseSharedPlayers(
-                LIVE.players_pinki_races_lobby
-            ),
-            6500
-        );
-
-    const byId = new Map();
-
-    entries.forEach(entry => {
-        if (
-            String(entry.race_id || "") !==
-            String(raceId || "")
-        ) {
-            return;
-        }
-
-        if (
-            entry.phase !== "lobby" &&
-            entry.phase !== "countdown"
-        ) {
-            return;
-        }
-
-        const id =
-            String(
-                entry.user_id ||
-                entry._sharedKey ||
-                ""
-            );
-
-        if (!id) {
-            return;
-        }
-
-        const existing =
-            byId.get(id);
-
-        if (
-            !existing ||
-            Number(entry.updated_at || 0) >=
-            Number(existing.updated_at || 0)
-        ) {
-            byId.set(id, entry);
-        }
-    });
-
-    // Always include our local state immediately, without waiting for echo.
-    if (
-        MULTI.joined &&
-        String(MULTI.raceId) === String(raceId) &&
-        LIVE.user_id !== null
-    ) {
-        byId.set(
-            String(LIVE.user_id),
-            buildLocalLobbyPayload()
-        );
-    }
-
-    return Array.from(byId.values())
-        .sort((a, b) => {
-            const joinedA =
-                Number(a.joined_at || 0);
-
-            const joinedB =
-                Number(b.joined_at || 0);
-
-            if (joinedA !== joinedB) {
-                return joinedA - joinedB;
-            }
-
-            return (
-                Number(a.user_id || 0) -
-                Number(b.user_id || 0)
-            );
-        });
-}
-
-function lobbyHost(players) {
-    if (!players.length) {
-        return null;
-    }
-
-    return [...players]
-        .sort((a, b) => {
-            const joinedA =
-                Number(a.joined_at || 0);
-
-            const joinedB =
-                Number(b.joined_at || 0);
-
-            if (joinedA !== joinedB) {
-                return joinedA - joinedB;
-            }
-
-            return (
-                Number(a.user_id || 0) -
-                Number(b.user_id || 0)
-            );
-        })[0];
-}
-
-function majorityNeeded(totalPlayers) {
-    return Math.floor(totalPlayers / 2) + 1;
-}
-
-function buildLocalLobbyPayload() {
     return {
-        protocol: 1,
-        active: MULTI.joined === true,
-        race_id: MULTI.raceId,
-        user_id: LIVE.user_id,
-        source: LIVE.source,
-        name: LIVE.name || "Unknown",
+        user_id:
+            LIVE.user_id ?? "",
+        player_name:
+            LIVE.name || "Unknown",
+        source:
+            LIVE.source ?? "",
         vehicle:
-            LIVE.vehicleName ||
+            [LIVE.vehicleMake, LIVE.vehicleName || LIVE.vehicle]
+                .filter(Boolean)
+                .join(" ") ||
             LIVE.vehicle ||
             "Unknown",
-        ready: MULTI.ready === true,
-        joined_at: MULTI.joinedAt,
-        phase:
-            MULTI.countdownSeq
-                ? "countdown"
-                : "lobby",
-        countdown_seq:
-            MULTI.countdownSeq || "",
-        countdown_three_at:
-            MULTI.countdownThreeAt || 0,
-        participants:
-            Array.isArray(MULTI.participants)
-                ? MULTI.participants
-                : [],
-        updated_at: Date.now()
+        x:
+            pos ? Number(pos.x) : null,
+        y:
+            pos ? Number(pos.y) : null,
+        z:
+            pos ? Number(pos.z || 0) : null
     };
 }
 
-function broadcastLobbyState(force = false) {
-    if (!MULTI.joined) {
-        return;
-    }
+function multiProgressPayload() {
+    const now =
+        performance.now();
 
-    const now = Date.now();
-
-    if (
-        !force &&
-        (now - MULTI.lastLobbyBroadcast) < 850
-    ) {
-        return;
-    }
-
-    MULTI.lastLobbyBroadcast = now;
-
-    shareServerData(
-        MULTI_KEYS.LOBBY,
-        buildLocalLobbyPayload()
-    );
-
-    // Pull the aggregated lobby shortly after publishing our own state.
-    setTimeout(() => {
-        if (MULTI.joined) {
-            requestMultiplayerSharedData();
-        }
-    }, 250);
-}
-
-function broadcastLobbyLeave() {
-    shareServerData(
-        MULTI_KEYS.LOBBY,
-        {
-            protocol: 1,
-            active: false,
-            race_id: MULTI.raceId || "",
-            user_id: LIVE.user_id,
-            source: LIVE.source,
-            name: LIVE.name || "Unknown",
-            ready: false,
-            phase: "left",
-            updated_at: Date.now()
-        }
-    );
-}
-
-function joinMultiplayerLobby() {
-    if (
-        RACE.phase === "countdown" ||
-        RACE.phase === "racing"
-    ) {
-        toast(
-            "Finish or cancel the current race first.",
-            "bad"
-        );
-
-        return;
-    }
-
-    const course =
-        selectedLobbyCourse();
+    const target =
+        currentTarget();
 
     const pos =
         livePos();
 
-    if (!course || !pos) {
-        toast(
-            "Select a race and wait for position data.",
-            "bad"
+    const elapsed =
+        RACE.phase === "finished"
+            ? Math.max(
+                0,
+                RACE.finishedAtPerf -
+                RACE.startedAtPerf
+            )
+            : (
+                RACE.phase === "racing"
+                    ? Math.max(
+                        0,
+                        now -
+                        RACE.startedAtPerf
+                    )
+                    : 0
+            );
+
+    return {
+        elapsed_ms:
+            Math.round(elapsed),
+        lap:
+            RACE.lap || 1,
+        checkpoint_index:
+            RACE.checkpointIndex || 0,
+        completed_targets:
+            RACE.course
+                ? completedRaceTargets()
+                : 0,
+        distance_to_next:
+            (
+                pos &&
+                target &&
+                target.point
+            )
+                ? Math.round(
+                    dist2D(
+                        pos,
+                        target.point
+                    )
+                )
+                : 0,
+        splits:
+            Array.isArray(RACE.splits)
+                ? RACE.splits.map(
+                    value =>
+                        Math.round(value)
+                )
+                : [],
+        finished_ms:
+            RACE.phase === "finished"
+                ? Math.round(elapsed)
+                : 0,
+        valid:
+            RACE.valid === true
+    };
+}
+
+function setMultiStatus(text, cssClass = "") {
+    const pill =
+        document.getElementById(
+            "multi-status-pill"
         );
 
+    pill.innerText =
+        text;
+
+    pill.className =
+        `status-pill ${cssClass}`.trim();
+}
+
+function startGoogleMultiplayerPolling(immediate = true) {
+    if (MULTI.pollTimer) {
+        return;
+    }
+
+    if (immediate) {
+        pollGoogleMultiplayer(true);
+    }
+
+    MULTI.pollTimer =
+        setInterval(
+            () =>
+                pollGoogleMultiplayer(false),
+            MULTI_POLL_MS
+        );
+}
+
+function stopGoogleMultiplayerPolling() {
+    if (MULTI.pollTimer) {
+        clearInterval(
+            MULTI.pollTimer
+        );
+
+        MULTI.pollTimer = null;
+    }
+
+    MULTI.inFlight = false;
+}
+
+async function joinGoogleLobby() {
+    if (!GOOGLE_SCRIPT_URL) {
+        toast(
+            "Google Apps Script is not configured.",
+            "bad"
+        );
+        return;
+    }
+
+    if (
+        LIVE.user_id === null ||
+        LIVE.user_id === undefined
+    ) {
+        toast(
+            "Waiting for TT player data.",
+            "bad"
+        );
+        return;
+    }
+
+    const course =
+        selectedPublishedRace();
+
+    if (!course) {
+        toast(
+            "Multiplayer requires a race published in Google Sheets.",
+            "bad",
+            3800
+        );
+        return;
+    }
+
+    const pos =
+        livePos();
+
+    if (!pos) {
+        toast(
+            "Waiting for your coordinates.",
+            "bad"
+        );
         return;
     }
 
     if (LIVE.vehicle === "onFoot") {
         toast(
-            "Enter the vehicle you intend to race before joining.",
+            "Enter your race vehicle before joining.",
             "bad"
         );
-
         return;
     }
 
     const distance =
-        lobbyStartDistance(course);
+        dist2D(
+            pos,
+            course.start
+        );
 
-    const joinRadius =
+    const localRadius =
         Math.max(
             Number(course.start.radius || 18),
             25
         );
 
-    if (distance > joinRadius) {
+    if (distance > localRadius) {
         routeToStart();
 
         toast(
-            `Move to the start area before joining the lobby (${Math.round(distance)} m away).`,
+            `Move to the start before joining (${Math.round(distance)} m away).`,
             "info",
             3600
         );
-
         return;
     }
 
     MULTI.joined = true;
     MULTI.ready = false;
-    MULTI.raceId = String(course.id);
-    MULTI.joinedAt = Date.now();
-    MULTI.countdownSeq = "";
-    MULTI.countdownThreeAt = 0;
-    MULTI.participants = [];
+    MULTI.raceId =
+        String(course.id);
     MULTI.runId = "";
-    MULTI.active = false;
+    MULTI.participants = [];
+    MULTI.state = "lobby";
+    MULTI.podiumShown = false;
+    MULTI.consecutiveFailures = 0;
 
-    // Multiplayer shared-data refresh begins only after a deliberate lobby join.
-    // Nothing multiplayer-specific is polled during normal app startup.
-    startMultiplayerSharedRefresh();
+    document.getElementById(
+        "multi-join-btn"
+    ).disabled = true;
 
-    document.getElementById("lobby-join-btn").disabled = true;
-    document.getElementById("lobby-ready-btn").disabled = false;
-    document.getElementById("lobby-leave-btn").disabled = false;
+    document.getElementById(
+        "multi-ready-btn"
+    ).disabled = false;
 
-    setLobbyStatus("LOBBY", "ready");
+    document.getElementById(
+        "multi-leave-btn"
+    ).disabled = false;
 
-    broadcastLobbyState(true);
-    updateMultiplayerLobby();
+    setMultiStatus(
+        "JOINING",
+        "ready"
+    );
 
-    toast(
-        `Joined ${course.name} multiplayer lobby.`,
-        "good"
+    startGoogleMultiplayerPolling(
+        true
     );
 }
 
-function leaveMultiplayerLobby(silent = false) {
-    if (MULTI.joined) {
-        broadcastLobbyLeave();
+function toggleGoogleReady() {
+    if (
+        !MULTI.joined ||
+        MULTI.state !== "lobby"
+    ) {
+        return;
     }
+
+    const course =
+        getSelectedRace();
+
+    const pos =
+        livePos();
+
+    if (
+        !course ||
+        !pos
+    ) {
+        return;
+    }
+
+    if (!MULTI.ready) {
+        const distance =
+            dist2D(
+                pos,
+                course.start
+            );
+
+        if (
+            distance >
+            Math.max(
+                Number(course.start.radius || 18),
+                22
+            )
+        ) {
+            toast(
+                "Return to the start area before marking Ready.",
+                "bad"
+            );
+            return;
+        }
+    }
+
+    MULTI.ready =
+        !MULTI.ready;
+
+    document.getElementById(
+        "multi-ready-btn"
+    ).innerText =
+        MULTI.ready
+            ? "UNREADY"
+            : "READY";
+
+    pollGoogleMultiplayer(
+        true
+    );
+}
+
+async function leaveGoogleLobby(silent = false) {
+    if (
+        GOOGLE_SCRIPT_URL &&
+        MULTI.joined
+    ) {
+        try {
+            await googleJsonRequest(
+                GOOGLE_SCRIPT_URL,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "text/plain;charset=utf-8"
+                    },
+                    body: JSON.stringify({
+                        action:
+                            "multiplayerPoll",
+                        state:
+                            "left",
+                        raceId:
+                            MULTI.raceId,
+                        runId:
+                            MULTI.runId,
+                        player:
+                            multiPlayerPayload()
+                    })
+                }
+            );
+        } catch (e) {
+            // Leaving must never block the local app.
+        }
+    }
+
+    stopGoogleMultiplayerPolling();
 
     MULTI.joined = false;
     MULTI.ready = false;
     MULTI.raceId = "";
-    MULTI.joinedAt = 0;
-    MULTI.countdownSeq = "";
-    MULTI.countdownThreeAt = 0;
+    MULTI.runId = "";
     MULTI.participants = [];
+    MULTI.state = "idle";
+    MULTI.latestLobby = [];
+    MULTI.latestLive = [];
+    MULTI.threeAtMs = 0;
+    MULTI.goAtMs = 0;
 
-    document.getElementById("lobby-join-btn").disabled = false;
-    document.getElementById("lobby-ready-btn").disabled = true;
-    document.getElementById("lobby-leave-btn").disabled = true;
-    document.getElementById("lobby-ready-btn").innerText = "READY";
+    document.getElementById(
+        "multi-join-btn"
+    ).disabled = false;
 
-    setLobbyStatus("OFFLINE");
-    updateMultiplayerLobby();
+    document.getElementById(
+        "multi-ready-btn"
+    ).disabled = true;
 
-    if (
-        !MULTI.active &&
-        !RACE.multiplayer
-    ) {
-        stopMultiplayerSharedRefresh();
-    }
+    document.getElementById(
+        "multi-leave-btn"
+    ).disabled = true;
+
+    document.getElementById(
+        "multi-ready-btn"
+    ).innerText = "READY";
+
+    renderGoogleLobby([]);
+    setMultiStatus("OFFLINE");
 
     if (!silent) {
         toast(
@@ -3210,90 +3099,221 @@ function leaveMultiplayerLobby(silent = false) {
     }
 }
 
-function toggleLobbyReady() {
-    if (!MULTI.joined) {
+async function pollGoogleMultiplayer(force = false) {
+    if (
+        MULTI.inFlight ||
+        !MULTI.joined ||
+        !GOOGLE_SCRIPT_URL
+    ) {
         return;
     }
 
-    const course =
-        COURSES.find(
-            item =>
-                String(item.id) ===
-                String(MULTI.raceId)
+    MULTI.inFlight = true;
+
+    try {
+        const state =
+            (
+                RACE.multiplayer &&
+                RACE.phase === "finished"
+            )
+                ? "finished"
+                : (
+                    RACE.multiplayer &&
+                    RACE.phase === "racing"
+                )
+                    ? "racing"
+                    : (
+                        MULTI.state === "countdown"
+                            ? "countdown"
+                            : "lobby"
+                    );
+
+        const body = {
+            action:
+                "multiplayerPoll",
+            state:
+                state,
+            raceId:
+                MULTI.raceId,
+            runId:
+                MULTI.runId,
+            ready:
+                MULTI.ready,
+            player:
+                multiPlayerPayload(),
+            progress:
+                multiProgressPayload()
+        };
+
+        const data =
+            await googleJsonRequest(
+                GOOGLE_SCRIPT_URL,
+                {
+                    method:
+                        "POST",
+                    headers: {
+                        "Content-Type":
+                            "text/plain;charset=utf-8"
+                    },
+                    body:
+                        JSON.stringify(body)
+                }
+            );
+
+        MULTI.consecutiveFailures = 0;
+
+        if (
+            Number(data.server_now_ms)
+        ) {
+            MULTI.serverOffsetMs =
+                Number(data.server_now_ms) -
+                Date.now();
+        }
+
+        MULTI.latestLobby =
+            Array.isArray(data.lobby)
+                ? data.lobby
+                : [];
+
+        MULTI.latestLive =
+            Array.isArray(data.live)
+                ? data.live
+                : [];
+
+        renderGoogleLobby(
+            MULTI.latestLobby,
+            data
         );
 
-    if (!course) {
-        leaveMultiplayerLobby(true);
-        return;
-    }
+        if (
+            data.run_id &&
+            data.go_at_ms
+        ) {
+            adoptGoogleRaceStart(
+                data
+            );
+        }
 
-    if (!MULTI.ready) {
-        const distance =
-            lobbyStartDistance(course);
-
-        const readyRadius =
-            Math.max(
-                Number(course.start.radius || 18),
-                20
+        if (
+            RACE.multiplayer &&
+            MULTI.runId
+        ) {
+            renderGoogleStandings(
+                MULTI.latestLive
             );
 
-        if (distance > readyRadius) {
+            maybeShowGooglePodium(
+                MULTI.latestLive
+            );
+        }
+
+    } catch (error) {
+        MULTI.consecutiveFailures += 1;
+
+        setMultiStatus(
+            "SYNC DELAY",
+            "invalid"
+        );
+
+        if (
+            MULTI.consecutiveFailures === 1
+        ) {
             toast(
-                `Return to the start area before marking Ready (${Math.round(distance)} m away).`,
+                "Multiplayer Google sync delayed — retrying automatically.",
                 "bad",
-                3600
+                3200
             );
-
-            return;
         }
 
-        if (LIVE.vehicle === "onFoot") {
-            toast(
-                "Enter your race vehicle before marking Ready.",
-                "bad"
-            );
+        /*
+            Back off after repeated failures rather than spamming requests
+            or affecting the normal race app.
+        */
+        if (
+            MULTI.consecutiveFailures >= 3
+        ) {
+            stopGoogleMultiplayerPolling();
 
-            return;
+            setTimeout(() => {
+                if (
+                    MULTI.joined
+                ) {
+                    MULTI.consecutiveFailures = 0;
+                    startGoogleMultiplayerPolling(
+                        true
+                    );
+                }
+            }, 12000);
         }
+
+    } finally {
+        MULTI.inFlight = false;
     }
-
-    MULTI.ready =
-        !MULTI.ready;
-
-    document.getElementById("lobby-ready-btn").innerText =
-        MULTI.ready
-            ? "UNREADY"
-            : "READY";
-
-    broadcastLobbyState(true);
-    updateMultiplayerLobby();
 }
 
-function setLobbyStatus(text, cssClass = "") {
-    const pill =
-        document.getElementById("lobby-status-pill");
+function renderGoogleLobby(players, response = {}) {
+    const list =
+        document.getElementById(
+            "multi-lobby-list"
+        );
 
-    pill.innerText = text;
-    pill.className =
-        `status-pill ${cssClass}`.trim();
-}
+    const count =
+        document.getElementById(
+            "multi-lobby-count"
+        );
 
-function renderLobbyPlayers(players) {
-    const container =
-        document.getElementById("lobby-player-list");
+    const readyCount =
+        document.getElementById(
+            "multi-ready-count"
+        );
 
-    container.innerHTML = "";
+    const safePlayers =
+        Array.isArray(players)
+            ? players
+            : [];
 
-    if (!players.length) {
-        container.innerHTML =
+    count.innerText =
+        String(safePlayers.length);
+
+    const ready =
+        Number(
+            response.ready_count ??
+            safePlayers.filter(
+                player =>
+                    player.ready === true
+            ).length
+        );
+
+    const needed =
+        Number(
+            response.ready_needed ??
+            (
+                safePlayers.length
+                    ? Math.floor(
+                        safePlayers.length / 2
+                    ) + 1
+                    : 0
+            )
+        );
+
+    readyCount.innerText =
+        safePlayers.length
+            ? `${ready} / ${safePlayers.length} • ${needed} needed`
+            : "0 / 0";
+
+    list.innerHTML = "";
+
+    if (!safePlayers.length) {
+        list.innerHTML =
             '<div class="tiny muted" style="padding:7px;">No racers in this lobby yet.</div>';
-
         return;
     }
 
-    players.forEach(player => {
+    safePlayers.forEach(player => {
         const row =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
         row.className =
             "lobby-player" +
@@ -3305,13 +3325,17 @@ function renderLobbyPlayers(players) {
             );
 
         const name =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
         name.innerText =
-            `${player.name || "Unknown"} (#${player.user_id || "?"})`;
+            `${player.player_name || "Unknown"} (#${player.user_id || "?"})`;
 
         const state =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
         state.className =
             player.ready
@@ -3325,68 +3349,19 @@ function renderLobbyPlayers(players) {
 
         row.appendChild(name);
         row.appendChild(state);
-
-        container.appendChild(row);
+        list.appendChild(row);
     });
-}
 
-function updateMultiplayerLobby() {
-    const selected =
-        getSelectedRace();
-
-    const raceId =
-        MULTI.joined
-            ? MULTI.raceId
-            : (selected ? selected.id : "");
-
-    const players =
-        raceId
-            ? getLobbyPlayersForRace(raceId)
-            : [];
-
-    MULTI.lobbyPlayers =
-        players;
-
-    const readyCount =
-        players.filter(
-            player => player.ready === true
-        ).length;
-
-    const majority =
-        players.length
-            ? majorityNeeded(players.length)
-            : 0;
-
-    document.getElementById("lobby-count").innerText =
-        String(players.length);
-
-    document.getElementById("lobby-ready-count").innerText =
-        players.length
-            ? `${readyCount} / ${players.length} • ${majority} needed`
-            : "0 / 0";
-
-    renderLobbyPlayers(players);
-
-    if (!MULTI.joined) {
-        setLobbyStatus(
-            players.length
-                ? "OPEN"
-                : "OFFLINE",
-            players.length
-                ? "ready"
-                : ""
-        );
-
-        return;
-    }
-
-    if (MULTI.countdownSeq) {
-        setLobbyStatus(
+    if (
+        response.run_id &&
+        response.go_at_ms
+    ) {
+        setMultiStatus(
             "STARTING",
             "racing"
         );
     } else {
-        setLobbyStatus(
+        setMultiStatus(
             MULTI.ready
                 ? "READY"
                 : "LOBBY",
@@ -3395,109 +3370,59 @@ function updateMultiplayerLobby() {
                 : "ready"
         );
     }
-
-    maybeStartLobbyCountdown(players);
-    adoptLobbyCountdown(players);
 }
 
-function maybeStartLobbyCountdown(players) {
+function adoptGoogleRaceStart(data) {
+    const runId =
+        String(data.run_id || "");
+
+    if (!runId) {
+        return;
+    }
+
     if (
-        !MULTI.joined ||
-        MULTI.countdownSeq ||
-        players.length < 2
+        MULTI.runId &&
+        MULTI.runId !== runId
     ) {
         return;
     }
 
-    const host =
-        lobbyHost(players);
-
-    if (
-        !host ||
-        String(host.user_id) !==
-        String(LIVE.user_id)
-    ) {
-        return;
-    }
-
-    const readyCount =
-        players.filter(
-            player => player.ready === true
-        ).length;
-
-    const needed =
-        majorityNeeded(players.length);
-
-    if (readyCount < needed) {
-        return;
-    }
-
-    MULTI.countdownSeq =
-        `${MULTI.raceId}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-
-    // 15 seconds of "Race is starting", then the existing 3-2-1 countdown.
-    MULTI.countdownThreeAt =
-        Date.now() + 15000;
+    MULTI.runId =
+        runId;
 
     MULTI.participants =
-        players.map(player =>
-            String(player.user_id)
+        Array.isArray(
+            data.participants
+        )
+            ? data.participants.map(
+                value =>
+                    String(value)
+            )
+            : [];
+
+    MULTI.threeAtMs =
+        Number(
+            data.three_at_ms || 0
         );
 
-    broadcastLobbyState(true);
-
-    toast(
-        `Majority Ready (${readyCount}/${players.length}). Race starts in 15 seconds.`,
-        "good",
-        4200
-    );
-}
-
-function adoptLobbyCountdown(players) {
-    if (
-        !MULTI.joined ||
-        MULTI.active
-    ) {
-        return;
-    }
-
-    const host =
-        lobbyHost(players);
-
-    if (
-        !host ||
-        !host.countdown_seq ||
-        !Number(host.countdown_three_at)
-    ) {
-        return;
-    }
-
-    if (
-        MULTI.countdownSeq !==
-        String(host.countdown_seq)
-    ) {
-        MULTI.countdownSeq =
-            String(host.countdown_seq);
-
-        MULTI.countdownThreeAt =
-            Number(host.countdown_three_at);
-
-        MULTI.participants =
-            Array.isArray(host.participants)
-                ? host.participants.map(String)
-                : players.map(player =>
-                    String(player.user_id)
-                );
-
-        prepareMultiplayerPrestart(
-            MULTI.countdownSeq
+    MULTI.goAtMs =
+        Number(
+            data.go_at_ms || 0
         );
+
+    if (
+        MULTI.state === "lobby"
+    ) {
+        MULTI.state =
+            "countdown";
+
+        prepareGoogleMultiplayerRace();
     }
 
-    updateMultiplayerPrestartOverlay();
+    startGoogleCountdownOverlay();
 }
 
-function prepareMultiplayerPrestart(runId) {
+function prepareGoogleMultiplayerRace() {
     if (
         RACE.phase === "racing" ||
         RACE.phase === "countdown"
@@ -3537,374 +3462,360 @@ function prepareMultiplayerPrestart(runId) {
     RACE.lastPos = pos;
     RACE.vehicleLock =
         captureVehicle();
+    RACE.countdownStartPos =
+        pos;
 
     RACE.multiplayer = true;
     RACE.multiplayerRunId =
-        String(runId);
+        MULTI.runId;
 
     RACE.multiplayerParticipants =
         [...MULTI.participants];
 
-    MULTI.runId =
-        String(runId);
-
-    MULTI.active = false;
-    MULTI.finishedAt = 0;
-
-    document.getElementById("locked-vehicle").innerText =
+    document.getElementById(
+        "locked-vehicle"
+    ).innerText =
         RACE.vehicleLock.display;
 
-    document.getElementById("cancel-btn").disabled =
-        false;
+    document.getElementById(
+        "cancel-btn"
+    ).disabled = false;
 
     clearRaceBlips();
 }
 
-function updateMultiplayerPrestartOverlay() {
-    if (
-        !MULTI.joined ||
-        !MULTI.countdownSeq ||
-        !MULTI.countdownThreeAt ||
-        MULTI.active
-    ) {
+function startGoogleCountdownOverlay() {
+    if (MULTI.overlayTimer) {
         return;
     }
 
-    if (
-        RACE.phase !== "multiplayer_wait"
-    ) {
-        prepareMultiplayerPrestart(
-            MULTI.countdownSeq
+    const overlay =
+        document.getElementById(
+            "countdown-overlay"
         );
-    }
 
-    const remaining =
-        MULTI.countdownThreeAt -
-        Date.now();
+    const text =
+        document.getElementById(
+            "countdown-text"
+        );
 
-    if (remaining > 0) {
-        const seconds =
-            Math.max(
-                1,
-                Math.ceil(remaining / 1000)
+    let falseStartWatcher = null;
+
+    function stopOverlayTimer() {
+        if (MULTI.overlayTimer) {
+            clearInterval(
+                MULTI.overlayTimer
             );
 
-        const overlay =
-            document.getElementById("countdown-overlay");
+            MULTI.overlayTimer = null;
+        }
 
-        const text =
-            document.getElementById("countdown-text");
+        if (falseStartWatcher) {
+            clearInterval(
+                falseStartWatcher
+            );
+
+            falseStartWatcher = null;
+        }
+    }
+
+    function multiplayerFalseStart() {
+        stopOverlayTimer();
+
+        text.classList.add(
+            "false-start"
+        );
+
+        text.style.fontSize = "";
+        text.innerText =
+            "FALSE START";
 
         overlay.style.display =
             "flex";
 
-        text.classList.remove(
-            "false-start"
-        );
-
-        text.style.fontSize =
-            "2.7em";
-
-        text.innerText =
-            `RACE IS STARTING\n${seconds}`;
-
         setRaceStatus(
-            "MULTIPLAYER STARTING",
-            "ready"
+            "FALSE START",
+            "invalid"
         );
 
+        setValidity(
+            "FALSE START",
+            "invalid"
+        );
+
+        MULTI.state =
+            "finished";
+
+        RACE.phase =
+            "finished";
+
+        RACE.finishedAtPerf =
+            performance.now();
+
+        RACE.valid =
+            false;
+
+        RACE.invalidReason =
+            "False Start";
+
+        clearRaceBlips();
+        hideCheckpointBeacon();
+
+        setTimeout(() => {
+            overlay.style.display =
+                "none";
+        }, 1800);
+
+        pollGoogleMultiplayer(
+            true
+        );
+    }
+
+    MULTI.overlayTimer =
+        setInterval(() => {
+            const now =
+                multiNow();
+
+            const untilGo =
+                MULTI.goAtMs -
+                now;
+
+            const untilThree =
+                MULTI.threeAtMs -
+                now;
+
+            overlay.style.display =
+                "flex";
+
+            if (untilThree > 0) {
+                text.classList.remove(
+                    "false-start"
+                );
+
+                text.style.fontSize =
+                    "2.7em";
+
+                text.innerText =
+                    `RACE IS STARTING\n${Math.max(1, Math.ceil(untilThree / 1000))}`;
+
+                setRaceStatus(
+                    "MULTIPLAYER STARTING",
+                    "ready"
+                );
+
+                return;
+            }
+
+            if (!falseStartWatcher) {
+                falseStartWatcher =
+                    setInterval(() => {
+                        if (
+                            RACE.phase !==
+                            "multiplayer_wait"
+                        ) {
+                            return;
+                        }
+
+                        const pos =
+                            livePos();
+
+                        if (
+                            pos &&
+                            RACE.countdownStartPos &&
+                            dist2D(
+                                pos,
+                                RACE.countdownStartPos
+                            ) >= 3
+                        ) {
+                            multiplayerFalseStart();
+                        }
+                    }, 50);
+            }
+
+            text.style.fontSize = "";
+
+            if (untilGo > 2000) {
+                text.innerText = "3";
+            } else if (
+                untilGo > 1000
+            ) {
+                text.innerText = "2";
+            } else if (
+                untilGo > 0
+            ) {
+                text.innerText = "1";
+            } else {
+                stopOverlayTimer();
+
+                text.innerText = "GO!";
+
+                startGoogleMultiplayerRace();
+
+                setTimeout(() => {
+                    overlay.style.display =
+                        "none";
+                }, 650);
+            }
+        }, 80);
+}
+
+function startGoogleMultiplayerRace() {
+    if (
+        RACE.phase !==
+        "multiplayer_wait"
+    ) {
         return;
     }
 
-    if (
-        RACE.phase === "multiplayer_wait"
-    ) {
-        const pos =
-            livePos();
-
-        const course =
-            RACE.course;
-
-        const distance =
-            pos && course
-                ? dist2D(pos, course.start)
-                : Infinity;
-
-        if (
-            !pos ||
-            !course ||
-            distance >
-                Math.max(
-                    Number(course.start.radius || 18),
-                    22
-                )
-        ) {
-            invalidateRace(
-                "Not on the start line when multiplayer countdown began."
-            );
-        }
-
-        RACE.phase = "armed";
-        RACE.countdownStartPos =
-            pos;
-
-        RACE.countdownToken += 1;
-
-        const text =
-            document.getElementById("countdown-text");
-
-        text.style.fontSize = "";
-
-        runCountdown(
-            RACE.countdownToken
-        );
-    }
-}
-
-function buildLiveRacePayload() {
-    if (
-        !RACE.multiplayer ||
-        !RACE.multiplayerRunId ||
-        (
-            RACE.phase !== "racing" &&
-            RACE.phase !== "finished"
-        )
-    ) {
-        return null;
-    }
-
-    const now =
+    RACE.phase = "racing";
+    RACE.startedAtPerf =
         performance.now();
-
-    const elapsed =
-        RACE.phase === "finished"
-            ? Math.max(
-                0,
-                RACE.finishedAtPerf -
-                RACE.startedAtPerf
-            )
-            : Math.max(
-                0,
-                now -
-                RACE.startedAtPerf
-            );
-
-    const target =
-        currentTarget();
-
-    const pos =
+    RACE.finishedAtPerf = 0;
+    RACE.checkpointIndex = 0;
+    RACE.lap = 1;
+    RACE.lapSplits = [];
+    RACE.splits = [];
+    RACE.lastPos =
         livePos();
+    RACE.distanceTravelled = 0;
 
-    const distance =
-        (
-            pos &&
-            target &&
-            target.point
+    MULTI.state =
+        "racing";
+
+    setRaceStatus(
+        "RACING",
+        "racing"
+    );
+
+    setValidity(
+        RACE.valid
+            ? "VALID"
+            : "INVALID",
+        RACE.valid
+            ? "racing"
+            : "invalid"
+    );
+
+    document.getElementById(
+        "race-progress"
+    ).style.width = "0%";
+
+    document.getElementById(
+        "split-line"
+    ).innerText =
+        "Multiplayer race started.";
+
+    showTargetBlip();
+
+    pollGoogleMultiplayer(
+        true
+    );
+}
+
+function extrapolatedLiveTime(player) {
+    const base =
+        Number(
+            player.phase === "finished"
+                ? player.finished_ms
+                : player.elapsed_ms
+        ) || 0;
+
+    if (
+        player.phase === "finished"
+    ) {
+        return base;
+    }
+
+    const updated =
+        Number(
+            player.updated_at_ms || 0
+        );
+
+    if (!updated) {
+        return base;
+    }
+
+    return Math.max(
+        0,
+        base +
+        Math.max(
+            0,
+            multiNow() -
+            updated
         )
-            ? dist2D(
-                pos,
-                target.point
-            )
-            : 0;
-
-    return {
-        protocol: 1,
-        active: true,
-        run_id:
-            RACE.multiplayerRunId,
-        race_id:
-            RACE.course
-                ? RACE.course.id
-                : MULTI.raceId,
-        user_id:
-            LIVE.user_id,
-        source:
-            LIVE.source,
-        name:
-            LIVE.name || "Unknown",
-        phase:
-            RACE.phase,
-        elapsed_ms:
-            Math.round(elapsed),
-        finished_ms:
-            RACE.phase === "finished"
-                ? Math.round(elapsed)
-                : 0,
-        lap:
-            RACE.lap,
-        checkpoint_index:
-            RACE.checkpointIndex,
-        completed_targets:
-            completedRaceTargets(),
-        distance_to_next:
-            Math.round(
-                Number.isFinite(distance)
-                    ? distance
-                    : 0
-            ),
-        splits:
-            RACE.splits.map(value =>
-                Math.round(value)
-            ),
-        valid:
-            RACE.valid === true,
-        vehicle:
-            RACE.vehicleLock
-                ? RACE.vehicleLock.display
-                : (
-                    LIVE.vehicleName ||
-                    LIVE.vehicle ||
-                    "Unknown"
-                ),
-        updated_at:
-            Date.now()
-    };
-}
-
-function broadcastLiveRaceState(force = false) {
-    const payload =
-        buildLiveRacePayload();
-
-    if (!payload) {
-        return;
-    }
-
-    const now =
-        Date.now();
-
-    if (
-        !force &&
-        (now - MULTI.lastLiveBroadcast) < 400
-    ) {
-        return;
-    }
-
-    MULTI.lastLiveBroadcast =
-        now;
-
-    shareServerData(
-        MULTI_KEYS.LIVE,
-        payload
-    );
-
-    setTimeout(() => {
-        if (
-            MULTI.active ||
-            RACE.multiplayer
-        ) {
-            requestMultiplayerSharedData();
-        }
-    }, 250);
-}
-
-function getLivePlayersForRun(runId) {
-    const entries =
-        freshSharedEntries(
-            parseSharedPlayers(
-                LIVE.players_pinki_races_live
-            ),
-            7000
-        );
-
-    const byId =
-        new Map();
-
-    entries.forEach(entry => {
-        if (
-            String(entry.run_id || "") !==
-            String(runId || "")
-        ) {
-            return;
-        }
-
-        const id =
-            String(
-                entry.user_id ||
-                entry._sharedKey ||
-                ""
-            );
-
-        if (!id) {
-            return;
-        }
-
-        const existing =
-            byId.get(id);
-
-        if (
-            !existing ||
-            Number(entry.updated_at || 0) >=
-            Number(existing.updated_at || 0)
-        ) {
-            byId.set(id, entry);
-        }
-    });
-
-    const local =
-        buildLiveRacePayload();
-
-    if (
-        local &&
-        String(local.run_id) ===
-        String(runId)
-    ) {
-        byId.set(
-            String(local.user_id),
-            local
-        );
-    }
-
-    return Array.from(
-        byId.values()
     );
 }
 
-function sortLiveRacePlayers(players) {
+function sortGoogleLivePlayers(players) {
     return [...players]
         .sort((a, b) => {
             const aFinished =
                 a.phase === "finished";
-
             const bFinished =
                 b.phase === "finished";
 
-            if (aFinished && bFinished) {
+            if (
+                aFinished &&
+                bFinished
+            ) {
                 return (
-                    Number(a.finished_ms || Infinity) -
-                    Number(b.finished_ms || Infinity)
+                    Number(
+                        a.finished_ms ||
+                        Infinity
+                    ) -
+                    Number(
+                        b.finished_ms ||
+                        Infinity
+                    )
                 );
             }
 
-            if (aFinished !== bFinished) {
-                return aFinished ? -1 : 1;
+            if (
+                aFinished !==
+                bFinished
+            ) {
+                return aFinished
+                    ? -1
+                    : 1;
             }
 
-            const progressDiff =
-                Number(b.completed_targets || 0) -
-                Number(a.completed_targets || 0);
+            const progress =
+                Number(
+                    b.completed_targets ||
+                    0
+                ) -
+                Number(
+                    a.completed_targets ||
+                    0
+                );
 
-            if (progressDiff !== 0) {
-                return progressDiff;
+            if (progress !== 0) {
+                return progress;
             }
 
-            const distanceDiff =
-                Number(a.distance_to_next || Infinity) -
-                Number(b.distance_to_next || Infinity);
+            const distance =
+                Number(
+                    a.distance_to_next ||
+                    Infinity
+                ) -
+                Number(
+                    b.distance_to_next ||
+                    Infinity
+                );
 
-            if (distanceDiff !== 0) {
-                return distanceDiff;
+            if (distance !== 0) {
+                return distance;
             }
 
             return (
-                Number(a.elapsed_ms || 0) -
-                Number(b.elapsed_ms || 0)
+                extrapolatedLiveTime(a) -
+                extrapolatedLiveTime(b)
             );
         });
 }
 
-function gapAgainstMe(player, me) {
+function liveGapToMe(player, me) {
     if (
-        !player ||
         !me ||
         String(player.user_id) ===
         String(me.user_id)
@@ -3913,17 +3824,6 @@ function gapAgainstMe(player, me) {
             text: "YOU",
             className: ""
         };
-    }
-
-    if (
-        player.phase === "finished" &&
-        me.phase === "finished"
-    ) {
-        const diff =
-            Number(player.finished_ms || 0) -
-            Number(me.finished_ms || 0);
-
-        return formatSignedGap(diff);
     }
 
     const playerSplits =
@@ -3936,32 +3836,69 @@ function gapAgainstMe(player, me) {
             ? me.splits
             : [];
 
-    const commonIndex =
+    const common =
         Math.min(
             playerSplits.length,
             mySplits.length
         ) - 1;
 
-    if (commonIndex >= 0) {
+    if (common >= 0) {
         const diff =
-            Number(playerSplits[commonIndex]) -
-            Number(mySplits[commonIndex]);
+            Number(
+                playerSplits[common]
+            ) -
+            Number(
+                mySplits[common]
+            );
 
-        return formatSignedGap(diff);
+        const seconds =
+            diff / 1000;
+
+        if (
+            Math.abs(seconds) <
+            0.005
+        ) {
+            return {
+                text: "±0.00s",
+                className: ""
+            };
+        }
+
+        if (seconds < 0) {
+            return {
+                text:
+                    `-${Math.abs(seconds).toFixed(2)}s`,
+                className:
+                    "ahead"
+            };
+        }
+
+        return {
+            text:
+                `+${seconds.toFixed(2)}s`,
+            className:
+                "behind"
+        };
     }
 
-    const progressDiff =
-        Number(player.completed_targets || 0) -
-        Number(me.completed_targets || 0);
+    const progress =
+        Number(
+            player.completed_targets ||
+            0
+        ) -
+        Number(
+            me.completed_targets ||
+            0
+        );
 
-    if (progressDiff > 0) {
+    if (progress > 0) {
         return {
             text: "AHEAD",
             className: "ahead"
         };
     }
 
-    if (progressDiff < 0) {
+    if (progress < 0) {
         return {
             text: "BEHIND",
             className: "behind"
@@ -3974,60 +3911,7 @@ function gapAgainstMe(player, me) {
     };
 }
 
-function formatSignedGap(diffMs) {
-    const seconds =
-        Number(diffMs || 0) / 1000;
-
-    if (
-        !Number.isFinite(seconds) ||
-        Math.abs(seconds) < 0.005
-    ) {
-        return {
-            text: "±0.00s",
-            className: ""
-        };
-    }
-
-    // Negative = this racer is in front of the local player.
-    if (seconds < 0) {
-        return {
-            text:
-                `-${Math.abs(seconds).toFixed(2)}s`,
-            className:
-                "ahead"
-        };
-    }
-
-    return {
-        text:
-            `+${seconds.toFixed(2)}s`,
-        className:
-            "behind"
-    };
-}
-
-function renderRaceStandings() {
-    if (
-        !RACE.multiplayer ||
-        !RACE.multiplayerRunId
-    ) {
-        return;
-    }
-
-    const players =
-        sortLiveRacePlayers(
-            getLivePlayersForRun(
-                RACE.multiplayerRunId
-            )
-        );
-
-    MULTI.livePlayers =
-        players;
-
-    if (!players.length) {
-        return;
-    }
-
+function renderGoogleStandings(players) {
     const hud =
         document.getElementById(
             "race-standings-hud"
@@ -4038,108 +3922,134 @@ function renderRaceStandings() {
             "race-standings-body"
         );
 
-    const lap =
+    const meta =
         document.getElementById(
-            "race-standings-lap"
+            "race-standings-meta"
         );
 
+    const rows =
+        sortGoogleLivePlayers(
+            Array.isArray(players)
+                ? players
+                : []
+        );
+
+    if (!rows.length) {
+        return;
+    }
+
     const me =
-        players.find(
+        rows.find(
             player =>
                 String(player.user_id) ===
                 String(LIVE.user_id)
-        ) || null;
+        );
 
     body.innerHTML = "";
 
-    players.forEach((player, index) => {
-        const row =
-            document.createElement("div");
+    rows.forEach(
+        (player, index) => {
+            const row =
+                document.createElement(
+                    "div"
+                );
 
-        row.className =
-            "race-standing-row" +
-            (
-                String(player.user_id) ===
-                String(LIVE.user_id)
-                    ? " me"
-                    : ""
-            );
+            row.className =
+                "race-standing-row" +
+                (
+                    String(player.user_id) ===
+                    String(LIVE.user_id)
+                        ? " me"
+                        : ""
+                );
 
-        const position =
-            document.createElement("div");
+            const pos =
+                document.createElement(
+                    "div"
+                );
 
-        position.className =
-            "race-standing-pos";
+            pos.className =
+                "standing-pos";
 
-        position.innerText =
-            String(index + 1);
+            pos.innerText =
+                String(index + 1);
 
-        const name =
-            document.createElement("div");
+            const name =
+                document.createElement(
+                    "div"
+                );
 
-        name.className =
-            "race-standing-name";
+            name.className =
+                "standing-name";
 
-        name.innerText =
-            player.name || "Unknown";
+            name.innerText =
+                player.player_name ||
+                "Unknown";
 
-        const time =
-            document.createElement("div");
+            const time =
+                document.createElement(
+                    "div"
+                );
 
-        time.className =
-            "race-standing-time";
+            time.className =
+                "standing-time";
 
-        time.innerText =
-            formatTime(
-                Number(
-                    player.phase === "finished"
-                        ? player.finished_ms
-                        : player.elapsed_ms
-                ) || 0
-            );
+            time.innerText =
+                formatTime(
+                    extrapolatedLiveTime(
+                        player
+                    )
+                );
 
-        const gap =
-            document.createElement("div");
+            const gap =
+                document.createElement(
+                    "div"
+                );
 
-        const gapInfo =
-            gapAgainstMe(
-                player,
-                me
-            );
+            const gapInfo =
+                liveGapToMe(
+                    player,
+                    me
+                );
 
-        gap.className =
-            `race-standing-gap ${gapInfo.className}`.trim();
+            gap.className =
+                `standing-gap ${gapInfo.className}`.trim();
 
-        gap.innerText =
-            gapInfo.text;
+            gap.innerText =
+                gapInfo.text;
 
-        row.appendChild(position);
-        row.appendChild(name);
-        row.appendChild(time);
-        row.appendChild(gap);
+            row.appendChild(pos);
+            row.appendChild(name);
+            row.appendChild(time);
+            row.appendChild(gap);
 
-        body.appendChild(row);
-    });
+            body.appendChild(row);
+        }
+    );
 
-    lap.innerText =
+    meta.innerText =
         RACE.course &&
-        RACE.course.raceType === "circuit"
+        RACE.course.raceType ===
+            "circuit"
             ? `LAP ${RACE.lap}/${RACE.course.laps}`
-            : `${players.length} RACERS`;
+            : `${rows.length} RACERS`;
 
     hud.style.display =
         "block";
-
-    maybeShowMultiplayerPodium(players);
 }
 
-function hideRaceStandings() {
+function hideGoogleStandings() {
     document.getElementById(
         "race-standings-hud"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 }
 
-function showPodiumOverlay(results, title, note = "") {
+function showPodiumHud(
+    rows,
+    title,
+    note = ""
+) {
     const hud =
         document.getElementById(
             "podium-hud"
@@ -4153,12 +4063,12 @@ function showPodiumOverlay(results, title, note = "") {
     document.getElementById(
         "podium-title"
     ).innerText =
-        title || "Race Results";
+        title;
 
     document.getElementById(
         "podium-note"
     ).innerText =
-        note || "";
+        note;
 
     body.innerHTML = "";
 
@@ -4168,56 +4078,76 @@ function showPodiumOverlay(results, title, note = "") {
         "🥉"
     ];
 
-    results
+    rows
         .slice(0, 3)
-        .forEach((result, index) => {
-            const row =
-                document.createElement("div");
+        .forEach(
+            (rowData, index) => {
+                const row =
+                    document.createElement(
+                        "div"
+                    );
 
-            row.className =
-                "podium-row";
+                row.className =
+                    "podium-row";
 
-            const medal =
-                document.createElement("div");
+                const medal =
+                    document.createElement(
+                        "div"
+                    );
 
-            medal.className =
-                "podium-medal";
+                medal.className =
+                    "podium-medal";
 
-            medal.innerText =
-                medals[index] || "";
+                medal.innerText =
+                    medals[index] || "";
 
-            const name =
-                document.createElement("div");
+                const name =
+                    document.createElement(
+                        "div"
+                    );
 
-            name.className =
-                "podium-name";
+                name.className =
+                    "podium-name";
 
-            name.innerText =
-                result.name ||
-                result.player_name ||
-                "Unknown";
+                name.innerText =
+                    rowData.player_name ||
+                    rowData.name ||
+                    "Unknown";
 
-            const time =
-                document.createElement("div");
+                const time =
+                    document.createElement(
+                        "div"
+                    );
 
-            time.className =
-                "podium-time";
+                time.className =
+                    "podium-time";
 
-            time.innerText =
-                formatTime(
-                    Number(
-                        result.finished_ms ??
-                        result.time_ms ??
-                        0
-                    )
+                time.innerText =
+                    formatTime(
+                        Number(
+                            rowData.finished_ms ??
+                            rowData.time_ms ??
+                            0
+                        )
+                    );
+
+                row.appendChild(
+                    medal
                 );
 
-            row.appendChild(medal);
-            row.appendChild(name);
-            row.appendChild(time);
+                row.appendChild(
+                    name
+                );
 
-            body.appendChild(row);
-        });
+                row.appendChild(
+                    time
+                );
+
+                body.appendChild(
+                    row
+                );
+            }
+        );
 
     hud.style.display =
         "block";
@@ -4228,136 +4158,80 @@ function showPodiumOverlay(results, title, note = "") {
     }, 12000);
 }
 
-function maybeShowMultiplayerPodium(players) {
+function maybeShowGooglePodium(players) {
     if (
-        !RACE.multiplayer ||
-        !RACE.multiplayerRunId ||
-        MULTI.podiumShownForRun ===
-            RACE.multiplayerRunId
+        MULTI.podiumShown ||
+        !MULTI.participants.length
     ) {
         return;
     }
 
-    const participantIds =
+    const participantSet =
         new Set(
-            (
-                RACE.multiplayerParticipants ||
-                []
-            ).map(String)
+            MULTI.participants.map(
+                String
+            )
         );
 
     const relevant =
-        players.filter(player =>
-            !participantIds.size ||
-            participantIds.has(
-                String(player.user_id)
-            )
+        players.filter(
+            player =>
+                participantSet.has(
+                    String(
+                        player.user_id
+                    )
+                )
         );
 
-    if (!relevant.length) {
-        return;
-    }
-
-    const allFinished =
-        participantIds.size
-            ? (
-                relevant.filter(
-                    player =>
-                        player.phase === "finished"
-                ).length >=
-                participantIds.size
-            )
-            : relevant.every(
-                player =>
-                    player.phase === "finished"
-            );
-
-    if (!allFinished) {
-        return;
-    }
-
     const finished =
-        relevant
-            .filter(
-                player =>
-                    player.phase === "finished"
-            )
-            .sort(
-                (a, b) =>
-                    Number(a.finished_ms) -
-                    Number(b.finished_ms)
-            );
+        relevant.filter(
+            player =>
+                player.phase ===
+                "finished"
+        );
 
-    MULTI.podiumShownForRun =
-        RACE.multiplayerRunId;
+    if (
+        finished.length <
+        participantSet.size
+    ) {
+        return;
+    }
 
-    hideRaceStandings();
+    const sorted =
+        finished.sort(
+            (a, b) =>
+                Number(
+                    a.finished_ms
+                ) -
+                Number(
+                    b.finished_ms
+                )
+        );
 
-    showPodiumOverlay(
-        finished,
+    MULTI.podiumShown =
+        true;
+
+    hideGoogleStandings();
+
+    showPodiumHud(
+        sorted,
         `${RACE.course ? RACE.course.name : "Race"} • Final Results`,
-        `${finished.length} racer${finished.length === 1 ? "" : "s"} finished`
+        `${sorted.length} racer${sorted.length === 1 ? "" : "s"} finished`
     );
 }
-
-function clearMultiplayerRunState() {
-    MULTI.active = false;
-    MULTI.finishedAt = 0;
-
-    stopMultiplayerSharedRefresh();
-
-    RACE.multiplayer = false;
-    RACE.multiplayerRunId = "";
-    RACE.multiplayerParticipants = [];
-
-    hideRaceStandings();
-}
-
-function processMultiplayerSharedData() {
-    updateMultiplayerLobby();
-
-    if (
-        RACE.multiplayer &&
-        RACE.multiplayerRunId
-    ) {
-        renderRaceStandings();
-    }
-}
-
-setInterval(() => {
-    if (MULTI.joined) {
-        broadcastLobbyState();
-    }
-
-    if (
-        RACE.multiplayer &&
-        (
-            RACE.phase === "racing" ||
-            RACE.phase === "finished"
-        )
-    ) {
-        broadcastLiveRaceState();
-        renderRaceStandings();
-    }
-
-    if (
-        MULTI.joined &&
-        MULTI.countdownSeq &&
-        !MULTI.active
-    ) {
-        updateMultiplayerPrestartOverlay();
-    }
-}, 250);
 
 // -----------------------------
 // Race lifecycle
 // -----------------------------
 function armRace() {
     if (MULTI.joined) {
-        leaveMultiplayerLobby(true);
+        leaveGoogleLobby(true);
     }
 
-    clearMultiplayerRunState();
+    RACE.multiplayer = false;
+    RACE.multiplayerRunId = "";
+    RACE.multiplayerParticipants = [];
+    hideGoogleStandings();
 
     if (RACE.phase !== "idle" && RACE.phase !== "finished") {
         toast("A race is already armed or running.", "bad");
@@ -4660,27 +4534,8 @@ function startRace() {
 
     document.getElementById("split-line").innerText =
         RACE.valid
-            ? (
-                RACE.multiplayer
-                    ? "Multiplayer race started."
-                    : "Race started."
-            )
+            ? "Race started."
             : `Race started invalid: ${RACE.invalidReason}`;
-
-    if (RACE.multiplayer) {
-        MULTI.active = true;
-        MULTI.runId =
-            RACE.multiplayerRunId;
-
-        startMultiplayerSharedRefresh();
-
-        // The live run replaces lobby state.
-        MULTI.ready = false;
-
-        broadcastLobbyLeave();
-        broadcastLiveRaceState(true);
-        renderRaceStandings();
-    }
 
     showTargetBlip();
 }
@@ -4700,9 +4555,7 @@ function invalidateRace(reason) {
 
 function cancelRace(reason = "Race cancelled") {
     const wasMultiplayer =
-        RACE.multiplayer ||
-        MULTI.joined ||
-        MULTI.active;
+        RACE.multiplayer;
 
     RACE.countdownToken += 1;
     RACE.phase = "idle";
@@ -4724,11 +4577,9 @@ function cancelRace(reason = "Race cancelled") {
     RACE.multiplayerParticipants = [];
 
     if (wasMultiplayer) {
-        leaveMultiplayerLobby(true);
-        MULTI.active = false;
-        MULTI.runId = "";
-        hideRaceStandings();
-        stopMultiplayerSharedRefresh();
+        MULTI.state = "finished";
+        pollGoogleMultiplayer(true);
+        hideGoogleStandings();
     }
 
     document.getElementById("countdown-overlay").style.display = "none";
@@ -4775,7 +4626,7 @@ function finishRace() {
 
     const result = buildResult(elapsed);
 
-    // Remove ALL race navigation, including the old numbered Start blip.
+    // Remove every race navigation blip, including the numbered Start "0".
     clearRaceBlips();
 
     hideCheckpointBeacon();
@@ -4824,31 +4675,22 @@ function finishRace() {
     }
 
     if (RACE.multiplayer) {
-        MULTI.finishedAt =
-            Date.now();
+        MULTI.state =
+            "finished";
 
-        broadcastLiveRaceState(true);
-        renderRaceStandings();
+        MULTI.finishedAtPerf =
+            RACE.finishedAtPerf;
 
-        // Keep the live table visible while other racers finish.
-        // Final gold/silver/bronze podium appears when every lobby entrant finishes.
+        pollGoogleMultiplayer(
+            true
+        );
+
+        renderGoogleStandings(
+            MULTI.latestLive
+        );
     } else {
-        hideRaceStandings();
-
-        showPodiumOverlay(
-            [
-                {
-                    name:
-                        LIVE.name ||
-                        "You",
-                    finished_ms:
-                        elapsed
-                }
-            ],
-            `${RACE.course.name} • Finish`,
-            result.validity === "valid"
-                ? "Single-player result"
-                : `Invalid: ${result.invalid_reason}`
+        showSinglePlayerPodium(
+            result
         );
     }
 }
@@ -4976,8 +4818,13 @@ function tickRace() {
 
     updateCheckpointBeacon(target, distance);
 
-    if (RACE.multiplayer) {
-        broadcastLiveRaceState();
+    if (
+        RACE.multiplayer &&
+        MULTI.latestLive.length
+    ) {
+        renderGoogleStandings(
+            MULTI.latestLive
+        );
     }
 
     const completed =
@@ -5100,6 +4947,57 @@ function getPersonalBestText(raceId) {
     return valid.length
         ? formatTime(Number(valid[0].time_ms))
         : "--";
+}
+
+async function showSinglePlayerPodium(result) {
+    let rows =
+        localLeaderboard(
+            result.race_id
+        );
+
+    showPodiumHud(
+        rows.length
+            ? rows
+            : [result],
+        `${result.race_name} • Results`,
+        "Single-player leaderboard"
+    );
+
+    if (!GOOGLE_SCRIPT_URL) {
+        return;
+    }
+
+    try {
+        const url =
+            `${GOOGLE_SCRIPT_URL}?action=leaderboard&raceId=${encodeURIComponent(result.race_id)}&limit=3&_=${Date.now()}`;
+
+        const data =
+            await googleJsonRequest(
+                url,
+                {
+                    method: "GET",
+                    cache: "no-store"
+                }
+            );
+
+        const remoteRows =
+            Array.isArray(
+                data.results
+            )
+                ? data.results
+                : [];
+
+        if (remoteRows.length) {
+            showPodiumHud(
+                remoteRows,
+                `${result.race_name} • Top 3`,
+                "Global leaderboard"
+            );
+        }
+
+    } catch (e) {
+        // Local podium is already visible; remote failure is non-fatal.
+    }
 }
 
 async function submitRemoteResult(result) {
@@ -6223,7 +6121,6 @@ window.addEventListener("load", () => {
     applyBuilderAccess();
     loadCourses();
     renderBuilder();
-    updateMultiplayerLobby();
 
     // Initialize Builder controls only.
     // Do not perform an authorization check before TT has supplied user_id.
