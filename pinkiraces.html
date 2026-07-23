@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.14</title>
+    <title>PinkiRaces v1.15</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -506,6 +506,8 @@
         #countdown-text {
             font: 900 6em 'Rajdhani', sans-serif;
             color: white;
+            white-space: pre-line;
+            text-align: center;
             text-shadow: 0 0 25px var(--primary), 0 4px 12px black;
             animation: pop .35s ease;
         }
@@ -576,6 +578,191 @@
         }
 
         .leader-table tr.me { background: rgba(255,64,129,.08); }
+
+        /* --- MULTIPLAYER LOBBY --- */
+        .lobby-list {
+            margin-top: 7px;
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .lobby-player {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+            font-size: .76em;
+        }
+
+        .lobby-player:last-child {
+            border-bottom: none;
+        }
+
+        .lobby-player.me {
+            background: rgba(255,64,129,.08);
+        }
+
+        .lobby-ready {
+            color: var(--green);
+            font: 900 .72em 'Rajdhani', sans-serif;
+            letter-spacing: .7px;
+        }
+
+        .lobby-waiting {
+            color: var(--dim);
+            font: 800 .72em 'Rajdhani', sans-serif;
+            letter-spacing: .7px;
+        }
+
+        /* --- LIVE MULTIPLAYER STANDINGS HUD --- */
+        #race-standings-hud {
+            position: absolute;
+            top: 2.5%;
+            left: 1.25%;
+            z-index: 4450;
+            width: min(350px, 34vw);
+            display: none;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.30);
+            border: 1px solid rgba(255,255,255,.16);
+            border-radius: 7px;
+            overflow: hidden;
+            box-shadow: 0 5px 18px rgba(0,0,0,.18);
+            backdrop-filter: blur(1px);
+        }
+
+        #race-standings-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: rgba(0,0,0,.20);
+            border-bottom: 1px solid rgba(255,255,255,.10);
+            font: 900 .76em 'Rajdhani', sans-serif;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        #race-standings-body {
+            width: 100%;
+        }
+
+        .race-standing-row {
+            display: grid;
+            grid-template-columns: 28px minmax(80px,1fr) 76px 66px;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 7px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            font-size: .72em;
+            text-shadow: 0 1px 2px rgba(0,0,0,.85);
+        }
+
+        .race-standing-row:last-child {
+            border-bottom: none;
+        }
+
+        .race-standing-row.me {
+            background: rgba(255,64,129,.14);
+        }
+
+        .race-standing-pos {
+            color: var(--accent);
+            font: 900 1.05em 'Rajdhani', sans-serif;
+            text-align: center;
+        }
+
+        .race-standing-name {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            font-weight: 700;
+        }
+
+        .race-standing-time {
+            color: var(--green);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .race-standing-gap {
+            color: #fff;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .race-standing-gap.ahead {
+            color: #64b5f6;
+        }
+
+        .race-standing-gap.behind {
+            color: #ffca6b;
+        }
+
+        /* --- FINAL PODIUM HUD --- */
+        #podium-hud {
+            position: absolute;
+            top: 3%;
+            left: 1.25%;
+            z-index: 4700;
+            width: min(365px, 36vw);
+            display: none;
+            pointer-events: none;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(0,0,0,.32);
+            border: 1px solid rgba(255,255,255,.17);
+            box-shadow: 0 8px 24px rgba(0,0,0,.28);
+        }
+
+        #podium-title {
+            color: var(--accent);
+            font: 900 .92em 'Rajdhani', sans-serif;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .podium-row {
+            display: grid;
+            grid-template-columns: 32px 1fr auto;
+            gap: 7px;
+            align-items: center;
+            padding: 6px 5px;
+            border-top: 1px solid rgba(255,255,255,.07);
+            font-size: .78em;
+        }
+
+        .podium-medal {
+            font-size: 1.35em;
+            text-align: center;
+        }
+
+        .podium-name {
+            font-weight: 800;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .podium-time {
+            color: var(--green);
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .podium-note {
+            margin-top: 6px;
+            color: var(--dim);
+            font-size: .68em;
+        }
 
         .builder-list {
             max-height: 150px;
@@ -659,6 +846,20 @@
 
 <div id="countdown-overlay">
     <div id="countdown-text">3</div>
+</div>
+
+<div id="race-standings-hud">
+    <div id="race-standings-title">
+        <span>LIVE RACE</span>
+        <span id="race-standings-lap">--</span>
+    </div>
+    <div id="race-standings-body"></div>
+</div>
+
+<div id="podium-hud">
+    <div id="podium-title">Race Results</div>
+    <div id="podium-body"></div>
+    <div class="podium-note" id="podium-note"></div>
 </div>
 
 <div id="race-app">
@@ -787,6 +988,39 @@
 
                 <div class="btn-row">
                     <button class="btn danger" id="cancel-btn" onclick="cancelRace('Race cancelled')" disabled>CANCEL</button>
+                </div>
+            </div>
+
+            <div class="card" id="multiplayer-lobby-card">
+                <div class="card-title">
+                    <span>Multiplayer Lobby</span>
+                    <span id="lobby-status-pill" class="status-pill">OFFLINE</span>
+                </div>
+
+                <div class="tiny muted" id="lobby-help">
+                    Join while you are at the selected race start. A majority Ready vote starts a 15-second race countdown.
+                </div>
+
+                <div class="race-summary" style="margin-top:7px;">
+                    <div class="stat">
+                        <div class="stat-label">In Lobby</div>
+                        <div class="stat-value" id="lobby-count">0</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-label">Ready Vote</div>
+                        <div class="stat-value" id="lobby-ready-count">0 / 0</div>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn primary" id="lobby-join-btn" onclick="joinMultiplayerLobby()">JOIN LOBBY</button>
+                    <button class="btn good" id="lobby-ready-btn" onclick="toggleLobbyReady()" disabled>READY</button>
+                    <button class="btn danger" id="lobby-leave-btn" onclick="leaveMultiplayerLobby()" disabled>LEAVE</button>
+                </div>
+
+                <div class="lobby-list" id="lobby-player-list">
+                    <div class="tiny muted" style="padding:7px;">No racers in this lobby yet.</div>
                 </div>
             </div>
 
@@ -930,7 +1164,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.14.0";
+const APP_VERSION = "1.15.0";
 
 /*
     Client-side builder visibility allowlist.
@@ -986,7 +1220,11 @@ const DATA_KEYS = [
     "car", "speed", "engine", "fuel",
     "pos_x", "pos_y", "pos_z", "pos_h",
     "zone", "zoneName", "street",
-    "pinned", "focused", "tabbed"
+    "pinned", "focused", "tabbed",
+
+    // TT shareServerData aggregates each player's value under players_<key>.
+    "players_pinki_races_lobby",
+    "players_pinki_races_live"
 ];
 
 let LIVE = {
@@ -1003,7 +1241,10 @@ let LIVE = {
     pos_y: null,
     pos_z: null,
     pos_h: 0,
-    cam_heading: 0
+    cam_heading: 0,
+
+    players_pinki_races_lobby: null,
+    players_pinki_races_live: null
 };
 
 let COURSES = [];
@@ -1030,7 +1271,11 @@ let RACE = {
     distanceTravelled: 0,
     lastPos: null,
     countdownToken: 0,
-    countdownStartPos: null
+    countdownStartPos: null,
+
+    multiplayer: false,
+    multiplayerRunId: "",
+    multiplayerParticipants: []
 };
 
 let NAV = {
@@ -1040,6 +1285,38 @@ let NAV = {
     smoothedBearingX: 0,
     smoothedBearingY: 0,
     targetKey: ""
+};
+
+
+let MULTI = {
+    joined: false,
+    ready: false,
+    raceId: "",
+    joinedAt: 0,
+
+    // Host-controlled start sequence.
+    countdownSeq: "",
+    countdownThreeAt: 0,
+    participants: [],
+
+    // Current multiplayer run.
+    runId: "",
+    active: false,
+    finishedAt: 0,
+
+    // Parsed network snapshots.
+    lobbyPlayers: [],
+    livePlayers: [],
+
+    lastLobbyBroadcast: 0,
+    lastLiveBroadcast: 0,
+    lastLobbyRender: 0,
+    podiumShownForRun: ""
+};
+
+const MULTI_KEYS = {
+    LOBBY: "pinki_races_lobby",
+    LIVE: "pinki_races_live"
 };
 
 
@@ -1060,6 +1337,120 @@ function postTT(payload) {
             window.parent.postMessage(payload, "*");
         }
     } catch (e) {}
+}
+
+function shareServerData(key, value) {
+    postTT({
+        type: "shareServerData",
+        key: key,
+        value:
+            typeof value === "string"
+                ? value
+                : JSON.stringify(value)
+    });
+}
+
+function unwrapSharedValue(value) {
+    let current = value;
+
+    // Be tolerant of wrapper shapes used by different TT UI updates.
+    for (let i = 0; i < 3; i += 1) {
+        if (
+            current &&
+            typeof current === "object" &&
+            !Array.isArray(current) &&
+            current.value !== undefined
+        ) {
+            current = current.value;
+            continue;
+        }
+
+        break;
+    }
+
+    if (typeof current === "string") {
+        return safeJsonParse(current, null);
+    }
+
+    return current;
+}
+
+function parseSharedPlayers(raw) {
+    if (!raw) {
+        return [];
+    }
+
+    let value = raw;
+
+    if (typeof value === "string") {
+        value = safeJsonParse(value, null);
+    }
+
+    if (!value) {
+        return [];
+    }
+
+    const entries = [];
+
+    if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+            const parsed = unwrapSharedValue(item);
+
+            if (parsed && typeof parsed === "object") {
+                entries.push({
+                    ...parsed,
+                    _sharedKey: String(parsed.user_id || index)
+                });
+            }
+        });
+
+        return entries;
+    }
+
+    if (typeof value !== "object") {
+        return [];
+    }
+
+    const source =
+        value.players &&
+        typeof value.players === "object"
+            ? value.players
+            : value;
+
+    Object.entries(source).forEach(([key, item]) => {
+        const parsed = unwrapSharedValue(item);
+
+        if (
+            parsed &&
+            typeof parsed === "object"
+        ) {
+            entries.push({
+                ...parsed,
+                _sharedKey: String(key)
+            });
+        }
+    });
+
+    return entries;
+}
+
+function freshSharedEntries(entries, maxAgeMs = 6500) {
+    const now = Date.now();
+
+    return entries.filter(entry => {
+        if (!entry || entry.active === false) {
+            return false;
+        }
+
+        const updated =
+            Number(entry.updated_at || 0);
+
+        if (!updated) {
+            return true;
+        }
+
+        return (now - updated) <= maxAgeMs;
+    });
 }
 
 function ttNotify(text) {
@@ -1963,6 +2354,7 @@ window.addEventListener("message", event => {
 
     applyBuilderAccess();
     updateLiveIdentity();
+    processMultiplayerSharedData();
 });
 
 function updateLiveIdentity() {
@@ -2002,6 +2394,8 @@ function updateStartDistance() {
     }
 
     el.innerText = `${Math.round(dist2D(pos, course.start))} m`;
+
+    updateMultiplayerLobby();
 }
 
 // -----------------------------
@@ -2168,6 +2562,15 @@ function removeSelectedLocalCourse() {
 
 function onRaceSelected() {
     const course = getSelectedRace();
+
+    if (
+        MULTI.joined &&
+        course &&
+        MULTI.raceId &&
+        String(course.id) !== String(MULTI.raceId)
+    ) {
+        leaveMultiplayerLobby(true);
+    }
     const description = document.getElementById("race-description");
     const headerSub = document.getElementById("header-sub");
 
@@ -2234,15 +2637,36 @@ function setValidity(text, cssClass = "") {
 // Blips / routing
 // -----------------------------
 function clearRaceBlips() {
-    postTT({
-        type: "removeBlip",
-        id: BLIP_IDS.START
+    [BLIP_IDS.START, BLIP_IDS.NEXT].forEach(id => {
+        // Route and displayed number are explicitly disabled before removal.
+        // This prevents the old yellow "0" start marker surviving a finish.
+        postTT({
+            type: "setBlipRoute",
+            id: id,
+            route: false
+        });
+
+        postTT({
+            type: "hideNumberOnBlip",
+            id: id
+        });
+
+        postTT({
+            type: "removeBlip",
+            id: id
+        });
     });
 
-    postTT({
-        type: "removeBlip",
-        id: BLIP_IDS.NEXT
-    });
+    // A second removal pass handles clients that process route removal
+    // and blip removal on adjacent UI ticks.
+    setTimeout(() => {
+        [BLIP_IDS.START, BLIP_IDS.NEXT].forEach(id => {
+            postTT({
+                type: "removeBlip",
+                id: id
+            });
+        });
+    }, 120);
 }
 
 function showStartBlip(course) {
@@ -2397,9 +2821,1455 @@ function showTargetBlip() {
 }
 
 // -----------------------------
+// Multiplayer lobby / live race
+// -----------------------------
+function selectedLobbyCourse() {
+    const course = getSelectedRace();
+
+    if (!course) {
+        return null;
+    }
+
+    return course;
+}
+
+function lobbyStartDistance(course) {
+    const pos = livePos();
+
+    if (!course || !pos) {
+        return Infinity;
+    }
+
+    return dist2D(pos, course.start);
+}
+
+function getLobbyPlayersForRace(raceId) {
+    const entries =
+        freshSharedEntries(
+            parseSharedPlayers(
+                LIVE.players_pinki_races_lobby
+            ),
+            6500
+        );
+
+    const byId = new Map();
+
+    entries.forEach(entry => {
+        if (
+            String(entry.race_id || "") !==
+            String(raceId || "")
+        ) {
+            return;
+        }
+
+        if (
+            entry.phase !== "lobby" &&
+            entry.phase !== "countdown"
+        ) {
+            return;
+        }
+
+        const id =
+            String(
+                entry.user_id ||
+                entry._sharedKey ||
+                ""
+            );
+
+        if (!id) {
+            return;
+        }
+
+        const existing =
+            byId.get(id);
+
+        if (
+            !existing ||
+            Number(entry.updated_at || 0) >=
+            Number(existing.updated_at || 0)
+        ) {
+            byId.set(id, entry);
+        }
+    });
+
+    // Always include our local state immediately, without waiting for echo.
+    if (
+        MULTI.joined &&
+        String(MULTI.raceId) === String(raceId) &&
+        LIVE.user_id !== null
+    ) {
+        byId.set(
+            String(LIVE.user_id),
+            buildLocalLobbyPayload()
+        );
+    }
+
+    return Array.from(byId.values())
+        .sort((a, b) => {
+            const joinedA =
+                Number(a.joined_at || 0);
+
+            const joinedB =
+                Number(b.joined_at || 0);
+
+            if (joinedA !== joinedB) {
+                return joinedA - joinedB;
+            }
+
+            return (
+                Number(a.user_id || 0) -
+                Number(b.user_id || 0)
+            );
+        });
+}
+
+function lobbyHost(players) {
+    if (!players.length) {
+        return null;
+    }
+
+    return [...players]
+        .sort((a, b) => {
+            const joinedA =
+                Number(a.joined_at || 0);
+
+            const joinedB =
+                Number(b.joined_at || 0);
+
+            if (joinedA !== joinedB) {
+                return joinedA - joinedB;
+            }
+
+            return (
+                Number(a.user_id || 0) -
+                Number(b.user_id || 0)
+            );
+        })[0];
+}
+
+function majorityNeeded(totalPlayers) {
+    return Math.floor(totalPlayers / 2) + 1;
+}
+
+function buildLocalLobbyPayload() {
+    return {
+        protocol: 1,
+        active: MULTI.joined === true,
+        race_id: MULTI.raceId,
+        user_id: LIVE.user_id,
+        source: LIVE.source,
+        name: LIVE.name || "Unknown",
+        vehicle:
+            LIVE.vehicleName ||
+            LIVE.vehicle ||
+            "Unknown",
+        ready: MULTI.ready === true,
+        joined_at: MULTI.joinedAt,
+        phase:
+            MULTI.countdownSeq
+                ? "countdown"
+                : "lobby",
+        countdown_seq:
+            MULTI.countdownSeq || "",
+        countdown_three_at:
+            MULTI.countdownThreeAt || 0,
+        participants:
+            Array.isArray(MULTI.participants)
+                ? MULTI.participants
+                : [],
+        updated_at: Date.now()
+    };
+}
+
+function broadcastLobbyState(force = false) {
+    if (!MULTI.joined) {
+        return;
+    }
+
+    const now = Date.now();
+
+    if (
+        !force &&
+        (now - MULTI.lastLobbyBroadcast) < 850
+    ) {
+        return;
+    }
+
+    MULTI.lastLobbyBroadcast = now;
+
+    shareServerData(
+        MULTI_KEYS.LOBBY,
+        buildLocalLobbyPayload()
+    );
+}
+
+function broadcastLobbyLeave() {
+    shareServerData(
+        MULTI_KEYS.LOBBY,
+        {
+            protocol: 1,
+            active: false,
+            race_id: MULTI.raceId || "",
+            user_id: LIVE.user_id,
+            source: LIVE.source,
+            name: LIVE.name || "Unknown",
+            ready: false,
+            phase: "left",
+            updated_at: Date.now()
+        }
+    );
+}
+
+function joinMultiplayerLobby() {
+    if (
+        RACE.phase === "countdown" ||
+        RACE.phase === "racing"
+    ) {
+        toast(
+            "Finish or cancel the current race first.",
+            "bad"
+        );
+
+        return;
+    }
+
+    const course =
+        selectedLobbyCourse();
+
+    const pos =
+        livePos();
+
+    if (!course || !pos) {
+        toast(
+            "Select a race and wait for position data.",
+            "bad"
+        );
+
+        return;
+    }
+
+    if (LIVE.vehicle === "onFoot") {
+        toast(
+            "Enter the vehicle you intend to race before joining.",
+            "bad"
+        );
+
+        return;
+    }
+
+    const distance =
+        lobbyStartDistance(course);
+
+    const joinRadius =
+        Math.max(
+            Number(course.start.radius || 18),
+            25
+        );
+
+    if (distance > joinRadius) {
+        routeToStart();
+
+        toast(
+            `Move to the start area before joining the lobby (${Math.round(distance)} m away).`,
+            "info",
+            3600
+        );
+
+        return;
+    }
+
+    MULTI.joined = true;
+    MULTI.ready = false;
+    MULTI.raceId = String(course.id);
+    MULTI.joinedAt = Date.now();
+    MULTI.countdownSeq = "";
+    MULTI.countdownThreeAt = 0;
+    MULTI.participants = [];
+    MULTI.runId = "";
+    MULTI.active = false;
+
+    document.getElementById("lobby-join-btn").disabled = true;
+    document.getElementById("lobby-ready-btn").disabled = false;
+    document.getElementById("lobby-leave-btn").disabled = false;
+
+    setLobbyStatus("LOBBY", "ready");
+
+    broadcastLobbyState(true);
+    updateMultiplayerLobby();
+
+    toast(
+        `Joined ${course.name} multiplayer lobby.`,
+        "good"
+    );
+}
+
+function leaveMultiplayerLobby(silent = false) {
+    if (MULTI.joined) {
+        broadcastLobbyLeave();
+    }
+
+    MULTI.joined = false;
+    MULTI.ready = false;
+    MULTI.raceId = "";
+    MULTI.joinedAt = 0;
+    MULTI.countdownSeq = "";
+    MULTI.countdownThreeAt = 0;
+    MULTI.participants = [];
+
+    document.getElementById("lobby-join-btn").disabled = false;
+    document.getElementById("lobby-ready-btn").disabled = true;
+    document.getElementById("lobby-leave-btn").disabled = true;
+    document.getElementById("lobby-ready-btn").innerText = "READY";
+
+    setLobbyStatus("OFFLINE");
+    updateMultiplayerLobby();
+
+    if (!silent) {
+        toast(
+            "Left multiplayer lobby.",
+            "info"
+        );
+    }
+}
+
+function toggleLobbyReady() {
+    if (!MULTI.joined) {
+        return;
+    }
+
+    const course =
+        COURSES.find(
+            item =>
+                String(item.id) ===
+                String(MULTI.raceId)
+        );
+
+    if (!course) {
+        leaveMultiplayerLobby(true);
+        return;
+    }
+
+    if (!MULTI.ready) {
+        const distance =
+            lobbyStartDistance(course);
+
+        const readyRadius =
+            Math.max(
+                Number(course.start.radius || 18),
+                20
+            );
+
+        if (distance > readyRadius) {
+            toast(
+                `Return to the start area before marking Ready (${Math.round(distance)} m away).`,
+                "bad",
+                3600
+            );
+
+            return;
+        }
+
+        if (LIVE.vehicle === "onFoot") {
+            toast(
+                "Enter your race vehicle before marking Ready.",
+                "bad"
+            );
+
+            return;
+        }
+    }
+
+    MULTI.ready =
+        !MULTI.ready;
+
+    document.getElementById("lobby-ready-btn").innerText =
+        MULTI.ready
+            ? "UNREADY"
+            : "READY";
+
+    broadcastLobbyState(true);
+    updateMultiplayerLobby();
+}
+
+function setLobbyStatus(text, cssClass = "") {
+    const pill =
+        document.getElementById("lobby-status-pill");
+
+    pill.innerText = text;
+    pill.className =
+        `status-pill ${cssClass}`.trim();
+}
+
+function renderLobbyPlayers(players) {
+    const container =
+        document.getElementById("lobby-player-list");
+
+    container.innerHTML = "";
+
+    if (!players.length) {
+        container.innerHTML =
+            '<div class="tiny muted" style="padding:7px;">No racers in this lobby yet.</div>';
+
+        return;
+    }
+
+    players.forEach(player => {
+        const row =
+            document.createElement("div");
+
+        row.className =
+            "lobby-player" +
+            (
+                String(player.user_id) ===
+                String(LIVE.user_id)
+                    ? " me"
+                    : ""
+            );
+
+        const name =
+            document.createElement("div");
+
+        name.innerText =
+            `${player.name || "Unknown"} (#${player.user_id || "?"})`;
+
+        const state =
+            document.createElement("div");
+
+        state.className =
+            player.ready
+                ? "lobby-ready"
+                : "lobby-waiting";
+
+        state.innerText =
+            player.ready
+                ? "READY"
+                : "WAITING";
+
+        row.appendChild(name);
+        row.appendChild(state);
+
+        container.appendChild(row);
+    });
+}
+
+function updateMultiplayerLobby() {
+    const selected =
+        getSelectedRace();
+
+    const raceId =
+        MULTI.joined
+            ? MULTI.raceId
+            : (selected ? selected.id : "");
+
+    const players =
+        raceId
+            ? getLobbyPlayersForRace(raceId)
+            : [];
+
+    MULTI.lobbyPlayers =
+        players;
+
+    const readyCount =
+        players.filter(
+            player => player.ready === true
+        ).length;
+
+    const majority =
+        players.length
+            ? majorityNeeded(players.length)
+            : 0;
+
+    document.getElementById("lobby-count").innerText =
+        String(players.length);
+
+    document.getElementById("lobby-ready-count").innerText =
+        players.length
+            ? `${readyCount} / ${players.length} • ${majority} needed`
+            : "0 / 0";
+
+    renderLobbyPlayers(players);
+
+    if (!MULTI.joined) {
+        setLobbyStatus(
+            players.length
+                ? "OPEN"
+                : "OFFLINE",
+            players.length
+                ? "ready"
+                : ""
+        );
+
+        return;
+    }
+
+    if (MULTI.countdownSeq) {
+        setLobbyStatus(
+            "STARTING",
+            "racing"
+        );
+    } else {
+        setLobbyStatus(
+            MULTI.ready
+                ? "READY"
+                : "LOBBY",
+            MULTI.ready
+                ? "racing"
+                : "ready"
+        );
+    }
+
+    maybeStartLobbyCountdown(players);
+    adoptLobbyCountdown(players);
+}
+
+function maybeStartLobbyCountdown(players) {
+    if (
+        !MULTI.joined ||
+        MULTI.countdownSeq ||
+        players.length < 2
+    ) {
+        return;
+    }
+
+    const host =
+        lobbyHost(players);
+
+    if (
+        !host ||
+        String(host.user_id) !==
+        String(LIVE.user_id)
+    ) {
+        return;
+    }
+
+    const readyCount =
+        players.filter(
+            player => player.ready === true
+        ).length;
+
+    const needed =
+        majorityNeeded(players.length);
+
+    if (readyCount < needed) {
+        return;
+    }
+
+    MULTI.countdownSeq =
+        `${MULTI.raceId}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+
+    // 15 seconds of "Race is starting", then the existing 3-2-1 countdown.
+    MULTI.countdownThreeAt =
+        Date.now() + 15000;
+
+    MULTI.participants =
+        players.map(player =>
+            String(player.user_id)
+        );
+
+    broadcastLobbyState(true);
+
+    toast(
+        `Majority Ready (${readyCount}/${players.length}). Race starts in 15 seconds.`,
+        "good",
+        4200
+    );
+}
+
+function adoptLobbyCountdown(players) {
+    if (
+        !MULTI.joined ||
+        MULTI.active
+    ) {
+        return;
+    }
+
+    const host =
+        lobbyHost(players);
+
+    if (
+        !host ||
+        !host.countdown_seq ||
+        !Number(host.countdown_three_at)
+    ) {
+        return;
+    }
+
+    if (
+        MULTI.countdownSeq !==
+        String(host.countdown_seq)
+    ) {
+        MULTI.countdownSeq =
+            String(host.countdown_seq);
+
+        MULTI.countdownThreeAt =
+            Number(host.countdown_three_at);
+
+        MULTI.participants =
+            Array.isArray(host.participants)
+                ? host.participants.map(String)
+                : players.map(player =>
+                    String(player.user_id)
+                );
+
+        prepareMultiplayerPrestart(
+            MULTI.countdownSeq
+        );
+    }
+
+    updateMultiplayerPrestartOverlay();
+}
+
+function prepareMultiplayerPrestart(runId) {
+    if (
+        RACE.phase === "racing" ||
+        RACE.phase === "countdown"
+    ) {
+        return;
+    }
+
+    const course =
+        COURSES.find(
+            item =>
+                String(item.id) ===
+                String(MULTI.raceId)
+        );
+
+    const pos =
+        livePos();
+
+    if (!course || !pos) {
+        return;
+    }
+
+    RACE.phase =
+        "multiplayer_wait";
+
+    RACE.course =
+        JSON.parse(
+            JSON.stringify(course)
+        );
+
+    RACE.checkpointIndex = 0;
+    RACE.lap = 1;
+    RACE.lapSplits = [];
+    RACE.splits = [];
+    RACE.valid = true;
+    RACE.invalidReason = "";
+    RACE.distanceTravelled = 0;
+    RACE.lastPos = pos;
+    RACE.vehicleLock =
+        captureVehicle();
+
+    RACE.multiplayer = true;
+    RACE.multiplayerRunId =
+        String(runId);
+
+    RACE.multiplayerParticipants =
+        [...MULTI.participants];
+
+    MULTI.runId =
+        String(runId);
+
+    MULTI.active = false;
+    MULTI.finishedAt = 0;
+
+    document.getElementById("locked-vehicle").innerText =
+        RACE.vehicleLock.display;
+
+    document.getElementById("cancel-btn").disabled =
+        false;
+
+    clearRaceBlips();
+}
+
+function updateMultiplayerPrestartOverlay() {
+    if (
+        !MULTI.joined ||
+        !MULTI.countdownSeq ||
+        !MULTI.countdownThreeAt ||
+        MULTI.active
+    ) {
+        return;
+    }
+
+    if (
+        RACE.phase !== "multiplayer_wait"
+    ) {
+        prepareMultiplayerPrestart(
+            MULTI.countdownSeq
+        );
+    }
+
+    const remaining =
+        MULTI.countdownThreeAt -
+        Date.now();
+
+    if (remaining > 0) {
+        const seconds =
+            Math.max(
+                1,
+                Math.ceil(remaining / 1000)
+            );
+
+        const overlay =
+            document.getElementById("countdown-overlay");
+
+        const text =
+            document.getElementById("countdown-text");
+
+        overlay.style.display =
+            "flex";
+
+        text.classList.remove(
+            "false-start"
+        );
+
+        text.style.fontSize =
+            "2.7em";
+
+        text.innerText =
+            `RACE IS STARTING\n${seconds}`;
+
+        setRaceStatus(
+            "MULTIPLAYER STARTING",
+            "ready"
+        );
+
+        return;
+    }
+
+    if (
+        RACE.phase === "multiplayer_wait"
+    ) {
+        const pos =
+            livePos();
+
+        const course =
+            RACE.course;
+
+        const distance =
+            pos && course
+                ? dist2D(pos, course.start)
+                : Infinity;
+
+        if (
+            !pos ||
+            !course ||
+            distance >
+                Math.max(
+                    Number(course.start.radius || 18),
+                    22
+                )
+        ) {
+            invalidateRace(
+                "Not on the start line when multiplayer countdown began."
+            );
+        }
+
+        RACE.phase = "armed";
+        RACE.countdownStartPos =
+            pos;
+
+        RACE.countdownToken += 1;
+
+        const text =
+            document.getElementById("countdown-text");
+
+        text.style.fontSize = "";
+
+        runCountdown(
+            RACE.countdownToken
+        );
+    }
+}
+
+function buildLiveRacePayload() {
+    if (
+        !RACE.multiplayer ||
+        !RACE.multiplayerRunId ||
+        (
+            RACE.phase !== "racing" &&
+            RACE.phase !== "finished"
+        )
+    ) {
+        return null;
+    }
+
+    const now =
+        performance.now();
+
+    const elapsed =
+        RACE.phase === "finished"
+            ? Math.max(
+                0,
+                RACE.finishedAtPerf -
+                RACE.startedAtPerf
+            )
+            : Math.max(
+                0,
+                now -
+                RACE.startedAtPerf
+            );
+
+    const target =
+        currentTarget();
+
+    const pos =
+        livePos();
+
+    const distance =
+        (
+            pos &&
+            target &&
+            target.point
+        )
+            ? dist2D(
+                pos,
+                target.point
+            )
+            : 0;
+
+    return {
+        protocol: 1,
+        active: true,
+        run_id:
+            RACE.multiplayerRunId,
+        race_id:
+            RACE.course
+                ? RACE.course.id
+                : MULTI.raceId,
+        user_id:
+            LIVE.user_id,
+        source:
+            LIVE.source,
+        name:
+            LIVE.name || "Unknown",
+        phase:
+            RACE.phase,
+        elapsed_ms:
+            Math.round(elapsed),
+        finished_ms:
+            RACE.phase === "finished"
+                ? Math.round(elapsed)
+                : 0,
+        lap:
+            RACE.lap,
+        checkpoint_index:
+            RACE.checkpointIndex,
+        completed_targets:
+            completedRaceTargets(),
+        distance_to_next:
+            Math.round(
+                Number.isFinite(distance)
+                    ? distance
+                    : 0
+            ),
+        splits:
+            RACE.splits.map(value =>
+                Math.round(value)
+            ),
+        valid:
+            RACE.valid === true,
+        vehicle:
+            RACE.vehicleLock
+                ? RACE.vehicleLock.display
+                : (
+                    LIVE.vehicleName ||
+                    LIVE.vehicle ||
+                    "Unknown"
+                ),
+        updated_at:
+            Date.now()
+    };
+}
+
+function broadcastLiveRaceState(force = false) {
+    const payload =
+        buildLiveRacePayload();
+
+    if (!payload) {
+        return;
+    }
+
+    const now =
+        Date.now();
+
+    if (
+        !force &&
+        (now - MULTI.lastLiveBroadcast) < 400
+    ) {
+        return;
+    }
+
+    MULTI.lastLiveBroadcast =
+        now;
+
+    shareServerData(
+        MULTI_KEYS.LIVE,
+        payload
+    );
+}
+
+function getLivePlayersForRun(runId) {
+    const entries =
+        freshSharedEntries(
+            parseSharedPlayers(
+                LIVE.players_pinki_races_live
+            ),
+            7000
+        );
+
+    const byId =
+        new Map();
+
+    entries.forEach(entry => {
+        if (
+            String(entry.run_id || "") !==
+            String(runId || "")
+        ) {
+            return;
+        }
+
+        const id =
+            String(
+                entry.user_id ||
+                entry._sharedKey ||
+                ""
+            );
+
+        if (!id) {
+            return;
+        }
+
+        const existing =
+            byId.get(id);
+
+        if (
+            !existing ||
+            Number(entry.updated_at || 0) >=
+            Number(existing.updated_at || 0)
+        ) {
+            byId.set(id, entry);
+        }
+    });
+
+    const local =
+        buildLiveRacePayload();
+
+    if (
+        local &&
+        String(local.run_id) ===
+        String(runId)
+    ) {
+        byId.set(
+            String(local.user_id),
+            local
+        );
+    }
+
+    return Array.from(
+        byId.values()
+    );
+}
+
+function sortLiveRacePlayers(players) {
+    return [...players]
+        .sort((a, b) => {
+            const aFinished =
+                a.phase === "finished";
+
+            const bFinished =
+                b.phase === "finished";
+
+            if (aFinished && bFinished) {
+                return (
+                    Number(a.finished_ms || Infinity) -
+                    Number(b.finished_ms || Infinity)
+                );
+            }
+
+            if (aFinished !== bFinished) {
+                return aFinished ? -1 : 1;
+            }
+
+            const progressDiff =
+                Number(b.completed_targets || 0) -
+                Number(a.completed_targets || 0);
+
+            if (progressDiff !== 0) {
+                return progressDiff;
+            }
+
+            const distanceDiff =
+                Number(a.distance_to_next || Infinity) -
+                Number(b.distance_to_next || Infinity);
+
+            if (distanceDiff !== 0) {
+                return distanceDiff;
+            }
+
+            return (
+                Number(a.elapsed_ms || 0) -
+                Number(b.elapsed_ms || 0)
+            );
+        });
+}
+
+function gapAgainstMe(player, me) {
+    if (
+        !player ||
+        !me ||
+        String(player.user_id) ===
+        String(me.user_id)
+    ) {
+        return {
+            text: "YOU",
+            className: ""
+        };
+    }
+
+    if (
+        player.phase === "finished" &&
+        me.phase === "finished"
+    ) {
+        const diff =
+            Number(player.finished_ms || 0) -
+            Number(me.finished_ms || 0);
+
+        return formatSignedGap(diff);
+    }
+
+    const playerSplits =
+        Array.isArray(player.splits)
+            ? player.splits
+            : [];
+
+    const mySplits =
+        Array.isArray(me.splits)
+            ? me.splits
+            : [];
+
+    const commonIndex =
+        Math.min(
+            playerSplits.length,
+            mySplits.length
+        ) - 1;
+
+    if (commonIndex >= 0) {
+        const diff =
+            Number(playerSplits[commonIndex]) -
+            Number(mySplits[commonIndex]);
+
+        return formatSignedGap(diff);
+    }
+
+    const progressDiff =
+        Number(player.completed_targets || 0) -
+        Number(me.completed_targets || 0);
+
+    if (progressDiff > 0) {
+        return {
+            text: "AHEAD",
+            className: "ahead"
+        };
+    }
+
+    if (progressDiff < 0) {
+        return {
+            text: "BEHIND",
+            className: "behind"
+        };
+    }
+
+    return {
+        text: "--",
+        className: ""
+    };
+}
+
+function formatSignedGap(diffMs) {
+    const seconds =
+        Number(diffMs || 0) / 1000;
+
+    if (
+        !Number.isFinite(seconds) ||
+        Math.abs(seconds) < 0.005
+    ) {
+        return {
+            text: "±0.00s",
+            className: ""
+        };
+    }
+
+    // Negative = this racer is in front of the local player.
+    if (seconds < 0) {
+        return {
+            text:
+                `-${Math.abs(seconds).toFixed(2)}s`,
+            className:
+                "ahead"
+        };
+    }
+
+    return {
+        text:
+            `+${seconds.toFixed(2)}s`,
+        className:
+            "behind"
+    };
+}
+
+function renderRaceStandings() {
+    if (
+        !RACE.multiplayer ||
+        !RACE.multiplayerRunId
+    ) {
+        return;
+    }
+
+    const players =
+        sortLiveRacePlayers(
+            getLivePlayersForRun(
+                RACE.multiplayerRunId
+            )
+        );
+
+    MULTI.livePlayers =
+        players;
+
+    if (!players.length) {
+        return;
+    }
+
+    const hud =
+        document.getElementById(
+            "race-standings-hud"
+        );
+
+    const body =
+        document.getElementById(
+            "race-standings-body"
+        );
+
+    const lap =
+        document.getElementById(
+            "race-standings-lap"
+        );
+
+    const me =
+        players.find(
+            player =>
+                String(player.user_id) ===
+                String(LIVE.user_id)
+        ) || null;
+
+    body.innerHTML = "";
+
+    players.forEach((player, index) => {
+        const row =
+            document.createElement("div");
+
+        row.className =
+            "race-standing-row" +
+            (
+                String(player.user_id) ===
+                String(LIVE.user_id)
+                    ? " me"
+                    : ""
+            );
+
+        const position =
+            document.createElement("div");
+
+        position.className =
+            "race-standing-pos";
+
+        position.innerText =
+            String(index + 1);
+
+        const name =
+            document.createElement("div");
+
+        name.className =
+            "race-standing-name";
+
+        name.innerText =
+            player.name || "Unknown";
+
+        const time =
+            document.createElement("div");
+
+        time.className =
+            "race-standing-time";
+
+        time.innerText =
+            formatTime(
+                Number(
+                    player.phase === "finished"
+                        ? player.finished_ms
+                        : player.elapsed_ms
+                ) || 0
+            );
+
+        const gap =
+            document.createElement("div");
+
+        const gapInfo =
+            gapAgainstMe(
+                player,
+                me
+            );
+
+        gap.className =
+            `race-standing-gap ${gapInfo.className}`.trim();
+
+        gap.innerText =
+            gapInfo.text;
+
+        row.appendChild(position);
+        row.appendChild(name);
+        row.appendChild(time);
+        row.appendChild(gap);
+
+        body.appendChild(row);
+    });
+
+    lap.innerText =
+        RACE.course &&
+        RACE.course.raceType === "circuit"
+            ? `LAP ${RACE.lap}/${RACE.course.laps}`
+            : `${players.length} RACERS`;
+
+    hud.style.display =
+        "block";
+
+    maybeShowMultiplayerPodium(players);
+}
+
+function hideRaceStandings() {
+    document.getElementById(
+        "race-standings-hud"
+    ).style.display = "none";
+}
+
+function showPodiumOverlay(results, title, note = "") {
+    const hud =
+        document.getElementById(
+            "podium-hud"
+        );
+
+    const body =
+        document.getElementById(
+            "podium-body"
+        );
+
+    document.getElementById(
+        "podium-title"
+    ).innerText =
+        title || "Race Results";
+
+    document.getElementById(
+        "podium-note"
+    ).innerText =
+        note || "";
+
+    body.innerHTML = "";
+
+    const medals = [
+        "🥇",
+        "🥈",
+        "🥉"
+    ];
+
+    results
+        .slice(0, 3)
+        .forEach((result, index) => {
+            const row =
+                document.createElement("div");
+
+            row.className =
+                "podium-row";
+
+            const medal =
+                document.createElement("div");
+
+            medal.className =
+                "podium-medal";
+
+            medal.innerText =
+                medals[index] || "";
+
+            const name =
+                document.createElement("div");
+
+            name.className =
+                "podium-name";
+
+            name.innerText =
+                result.name ||
+                result.player_name ||
+                "Unknown";
+
+            const time =
+                document.createElement("div");
+
+            time.className =
+                "podium-time";
+
+            time.innerText =
+                formatTime(
+                    Number(
+                        result.finished_ms ??
+                        result.time_ms ??
+                        0
+                    )
+                );
+
+            row.appendChild(medal);
+            row.appendChild(name);
+            row.appendChild(time);
+
+            body.appendChild(row);
+        });
+
+    hud.style.display =
+        "block";
+
+    setTimeout(() => {
+        hud.style.display =
+            "none";
+    }, 12000);
+}
+
+function maybeShowMultiplayerPodium(players) {
+    if (
+        !RACE.multiplayer ||
+        !RACE.multiplayerRunId ||
+        MULTI.podiumShownForRun ===
+            RACE.multiplayerRunId
+    ) {
+        return;
+    }
+
+    const participantIds =
+        new Set(
+            (
+                RACE.multiplayerParticipants ||
+                []
+            ).map(String)
+        );
+
+    const relevant =
+        players.filter(player =>
+            !participantIds.size ||
+            participantIds.has(
+                String(player.user_id)
+            )
+        );
+
+    if (!relevant.length) {
+        return;
+    }
+
+    const allFinished =
+        participantIds.size
+            ? (
+                relevant.filter(
+                    player =>
+                        player.phase === "finished"
+                ).length >=
+                participantIds.size
+            )
+            : relevant.every(
+                player =>
+                    player.phase === "finished"
+            );
+
+    if (!allFinished) {
+        return;
+    }
+
+    const finished =
+        relevant
+            .filter(
+                player =>
+                    player.phase === "finished"
+            )
+            .sort(
+                (a, b) =>
+                    Number(a.finished_ms) -
+                    Number(b.finished_ms)
+            );
+
+    MULTI.podiumShownForRun =
+        RACE.multiplayerRunId;
+
+    hideRaceStandings();
+
+    showPodiumOverlay(
+        finished,
+        `${RACE.course ? RACE.course.name : "Race"} • Final Results`,
+        `${finished.length} racer${finished.length === 1 ? "" : "s"} finished`
+    );
+}
+
+function clearMultiplayerRunState() {
+    MULTI.active = false;
+    MULTI.finishedAt = 0;
+
+    RACE.multiplayer = false;
+    RACE.multiplayerRunId = "";
+    RACE.multiplayerParticipants = [];
+
+    hideRaceStandings();
+}
+
+function processMultiplayerSharedData() {
+    updateMultiplayerLobby();
+
+    if (
+        RACE.multiplayer &&
+        RACE.multiplayerRunId
+    ) {
+        renderRaceStandings();
+    }
+}
+
+setInterval(() => {
+    if (MULTI.joined) {
+        broadcastLobbyState();
+    }
+
+    if (
+        RACE.multiplayer &&
+        (
+            RACE.phase === "racing" ||
+            RACE.phase === "finished"
+        )
+    ) {
+        broadcastLiveRaceState();
+        renderRaceStandings();
+    }
+
+    if (
+        MULTI.joined &&
+        MULTI.countdownSeq &&
+        !MULTI.active
+    ) {
+        updateMultiplayerPrestartOverlay();
+    }
+}, 250);
+
+// -----------------------------
 // Race lifecycle
 // -----------------------------
 function armRace() {
+    if (MULTI.joined) {
+        leaveMultiplayerLobby(true);
+    }
+
+    clearMultiplayerRunState();
+
     if (RACE.phase !== "idle" && RACE.phase !== "finished") {
         toast("A race is already armed or running.", "bad");
         return;
@@ -2701,8 +4571,25 @@ function startRace() {
 
     document.getElementById("split-line").innerText =
         RACE.valid
-            ? "Race started."
+            ? (
+                RACE.multiplayer
+                    ? "Multiplayer race started."
+                    : "Race started."
+            )
             : `Race started invalid: ${RACE.invalidReason}`;
+
+    if (RACE.multiplayer) {
+        MULTI.active = true;
+        MULTI.runId =
+            RACE.multiplayerRunId;
+
+        // The live run replaces lobby state.
+        MULTI.ready = false;
+
+        broadcastLobbyLeave();
+        broadcastLiveRaceState(true);
+        renderRaceStandings();
+    }
 
     showTargetBlip();
 }
@@ -2721,6 +4608,11 @@ function invalidateRace(reason) {
 }
 
 function cancelRace(reason = "Race cancelled") {
+    const wasMultiplayer =
+        RACE.multiplayer ||
+        MULTI.joined ||
+        MULTI.active;
+
     RACE.countdownToken += 1;
     RACE.phase = "idle";
     RACE.course = null;
@@ -2736,6 +4628,16 @@ function cancelRace(reason = "Race cancelled") {
     RACE.distanceTravelled = 0;
     RACE.lastPos = null;
     RACE.countdownStartPos = null;
+    RACE.multiplayer = false;
+    RACE.multiplayerRunId = "";
+    RACE.multiplayerParticipants = [];
+
+    if (wasMultiplayer) {
+        leaveMultiplayerLobby(true);
+        MULTI.active = false;
+        MULTI.runId = "";
+        hideRaceStandings();
+    }
 
     document.getElementById("countdown-overlay").style.display = "none";
     hideCheckpointBeacon();
@@ -2781,10 +4683,8 @@ function finishRace() {
 
     const result = buildResult(elapsed);
 
-    postTT({
-        type: "removeBlip",
-        id: BLIP_IDS.NEXT
-    });
+    // Remove ALL race navigation, including the old numbered Start blip.
+    clearRaceBlips();
 
     hideCheckpointBeacon();
     resetNavigationTracking();
@@ -2831,9 +4731,34 @@ function finishRace() {
         leaderSelect.value = RACE.course.id;
     }
 
-    setTimeout(() => {
-        switchTab("leaderboard");
-    }, 700);
+    if (RACE.multiplayer) {
+        MULTI.finishedAt =
+            Date.now();
+
+        broadcastLiveRaceState(true);
+        renderRaceStandings();
+
+        // Keep the live table visible while other racers finish.
+        // Final gold/silver/bronze podium appears when every lobby entrant finishes.
+    } else {
+        hideRaceStandings();
+
+        showPodiumOverlay(
+            [
+                {
+                    name:
+                        LIVE.name ||
+                        "You",
+                    finished_ms:
+                        elapsed
+                }
+            ],
+            `${RACE.course.name} • Finish`,
+            result.validity === "valid"
+                ? "Single-player result"
+                : `Invalid: ${result.invalid_reason}`
+        );
+    }
 }
 
 function buildResult(elapsed) {
@@ -2849,6 +4774,11 @@ function buildResult(elapsed) {
         race_type: course.raceType,
         laps: course.raceType === "circuit" ? course.laps : 1,
         lap_splits: RACE.lapSplits.map(split => Math.round(split)),
+
+        multiplayer:
+            RACE.multiplayer === true,
+        multiplayer_run_id:
+            RACE.multiplayerRunId || "",
 
         user_id: LIVE.user_id ?? "",
         player_name: LIVE.name || "Unknown",
@@ -2953,6 +4883,10 @@ function tickRace() {
         `${Math.round(distance)}m`;
 
     updateCheckpointBeacon(target, distance);
+
+    if (RACE.multiplayer) {
+        broadcastLiveRaceState();
+    }
 
     const completed =
         completedRaceTargets();
@@ -4197,6 +6131,7 @@ window.addEventListener("load", () => {
     applyBuilderAccess();
     loadCourses();
     renderBuilder();
+    updateMultiplayerLobby();
 
     // Initialize Builder controls only.
     // Do not perform an authorization check before TT has supplied user_id.
