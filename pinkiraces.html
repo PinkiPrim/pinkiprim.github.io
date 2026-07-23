@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.3</title>
+    <title>PinkiRaces v1.4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -415,29 +415,65 @@
         }
 
         #checkpoint-arrow-wrap {
-            width: 58px;
-            height: 44px;
+            width: 74px;
+            height: 62px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         #checkpoint-arrow {
-            display: inline-block;
-            font: 900 3em/1 'Rajdhani', sans-serif;
-            color: var(--accent);
-            text-shadow:
-                0 0 10px rgba(255, 213, 79, 0.65),
-                0 2px 4px rgba(0,0,0,0.9);
-            transform-origin: 50% 52%;
-            transition: transform 0.08s linear;
+            position: relative;
+            width: 34px;
+            height: 50px;
+            transform-origin: 50% 50%;
+            transition: transform 0.10s linear;
+            filter: drop-shadow(0 0 8px rgba(255, 213, 79, 0.72));
+        }
+
+        #checkpoint-arrow::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 18px;
+            width: 10px;
+            height: 30px;
+            border-radius: 3px;
+            background: var(--accent);
+        }
+
+        #checkpoint-arrow::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 0;
+            border-left: 17px solid transparent;
+            border-right: 17px solid transparent;
+            border-bottom: 0;
+            border-top: 24px solid var(--accent);
+            transform: rotate(180deg);
         }
 
         #checkpoint-beacon.finish #checkpoint-arrow {
-            color: var(--green);
-            text-shadow:
-                0 0 12px rgba(0, 230, 118, 0.65),
-                0 2px 4px rgba(0,0,0,0.9);
+            filter: drop-shadow(0 0 9px rgba(0, 230, 118, 0.72));
+        }
+
+        #checkpoint-beacon.finish #checkpoint-arrow::before {
+            background: var(--green);
+        }
+
+        #checkpoint-beacon.finish #checkpoint-arrow::after {
+            border-top-color: var(--green);
+        }
+
+        #checkpoint-direction {
+            margin-top: -3px;
+            color: #fff;
+            font: 900 0.88em 'Rajdhani', sans-serif;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
         }
 
         #checkpoint-beacon-title {
@@ -606,8 +642,9 @@
 
 <div id="checkpoint-beacon">
     <div id="checkpoint-arrow-wrap">
-        <div id="checkpoint-arrow">▲</div>
+        <div id="checkpoint-arrow"></div>
     </div>
+    <div id="checkpoint-direction">STRAIGHT</div>
     <div id="checkpoint-beacon-title">CHECKPOINT 1</div>
     <div id="checkpoint-beacon-distance">-- m</div>
 </div>
@@ -847,7 +884,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.4.0";
 
 /*
     Paste your deployed Google Apps Script Web App /exec URL here.
@@ -878,7 +915,6 @@ const DATA_KEYS = [
     "vehicle", "vehicleName", "vehicleMake", "vehicleClass", "vehicleClassName",
     "car", "speed", "engine", "fuel",
     "pos_x", "pos_y", "pos_z", "pos_h",
-    "cam_heading",
     "zone", "zoneName", "street",
     "pinned", "focused", "tabbed"
 ];
@@ -923,6 +959,16 @@ let RACE = {
     countdownToken: 0,
     countdownStartPos: null
 };
+
+let NAV = {
+    lastSamplePos: null,
+    lastSampleTime: 0,
+    travelBearing: null,
+    smoothedBearingX: 0,
+    smoothedBearingY: 0,
+    targetKey: ""
+};
+
 
 // -----------------------------
 // Generic helpers
@@ -1013,7 +1059,8 @@ function bearingToPoint(from, to) {
     const dx = Number(to.x) - Number(from.x);
     const dy = Number(to.y) - Number(from.y);
 
-    // GTA-style heading: 0 = North, 90 = East.
+    // This bearing is only compared with another bearing created from
+    // the same X/Y coordinate system, avoiding GTA heading convention issues.
     let bearing = Math.atan2(dx, dy) * (180 / Math.PI);
 
     if (bearing < 0) {
@@ -1037,9 +1084,100 @@ function normalizeAngle(angle) {
     return value;
 }
 
+function sampleTravelDirection(pos) {
+    if (!pos) {
+        return;
+    }
+
+    const now = performance.now();
+
+    if (!NAV.lastSamplePos) {
+        NAV.lastSamplePos = { x: pos.x, y: pos.y };
+        NAV.lastSampleTime = now;
+        return;
+    }
+
+    const dx = Number(pos.x) - Number(NAV.lastSamplePos.x);
+    const dy = Number(pos.y) - Number(NAV.lastSamplePos.y);
+    const moved = Math.sqrt((dx * dx) + (dy * dy));
+
+    // Only update direction when the car has genuinely moved enough.
+    // This avoids GPS jitter when nearly stationary.
+    if (moved >= 0.55) {
+        const rawBearing = bearingToPoint(
+            { x: 0, y: 0 },
+            { x: dx, y: dy }
+        );
+
+        const radians = rawBearing * (Math.PI / 180);
+
+        // Smooth circular data using vector averaging.
+        const newX = Math.sin(radians);
+        const newY = Math.cos(radians);
+
+        const alpha = 0.42;
+
+        if (NAV.travelBearing === null) {
+            NAV.smoothedBearingX = newX;
+            NAV.smoothedBearingY = newY;
+        } else {
+            NAV.smoothedBearingX =
+                (NAV.smoothedBearingX * (1 - alpha)) +
+                (newX * alpha);
+
+            NAV.smoothedBearingY =
+                (NAV.smoothedBearingY * (1 - alpha)) +
+                (newY * alpha);
+        }
+
+        let smoothed = Math.atan2(
+            NAV.smoothedBearingX,
+            NAV.smoothedBearingY
+        ) * (180 / Math.PI);
+
+        if (smoothed < 0) {
+            smoothed += 360;
+        }
+
+        NAV.travelBearing = smoothed;
+        NAV.lastSamplePos = { x: pos.x, y: pos.y };
+        NAV.lastSampleTime = now;
+    }
+}
+
+function describeDirection(relativeBearing) {
+    const angle = normalizeAngle(relativeBearing);
+    const abs = Math.abs(angle);
+
+    if (abs <= 12) {
+        return "STRAIGHT";
+    }
+
+    if (abs <= 35) {
+        return angle < 0
+            ? "SLIGHT LEFT"
+            : "SLIGHT RIGHT";
+    }
+
+    if (abs <= 80) {
+        return angle < 0
+            ? "LEFT"
+            : "RIGHT";
+    }
+
+    if (abs <= 135) {
+        return angle < 0
+            ? "HARD LEFT"
+            : "HARD RIGHT";
+    }
+
+    return "U-TURN";
+}
+
 function updateCheckpointBeacon(target, distance) {
     const beacon = document.getElementById("checkpoint-beacon");
     const arrow = document.getElementById("checkpoint-arrow");
+    const directionEl = document.getElementById("checkpoint-direction");
     const title = document.getElementById("checkpoint-beacon-title");
     const distanceEl = document.getElementById("checkpoint-beacon-distance");
 
@@ -1059,21 +1197,39 @@ function updateCheckpointBeacon(target, distance) {
         return;
     }
 
-    const targetBearing = bearingToPoint(pos, target.point);
+    sampleTravelDirection(pos);
 
-    const cameraHeading = Number.isFinite(Number(LIVE.cam_heading))
-        ? Number(LIVE.cam_heading)
-        : Number(LIVE.pos_h || 0);
+    const targetBearing =
+        bearingToPoint(pos, target.point);
 
-    const relativeBearing = normalizeAngle(
-        targetBearing - cameraHeading
+    let referenceBearing = NAV.travelBearing;
+
+    // At very low speed / immediately after GO there may not yet be a
+    // reliable movement vector. Fall back to the player's/entity heading.
+    if (referenceBearing === null) {
+        referenceBearing =
+            Number.isFinite(Number(LIVE.pos_h))
+                ? Number(LIVE.pos_h)
+                : 0;
+    }
+
+    const relativeBearing =
+        normalizeAngle(targetBearing - referenceBearing);
+
+    // Arrow uses the same travel-vector coordinate system as the target.
+    arrow.style.transform =
+        `rotate(${relativeBearing}deg)`;
+
+    directionEl.innerText =
+        describeDirection(relativeBearing);
+
+    const isFinish =
+        target.type === "finish";
+
+    beacon.classList.toggle(
+        "finish",
+        isFinish
     );
-
-    arrow.style.transform = `rotate(${relativeBearing}deg)`;
-
-    const isFinish = target.type === "finish";
-
-    beacon.classList.toggle("finish", isFinish);
 
     title.innerText = isFinish
         ? "FINISH"
@@ -1087,6 +1243,15 @@ function updateCheckpointBeacon(target, distance) {
 
 function hideCheckpointBeacon() {
     document.getElementById("checkpoint-beacon").style.display = "none";
+}
+
+function resetNavigationTracking() {
+    NAV.lastSamplePos = null;
+    NAV.lastSampleTime = 0;
+    NAV.travelBearing = null;
+    NAV.smoothedBearingX = 0;
+    NAV.smoothedBearingY = 0;
+    NAV.targetKey = "";
 }
 
 function livePos() {
@@ -1533,6 +1698,41 @@ function routeToStart() {
     ttNotify(`Route set to ${course.name} start.`);
 }
 
+function forceWaypointToPoint(point) {
+    if (!point) {
+        return;
+    }
+
+    const x = Number(point.x);
+    const y = Number(point.y);
+
+    // Send once immediately, then once again shortly afterwards.
+    // This makes checkpoint changes much more reliable in the embedded client.
+    postTT({
+        type: "setWaypoint",
+        x: x,
+        y: y
+    });
+
+    setTimeout(() => {
+        if (RACE.phase === "racing") {
+            const current = currentTarget();
+
+            if (
+                current &&
+                Number(current.point.x) === x &&
+                Number(current.point.y) === y
+            ) {
+                postTT({
+                    type: "setWaypoint",
+                    x: x,
+                    y: y
+                });
+            }
+        }
+    }, 120);
+}
+
 function showTargetBlip() {
     const target = currentTarget();
 
@@ -1576,13 +1776,15 @@ function showTargetBlip() {
         route: true
     });
 
-    // Every active checkpoint also becomes the live GTA waypoint.
-    // This updates automatically after each checkpoint is completed.
-    postTT({
-        type: "setWaypoint",
-        x: point.x,
-        y: point.y
-    });
+    // Every active checkpoint becomes the actual GTA waypoint/world pillar.
+    // Force-refresh it whenever the checkpoint target changes.
+    const targetKey =
+        `${target.type}:${target.index}:${Number(point.x).toFixed(3)}:${Number(point.y).toFixed(3)}`;
+
+    if (NAV.targetKey !== targetKey) {
+        NAV.targetKey = targetKey;
+        forceWaypointToPoint(point);
+    }
 }
 
 // -----------------------------
@@ -1637,6 +1839,8 @@ function armRace() {
     RACE.countdownStartPos = pos;
     RACE.vehicleLock = captureVehicle();
     RACE.countdownToken += 1;
+
+    resetNavigationTracking();
 
     document.getElementById("locked-vehicle").innerText =
         RACE.vehicleLock.display;
@@ -1744,6 +1948,9 @@ function startRace() {
     RACE.lastPos = livePos();
     RACE.distanceTravelled = 0;
 
+    resetNavigationTracking();
+    NAV.lastSamplePos = livePos();
+
     setRaceStatus("RACING", "racing");
 
     setValidity(
@@ -1789,6 +1996,7 @@ function cancelRace(reason = "Race cancelled") {
 
     document.getElementById("countdown-overlay").style.display = "none";
     hideCheckpointBeacon();
+    resetNavigationTracking();
     document.getElementById("cancel-btn").disabled = true;
     document.getElementById("locked-vehicle").innerText = "--";
     document.getElementById("live-time").innerText = "00:00.000";
@@ -1835,6 +2043,7 @@ function finishRace() {
     });
 
     hideCheckpointBeacon();
+    resetNavigationTracking();
 
     postTT({
         type: "sfx",
@@ -2021,6 +2230,9 @@ function tickRace() {
             document.getElementById("race-progress").style.width =
                 `${Math.min(100, (RACE.checkpointIndex / total) * 100)}%`;
 
+            // Drop old navigation state so the next checkpoint is treated
+            // as a completely new target immediately.
+            NAV.targetKey = "";
             showTargetBlip();
         } else {
             document.getElementById("race-progress").style.width = "100%";
