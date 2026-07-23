@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.13</title>
+    <title>PinkiRaces v1.14</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -730,6 +730,26 @@
                 <div class="tiny muted" id="race-description" style="margin-top:6px;">
                     Create a course in Builder to begin.
                 </div>
+
+                <div id="local-race-notice"
+                     style="display:none; margin-top:8px; padding:8px; border:1px solid rgba(255,213,79,.45);
+                            border-radius:5px; background:rgba(255,213,79,.06);">
+                    <div id="local-race-notice-title"
+                         style="font:900 .78em 'Rajdhani',sans-serif; letter-spacing:.7px; color:var(--accent);">
+                        LOCAL ONLY
+                    </div>
+                    <div id="local-race-notice-text"
+                         class="tiny muted"
+                         style="margin-top:3px; line-height:1.35;">
+                        This race exists only on this computer.
+                    </div>
+                    <button class="btn danger"
+                            id="remove-local-race-btn"
+                            onclick="removeSelectedLocalCourse()"
+                            style="margin-top:7px; width:100%;">
+                        REMOVE FROM THIS DEVICE
+                    </button>
+                </div>
             </div>
 
             <div class="card">
@@ -910,7 +930,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.13.0";
+const APP_VERSION = "1.14.0";
 
 /*
     Client-side builder visibility allowlist.
@@ -944,6 +964,11 @@ const STORAGE = {
     // This is the race data used instantly on future app loads.
     REMOTE_COURSES: "pinkiraces_remote_courses_cache_v1",
     REMOTE_SYNCED_AT: "pinkiraces_remote_courses_synced_at_v1",
+
+    // Local copies that were previously published but later disappeared
+    // from the Google catalogue. These are never auto-deleted; the user
+    // gets an explicit "Remove from this device" option instead.
+    STALE_LOCAL_IDS: "pinkiraces_stale_local_ids_v1",
 
     RESULTS: "pinkiraces_local_results_v1",
     MINI: "pinkiraces_mini_v1",
@@ -1473,31 +1498,96 @@ function getCachedRemoteCourses() {
     return Array.isArray(cached) ? cached : [];
 }
 
+function getStaleLocalIds() {
+    const saved = safeJsonParse(
+        localStorage.getItem(STORAGE.STALE_LOCAL_IDS) || "[]",
+        []
+    );
+
+    return new Set(
+        Array.isArray(saved)
+            ? saved.map(value => String(value))
+            : []
+    );
+}
+
+function saveStaleLocalIds(ids) {
+    localStorage.setItem(
+        STORAGE.STALE_LOCAL_IDS,
+        JSON.stringify(
+            Array.from(ids)
+        )
+    );
+}
+
 function rebuildCourseCatalogue() {
     /*
-        Precedence:
-        1. Built-in defaults
-        2. Locally-created/test races
-        3. Published Google catalogue (official copy wins on matching ID)
+        Published Google courses are authoritative when IDs overlap.
 
-        Everything here is already local memory/localStorage.
-        No live race ever needs Google to resolve a checkpoint.
+        Sources:
+        - built-in
+        - local       = exists only in localStorage
+        - published   = exists in the current Google catalogue cache
+
+        A local course can also be marked _staleLocal when it was previously
+        published but has since disappeared from Google Sheets.
     */
     const byId = new Map();
+    const staleIds = getStaleLocalIds();
 
-    [
-        ...BUILT_IN_RACES,
-        ...getLocalCourses(),
-        ...getCachedRemoteCourses()
-    ]
+    BUILT_IN_RACES
         .map(normalizeCourse)
         .filter(Boolean)
         .forEach(course => {
-            byId.set(course.id, course);
+            byId.set(
+                course.id,
+                {
+                    ...course,
+                    _source: "built-in",
+                    _staleLocal: false
+                }
+            );
+        });
+
+    getLocalCourses()
+        .map(normalizeCourse)
+        .filter(Boolean)
+        .forEach(course => {
+            byId.set(
+                course.id,
+                {
+                    ...course,
+                    _source: "local",
+                    _staleLocal: staleIds.has(String(course.id))
+                }
+            );
+        });
+
+    // Published copy always wins when the same ID exists locally.
+    getCachedRemoteCourses()
+        .map(normalizeCourse)
+        .filter(Boolean)
+        .forEach(course => {
+            byId.set(
+                course.id,
+                {
+                    ...course,
+                    _source: "published",
+                    _staleLocal: false
+                }
+            );
         });
 
     COURSES = Array.from(byId.values())
         .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function isCourseLocalOnly(course) {
+    return !!course && course._source === "local";
+}
+
+function isCourseStaleLocal(course) {
+    return isCourseLocalOnly(course) && course._staleLocal === true;
 }
 
 function loadCourses() {
@@ -1606,7 +1696,60 @@ async function fetchRemoteCourses() {
             .map(normalizeCourse)
             .filter(Boolean);
 
-        // Persist the entire published catalogue locally before touching UI.
+        /*
+            Reconcile local state against the authoritative Google catalogue.
+
+            The remote cache is replaced wholesale, so any course deleted
+            from Sheets disappears from the published cache immediately.
+
+            If that deleted course ALSO has a separately saved local Builder
+            copy, keep the local copy but mark it as stale so the user gets
+            a visible option to remove it from this device.
+        */
+        const previousRemoteIds = new Set(
+            getCachedRemoteCourses()
+                .map(normalizeCourse)
+                .filter(Boolean)
+                .map(course => String(course.id))
+        );
+
+        const downloadedIds = new Set(
+            downloaded.map(course => String(course.id))
+        );
+
+        const localIds = new Set(
+            getLocalCourses()
+                .map(normalizeCourse)
+                .filter(Boolean)
+                .map(course => String(course.id))
+        );
+
+        const staleIds = getStaleLocalIds();
+
+        previousRemoteIds.forEach(id => {
+            if (
+                !downloadedIds.has(id) &&
+                localIds.has(id)
+            ) {
+                staleIds.add(id);
+            }
+        });
+
+        // If a race is published again, it is no longer stale.
+        downloadedIds.forEach(id => {
+            staleIds.delete(id);
+        });
+
+        // Remove stale markers for local courses that no longer exist.
+        Array.from(staleIds).forEach(id => {
+            if (!localIds.has(id)) {
+                staleIds.delete(id);
+            }
+        });
+
+        saveStaleLocalIds(staleIds);
+
+        // Exact mirror of what Google currently says is published.
         localStorage.setItem(
             STORAGE.REMOTE_COURSES,
             JSON.stringify(downloaded)
@@ -1617,7 +1760,6 @@ async function fetchRemoteCourses() {
             new Date().toISOString()
         );
 
-        // Rebuild local in-memory catalogue from cache.
         rebuildCourseCatalogue();
 
         /*
@@ -1692,7 +1834,17 @@ function populateRaceSelects(options = {}) {
             const option = document.createElement("option");
 
             option.value = course.id;
-            option.textContent = course.name;
+
+            if (isCourseStaleLocal(course)) {
+                option.textContent =
+                    `${course.name} [REMOVED FROM SHEET]`;
+            } else if (isCourseLocalOnly(course)) {
+                option.textContent =
+                    `${course.name} [LOCAL]`;
+            } else {
+                option.textContent =
+                    course.name;
+            }
 
             select.appendChild(option);
         });
@@ -1911,11 +2063,115 @@ function switchTab(name) {
     }
 }
 
+function updateLocalRaceNotice(course) {
+    const notice =
+        document.getElementById("local-race-notice");
+
+    const title =
+        document.getElementById("local-race-notice-title");
+
+    const text =
+        document.getElementById("local-race-notice-text");
+
+    if (
+        !notice ||
+        !course ||
+        !isCourseLocalOnly(course)
+    ) {
+        if (notice) {
+            notice.style.display = "none";
+        }
+
+        return;
+    }
+
+    notice.style.display = "block";
+
+    if (isCourseStaleLocal(course)) {
+        title.innerText =
+            "REMOVED FROM GOOGLE SHEETS";
+
+        title.style.color =
+            "var(--red)";
+
+        notice.style.borderColor =
+            "rgba(255,82,82,.55)";
+
+        notice.style.background =
+            "rgba(255,82,82,.07)";
+
+        text.innerText =
+            "This race is no longer published in Google Sheets, but a local copy is still stored on this device. Remove it here if you no longer want it.";
+    } else {
+        title.innerText =
+            "LOCAL ONLY";
+
+        title.style.color =
+            "var(--accent)";
+
+        notice.style.borderColor =
+            "rgba(255,213,79,.45)";
+
+        notice.style.background =
+            "rgba(255,213,79,.06)";
+
+        text.innerText =
+            "This race exists only on this device and is not currently published in Google Sheets. You can keep it or remove the local copy.";
+    }
+}
+
+function removeSelectedLocalCourse() {
+    const course =
+        getSelectedRace();
+
+    if (
+        !course ||
+        !isCourseLocalOnly(course)
+    ) {
+        return;
+    }
+
+    const courseId =
+        String(course.id);
+
+    const updated =
+        getLocalCourses()
+            .map(normalizeCourse)
+            .filter(Boolean)
+            .filter(item =>
+                String(item.id) !== courseId
+            );
+
+    localStorage.setItem(
+        STORAGE.COURSES,
+        JSON.stringify(updated)
+    );
+
+    const staleIds =
+        getStaleLocalIds();
+
+    staleIds.delete(courseId);
+    saveStaleLocalIds(staleIds);
+
+    rebuildCourseCatalogue();
+
+    populateRaceSelects({
+        runSelectionHandler: true
+    });
+
+    toast(
+        `${course.name} removed from this device.`,
+        "good",
+        3200
+    );
+}
+
 function onRaceSelected() {
     const course = getSelectedRace();
     const description = document.getElementById("race-description");
     const headerSub = document.getElementById("header-sub");
 
+    updateLocalRaceNotice(course);
     clearRaceBlips();
 
     if (!course) {
@@ -3554,6 +3810,12 @@ async function publishBuiltCourse() {
             new Date().toISOString()
         );
 
+        const staleIds =
+            getStaleLocalIds();
+
+        staleIds.delete(String(course.id));
+        saveStaleLocalIds(staleIds);
+
         rebuildCourseCatalogue();
 
         populateRaceSelects({
@@ -3734,6 +3996,12 @@ function deleteSelectedRace() {
         STORAGE.COURSES,
         JSON.stringify(updated)
     );
+
+    const staleIds =
+        getStaleLocalIds();
+
+    staleIds.delete(String(course.id));
+    saveStaleLocalIds(staleIds);
 
     rebuildCourseCatalogue();
 
