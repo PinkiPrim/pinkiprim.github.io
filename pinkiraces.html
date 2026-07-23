@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.15</title>
+    <title>PinkiRaces v1.17</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -1164,7 +1164,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.15.0";
+const APP_VERSION = "1.17.0";
 
 /*
     Client-side builder visibility allowlist.
@@ -1176,6 +1176,7 @@ const APP_VERSION = "1.15.0";
 */
 const ALLOWED_BUILDER_IDS = [
     757858 // Prim
+    229051 // Poire
 ];
 
 /*
@@ -2317,17 +2318,40 @@ function requireBuilderAccess() {
 // TT data
 // -----------------------------
 function requestData() {
-    postTT({
-        type: "getNamedData",
-        keys: DATA_KEYS
-    });
-
+    /*
+        Request the normal TT dataset ONCE at startup.
+        We do not poll getData.
+    */
     postTT({
         type: "getData"
     });
 }
 
-setInterval(requestData, 500);
+function requestMultiplayerSharedData() {
+    /*
+        Multiplayer is different from normal TT player data.
+
+        shareServerData values are exposed through players_<key>.
+        These two keys are lightweight and must be refreshed so this client
+        can see lobby/live-race state published by OTHER PinkiRaces users.
+
+        This is intentionally NOT a getData loop.
+    */
+    postTT({
+        type: "getNamedData",
+        keys: [
+            "players_pinki_races_lobby",
+            "players_pinki_races_live"
+        ]
+    });
+}
+
+// Lightweight multiplayer-only refresh.
+// Keeps lobby/live standings synchronized without hammering the full TT dataset.
+setInterval(
+    requestMultiplayerSharedData,
+    750
+);
 
 window.addEventListener("message", event => {
     let data = event.data;
@@ -3001,6 +3025,11 @@ function broadcastLobbyState(force = false) {
         MULTI_KEYS.LOBBY,
         buildLocalLobbyPayload()
     );
+
+    setTimeout(
+        requestMultiplayerSharedData,
+        150
+    );
 }
 
 function broadcastLobbyLeave() {
@@ -3017,6 +3046,11 @@ function broadcastLobbyLeave() {
             phase: "left",
             updated_at: Date.now()
         }
+    );
+
+    setTimeout(
+        requestMultiplayerSharedData,
+        150
     );
 }
 
@@ -3707,6 +3741,11 @@ function broadcastLiveRaceState(force = false) {
     shareServerData(
         MULTI_KEYS.LIVE,
         payload
+    );
+
+    setTimeout(
+        requestMultiplayerSharedData,
+        150
     );
 }
 
@@ -6138,6 +6177,7 @@ window.addEventListener("load", () => {
     onBuilderTypeChanged(true);
 
     requestData();
+    requestMultiplayerSharedData();
     updateClock();
 
     // Quiet catalogue refresh. Active races remain on their frozen local snapshot.
