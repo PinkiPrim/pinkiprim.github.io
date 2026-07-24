@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.22</title>
+    <title>PinkiRaces v1.23</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -1135,7 +1135,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.22.0";
+const APP_VERSION = "1.23.0";
 
 /*
     GOOGLE MULTIPLAYER BUILD
@@ -1269,13 +1269,21 @@ let MULTI = {
     runId: "",
     participants: [],
     state: "idle", // idle | lobby | countdown | racing | finished
+
     pollTimer: null,
     overlayTimer: null,
     inFlight: false,
     consecutiveFailures: 0,
-    serverOffsetMs: 0,
-    threeAtMs: 0,
-    goAtMs: 0,
+
+    /*
+        Once Google returns a locked run_id, countdown timing becomes 100%
+        local and can never be rewritten/restarted by later Google polls.
+    */
+    countdownLocked: false,
+    localCountdownStartedPerf: 0,
+    localThreeAtPerf: 0,
+    localGoAtPerf: 0,
+
     latestLobby: [],
     latestLive: [],
     finishedAtPerf: 0,
@@ -2718,7 +2726,7 @@ function showTargetBlip() {
 // Google multiplayer
 // -----------------------------
 function multiNow() {
-    return Date.now() + Number(MULTI.serverOffsetMs || 0);
+    return Date.now();
 }
 
 function selectedPublishedRace() {
@@ -2953,6 +2961,10 @@ async function joinGoogleLobby() {
     MULTI.state = "lobby";
     MULTI.podiumShown = false;
     MULTI.consecutiveFailures = 0;
+    MULTI.countdownLocked = false;
+    MULTI.localCountdownStartedPerf = 0;
+    MULTI.localThreeAtPerf = 0;
+    MULTI.localGoAtPerf = 0;
 
     document.getElementById(
         "multi-join-btn"
@@ -3077,8 +3089,10 @@ async function leaveGoogleLobby(silent = false) {
     MULTI.state = "idle";
     MULTI.latestLobby = [];
     MULTI.latestLive = [];
-    MULTI.threeAtMs = 0;
-    MULTI.goAtMs = 0;
+    MULTI.countdownLocked = false;
+    MULTI.localCountdownStartedPerf = 0;
+    MULTI.localThreeAtPerf = 0;
+    MULTI.localGoAtPerf = 0;
 
     document.getElementById(
         "multi-join-btn"
@@ -3170,14 +3184,6 @@ async function pollGoogleMultiplayer(force = false) {
 
         MULTI.consecutiveFailures = 0;
 
-        if (
-            Number(data.server_now_ms)
-        ) {
-            MULTI.serverOffsetMs =
-                Number(data.server_now_ms) -
-                Date.now();
-        }
-
         MULTI.latestLobby =
             Array.isArray(data.lobby)
                 ? data.lobby
@@ -3188,23 +3194,34 @@ async function pollGoogleMultiplayer(force = false) {
                 ? data.live
                 : [];
 
-        renderGoogleLobby(
-            MULTI.latestLobby,
-            data
-        );
-
-        if (
-            data.run_id &&
-            data.go_at_ms
-        ) {
-            adoptGoogleRaceStart(
+        /*
+            Lobby data can update only while we are genuinely in the lobby.
+            Once the run is locked, Google is no longer allowed to affect
+            countdown or race state.
+        */
+        if (MULTI.state === "lobby") {
+            renderGoogleLobby(
+                MULTI.latestLobby,
                 data
             );
+
+            if (
+                !MULTI.countdownLocked &&
+                data.run_id
+            ) {
+                lockGoogleRaceStart(
+                    data
+                );
+            }
         }
 
         if (
             RACE.multiplayer &&
-            MULTI.runId
+            MULTI.runId &&
+            (
+                MULTI.state === "racing" ||
+                MULTI.state === "finished"
+            )
         ) {
             renderGoogleStandings(
                 MULTI.latestLive
@@ -3360,12 +3377,9 @@ function renderGoogleLobby(players, response = {}) {
         list.appendChild(row);
     });
 
-    if (
-        response.run_id &&
-        response.go_at_ms
-    ) {
+    if (response.run_id) {
         setMultiStatus(
-            "STARTING",
+            "LOCKED",
             "racing"
         );
     } else {
@@ -3380,7 +3394,27 @@ function renderGoogleLobby(players, response = {}) {
     }
 }
 
-function adoptGoogleRaceStart(data) {
+function lockGoogleRaceStart(data) {
+    /*
+        ONE-WAY STATE TRANSITION:
+
+        lobby
+          -> Google returns a run_id once majority is ready
+          -> lock locally
+          -> STOP lobby polling
+          -> 15-second countdown runs from performance.now()
+          -> 3 / 2 / 1 / GO runs locally
+          -> restart Google polling only after GO for live progress/times
+
+        Later Google responses can NEVER restart this countdown.
+    */
+    if (
+        MULTI.countdownLocked ||
+        MULTI.state !== "lobby"
+    ) {
+        return;
+    }
+
     const runId =
         String(data.run_id || "");
 
@@ -3388,47 +3422,61 @@ function adoptGoogleRaceStart(data) {
         return;
     }
 
-    if (
-        MULTI.runId &&
-        MULTI.runId !== runId
-    ) {
-        return;
-    }
-
-    MULTI.runId =
-        runId;
+    MULTI.countdownLocked = true;
+    MULTI.runId = runId;
 
     MULTI.participants =
-        Array.isArray(
-            data.participants
-        )
+        Array.isArray(data.participants)
             ? data.participants.map(
-                value =>
-                    String(value)
+                value => String(value)
             )
-            : [];
+            : MULTI.latestLobby.map(
+                player =>
+                    String(player.user_id)
+            );
 
-    MULTI.threeAtMs =
-        Number(
-            data.three_at_ms || 0
-        );
+    MULTI.state = "countdown";
 
-    MULTI.goAtMs =
-        Number(
-            data.go_at_ms || 0
-        );
+    /*
+        Freeze the timing LOCALLY using monotonic performance.now().
+        Google timing / network latency can no longer move these deadlines.
+    */
+    MULTI.localCountdownStartedPerf =
+        performance.now();
 
-    if (
-        MULTI.state === "lobby"
-    ) {
-        MULTI.state =
-            "countdown";
+    MULTI.localThreeAtPerf =
+        MULTI.localCountdownStartedPerf +
+        15000;
 
-        prepareGoogleMultiplayerRace();
-    }
+    MULTI.localGoAtPerf =
+        MULTI.localThreeAtPerf +
+        3000;
 
-    startGoogleCountdownOverlay();
+    // Stop all lobby polling while the countdown is running.
+    stopGoogleMultiplayerPolling();
+
+    // Lock lobby controls so roster/Ready state cannot mutate mid-countdown.
+    document.getElementById(
+        "multi-ready-btn"
+    ).disabled = true;
+
+    document.getElementById(
+        "multi-leave-btn"
+    ).disabled = true;
+
+    document.getElementById(
+        "multi-join-btn"
+    ).disabled = true;
+
+    setMultiStatus(
+        "LOCKED",
+        "racing"
+    );
+
+    prepareGoogleMultiplayerRace();
+    startLocalMultiplayerCountdown();
 }
+
 
 function prepareGoogleMultiplayerRace() {
     if (
@@ -3492,8 +3540,12 @@ function prepareGoogleMultiplayerRace() {
     clearRaceBlips();
 }
 
-function startGoogleCountdownOverlay() {
-    if (MULTI.overlayTimer) {
+function startLocalMultiplayerCountdown() {
+    if (
+        MULTI.overlayTimer ||
+        !MULTI.countdownLocked ||
+        MULTI.state !== "countdown"
+    ) {
         return;
     }
 
@@ -3508,8 +3560,9 @@ function startGoogleCountdownOverlay() {
         );
 
     let falseStartWatcher = null;
+    let finished = false;
 
-    function stopOverlayTimer() {
+    function stopLocalCountdown() {
         if (MULTI.overlayTimer) {
             clearInterval(
                 MULTI.overlayTimer
@@ -3528,7 +3581,12 @@ function startGoogleCountdownOverlay() {
     }
 
     function multiplayerFalseStart() {
-        stopOverlayTimer();
+        if (finished) {
+            return;
+        }
+
+        finished = true;
+        stopLocalCountdown();
 
         text.classList.add(
             "false-start"
@@ -3569,27 +3627,39 @@ function startGoogleCountdownOverlay() {
         clearRaceBlips();
         hideCheckpointBeacon();
 
+        /*
+            Restart Google polling only to write the final invalid state.
+            It has zero authority over the already-finished local countdown.
+        */
+        startGoogleMultiplayerPolling(
+            true
+        );
+
         setTimeout(() => {
             overlay.style.display =
                 "none";
         }, 1800);
-
-        pollGoogleMultiplayer(
-            true
-        );
     }
 
     MULTI.overlayTimer =
         setInterval(() => {
-            const now =
-                multiNow();
+            if (
+                finished ||
+                MULTI.state !== "countdown"
+            ) {
+                stopLocalCountdown();
+                return;
+            }
 
-            const untilGo =
-                MULTI.goAtMs -
-                now;
+            const now =
+                performance.now();
 
             const untilThree =
-                MULTI.threeAtMs -
+                MULTI.localThreeAtPerf -
+                now;
+
+            const untilGo =
+                MULTI.localGoAtPerf -
                 now;
 
             overlay.style.display =
@@ -3604,7 +3674,13 @@ function startGoogleCountdownOverlay() {
                     "2.7em";
 
                 text.innerText =
-                    `RACE IS STARTING\n${Math.max(1, Math.ceil(untilThree / 1000))}`;
+                    `RACE IS STARTING\n${Math.max(
+                        1,
+                        Math.ceil(
+                            untilThree /
+                            1000
+                        )
+                    )}`;
 
                 setRaceStatus(
                     "MULTIPLAYER STARTING",
@@ -3614,12 +3690,22 @@ function startGoogleCountdownOverlay() {
                 return;
             }
 
+            /*
+                False-start monitoring begins ONLY for the local 3-2-1.
+                The 15-second staging countdown allows normal repositioning.
+            */
             if (!falseStartWatcher) {
+                RACE.countdownStartPos =
+                    livePos();
+
                 falseStartWatcher =
                     setInterval(() => {
                         if (
+                            finished ||
+                            MULTI.state !==
+                                "countdown" ||
                             RACE.phase !==
-                            "multiplayer_wait"
+                                "multiplayer_wait"
                         ) {
                             return;
                         }
@@ -3653,7 +3739,27 @@ function startGoogleCountdownOverlay() {
             ) {
                 text.innerText = "1";
             } else {
-                stopOverlayTimer();
+                finished = true;
+                stopLocalCountdown();
+
+                /*
+                    Final synchronous false-start check before GO closes the
+                    tiny gap between the 50ms watcher and local race start.
+                */
+                const pos =
+                    livePos();
+
+                if (
+                    pos &&
+                    RACE.countdownStartPos &&
+                    dist2D(
+                        pos,
+                        RACE.countdownStartPos
+                    ) >= 3
+                ) {
+                    multiplayerFalseStart();
+                    return;
+                }
 
                 text.innerText = "GO!";
 
@@ -3664,8 +3770,9 @@ function startGoogleCountdownOverlay() {
                         "none";
                 }, 650);
             }
-        }, 80);
+        }, 50);
 }
+
 
 function startGoogleMultiplayerRace() {
     if (
@@ -3715,7 +3822,11 @@ function startGoogleMultiplayerRace() {
 
     showTargetBlip();
 
-    pollGoogleMultiplayer(
+    /*
+        Race timing/checkpoints are now fully local.
+        Google resumes only as a telemetry/database channel.
+    */
+    startGoogleMultiplayerPolling(
         true
     );
 }
@@ -4583,6 +4694,11 @@ function cancelRace(reason = "Race cancelled") {
     RACE.multiplayer = false;
     RACE.multiplayerRunId = "";
     RACE.multiplayerParticipants = [];
+
+    MULTI.countdownLocked = false;
+    MULTI.localCountdownStartedPerf = 0;
+    MULTI.localThreeAtPerf = 0;
+    MULTI.localGoAtPerf = 0;
 
     if (wasMultiplayer) {
         MULTI.state = "finished";
