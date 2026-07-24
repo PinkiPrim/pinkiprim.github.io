@@ -696,44 +696,77 @@
         .standing-gap.ahead { color: #64b5f6; }
         .standing-gap.behind { color: #ffca6b; }
 
-        /* --- PODIUM HUD --- */
+        /* --- CENTRED FINAL RESULTS / PODIUM HUD --- */
         #podium-hud {
-            position: absolute;
-            top: 2.5%;
-            left: 1.25%;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             z-index: 4700;
-            width: min(365px, 36vw);
+            width: min(620px, 68vw);
             display: none;
             pointer-events: none;
-            padding: 8px;
-            border-radius: 8px;
-            background: rgba(0,0,0,.32);
-            border: 1px solid rgba(255,255,255,.17);
-            box-shadow: 0 8px 24px rgba(0,0,0,.25);
+            padding: 16px 18px 14px;
+            border-radius: 12px;
+            background: rgba(7,8,13,.82);
+            border: 1px solid rgba(255,255,255,.24);
+            box-shadow: 0 18px 55px rgba(0,0,0,.58);
+            backdrop-filter: blur(5px);
         }
 
         #podium-title {
-            margin-bottom: 5px;
+            margin-bottom: 10px;
             color: var(--accent);
-            font: 900 .92em 'Rajdhani', sans-serif;
-            letter-spacing: 1.3px;
+            font: 900 1.28em 'Rajdhani', sans-serif;
+            letter-spacing: 1.6px;
             text-transform: uppercase;
+            text-align: center;
+            text-shadow: 0 2px 8px #000;
         }
 
         .podium-row {
             display: grid;
-            grid-template-columns: 34px 1fr auto;
-            gap: 7px;
+            grid-template-columns: 72px minmax(140px,1fr) 122px;
+            gap: 12px;
             align-items: center;
-            padding: 6px 4px;
-            border-top: 1px solid rgba(255,255,255,.07);
-            font-size: .79em;
+            padding: 10px 12px;
+            border-top: 1px solid rgba(255,255,255,.10);
+            font-size: 1em;
+            background: rgba(255,255,255,.025);
         }
 
-        .podium-medal { font-size: 1.35em; text-align: center; }
-        .podium-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .podium-time { color: var(--green); font-weight: 800; font-variant-numeric: tabular-nums; }
-        .podium-note { margin-top: 6px; color: var(--dim); font-size: .68em; }
+        .podium-row:first-child {
+            border-top: 1px solid rgba(255,255,255,.16);
+        }
+
+        .podium-medal {
+            font: 900 1.15em 'Rajdhani', sans-serif;
+            letter-spacing: 1px;
+            text-align: center;
+            color: var(--accent);
+        }
+
+        .podium-name {
+            font: 900 1.02em 'Rajdhani', sans-serif;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .podium-time {
+            color: var(--green);
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .podium-note {
+            margin-top: 10px;
+            color: var(--dim);
+            font-size: .78em;
+            text-align: center;
+        }
 
         .builder-list {
             max-height: 150px;
@@ -1135,7 +1168,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.23.0";
+const APP_VERSION = "1.24.0";
 
 /*
     GOOGLE MULTIPLAYER BUILD
@@ -3121,6 +3154,79 @@ async function leaveGoogleLobby(silent = false) {
     }
 }
 
+function clearGoogleLobbyUiAfterFinish() {
+    /*
+        The multiplayer run still polls briefly in the background so every
+        finisher can be collected for the final 1ST / 2ND / 3RD results.
+        Visually, however, the player is no longer in a lobby the instant
+        their race is finished.
+    */
+    MULTI.ready = false;
+
+    document.getElementById(
+        "multi-join-btn"
+    ).disabled = true;
+
+    document.getElementById(
+        "multi-ready-btn"
+    ).disabled = true;
+
+    document.getElementById(
+        "multi-leave-btn"
+    ).disabled = true;
+
+    document.getElementById(
+        "multi-ready-btn"
+    ).innerText = "READY";
+
+    renderGoogleLobby([]);
+    setMultiStatus(
+        "FINISHED",
+        "racing"
+    );
+}
+
+function finishGoogleMultiplayerSessionLocal() {
+    /*
+        Final results are already recorded as FINISHED. Stop polling and
+        release the local lobby state without sending a LEFT state that could
+        interfere with the completed live result rows.
+    */
+    stopGoogleMultiplayerPolling();
+
+    MULTI.joined = false;
+    MULTI.ready = false;
+    MULTI.raceId = "";
+    MULTI.runId = "";
+    MULTI.participants = [];
+    MULTI.state = "idle";
+    MULTI.latestLobby = [];
+    MULTI.latestLive = [];
+    MULTI.countdownLocked = false;
+    MULTI.localCountdownStartedPerf = 0;
+    MULTI.localThreeAtPerf = 0;
+    MULTI.localGoAtPerf = 0;
+
+    document.getElementById(
+        "multi-join-btn"
+    ).disabled = false;
+
+    document.getElementById(
+        "multi-ready-btn"
+    ).disabled = true;
+
+    document.getElementById(
+        "multi-leave-btn"
+    ).disabled = true;
+
+    document.getElementById(
+        "multi-ready-btn"
+    ).innerText = "READY";
+
+    renderGoogleLobby([]);
+    setMultiStatus("OFFLINE");
+}
+
 async function pollGoogleMultiplayer(force = false) {
     if (
         MULTI.inFlight ||
@@ -3218,14 +3324,19 @@ async function pollGoogleMultiplayer(force = false) {
         if (
             RACE.multiplayer &&
             MULTI.runId &&
-            (
-                MULTI.state === "racing" ||
-                MULTI.state === "finished"
-            )
+            MULTI.state === "racing"
         ) {
             renderGoogleStandings(
                 MULTI.latestLive
             );
+        }
+
+        if (
+            RACE.multiplayer &&
+            MULTI.runId &&
+            MULTI.state === "finished"
+        ) {
+            hideGoogleStandings();
 
             maybeShowGooglePodium(
                 MULTI.latestLive
@@ -4192,9 +4303,9 @@ function showPodiumHud(
     body.innerHTML = "";
 
     const medals = [
-        "🥇",
-        "🥈",
-        "🥉"
+        "1ST",
+        "2ND",
+        "3RD"
     ];
 
     rows
@@ -4337,6 +4448,8 @@ function maybeShowGooglePodium(players) {
         `${RACE.course ? RACE.course.name : "Race"} • Final Results`,
         `${sorted.length} racer${sorted.length === 1 ? "" : "s"} finished`
     );
+
+    finishGoogleMultiplayerSessionLocal();
 }
 
 // -----------------------------
@@ -4805,12 +4918,16 @@ function finishRace() {
         MULTI.finishedAtPerf =
             RACE.finishedAtPerf;
 
+        hideGoogleStandings();
+        clearGoogleLobbyUiAfterFinish();
+
+        /*
+            One final/continuing background sync records this finish and waits
+            only for the remaining racers. The stale lobby and LIVE RACE HUD
+            are already gone from the player's screen.
+        */
         pollGoogleMultiplayer(
             true
-        );
-
-        renderGoogleStandings(
-            MULTI.latestLive
         );
     } else {
         showSinglePlayerPodium(
