@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.21</title>
+    <title>PinkiRaces v1.22</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -1135,7 +1135,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.21.0";
+const APP_VERSION = "1.22.0";
 
 /*
     GOOGLE MULTIPLAYER BUILD
@@ -2526,24 +2526,41 @@ function setValidity(text, cssClass = "") {
 // -----------------------------
 function clearRaceBlips() {
     /*
-        IMPORTANT:
-        Use only documented TT User App blip commands here.
+        Yellow "0" cleanup.
 
-        Earlier builds used an invented `hideNumberOnBlip` command, which
-        caused the TT User Apps wrapper to throw `Failed to fetch`.
+        START carries the yellow number 0 via showNumberOnBlip.
+        There is NO documented hideNumberOnBlip command, so cleanup must
+        remove the whole START blip.
 
-        Removing the START blip itself also removes its displayed `0`, so no
-        separate number-hiding command is needed.
+        Only documented TT commands are used:
+        - setBlipRoute
+        - removeBlip
+
+        A delayed second remove pass prevents the numbered START blip from
+        lingering if the client processes route removal and blip removal on
+        adjacent UI ticks.
     */
-    postTT({
-        type: "removeBlip",
-        id: BLIP_IDS.START
+    [BLIP_IDS.START, BLIP_IDS.NEXT].forEach(id => {
+        postTT({
+            type: "setBlipRoute",
+            id: id,
+            route: false
+        });
+
+        postTT({
+            type: "removeBlip",
+            id: id
+        });
     });
 
-    postTT({
-        type: "removeBlip",
-        id: BLIP_IDS.NEXT
-    });
+    setTimeout(() => {
+        [BLIP_IDS.START, BLIP_IDS.NEXT].forEach(id => {
+            postTT({
+                type: "removeBlip",
+                id: id
+            });
+        });
+    }, 120);
 }
 
 function showStartBlip(course) {
