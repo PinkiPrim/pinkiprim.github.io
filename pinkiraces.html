@@ -1168,7 +1168,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.24.0";
+const APP_VERSION = "1.25.0";
 
 /*
     GOOGLE MULTIPLAYER BUILD
@@ -3079,38 +3079,26 @@ function toggleGoogleReady() {
     );
 }
 
-async function leaveGoogleLobby(silent = false) {
-    if (
-        GOOGLE_SCRIPT_URL &&
-        MULTI.joined
-    ) {
-        try {
-            await googleJsonRequest(
-                GOOGLE_SCRIPT_URL,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "text/plain;charset=utf-8"
-                    },
-                    body: JSON.stringify({
-                        action:
-                            "multiplayerPoll",
-                        state:
-                            "left",
-                        raceId:
-                            MULTI.raceId,
-                        runId:
-                            MULTI.runId,
-                        player:
-                            multiPlayerPayload()
-                    })
-                }
-            );
-        } catch (e) {
-            // Leaving must never block the local app.
-        }
-    }
+function leaveGoogleLobby(silent = false) {
+    /*
+        IMPORTANT: local controls are released FIRST.
+        A slow/unavailable Google request must never trap the player in a
+        finished or stale lobby with JOIN / READY / LEAVE unusable.
+    */
+    const shouldNotifyGoogle =
+        !!GOOGLE_SCRIPT_URL &&
+        MULTI.joined;
+
+    const remoteBody =
+        shouldNotifyGoogle
+            ? {
+                action: "multiplayerPoll",
+                state: "left",
+                raceId: MULTI.raceId,
+                runId: MULTI.runId,
+                player: multiPlayerPayload()
+            }
+            : null;
 
     stopGoogleMultiplayerPolling();
 
@@ -3146,6 +3134,28 @@ async function leaveGoogleLobby(silent = false) {
     renderGoogleLobby([]);
     setMultiStatus("OFFLINE");
 
+    /*
+        Tell Google after the local UI has already been released.
+        This is deliberately fire-and-forget: backend delay cannot re-lock UI.
+    */
+    if (remoteBody) {
+        googleJsonRequest(
+            GOOGLE_SCRIPT_URL,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify(
+                    remoteBody
+                )
+            }
+        ).catch(() => {
+            // Local leave already succeeded; remote cleanup will expire naturally.
+        });
+    }
+
     if (!silent) {
         toast(
             "Left multiplayer lobby.",
@@ -3154,36 +3164,142 @@ async function leaveGoogleLobby(silent = false) {
     }
 }
 
-function clearGoogleLobbyUiAfterFinish() {
-    /*
-        The multiplayer run still polls briefly in the background so every
-        finisher can be collected for the final 1ST / 2ND / 3RD results.
-        Visually, however, the player is no longer in a lobby the instant
-        their race is finished.
-    */
-    MULTI.ready = false;
+function ordinalPlace(index) {
+    return ["1ST", "2ND", "3RD"][index] || `${index + 1}TH`;
+}
 
-    document.getElementById(
-        "multi-join-btn"
-    ).disabled = true;
+function buildImmediateMultiplayerFinishRows(result, liveRows) {
+    const byUser = new Map();
 
-    document.getElementById(
-        "multi-ready-btn"
-    ).disabled = true;
+    (Array.isArray(liveRows) ? liveRows : [])
+        .filter(
+            row =>
+                row &&
+                row.phase === "finished" &&
+                Number(row.finished_ms) > 0
+        )
+        .forEach(row => {
+            byUser.set(
+                String(row.user_id),
+                row
+            );
+        });
 
-    document.getElementById(
-        "multi-leave-btn"
-    ).disabled = true;
-
-    document.getElementById(
-        "multi-ready-btn"
-    ).innerText = "READY";
-
-    renderGoogleLobby([]);
-    setMultiStatus(
-        "FINISHED",
-        "racing"
+    /* Always inject our local finish so results do not depend on Google sync. */
+    byUser.set(
+        String(result.user_id),
+        {
+            user_id: result.user_id,
+            player_name: result.player_name,
+            phase: "finished",
+            finished_ms: Number(result.time_ms),
+            time_ms: Number(result.time_ms),
+            valid: result.validity === "valid"
+        }
     );
+
+    return Array.from(byUser.values())
+        .sort(
+            (a, b) =>
+                Number(
+                    a.finished_ms ??
+                    a.time_ms ??
+                    0
+                ) -
+                Number(
+                    b.finished_ms ??
+                    b.time_ms ??
+                    0
+                )
+        );
+}
+
+function showImmediateMultiplayerFinish(result, liveRows) {
+    const rows =
+        buildImmediateMultiplayerFinishRows(
+            result,
+            liveRows
+        );
+
+    const myIndex =
+        rows.findIndex(
+            row =>
+                String(row.user_id) ===
+                String(result.user_id)
+        );
+
+    const placeText =
+        myIndex >= 0
+            ? ordinalPlace(myIndex)
+            : "FINISHED";
+
+    showPodiumHud(
+        rows.length ? rows : [result],
+        `${result.race_name} • Final Results`,
+        `You finished ${placeText} • ${formatTime(Number(result.time_ms))}`
+    );
+}
+
+function releaseGoogleMultiplayerAfterFinish(result) {
+    /*
+        Snapshot everything needed for ONE final backend write before clearing
+        local multiplayer state. The player is immediately free to JOIN again.
+    */
+    const raceId = MULTI.raceId;
+    const runId = MULTI.runId;
+    const player = multiPlayerPayload();
+    const progress = multiProgressPayload();
+
+    finishGoogleMultiplayerSessionLocal();
+
+    if (
+        !GOOGLE_SCRIPT_URL ||
+        !raceId ||
+        !runId
+    ) {
+        return;
+    }
+
+    googleJsonRequest(
+        GOOGLE_SCRIPT_URL,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type":
+                    "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify({
+                action: "multiplayerPoll",
+                state: "finished",
+                raceId: raceId,
+                runId: runId,
+                ready: false,
+                player: player,
+                progress: progress
+            })
+        }
+    ).then(data => {
+        /*
+            A successful final response may already contain extra finishers.
+            Refresh the centred result card, but NEVER alter lobby controls.
+        */
+        const live =
+            Array.isArray(data && data.live)
+                ? data.live
+                : [];
+
+        if (live.length) {
+            showImmediateMultiplayerFinish(
+                result,
+                live
+            );
+        }
+    }).catch(() => {
+        /*
+            The local finish/result is already complete. Do not show SYNC DELAY
+            and do not re-lock the player just because Google is unavailable.
+        */
+    });
 }
 
 function finishGoogleMultiplayerSessionLocal() {
@@ -3236,6 +3352,12 @@ async function pollGoogleMultiplayer(force = false) {
         return;
     }
 
+    const requestRaceId =
+        String(MULTI.raceId || "");
+
+    const requestRunId =
+        String(MULTI.runId || "");
+
     MULTI.inFlight = true;
 
     try {
@@ -3287,6 +3409,22 @@ async function pollGoogleMultiplayer(force = false) {
                         JSON.stringify(body)
                 }
             );
+
+        /*
+            Ignore a response from a lobby/run that was released or replaced
+            while this request was in flight. This prevents a late response
+            from putting the finished UI back into SYNC DELAY / locked state.
+        */
+        if (
+            !MULTI.joined ||
+            String(MULTI.raceId || "") !== requestRaceId ||
+            (
+                requestRunId &&
+                String(MULTI.runId || "") !== requestRunId
+            )
+        ) {
+            return;
+        }
 
         MULTI.consecutiveFailures = 0;
 
@@ -3344,6 +3482,18 @@ async function pollGoogleMultiplayer(force = false) {
         }
 
     } catch (error) {
+        /* A stale request must never change the new/current lobby UI. */
+        if (
+            !MULTI.joined ||
+            String(MULTI.raceId || "") !== requestRaceId ||
+            (
+                requestRunId &&
+                String(MULTI.runId || "") !== requestRunId
+            )
+        ) {
+            return;
+        }
+
         MULTI.consecutiveFailures += 1;
 
         setMultiStatus(
@@ -4919,15 +5069,23 @@ function finishRace() {
             RACE.finishedAtPerf;
 
         hideGoogleStandings();
-        clearGoogleLobbyUiAfterFinish();
 
         /*
-            One final/continuing background sync records this finish and waits
-            only for the remaining racers. The stale lobby and LIVE RACE HUD
-            are already gone from the player's screen.
+            Show the finish immediately from LOCAL timing. This guarantees a
+            centred 1ST / 2ND / 3RD result even if Google sync is delayed.
         */
-        pollGoogleMultiplayer(
-            true
+        showImmediateMultiplayerFinish(
+            result,
+            MULTI.latestLive
+        );
+
+        /*
+            End the old lobby locally RIGHT NOW. JOIN becomes available again,
+            READY becomes available after joining, and no network request can
+            leave the player trapped in the completed lobby.
+        */
+        releaseGoogleMultiplayerAfterFinish(
+            result
         );
     } else {
         showSinglePlayerPodium(
