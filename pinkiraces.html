@@ -1168,7 +1168,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.25.0";
+const APP_VERSION = "1.26.0";
 
 /*
     GOOGLE MULTIPLAYER BUILD
@@ -3168,6 +3168,13 @@ function ordinalPlace(index) {
     return ["1ST", "2ND", "3RD"][index] || `${index + 1}TH`;
 }
 
+function isGoogleDnfRow(player) {
+    return !!player &&
+        player.phase === "finished" &&
+        player.valid === false &&
+        Number(player.finished_ms || 0) <= 0;
+}
+
 function buildImmediateMultiplayerFinishRows(result, liveRows) {
     const byUser = new Map();
 
@@ -3175,8 +3182,7 @@ function buildImmediateMultiplayerFinishRows(result, liveRows) {
         .filter(
             row =>
                 row &&
-                row.phase === "finished" &&
-                Number(row.finished_ms) > 0
+                row.phase === "finished"
         )
         .forEach(row => {
             byUser.set(
@@ -3198,20 +3204,9 @@ function buildImmediateMultiplayerFinishRows(result, liveRows) {
         }
     );
 
-    return Array.from(byUser.values())
-        .sort(
-            (a, b) =>
-                Number(
-                    a.finished_ms ??
-                    a.time_ms ??
-                    0
-                ) -
-                Number(
-                    b.finished_ms ??
-                    b.time_ms ??
-                    0
-                )
-        );
+    return sortGoogleLivePlayers(
+        Array.from(byUser.values())
+    );
 }
 
 function showImmediateMultiplayerFinish(result, liveRows) {
@@ -3298,6 +3293,128 @@ function releaseGoogleMultiplayerAfterFinish(result) {
         /*
             The local finish/result is already complete. Do not show SYNC DELAY
             and do not re-lock the player just because Google is unavailable.
+        */
+    });
+}
+
+
+function releaseGoogleMultiplayerAsDnf(reason = "Race cancelled") {
+    /*
+        A multiplayer Cancel is an explicit DNF:
+        - record a terminal FINISHED row with no finish time and valid=false;
+        - mark the lobby row FINISHED so it disappears from the active lobby;
+        - release local controls immediately, before waiting for Google.
+    */
+    const raceId =
+        String(
+            MULTI.raceId ||
+            (
+                RACE.course &&
+                RACE.course.id
+            ) ||
+            ""
+        );
+
+    const runId =
+        String(
+            MULTI.runId ||
+            RACE.multiplayerRunId ||
+            ""
+        );
+
+    const player =
+        multiPlayerPayload();
+
+    const now =
+        performance.now();
+
+    const elapsed =
+        RACE.startedAtPerf > 0
+            ? Math.max(
+                0,
+                now -
+                RACE.startedAtPerf
+            )
+            : 0;
+
+    const pos =
+        livePos();
+
+    const target =
+        currentTarget();
+
+    const progress = {
+        elapsed_ms:
+            Math.round(elapsed),
+        lap:
+            RACE.lap || 1,
+        checkpoint_index:
+            RACE.checkpointIndex || 0,
+        completed_targets:
+            RACE.course
+                ? completedRaceTargets()
+                : 0,
+        distance_to_next:
+            (
+                pos &&
+                target &&
+                target.point
+            )
+                ? Math.round(
+                    dist2D(
+                        pos,
+                        target.point
+                    )
+                )
+                : 0,
+        splits:
+            Array.isArray(RACE.splits)
+                ? RACE.splits.map(
+                    value =>
+                        Math.round(value)
+                )
+                : [],
+        /*
+            finished_ms = 0 + valid=false is the multiplayer DNF marker.
+            The backend already persists FINISHED rows, so other racers can
+            resolve the final results without waiting for this player again.
+        */
+        finished_ms: 0,
+        valid: false
+    };
+
+    finishGoogleMultiplayerSessionLocal();
+
+    if (
+        !GOOGLE_SCRIPT_URL ||
+        !raceId ||
+        !runId
+    ) {
+        return;
+    }
+
+    googleJsonRequest(
+        GOOGLE_SCRIPT_URL,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type":
+                    "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify({
+                action: "multiplayerPoll",
+                state: "finished",
+                raceId: raceId,
+                runId: runId,
+                ready: false,
+                player: player,
+                progress: progress
+            })
+        }
+    ).catch(() => {
+        /*
+            Local removal already succeeded. The stale backend lobby row will
+            also age out, so a network delay can never trap the player locally.
         */
     });
 }
@@ -4129,8 +4246,35 @@ function extrapolatedLiveTime(player) {
 function sortGoogleLivePlayers(players) {
     return [...players]
         .sort((a, b) => {
+            const aDnf =
+                isGoogleDnfRow(a);
+
+            const bDnf =
+                isGoogleDnfRow(b);
+
+            /*
+                DNFs always sit behind racers who either finished normally
+                or are still actively racing.
+            */
+            if (aDnf !== bDnf) {
+                return aDnf
+                    ? 1
+                    : -1;
+            }
+
+            if (aDnf && bDnf) {
+                return String(
+                    a.player_name || ""
+                ).localeCompare(
+                    String(
+                        b.player_name || ""
+                    )
+                );
+            }
+
             const aFinished =
                 a.phase === "finished";
+
             const bFinished =
                 b.phase === "finished";
 
@@ -4195,6 +4339,13 @@ function sortGoogleLivePlayers(players) {
 }
 
 function liveGapToMe(player, me) {
+    if (isGoogleDnfRow(player)) {
+        return {
+            text: "DNF",
+            className: "behind"
+        };
+    }
+
     if (
         !me ||
         String(player.user_id) ===
@@ -4375,11 +4526,13 @@ function renderGoogleStandings(players) {
                 "standing-time";
 
             time.innerText =
-                formatTime(
-                    extrapolatedLiveTime(
-                        player
-                    )
-                );
+                isGoogleDnfRow(player)
+                    ? "DNF"
+                    : formatTime(
+                        extrapolatedLiveTime(
+                            player
+                        )
+                    );
 
             const gap =
                 document.createElement(
@@ -4470,6 +4623,11 @@ function showPodiumHud(
                 row.className =
                     "podium-row";
 
+                const isDnf =
+                    isGoogleDnfRow(
+                        rowData
+                    );
+
                 const medal =
                     document.createElement(
                         "div"
@@ -4479,7 +4637,12 @@ function showPodiumHud(
                     "podium-medal";
 
                 medal.innerText =
-                    medals[index] || "";
+                    isDnf
+                        ? "DNF"
+                        : (
+                            medals[index] ||
+                            ""
+                        );
 
                 const name =
                     document.createElement(
@@ -4503,13 +4666,15 @@ function showPodiumHud(
                     "podium-time";
 
                 time.innerText =
-                    formatTime(
-                        Number(
-                            rowData.finished_ms ??
-                            rowData.time_ms ??
-                            0
-                        )
-                    );
+                    isDnf
+                        ? "DNF"
+                        : formatTime(
+                            Number(
+                                rowData.finished_ms ??
+                                rowData.time_ms ??
+                                0
+                            )
+                        );
 
                 row.appendChild(
                     medal
@@ -4578,14 +4743,8 @@ function maybeShowGooglePodium(players) {
     }
 
     const sorted =
-        finished.sort(
-            (a, b) =>
-                Number(
-                    a.finished_ms
-                ) -
-                Number(
-                    b.finished_ms
-                )
+        sortGoogleLivePlayers(
+            finished
         );
 
     MULTI.podiumShown =
@@ -4937,7 +5096,18 @@ function invalidateRace(reason) {
 
 function cancelRace(reason = "Race cancelled") {
     const wasMultiplayer =
-        RACE.multiplayer;
+        RACE.multiplayer === true;
+
+    /*
+        In multiplayer, pressing CANCEL is a terminal DNF.
+        Record/release that state BEFORE wiping RACE so the run ID, course,
+        progress and player payload are still available.
+    */
+    if (wasMultiplayer) {
+        releaseGoogleMultiplayerAsDnf(
+            reason || "Race cancelled"
+        );
+    }
 
     RACE.countdownToken += 1;
     RACE.phase = "idle";
@@ -4963,11 +5133,7 @@ function cancelRace(reason = "Race cancelled") {
     MULTI.localThreeAtPerf = 0;
     MULTI.localGoAtPerf = 0;
 
-    if (wasMultiplayer) {
-        MULTI.state = "finished";
-        pollGoogleMultiplayer(true);
-        hideGoogleStandings();
-    }
+    hideGoogleStandings();
 
     document.getElementById("countdown-overlay").style.display = "none";
     hideCheckpointBeacon();
@@ -4994,7 +5160,17 @@ function cancelRace(reason = "Race cancelled") {
     }
 
     if (reason) {
-        toast(reason, "info");
+        toast(
+            wasMultiplayer
+                ? `${reason} — DNF recorded. You have been removed from the multiplayer lobby.`
+                : reason,
+            wasMultiplayer
+                ? "bad"
+                : "info",
+            wasMultiplayer
+                ? 4200
+                : 3000
+        );
     }
 }
 
