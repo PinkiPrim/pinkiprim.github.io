@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiRaces v1.20</title>
+    <title>PinkiRaces v1.21</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap');
 
@@ -1135,7 +1135,7 @@
 // Feedback uses in-app toasts and TT notifications only.
 // ============================================================
 
-const APP_VERSION = "1.20.0";
+const APP_VERSION = "1.21.0";
 
 /*
     GOOGLE MULTIPLAYER BUILD
@@ -1155,8 +1155,8 @@ const APP_VERSION = "1.20.0";
     Editing this public HTML alone does NOT grant publishing access.
 */
 const ALLOWED_BUILDER_IDS = [
-    757858 // Prim
-    229051 // Poire
+    757858, // Prim
+    229051  // Poire
 ];
 
 /*
@@ -2525,34 +2525,25 @@ function setValidity(text, cssClass = "") {
 // Blips / routing
 // -----------------------------
 function clearRaceBlips() {
-    [BLIP_IDS.START, BLIP_IDS.NEXT].forEach(id => {
-        postTT({
-            type: "setBlipRoute",
-            id: id,
-            route: false
-        });
+    /*
+        IMPORTANT:
+        Use only documented TT User App blip commands here.
 
-        postTT({
-            type: "hideNumberOnBlip",
-            id: id
-        });
+        Earlier builds used an invented `hideNumberOnBlip` command, which
+        caused the TT User Apps wrapper to throw `Failed to fetch`.
 
-        postTT({
-            type: "removeBlip",
-            id: id
-        });
+        Removing the START blip itself also removes its displayed `0`, so no
+        separate number-hiding command is needed.
+    */
+    postTT({
+        type: "removeBlip",
+        id: BLIP_IDS.START
     });
 
-    // A second pass handles clients that process route/number removal
-    // one UI tick before removing the blip itself.
-    setTimeout(() => {
-        [BLIP_IDS.START, BLIP_IDS.NEXT].forEach(id => {
-            postTT({
-                type: "removeBlip",
-                id: id
-            });
-        });
-    }, 120);
+    postTT({
+        type: "removeBlip",
+        id: BLIP_IDS.NEXT
+    });
 }
 
 function showStartBlip(course) {
