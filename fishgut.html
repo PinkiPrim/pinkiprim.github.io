@@ -417,7 +417,7 @@
         </div>
 
         <div class="bottom-row">
-            <span id="detail-text">90% trigger • Gut every Fishing: item • Put All</span>
+            <span id="detail-text">90% trigger • Gut every Fish: item • Put All</span>
             <span class="support-link" id="support-link">
                 Support PinkiPrim <span class="heart-spin">❤</span>
             </span>
@@ -484,10 +484,11 @@
             rearmed: true,
             startedBy: null,
             gutPasses: 0,
+            rawFishAtStart: 0,
             currentFishingItem: '',
             stateText: 'Waiting for Transport Tycoon data...',
             stateClass: '',
-            detailText: '90% trigger • Gut every Fishing: item • Put All',
+            detailText: '90% trigger • Gut every Fish: item • Put All',
             lastNotificationText: null,
             notificationSequence: 0,
             lastNotificationEvent: null,
@@ -657,8 +658,48 @@
 
         function findFirstFishingChoice() {
             return menuChoiceRecords().find((choice) => {
-                return choice.cleanName.toLowerCase().includes('fishing:');
+                return choice.cleanName.toLowerCase().includes('fish:');
             }) || null;
+        }
+
+        function rawFishInventoryEntries() {
+            const entries = [];
+
+            Object.keys(GAME)
+                .filter((key) => key.toLowerCase().startsWith('inventory'))
+                .forEach((key) => {
+                    const inventory = parseMaybeJson(GAME[key]);
+
+                    if (!inventory || typeof inventory !== 'object' || Array.isArray(inventory)) {
+                        return;
+                    }
+
+                    Object.entries(inventory).forEach(([itemName, itemData]) => {
+                        const lowerName = String(itemName).toLowerCase();
+                        const amount = numberOrNull(itemData && itemData.amount);
+
+                        if (
+                            lowerName.startsWith('fish_') &&
+                            !lowerName.includes('meat') &&
+                            !lowerName.includes('pot') &&
+                            amount !== null &&
+                            amount > 0
+                        ) {
+                            entries.push({
+                                key: itemName,
+                                amount
+                            });
+                        }
+                    });
+                });
+
+            return entries;
+        }
+
+        function rawFishCount() {
+            return rawFishInventoryEntries().reduce((total, entry) => {
+                return total + entry.amount;
+            }, 0);
         }
 
         function inventoryPercent() {
@@ -1007,10 +1048,26 @@
                 const fishingChoice = findFirstFishingChoice();
 
                 if (!fishingChoice) {
+                    requestData();
+                    await sleep(500);
+
+                    const remainingRawFish = rawFishInventoryEntries();
+
+                    if (APP.gutPasses === 0 && remainingRawFish.length > 0) {
+                        const preview = remainingRawFish
+                            .slice(0, 3)
+                            .map((entry) => `${entry.key} x${entry.amount}`)
+                            .join(', ');
+
+                        throw new Error(
+                            `Raw fish exist but no Fish: menu item was found (${preview}). Storage cancelled.`
+                        );
+                    }
+
                     setStatus(
-                        'No Fishing: items remain',
+                        'No Fish: items remain',
                         'good',
-                        `${APP.gutPasses} fishing stack(s) gutted`
+                        `${APP.gutPasses} fish stack(s) gutted`
                     );
 
                     await closeAllMenus();
@@ -1025,6 +1082,11 @@
 
         async function putAllInBoat() {
             throwIfCancelled();
+
+            if (APP.rawFishAtStart > 0 && APP.gutPasses === 0) {
+                throw new Error('Raw fish were detected, but no gut completion was confirmed. Storage cancelled.');
+            }
+
             await closeAllMenus();
 
             if (!isInCurrentBoat()) {
@@ -1112,7 +1174,7 @@
             setStatus(
                 'Gut and store complete',
                 'good',
-                `${APP.gutPasses} fishing stack(s) gutted • Boat storage updated`
+                `${APP.gutPasses} fish stack(s) gutted • Boat storage updated`
             );
         }
 
@@ -1138,6 +1200,7 @@
             APP.startedBy = startedBy;
             APP.lastStartAt = Date.now();
             APP.gutPasses = 0;
+            APP.rawFishAtStart = rawFishCount();
             APP.currentFishingItem = '';
 
             if (startedBy === 'auto') {
@@ -1157,7 +1220,7 @@
                 setStatus(
                     'Starting gut sequence...',
                     'active',
-                    'Scanning Inventory for Fishing: items'
+                    'Scanning Inventory for Fish: items'
                 );
 
                 await gutEveryFishingItem();
@@ -1210,7 +1273,7 @@
                 setStatus(
                     'Waiting for Transport Tycoon data...',
                     '',
-                    '90% trigger • Gut every Fishing: item • Put All'
+                    '90% trigger • Gut every Fish: item • Put All'
                 );
                 return;
             }
