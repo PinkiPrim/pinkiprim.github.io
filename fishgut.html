@@ -395,7 +395,7 @@
 
             <div id="inventory-progress">
                 <div id="inventory-progress-fill"></div>
-                <div id="inventory-progress-text">0.0% / 90%</div>
+                <div id="inventory-progress-text">0.0% / 75%</div>
             </div>
 
             <div class="status-row">
@@ -417,7 +417,7 @@
         </div>
 
         <div class="bottom-row">
-            <span id="detail-text">90% trigger • Gut every Fish: item • Put All</span>
+            <span id="detail-text">75% trigger • Gut every Fish: item • Put All</span>
             <span class="support-link" id="support-link">
                 Support PinkiPrim <span class="heart-spin">❤</span>
             </span>
@@ -432,8 +432,8 @@
         // ---------------------------------------------------------------------
 
         const CONFIG = {
-            triggerPercent: 90,
-            rearmPercent: 80,
+            triggerPercent: 75,
+            rearmPercent: 65,
             requestIntervalMs: 750,
             conditionPollMs: 50,
             menuTimeoutMs: 6000,
@@ -488,7 +488,7 @@
             currentFishingItem: '',
             stateText: 'Waiting for Transport Tycoon data...',
             stateClass: '',
-            detailText: '90% trigger • Gut every Fish: item • Put All',
+            detailText: '75% trigger • Gut every Fish: item • Put All',
             lastNotificationText: null,
             notificationSequence: 0,
             lastNotificationEvent: null,
@@ -1211,7 +1211,7 @@
 
             notifyPlayer(
                 startedBy === 'auto'
-                    ? 'Inventory reached 90%. Starting gut and store.'
+                    ? 'Inventory reached 75%. Starting gut and store.'
                     : 'Starting gut and store.',
                 'info'
             );
@@ -1273,7 +1273,7 @@
                 setStatus(
                     'Waiting for Transport Tycoon data...',
                     '',
-                    '90% trigger • Gut every Fish: item • Put All'
+                    '75% trigger • Gut every Fish: item • Put All'
                 );
                 return;
             }
@@ -1376,9 +1376,9 @@
                 setStatus(
                     'Auto mode armed',
                     'good',
-                    'Runs at 90% while Fisher is inside the active boat'
+                    'Runs at 75% while Fisher is inside the active boat'
                 );
-                notifyPlayer('Auto mode enabled at 90%.', 'success');
+                notifyPlayer('Auto mode enabled at 75%.', 'success');
                 maybeStartAutomatically();
             } else {
                 setStatus(
