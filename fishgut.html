@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinki Fishing Ops</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --primary: #00bcd4;
+            --primary-dim: #006978;
+            --primary-soft: rgba(0, 188, 212, 0.16);
+            --background: rgba(10, 10, 10, 0.985);
+            --panel: rgba(255, 255, 255, 0.045);
+            --panel-dark: rgba(0, 0, 0, 0.34);
+            --text-main: #ffffff;
+            --text-dim: #9e9e9e;
+            --green: #00e676;
+            --yellow: #ffca28;
+            --orange: #ff9100;
+            --red: #ff5252;
+            --heart: #ff4081;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: transparent;
+            color: var(--text-main);
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+        }
+
+        #fisher-app {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            width: 480px;
+            min-height: 142px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: var(--background);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.9);
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        #drag-handle {
+            min-height: 34px;
+            padding: 4px 9px;
+            display: grid;
+            grid-template-columns: 52px 1fr 118px;
+            align-items: center;
+            gap: 6px;
+            cursor: move;
+            background: linear-gradient(
+                180deg,
+                var(--primary-dim),
+                rgba(0, 105, 120, 0.28)
+            );
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .nav-area {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .nav-icon {
+            color: #d5d5d5;
+            font-size: 1em;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .nav-icon:hover {
+            color: #ffffff;
+        }
+
+        .fish-icon {
+            font-size: 1.15em;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+        }
+
+        .app-title {
+            overflow: hidden;
+            color: #ffffff;
+            font-size: 1.02em;
+            font-weight: 900;
+            letter-spacing: 1.7px;
+            text-align: center;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.65);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 7px;
+        }
+
+        #armed-pill {
+            min-width: 49px;
+            padding: 1px 5px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #bdbdbd;
+            font-size: 0.69em;
+            font-weight: 900;
+            letter-spacing: 0.6px;
+            text-align: center;
+        }
+
+        #armed-pill.enabled {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        #armed-pill.running {
+            border-color: var(--yellow);
+            color: var(--yellow);
+        }
+
+        #armed-pill.error {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        #clock {
+            min-width: 42px;
+            color: #ffffff;
+            font-size: 0.82em;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        #mini-content {
+            padding: 7px 10px 6px;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 7px;
+        }
+
+        .metric-box {
+            min-width: 0;
+            padding: 4px 7px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            background: var(--panel);
+        }
+
+        .metric-label,
+        .status-label {
+            color: var(--text-dim);
+            font-size: 0.65em;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .metric-value {
+            overflow: hidden;
+            color: #ffffff;
+            font-size: 0.78em;
+            font-weight: 700;
+            text-align: right;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #inventory-progress {
+            position: relative;
+            height: 13px;
+            margin-top: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.55);
+        }
+
+        #inventory-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.25s ease, background 0.25s ease;
+        }
+
+        #inventory-progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            z-index: 2;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 0.64em;
+            font-weight: 900;
+            text-shadow: 1px 1px 2px #000000;
+        }
+
+        .status-row {
+            min-width: 0;
+            margin-top: 5px;
+            padding: 4px 7px;
+            display: grid;
+            grid-template-columns: 66px minmax(0, 1fr);
+            align-items: center;
+            gap: 7px;
+            border-left: 3px solid var(--primary);
+            border-radius: 3px;
+            background: var(--panel-dark);
+        }
+
+        #state-text {
+            overflow: hidden;
+            color: #ffffff;
+            font-size: 0.76em;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #state-text.good {
+            color: var(--green);
+        }
+
+        #state-text.warning {
+            color: var(--yellow);
+        }
+
+        #state-text.error {
+            color: var(--red);
+        }
+
+        #state-text.active {
+            color: var(--primary);
+        }
+
+        .controls-row {
+            margin-top: 6px;
+            display: grid;
+            grid-template-columns: 1.25fr 0.9fr 0.72fr;
+            gap: 5px;
+        }
+
+        .mini-btn {
+            min-height: 26px;
+            padding: 3px 7px;
+            border: 1px solid rgba(255, 255, 255, 0.17);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.07);
+            color: #d0d0d0;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.7em;
+            font-weight: 900;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .mini-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: var(--primary-soft);
+            color: #ffffff;
+        }
+
+        .mini-btn.primary {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .mini-btn.primary.enabled {
+            border-color: var(--green);
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--green);
+        }
+
+        .mini-btn.danger {
+            border-color: rgba(255, 82, 82, 0.55);
+            color: var(--red);
+        }
+
+        .mini-btn:disabled {
+            opacity: 0.38;
+            cursor: default;
+        }
+
+        .bottom-row {
+            min-height: 22px;
+            padding: 3px 10px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        #detail-text {
+            min-width: 0;
+            overflow: hidden;
+            color: #858585;
+            font-size: 0.62em;
+            font-weight: 600;
+            letter-spacing: 0.25px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .support-link {
+            flex: 0 0 auto;
+            color: var(--text-dim);
+            font-size: 0.61em;
+            font-weight: 600;
+            letter-spacing: 0.7px;
+            text-decoration: none;
+            opacity: 0.58;
+            cursor: pointer;
+        }
+
+        .support-link:hover {
+            color: #ffffff;
+            opacity: 1;
+        }
+
+        .heart-spin {
+            display: inline-block;
+            margin-left: 2px;
+            color: var(--heart);
+            animation: spin-heart 2.5s linear infinite;
+        }
+
+        @keyframes spin-heart {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="fisher-app">
+        <div id="drag-handle">
+            <div class="nav-area">
+                <a
+                    class="nav-icon"
+                    href="https://pinkiprim.github.io/pinkiapps.html"
+                    title="PinkiApps"
+                >🏠</a>
+                <span class="fish-icon">🎣</span>
+            </div>
+
+            <div class="app-title">Fisher Ops</div>
+
+            <div class="header-right">
+                <span id="armed-pill">OFF</span>
+                <span id="clock">00:00</span>
+            </div>
+        </div>
+
+        <div id="mini-content">
+            <div class="metrics-row">
+                <div class="metric-box">
+                    <span class="metric-label">Inventory</span>
+                    <span class="metric-value" id="inventory-value">-- / --</span>
+                </div>
+
+                <div class="metric-box">
+                    <span class="metric-label">Boat Trunk</span>
+                    <span class="metric-value" id="trunk-value">-- / --</span>
+                </div>
+            </div>
+
+            <div id="inventory-progress">
+                <div id="inventory-progress-fill"></div>
+                <div id="inventory-progress-text">0.0% / 90%</div>
+            </div>
+
+            <div class="status-row">
+                <span class="status-label">Status</span>
+                <span id="state-text">Waiting for Transport Tycoon data...</span>
+            </div>
+
+            <div class="controls-row">
+                <button class="mini-btn primary" id="auto-toggle" type="button">
+                    Enable Auto
+                </button>
+                <button class="mini-btn" id="run-now" type="button">
+                    Run Now
+                </button>
+                <button class="mini-btn danger" id="stop-run" type="button" disabled>
+                    Stop
+                </button>
+            </div>
+        </div>
+
+        <div class="bottom-row">
+            <span id="detail-text">90% trigger • Gut every Fishing: item • Put All</span>
+            <span class="support-link" id="support-link">
+                Support PinkiPrim <span class="heart-spin">❤</span>
+            </span>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+
+        // ---------------------------------------------------------------------
+        // CONFIGURATION
+        // ---------------------------------------------------------------------
+
+        const CONFIG = {
+            triggerPercent: 90,
+            rearmPercent: 80,
+            requestIntervalMs: 750,
+            conditionPollMs: 50,
+            menuTimeoutMs: 6000,
+            gutCompletionTimeoutMs: 45000,
+            gutSettleMs: 500,
+            storeTimeoutMs: 15000,
+            menuSettleMs: 250,
+            maxGutPasses: 100,
+            enabledStorageKey: 'pinki_fisher_ops_enabled',
+            positionStorageKey: 'pinki_fisher_ops_position'
+        };
+
+        const DATA_KEYS = [
+            'name',
+            'job',
+            'job_name',
+            'vehicle',
+            'vehicleName',
+            'vehicleClass',
+            'vehicleClassName',
+            'boat',
+            'inventory',
+            'weight',
+            'max_weight',
+            'chest',
+            'trunkWeight',
+            'trunkCapacity',
+            'menu',
+            'menu_open',
+            'menu_choice',
+            'menu_choices',
+            'notification',
+            'focused',
+            'hidden',
+            'pinned'
+        ];
+
+        // ---------------------------------------------------------------------
+        // STATE
+        // ---------------------------------------------------------------------
+
+        const GAME = {};
+
+        const APP = {
+            enabled: localStorage.getItem(CONFIG.enabledStorageKey) === 'true',
+            running: false,
+            cancelRequested: false,
+            rearmed: true,
+            startedBy: null,
+            gutPasses: 0,
+            currentFishingItem: '',
+            stateText: 'Waiting for Transport Tycoon data...',
+            stateClass: '',
+            detailText: '90% trigger • Gut every Fishing: item • Put All',
+            lastNotificationText: null,
+            notificationSequence: 0,
+            lastNotificationEvent: null,
+            dataReceived: false,
+            lastStartAt: 0
+        };
+
+        const notificationWaiters = new Set();
+
+        // ---------------------------------------------------------------------
+        // ELEMENTS
+        // ---------------------------------------------------------------------
+
+        const elements = {
+            app: document.getElementById('fisher-app'),
+            dragHandle: document.getElementById('drag-handle'),
+            armedPill: document.getElementById('armed-pill'),
+            clock: document.getElementById('clock'),
+            inventoryValue: document.getElementById('inventory-value'),
+            trunkValue: document.getElementById('trunk-value'),
+            progressFill: document.getElementById('inventory-progress-fill'),
+            progressText: document.getElementById('inventory-progress-text'),
+            stateText: document.getElementById('state-text'),
+            detailText: document.getElementById('detail-text'),
+            autoToggle: document.getElementById('auto-toggle'),
+            runNow: document.getElementById('run-now'),
+            stopRun: document.getElementById('stop-run'),
+            supportLink: document.getElementById('support-link')
+        };
+
+        // ---------------------------------------------------------------------
+        // TT COMMAND HELPERS
+        // ---------------------------------------------------------------------
+
+        function sendCommand(command) {
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(command, '*');
+                    return;
+                }
+
+                console.log('[FISHER OPS MOCK]', command);
+            } catch (error) {
+                console.error('[FISHER OPS] Command failed:', error);
+            }
+        }
+
+        function requestData() {
+            sendCommand({
+                type: 'getNamedData',
+                keys: DATA_KEYS
+            });
+
+            sendCommand({ type: 'getData' });
+        }
+
+        function notifyPlayer(message, type = 'info') {
+            const colours = {
+                success: '~g~',
+                error: '~r~',
+                warning: '~y~',
+                info: '~b~'
+            };
+
+            const colour = colours[type] || colours.info;
+
+            sendCommand({
+                type: 'notification',
+                text: `~d~[FISHER OPS]~s~${colour} ${message}`
+            });
+        }
+
+        // ---------------------------------------------------------------------
+        // GENERAL HELPERS
+        // ---------------------------------------------------------------------
+
+        function sleep(milliseconds) {
+            return new Promise((resolve) => {
+                setTimeout(resolve, milliseconds);
+            });
+        }
+
+        function numberOrNull(value) {
+            const number = Number(value);
+            return Number.isFinite(number) ? number : null;
+        }
+
+        function formatWeight(value) {
+            const number = numberOrNull(value);
+
+            if (number === null) {
+                return '--';
+            }
+
+            return Number.isInteger(number)
+                ? number.toLocaleString()
+                : number.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 1
+                });
+        }
+
+        function stripFormatting(value) {
+            if (typeof value !== 'string') {
+                return '';
+            }
+
+            const temporary = document.createElement('div');
+            temporary.innerHTML = value;
+
+            return (temporary.textContent || '')
+                .replace(/~[a-zA-Z]~/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function parseMaybeJson(value) {
+            if (typeof value !== 'string') {
+                return value;
+            }
+
+            const trimmed = value.trim();
+
+            if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+                return value;
+            }
+
+            try {
+                return JSON.parse(trimmed);
+            } catch (error) {
+                return value;
+            }
+        }
+
+        function parseMenuChoices(value = GAME.menu_choices) {
+            const parsed = parseMaybeJson(value);
+            return Array.isArray(parsed) ? parsed : [];
+        }
+
+        function menuChoiceRecords() {
+            return parseMenuChoices().map((entry, index) => {
+                const rawName = Array.isArray(entry) ? entry[0] : '';
+                const description = Array.isArray(entry) ? entry[1] : '';
+
+                return {
+                    index,
+                    rawName: typeof rawName === 'string' ? rawName : '',
+                    cleanName: stripFormatting(rawName),
+                    description: typeof description === 'string' ? description : ''
+                };
+            });
+        }
+
+        function findMenuChoice(searchText, excludeTexts = []) {
+            const wanted = String(searchText).toLowerCase();
+            const exclusions = excludeTexts.map((text) => String(text).toLowerCase());
+
+            return menuChoiceRecords().find((choice) => {
+                const name = choice.cleanName.toLowerCase();
+
+                return (
+                    name.includes(wanted) &&
+                    !exclusions.some((excluded) => name.includes(excluded))
+                );
+            }) || null;
+        }
+
+        function findFirstFishingChoice() {
+            return menuChoiceRecords().find((choice) => {
+                return choice.cleanName.toLowerCase().includes('fishing:');
+            }) || null;
+        }
+
+        function inventoryPercent() {
+            const weight = numberOrNull(GAME.weight);
+            const maximum = numberOrNull(GAME.max_weight);
+
+            if (weight === null || maximum === null || maximum <= 0) {
+                return null;
+            }
+
+            return (weight / maximum) * 100;
+        }
+
+        function isFisher() {
+            return String(GAME.job || '').toLowerCase() === 'fisher';
+        }
+
+        function isInCurrentBoat() {
+            if (Number(GAME.vehicleClass) !== 14) {
+                return false;
+            }
+
+            const vehicle = String(GAME.vehicle || '').toLowerCase();
+            const vehicleName = String(GAME.vehicleName || '').toLowerCase();
+            const boat = String(GAME.boat || '').toLowerCase();
+
+            if (!vehicle || vehicle === 'onfoot') {
+                return false;
+            }
+
+            if (!boat) {
+                return true;
+            }
+
+            return vehicle === boat || vehicleName === boat;
+        }
+
+        function eligibilityFailure() {
+            if (!APP.dataReceived) {
+                return 'Waiting for Transport Tycoon data';
+            }
+
+            if (!isFisher()) {
+                return 'Switch to the Fisher job';
+            }
+
+            if (!isInCurrentBoat()) {
+                return 'Enter your active fishing boat';
+            }
+
+            if (GAME.menu_open === true) {
+                return 'Waiting for the current menu to close';
+            }
+
+            return null;
+        }
+
+        function throwIfCancelled() {
+            if (APP.cancelRequested) {
+                const error = new Error('Automation stopped by the user.');
+                error.name = 'CancelledError';
+                throw error;
+            }
+        }
+
+        function setStatus(text, className = '', detail = null) {
+            APP.stateText = text;
+            APP.stateClass = className;
+
+            if (detail !== null) {
+                APP.detailText = detail;
+            }
+
+            render();
+        }
+
+        // ---------------------------------------------------------------------
+        // CONDITION AND NOTIFICATION WAITERS
+        // ---------------------------------------------------------------------
+
+        function waitForCondition(condition, timeout = CONFIG.menuTimeoutMs, label = 'condition') {
+            return new Promise((resolve, reject) => {
+                const startedAt = Date.now();
+
+                const interval = setInterval(() => {
+                    if (APP.cancelRequested) {
+                        clearInterval(interval);
+                        const error = new Error('Automation stopped by the user.');
+                        error.name = 'CancelledError';
+                        reject(error);
+                        return;
+                    }
+
+                    let matched = false;
+
+                    try {
+                        matched = Boolean(condition());
+                    } catch (error) {
+                        clearInterval(interval);
+                        reject(error);
+                        return;
+                    }
+
+                    if (matched) {
+                        clearInterval(interval);
+                        resolve();
+                        return;
+                    }
+
+                    if (Date.now() - startedAt >= timeout) {
+                        clearInterval(interval);
+                        reject(new Error(`Timed out waiting for ${label}.`));
+                    }
+                }, CONFIG.conditionPollMs);
+            });
+        }
+
+        function waitForNotification(predicate, timeout = CONFIG.gutCompletionTimeoutMs) {
+            return new Promise((resolve, reject) => {
+                let finished = false;
+
+                const waiter = (eventRecord) => {
+                    if (finished) {
+                        return;
+                    }
+
+                    let matched = false;
+
+                    try {
+                        matched = Boolean(predicate(eventRecord.text, eventRecord));
+                    } catch (error) {
+                        finish();
+                        reject(error);
+                        return;
+                    }
+
+                    if (!matched) {
+                        return;
+                    }
+
+                    finish();
+                    resolve(eventRecord);
+                };
+
+                const timeoutHandle = setTimeout(() => {
+                    finish();
+                    reject(new Error('Timed out waiting for the gutting completion message.'));
+                }, timeout);
+
+                const cancelHandle = setInterval(() => {
+                    if (!APP.cancelRequested) {
+                        return;
+                    }
+
+                    finish();
+                    const error = new Error('Automation stopped by the user.');
+                    error.name = 'CancelledError';
+                    reject(error);
+                }, CONFIG.conditionPollMs);
+
+                function finish() {
+                    if (finished) {
+                        return;
+                    }
+
+                    finished = true;
+                    clearTimeout(timeoutHandle);
+                    clearInterval(cancelHandle);
+                    notificationWaiters.delete(waiter);
+                }
+
+                notificationWaiters.add(waiter);
+            });
+        }
+
+        function publishNotification(text) {
+            APP.notificationSequence += 1;
+
+            const eventRecord = {
+                sequence: APP.notificationSequence,
+                text,
+                cleanText: stripFormatting(text),
+                receivedAt: Date.now()
+            };
+
+            APP.lastNotificationEvent = eventRecord;
+
+            [...notificationWaiters].forEach((waiter) => {
+                waiter(eventRecord);
+            });
+        }
+
+        // ---------------------------------------------------------------------
+        // MENU CONTROL
+        // ---------------------------------------------------------------------
+
+        async function closeAllMenus() {
+            for (let attempt = 0; attempt < 8; attempt += 1) {
+                throwIfCancelled();
+
+                if (GAME.menu_open !== true) {
+                    return;
+                }
+
+                sendCommand({ type: 'forceMenuBack' });
+                requestData();
+
+                try {
+                    await waitForCondition(
+                        () => GAME.menu_open !== true,
+                        900,
+                        'the menu to close'
+                    );
+
+                    return;
+                } catch (error) {
+                    if (error.name === 'CancelledError') {
+                        throw error;
+                    }
+
+                    await sleep(CONFIG.menuSettleMs);
+                }
+            }
+
+            if (GAME.menu_open === true) {
+                throw new Error('Could not close the current menu.');
+            }
+        }
+
+        async function openInventoryMenu() {
+            throwIfCancelled();
+            await closeAllMenus();
+
+            setStatus(
+                'Opening Inventory...',
+                'active',
+                `Gut pass ${APP.gutPasses + 1}`
+            );
+
+            sendCommand({ type: 'openMainMenu' });
+            requestData();
+
+            await waitForCondition(
+                () => (
+                    GAME.menu_open === true &&
+                    String(GAME.menu || '').toLowerCase().includes('menu')
+                ),
+                CONFIG.menuTimeoutMs,
+                'the main menu'
+            );
+
+            const inventoryChoice = findMenuChoice('inventory');
+
+            if (!inventoryChoice) {
+                throw new Error('The Inventory option was not found.');
+            }
+
+            sendCommand({
+                type: 'forceMenuChoice',
+                choice: inventoryChoice.rawName,
+                mod: 0
+            });
+
+            requestData();
+
+            await waitForCondition(
+                () => (
+                    GAME.menu_open === true &&
+                    String(GAME.menu || '').toLowerCase().includes('inventory')
+                ),
+                CONFIG.menuTimeoutMs,
+                'the Inventory menu'
+            );
+        }
+
+        async function gutFishingChoice(fishingChoice) {
+            throwIfCancelled();
+
+            APP.currentFishingItem = fishingChoice.cleanName;
+
+            setStatus(
+                `Opening ${fishingChoice.cleanName}...`,
+                'active',
+                'Searching for the Gut option'
+            );
+
+            sendCommand({
+                type: 'forceMenuChoice',
+                choice: fishingChoice.rawName,
+                mod: 0
+            });
+
+            requestData();
+
+            await waitForCondition(
+                () => GAME.menu_open === true && Boolean(findMenuChoice('gut')),
+                CONFIG.menuTimeoutMs,
+                `the Gut option for ${fishingChoice.cleanName}`
+            );
+
+            const gutChoice = findMenuChoice('gut');
+
+            if (!gutChoice) {
+                throw new Error(`No Gut option was found for ${fishingChoice.cleanName}.`);
+            }
+
+            const completionPromise = waitForNotification(
+                (notification) => /\bgutted\b/i.test(stripFormatting(notification)),
+                CONFIG.gutCompletionTimeoutMs
+            );
+
+            setStatus(
+                `Gutting ${fishingChoice.cleanName}...`,
+                'warning',
+                'Waiting for the game to confirm completion'
+            );
+
+            sendCommand({
+                type: 'forceMenuChoice',
+                choice: gutChoice.rawName,
+                mod: 0
+            });
+
+            const completion = await completionPromise;
+
+            APP.gutPasses += 1;
+
+            setStatus(
+                `${fishingChoice.cleanName} gutted`,
+                'good',
+                completion.cleanText || 'Gutting complete'
+            );
+
+            await sleep(CONFIG.gutSettleMs);
+            await closeAllMenus();
+        }
+
+        async function gutEveryFishingItem() {
+            APP.gutPasses = 0;
+            APP.currentFishingItem = '';
+
+            for (let pass = 0; pass < CONFIG.maxGutPasses; pass += 1) {
+                throwIfCancelled();
+                await openInventoryMenu();
+
+                const fishingChoice = findFirstFishingChoice();
+
+                if (!fishingChoice) {
+                    setStatus(
+                        'No Fishing: items remain',
+                        'good',
+                        `${APP.gutPasses} fishing stack(s) gutted`
+                    );
+
+                    await closeAllMenus();
+                    return APP.gutPasses;
+                }
+
+                await gutFishingChoice(fishingChoice);
+            }
+
+            throw new Error(`Gut safety limit of ${CONFIG.maxGutPasses} passes was reached.`);
+        }
+
+        async function putAllInBoat() {
+            throwIfCancelled();
+            await closeAllMenus();
+
+            if (!isInCurrentBoat()) {
+                throw new Error('You are no longer in your active fishing boat.');
+            }
+
+            const trunkWeight = numberOrNull(GAME.trunkWeight);
+            const trunkCapacity = numberOrNull(GAME.trunkCapacity);
+
+            if (
+                trunkWeight !== null &&
+                trunkCapacity !== null &&
+                trunkWeight >= trunkCapacity
+            ) {
+                throw new Error('The boat trunk is full.');
+            }
+
+            const beforeWeight = numberOrNull(GAME.weight);
+            const notificationSequenceBefore = APP.notificationSequence;
+
+            setStatus(
+                'Opening boat trunk...',
+                'active',
+                'Preparing Put All'
+            );
+
+            sendCommand({
+                type: 'sendCommand',
+                command: 'rm_trunk'
+            });
+
+            requestData();
+
+            await waitForCondition(
+                () => (
+                    GAME.menu_open === true &&
+                    String(GAME.menu || '').toLowerCase().includes('trunk')
+                ),
+                CONFIG.menuTimeoutMs,
+                'the boat trunk'
+            );
+
+            const putAllChoice = findMenuChoice('put all');
+
+            if (!putAllChoice) {
+                throw new Error('Put All was not found in the boat trunk.');
+            }
+
+            setStatus(
+                'Storing everything...',
+                'warning',
+                'Activating Put All'
+            );
+
+            sendCommand({
+                type: 'forceMenuChoice',
+                choice: putAllChoice.rawName,
+                mod: 0
+            });
+
+            await waitForCondition(
+                () => {
+                    const currentWeight = numberOrNull(GAME.weight);
+                    const weightDropped = (
+                        beforeWeight !== null &&
+                        currentWeight !== null &&
+                        currentWeight < beforeWeight
+                    );
+
+                    const notificationConfirmed = (
+                        APP.lastNotificationEvent &&
+                        APP.lastNotificationEvent.sequence > notificationSequenceBefore &&
+                        /\bput\b.*\bitem/i.test(APP.lastNotificationEvent.cleanText)
+                    );
+
+                    return weightDropped || notificationConfirmed;
+                },
+                CONFIG.storeTimeoutMs,
+                'Put All to complete'
+            );
+
+            await sleep(CONFIG.gutSettleMs);
+            await closeAllMenus();
+
+            setStatus(
+                'Gut and store complete',
+                'good',
+                `${APP.gutPasses} fishing stack(s) gutted • Boat storage updated`
+            );
+        }
+
+        // ---------------------------------------------------------------------
+        // AUTOMATION CONTROLLER
+        // ---------------------------------------------------------------------
+
+        async function runAutomation(startedBy = 'manual') {
+            if (APP.running) {
+                return;
+            }
+
+            const failure = eligibilityFailure();
+
+            if (failure && failure !== 'Waiting for the current menu to close') {
+                setStatus(failure, 'error');
+                notifyPlayer(failure, 'error');
+                return;
+            }
+
+            APP.running = true;
+            APP.cancelRequested = false;
+            APP.startedBy = startedBy;
+            APP.lastStartAt = Date.now();
+            APP.gutPasses = 0;
+            APP.currentFishingItem = '';
+
+            if (startedBy === 'auto') {
+                APP.rearmed = false;
+            }
+
+            render();
+
+            notifyPlayer(
+                startedBy === 'auto'
+                    ? 'Inventory reached 90%. Starting gut and store.'
+                    : 'Starting gut and store.',
+                'info'
+            );
+
+            try {
+                setStatus(
+                    'Starting gut sequence...',
+                    'active',
+                    'Scanning Inventory for Fishing: items'
+                );
+
+                await gutEveryFishingItem();
+                throwIfCancelled();
+                await putAllInBoat();
+
+                notifyPlayer('Auto-gut and boat storage complete.', 'success');
+            } catch (error) {
+                if (error.name === 'CancelledError') {
+                    setStatus(
+                        'Automation stopped',
+                        'warning',
+                        'No further menu actions will be sent'
+                    );
+                    notifyPlayer('Automation stopped.', 'warning');
+                } else {
+                    console.error('[FISHER OPS]', error);
+                    setStatus(
+                        `Failed: ${error.message}`,
+                        'error',
+                        'The sequence stopped safely'
+                    );
+                    notifyPlayer(`Failed: ${error.message}`, 'error');
+                }
+
+                try {
+                    // Allow cleanup commands even when Stop caused the rejection.
+                    APP.cancelRequested = false;
+                    await closeAllMenus();
+                } catch (closeError) {
+                    console.error('[FISHER OPS] Menu cleanup failed:', closeError);
+                }
+            } finally {
+                APP.running = false;
+                APP.cancelRequested = false;
+                APP.startedBy = null;
+                APP.currentFishingItem = '';
+                render();
+            }
+        }
+
+        function updateIdleStatus() {
+            if (APP.running) {
+                return;
+            }
+
+            const percentage = inventoryPercent();
+
+            if (!APP.dataReceived) {
+                setStatus(
+                    'Waiting for Transport Tycoon data...',
+                    '',
+                    '90% trigger • Gut every Fishing: item • Put All'
+                );
+                return;
+            }
+
+            if (!APP.enabled) {
+                setStatus(
+                    'Auto mode disabled',
+                    '',
+                    'Run Now is still available'
+                );
+                return;
+            }
+
+            const failure = eligibilityFailure();
+
+            if (failure) {
+                setStatus(
+                    failure,
+                    failure.includes('Waiting') ? 'warning' : 'error',
+                    percentage === null
+                        ? 'Waiting for inventory weight'
+                        : `Inventory is ${percentage.toFixed(1)}% full`
+                );
+                return;
+            }
+
+            if (percentage === null) {
+                setStatus(
+                    'Waiting for inventory weight',
+                    'warning',
+                    'Auto mode is enabled'
+                );
+                return;
+            }
+
+            if (!APP.rearmed) {
+                setStatus(
+                    'Waiting to rearm',
+                    'warning',
+                    `Inventory must fall to ${CONFIG.rearmPercent}% or lower`
+                );
+                return;
+            }
+
+            setStatus(
+                'Auto mode armed',
+                'good',
+                `Inventory ${percentage.toFixed(1)}% • Trigger ${CONFIG.triggerPercent}%`
+            );
+        }
+
+        function maybeStartAutomatically() {
+            const percentage = inventoryPercent();
+
+            if (percentage !== null && percentage <= CONFIG.rearmPercent) {
+                APP.rearmed = true;
+            }
+
+            if (APP.running) {
+                return;
+            }
+
+            if (!APP.enabled || !APP.rearmed) {
+                updateIdleStatus();
+                return;
+            }
+
+            if (percentage === null || percentage < CONFIG.triggerPercent) {
+                updateIdleStatus();
+                return;
+            }
+
+            const failure = eligibilityFailure();
+
+            if (failure) {
+                setStatus(
+                    failure,
+                    failure.includes('Waiting') ? 'warning' : 'error',
+                    `Inventory is ${percentage.toFixed(1)}% full`
+                );
+                return;
+            }
+
+            APP.rearmed = false;
+            runAutomation('auto');
+        }
+
+        function toggleAutomation() {
+            APP.enabled = !APP.enabled;
+            localStorage.setItem(CONFIG.enabledStorageKey, String(APP.enabled));
+
+            if (APP.enabled) {
+                const percentage = inventoryPercent();
+
+                APP.rearmed = (
+                    percentage === null ||
+                    percentage < CONFIG.triggerPercent
+                );
+
+                setStatus(
+                    'Auto mode armed',
+                    'good',
+                    'Runs at 90% while Fisher is inside the active boat'
+                );
+                notifyPlayer('Auto mode enabled at 90%.', 'success');
+                maybeStartAutomatically();
+            } else {
+                setStatus(
+                    APP.running ? 'Disabling after current action' : 'Auto mode disabled',
+                    'warning',
+                    'Run Now remains available'
+                );
+                notifyPlayer('Auto mode disabled.', 'warning');
+            }
+
+            render();
+        }
+
+        function stopAutomation() {
+            if (!APP.running) {
+                return;
+            }
+
+            APP.cancelRequested = true;
+            setStatus(
+                'Stopping safely...',
+                'warning',
+                'Waiting for the current command to release'
+            );
+        }
+
+        // ---------------------------------------------------------------------
+        // DATA HANDLING
+        // ---------------------------------------------------------------------
+
+        function unwrapMessageData(raw) {
+            if (!raw) {
+                return null;
+            }
+
+            if (raw.type === 'data' && raw.data !== undefined) {
+                return raw.data;
+            }
+
+            if (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) {
+                return raw.data;
+            }
+
+            return raw;
+        }
+
+        function processPayload(payload) {
+            if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+                return;
+            }
+
+            const keys = Object.keys(payload);
+
+            if (keys.length === 0) {
+                return;
+            }
+
+            APP.dataReceived = true;
+
+            if (typeof payload.notification === 'string') {
+                const isNotificationEvent = keys.length === 1;
+                const changedNotification = payload.notification !== APP.lastNotificationText;
+
+                if (isNotificationEvent || changedNotification) {
+                    publishNotification(payload.notification);
+                }
+
+                APP.lastNotificationText = payload.notification;
+            }
+
+            keys.forEach((key) => {
+                GAME[key] = payload[key];
+            });
+
+            render();
+            maybeStartAutomatically();
+        }
+
+        window.addEventListener('message', (event) => {
+            processPayload(unwrapMessageData(event.data));
+        });
+
+        // ---------------------------------------------------------------------
+        // UI RENDERING
+        // ---------------------------------------------------------------------
+
+        function render() {
+            const percentage = inventoryPercent();
+            const weight = numberOrNull(GAME.weight);
+            const maximum = numberOrNull(GAME.max_weight);
+            const trunkWeight = numberOrNull(GAME.trunkWeight);
+            const trunkCapacity = numberOrNull(GAME.trunkCapacity);
+
+            elements.inventoryValue.textContent = (
+                weight !== null && maximum !== null
+                    ? `${formatWeight(weight)} / ${formatWeight(maximum)} kg`
+                    : '-- / --'
+            );
+
+            elements.trunkValue.textContent = (
+                trunkWeight !== null && trunkCapacity !== null
+                    ? `${formatWeight(trunkWeight)} / ${formatWeight(trunkCapacity)} kg`
+                    : '-- / --'
+            );
+
+            const boundedPercentage = percentage === null
+                ? 0
+                : Math.max(0, Math.min(100, percentage));
+
+            elements.progressFill.style.width = `${boundedPercentage}%`;
+            elements.progressText.textContent = `${
+                percentage === null ? '0.0' : percentage.toFixed(1)
+            }% / ${CONFIG.triggerPercent}%`;
+
+            if (boundedPercentage >= CONFIG.triggerPercent) {
+                elements.progressFill.style.background = 'var(--red)';
+            } else if (boundedPercentage >= CONFIG.rearmPercent) {
+                elements.progressFill.style.background = 'var(--yellow)';
+            } else {
+                elements.progressFill.style.background = 'var(--primary)';
+            }
+
+            if (!APP.dataReceived) {
+                elements.stateText.textContent = 'Waiting for Transport Tycoon data...';
+                elements.stateText.className = '';
+            } else {
+                elements.stateText.textContent = APP.stateText;
+                elements.stateText.className = APP.stateClass;
+            }
+
+            elements.detailText.textContent = APP.detailText;
+
+            elements.autoToggle.textContent = APP.enabled
+                ? 'Auto Enabled'
+                : 'Enable Auto';
+
+            elements.autoToggle.classList.toggle('enabled', APP.enabled);
+            elements.autoToggle.disabled = APP.running;
+            elements.runNow.disabled = APP.running;
+            elements.stopRun.disabled = !APP.running;
+
+            elements.armedPill.className = '';
+
+            if (APP.running) {
+                elements.armedPill.textContent = 'RUNNING';
+                elements.armedPill.classList.add('running');
+            } else if (APP.enabled) {
+                elements.armedPill.textContent = 'ARMED';
+                elements.armedPill.classList.add('enabled');
+            } else {
+                elements.armedPill.textContent = 'OFF';
+            }
+
+            if (APP.stateClass === 'error') {
+                elements.armedPill.classList.add('error');
+            }
+        }
+
+        function updateClock() {
+            elements.clock.textContent = new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // ---------------------------------------------------------------------
+        // DRAGGING AND POSITION STORAGE
+        // ---------------------------------------------------------------------
+
+        let dragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let initialLeft = 0;
+        let initialTop = 0;
+
+        function loadSavedPosition() {
+            try {
+                const saved = JSON.parse(
+                    localStorage.getItem(CONFIG.positionStorageKey) || 'null'
+                );
+
+                if (
+                    saved &&
+                    Number.isFinite(saved.left) &&
+                    Number.isFinite(saved.top)
+                ) {
+                    elements.app.style.left = `${saved.left}px`;
+                    elements.app.style.top = `${saved.top}px`;
+                }
+            } catch (error) {
+                console.warn('[FISHER OPS] Could not load saved position:', error);
+            }
+        }
+
+        function savePosition() {
+            localStorage.setItem(
+                CONFIG.positionStorageKey,
+                JSON.stringify({
+                    left: elements.app.offsetLeft,
+                    top: elements.app.offsetTop
+                })
+            );
+        }
+
+        elements.dragHandle.addEventListener('mousedown', (event) => {
+            if (event.target.closest('a') || event.target.closest('button')) {
+                return;
+            }
+
+            event.preventDefault();
+
+            dragging = true;
+            dragStartX = event.clientX;
+            dragStartY = event.clientY;
+            initialLeft = elements.app.offsetLeft;
+            initialTop = elements.app.offsetTop;
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (!dragging) {
+                return;
+            }
+
+            const nextLeft = initialLeft + event.clientX - dragStartX;
+            const nextTop = initialTop + event.clientY - dragStartY;
+
+            elements.app.style.left = `${Math.max(0, nextLeft)}px`;
+            elements.app.style.top = `${Math.max(0, nextTop)}px`;
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (!dragging) {
+                return;
+            }
+
+            dragging = false;
+            savePosition();
+        });
+
+        // ---------------------------------------------------------------------
+        // CONTROLS
+        // ---------------------------------------------------------------------
+
+        elements.autoToggle.addEventListener('click', toggleAutomation);
+
+        elements.runNow.addEventListener('click', () => {
+            runAutomation('manual');
+        });
+
+        elements.stopRun.addEventListener('click', stopAutomation);
+
+        elements.supportLink.addEventListener('click', () => {
+            const url = 'https://www.paypal.com/paypalme/pinkiprim';
+
+            try {
+                window.invokeNative('openUrl', url);
+            } catch (error) {
+                window.open(url, '_blank');
+            }
+        });
+
+        // ESC gives control back to the game while keeping the app visible.
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' || event.keyCode === 27) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (document.activeElement) {
+                    document.activeElement.blur();
+                }
+
+                sendCommand({ type: 'pin' });
+            }
+        });
+
+        // ---------------------------------------------------------------------
+        // INITIALISE
+        // ---------------------------------------------------------------------
+
+        loadSavedPosition();
+        updateClock();
+        render();
+        requestData();
+
+        setInterval(updateClock, 1000);
+        setInterval(() => {
+            requestData();
+            maybeStartAutomatically();
+        }, CONFIG.requestIntervalMs);
+    </script>
+</body>
+</html>
