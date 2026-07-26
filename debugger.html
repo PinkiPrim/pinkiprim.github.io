@@ -2,236 +2,582 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>TT Deep Probe Scanner</title>
+
     <style>
+        :root {
+            --background: #050505;
+            --panel: #0a0a0a;
+            --panel-light: #111111;
+            --border: #333333;
+            --border-soft: #222222;
+            --text: #cccccc;
+            --muted: #777777;
+            --white: #ffffff;
+            --green: #00e676;
+            --yellow: #ffeb3b;
+            --blue: #29b6f6;
+            --red: #ff5252;
+            --orange: #ff9800;
+            --purple: #ce93d8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            margin: 0; padding: 0;
-            background-color: #050505;
-            color: #ccc;
-            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background);
+            color: var(--text);
+            font-family: Consolas, Monaco, monospace;
             font-size: 13px;
-            display: flex; flex-direction: column;
-            height: 100vh; overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* HEADER */
+        button,
+        select,
+        input {
+            font-family: inherit;
+        }
+
         #header {
-            padding: 10px; background: #111; border-bottom: 2px solid #333;
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px;
+            background: var(--panel-light);
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
         }
-        .status { color: #ffff00; font-weight: bold; }
+
+        #title-area {
+            min-width: 260px;
+        }
+
+        #title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        #status {
+            color: var(--yellow);
+            font-weight: bold;
+        }
+
+        #scan-details {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 0.8em;
+        }
+
+        #recording-clock {
+            color: var(--red);
+            font-weight: bold;
+            display: none;
+        }
+
+        #controls {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 6px;
+            background: #0d0d0d;
+            border: 1px solid #292929;
+        }
+
+        .control-label {
+            color: #999999;
+            font-size: 0.82em;
+        }
+
         .btn {
-            background: #222; border: 1px solid #555; color: #fff;
-            padding: 5px 15px; cursor: pointer; font-family: inherit;
+            background: #222222;
+            border: 1px solid #555555;
+            color: var(--white);
+            padding: 6px 10px;
+            cursor: pointer;
+            min-height: 30px;
         }
-        .btn:hover { background: #444; }
-        .btn-copy { border-color: #00e676; color: #00e676; }
 
-        /* MAIN CONTENT */
+        .btn:hover {
+            background: #3a3a3a;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-record {
+            border-color: var(--red);
+            color: var(--red);
+            font-weight: bold;
+        }
+
+        .btn-record.active {
+            background: rgba(255, 82, 82, 0.2);
+            box-shadow: 0 0 8px rgba(255, 82, 82, 0.45);
+        }
+
+        .btn-copy {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .btn-download {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+
+        .btn-marker {
+            border-color: var(--orange);
+            color: var(--orange);
+        }
+
+        .btn-clear {
+            border-color: #888888;
+            color: #bbbbbb;
+        }
+
+        select,
+        input[type="number"] {
+            background: #171717;
+            color: var(--white);
+            border: 1px solid #555555;
+            padding: 5px;
+        }
+
+        input[type="number"] {
+            width: 76px;
+        }
+
+        input[type="checkbox"] {
+            accent-color: var(--green);
+        }
+
         #container {
-            flex: 1; display: flex; overflow: hidden;
+            flex: 1;
+            display: flex;
+            overflow: hidden;
         }
 
-        /* LEFT PANEL: LIVE DATA */
         #live-panel {
-            flex: 1; padding: 10px; overflow-y: auto;
-            border-right: 1px solid #333;
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            border-right: 1px solid var(--border);
         }
 
-        /* RIGHT PANEL: HISTORY LOG */
         #log-panel {
-            width: 35%; padding: 10px; overflow-y: auto;
-            background: #0a0a0a; font-size: 0.9em;
+            width: 42%;
+            min-width: 390px;
+            padding: 10px;
+            overflow-y: auto;
+            background: var(--panel);
+            font-size: 0.9em;
         }
 
-        /* ENTRIES */
+        .panel-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #999999;
+            border-bottom: 1px solid #444444;
+            padding-bottom: 7px;
+            margin-bottom: 10px;
+            position: sticky;
+            top: -10px;
+            background: var(--panel);
+            z-index: 2;
+        }
+
         .entry {
-            margin-bottom: 5px; padding: 5px;
-            border-bottom: 1px dashed #222;
-        }
-        .key { color: #00e676; font-weight: bold; }
-        .val { color: #fff; word-break: break-all; }
-        .type { color: #555; font-size: 0.8em; margin-right: 5px; }
-
-        /* CHANGED VALUE HIGHLIGHT */
-        .changed { animation: flashYellow 1s ease; color: #ffeb3b; }
-        @keyframes flashYellow {
-            0% { background: rgba(255, 235, 59, 0.4); }
-            100% { background: transparent; }
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px dashed var(--border-soft);
         }
 
-        /* Section Headers */
-        .section-title {
-            color: #0277bd; font-weight: bold; 
-            border-bottom: 1px solid #0277bd; 
-            margin-top: 15px; margin-bottom: 5px;
-            text-transform: uppercase;
+        .key {
+            color: var(--green);
+            font-weight: bold;
+        }
+
+        .val {
+            color: var(--white);
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        .type {
+            color: #555555;
+            font-size: 0.8em;
+            margin-right: 5px;
+        }
+
+        .changed {
+            animation: flash-yellow 1s ease;
+            color: var(--yellow);
+        }
+
+        @keyframes flash-yellow {
+            0% {
+                background: rgba(255, 235, 59, 0.4);
+            }
+
+            100% {
+                background: transparent;
+            }
+        }
+
+        .log-event {
+            margin-bottom: 8px;
+            padding: 6px;
+            border-left: 3px solid #444444;
+            background: rgba(255, 255, 255, 0.015);
+            word-break: break-word;
+        }
+
+        .log-event.change {
+            border-left-color: var(--yellow);
+        }
+
+        .log-event.packet {
+            border-left-color: var(--blue);
+        }
+
+        .log-event.input {
+            border-left-color: var(--purple);
+        }
+
+        .log-event.marker {
+            border-left-color: var(--orange);
+            background: rgba(255, 152, 0, 0.06);
+        }
+
+        .log-event.automatic {
+            border-left-color: var(--green);
+            background: rgba(0, 230, 118, 0.05);
+        }
+
+        .log-event.system {
+            border-left-color: #aaaaaa;
+        }
+
+        .log-event.error {
+            border-left-color: var(--red);
+            background: rgba(255, 82, 82, 0.06);
+        }
+
+        .log-time {
+            color: #777777;
+            font-size: 0.82em;
+        }
+
+        .log-title {
+            color: var(--white);
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .log-details {
+            margin-top: 3px;
+            color: #bdbdbd;
+            white-space: pre-wrap;
+        }
+
+        .old-value {
+            color: #777777;
+            text-decoration: line-through;
+        }
+
+        .new-value {
+            color: var(--white);
+        }
+
+        .target-entry {
+            border-left: 3px solid var(--green);
+            padding-left: 8px;
+        }
+
+        .navigation-entry {
+            border-left: 3px solid var(--blue);
+            padding-left: 8px;
+        }
+
+        .menu-entry {
+            border-left: 3px solid var(--orange);
+            padding-left: 8px;
+        }
+
+        .metric-entry {
+            border-left: 3px solid var(--purple);
+            padding-left: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 5px;
+            border: 1px solid #555555;
+            color: #aaaaaa;
+            font-size: 0.75em;
+            margin-left: 4px;
+        }
+
+        .badge.recording {
+            color: var(--red);
+            border-color: var(--red);
+        }
+
+        .badge.deep {
+            color: var(--green);
+            border-color: var(--green);
+        }
+
+        #summary-bar {
+            padding: 7px 10px;
+            background: #0d0d0d;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 0.84em;
+            color: #888888;
+        }
+
+        #summary-bar strong {
+            color: #dddddd;
+        }
+
+        @media (max-width: 900px) {
+            #container {
+                flex-direction: column;
+            }
+
+            #live-panel {
+                border-right: 0;
+                border-bottom: 1px solid var(--border);
+            }
+
+            #log-panel {
+                width: 100%;
+                min-width: 0;
+                height: 45%;
+            }
         }
     </style>
 </head>
-<body>
 
+<body>
     <div id="header">
-        <div>
-            <strong>TT DEEP PROBE</strong> | <span id="status" class="status">Initializing...</span>
-            <div style="font-size:0.8em; color:#666;">Scan Interval: 2.0s</div>
+        <div id="title-area">
+            <div id="title-row">
+                <strong>TT DEEP PROBE</strong>
+                <span>|</span>
+                <span id="status">Initializing...</span>
+                <span id="recording-clock">REC 00:00.000</span>
+            </div>
+
+            <div id="scan-details">
+                Idle interval:
+                <span id="idle-interval-label">2000ms</span>
+                |
+                Recording interval:
+                <span id="record-interval-label">250ms</span>
+            </div>
         </div>
-        <button class="btn btn-copy" onclick="copyAll()">📋 COPY REPORT</button>
+
+        <div id="controls">
+            <div class="control-group">
+                <span class="control-label">Duration</span>
+
+                <select id="duration-select">
+                    <option value="10">10 seconds</option>
+                    <option value="30" selected>30 seconds</option>
+                    <option value="60">60 seconds</option>
+                    <option value="120">120 seconds</option>
+                    <option value="0">Continuous</option>
+                    <option value="custom">Custom</option>
+                </select>
+
+                <input
+                    id="custom-duration"
+                    type="number"
+                    min="1"
+                    max="1800"
+                    value="30"
+                    title="Custom duration in seconds"
+                    style="display:none;"
+                >
+            </div>
+
+            <div class="control-group">
+                <span class="control-label">Deep interval</span>
+
+                <select id="record-interval-select">
+                    <option value="100">100ms</option>
+                    <option value="250" selected>250ms</option>
+                    <option value="500">500ms</option>
+                    <option value="1000">1000ms</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    <input
+                        id="capture-raw"
+                        type="checkbox"
+                        checked
+                    >
+                    Raw packets
+                </label>
+
+                <label>
+                    <input
+                        id="capture-input"
+                        type="checkbox"
+                        checked
+                    >
+                    Keys
+                </label>
+
+                <label>
+                    <input
+                        id="include-prebuffer"
+                        type="checkbox"
+                        checked
+                    >
+                    Pre-buffer
+                </label>
+            </div>
+
+            <button
+                id="record-button"
+                class="btn btn-record"
+                type="button"
+            >
+                ● START RECORDING
+            </button>
+
+            <button
+                id="marker-button"
+                class="btn btn-marker"
+                type="button"
+            >
+                ◆ MARK
+            </button>
+
+            <button
+                id="copy-button"
+                class="btn btn-copy"
+                type="button"
+            >
+                📋 COPY REPORT
+            </button>
+
+            <button
+                id="download-button"
+                class="btn btn-download"
+                type="button"
+            >
+                ⬇ DOWNLOAD
+            </button>
+
+            <button
+                id="clear-button"
+                class="btn btn-clear"
+                type="button"
+            >
+                CLEAR
+            </button>
+        </div>
     </div>
 
     <div id="container">
         <div id="live-panel">
-            <div style="color:#666; font-style:italic;">Waiting for data stream...</div>
+            <div style="color:#666; font-style:italic;">
+                Waiting for data stream...
+            </div>
         </div>
+
         <div id="log-panel">
-            <div style="border-bottom:1px solid #444; margin-bottom:10px; color:#888;">EVENT LOG</div>
+            <div class="panel-heading">
+                <span>EVENT TIMELINE</span>
+                <span id="event-count">0 events</span>
+            </div>
+
             <div id="log-content"></div>
         </div>
     </div>
 
+    <div id="summary-bar">
+        <span>
+            Packets:
+            <strong id="packet-count">0</strong>
+        </span>
+
+        <span>
+            Changes:
+            <strong id="change-count">0</strong>
+        </span>
+
+        <span>
+            Inputs:
+            <strong id="input-count">0</strong>
+        </span>
+
+        <span>
+            Markers:
+            <strong id="marker-count">0</strong>
+        </span>
+
+        <span>
+            Current weight:
+            <strong id="current-weight">unknown</strong>
+        </span>
+
+        <span>
+            Trunk:
+            <strong id="current-trunk">unknown</strong>
+        </span>
+
+        <span>
+            Menu:
+            <strong id="current-menu">unknown</strong>
+        </span>
+    </div>
+
 <script>
-    // --- 1. THE DRAGNET: Massive list of potential keys ---
-    const PROBE_KEYS = [
-        // Standard
-        "player", "player_id", "source", "inventory", "accounts", "money",
-        // Vehicles & Trunk (The main target)
-        "vehicle", "vehicle_data", "vehicle_plate", "plate", 
-        "trunk", "trunk_inventory", "trunk_data", "boot",
-        "secondary_inventory", "other_inventory", "stash", "storage",
-        "glovebox", "cargo", "trailer", "container",
-        // Jobs & Missions (The other target)
-        "job", "job_name", "job_label", "job_grade",
-        "job_stage", "job_info", "current_job", "duty",
-        "mission", "mission_data", "task", "objective",
-        "waypoint", "destination", "dest", "gps", "route", "coords", "blip"
-    ];
+    "use strict";
 
-    const livePanel = document.getElementById('live-panel');
-    const logContent = document.getElementById('log-content');
-    const statusEl = document.getElementById('status');
-    
-    // Store previous values to detect changes
-    let lastDataState = {};
+    /*
+        TT DEEP PROBE
 
-    // --- 2. SEND REQUESTS ---
-    function ping() {
-        if(window.parent) {
-            try {
-                // We ask for the specific keys...
-                window.parent.postMessage({ type: "getNamedData", keys: PROBE_KEYS }, "*");
-                
-                // ...AND generic "getData" to catch everything else
-                window.parent.postMessage({ type: "getData" }, "*"); 
-                
-                statusEl.innerText = "Scanning... " + new Date().toLocaleTimeString();
-            } catch(e) {
-                statusEl.innerText = "Error: " + e.message;
-            }
-        }
-    }
-    setInterval(ping, 2000);
+        Important limitation:
+        A browser-based User App can record:
+        - Incoming postMessage packets
+        - Data changes
+        - Keyboard input received by this page
+        - Window focus/blur/visibility events
+        - Outgoing requests made by this probe
 
-    // --- 3. LISTEN & ANALYZE ---
-    window.addEventListener('message', (event) => {
-        let payload = event.data;
-        
-        // Unwrap standard FiveM NUI wrappers
-        if (payload.type === 'data' && payload.data) payload = payload.data;
-        if (payload.type === 'ui_update' && payload.data) payload = payload.data; // Common wrapper
-        
-        // Ignore Empty Packets
-        if (!payload || (typeof payload === 'object' && Object.keys(payload).length === 0)) return;
-
-        processData(payload);
-    });
-
-    function processData(data) {
-        livePanel.innerHTML = ""; // Rebuild list (inefficient but cleaner for sorting)
-        
-        // Sort keys alphabetically for readability
-        const keys = Object.keys(data).sort();
-        
-        if(keys.length === 0) {
-            livePanel.innerHTML = "<div style='color:#666'>Received empty data packet.</div>";
-            return;
-        }
-
-        keys.forEach(key => {
-            let value = data[key];
-            let displayVal = formatValue(value);
-            
-            // CHECK FOR CHANGE
-            let isChanged = false;
-            let oldValStr = JSON.stringify(lastDataState[key]);
-            let newValStr = JSON.stringify(value);
-            
-            if (lastDataState[key] !== undefined && oldValStr !== newValStr) {
-                isChanged = true;
-                logChange(key, oldValStr, newValStr);
-            }
-            lastDataState[key] = value; // Update state
-
-            // RENDER ENTRY
-            const div = document.createElement('div');
-            div.className = "entry";
-            
-            let keyClass = "key";
-            if (isChanged) keyClass += " changed";
-
-            // Highlight known "Target" keywords for you
-            if(key.includes("trunk") || key.includes("inv") || key.includes("cargo")) {
-                div.style.borderLeft = "3px solid #00e676";
-                div.style.paddingLeft = "8px";
-            }
-            if(key.includes("job") || key.includes("waypoint") || key.includes("dest")) {
-                div.style.borderLeft = "3px solid #0277bd";
-                div.style.paddingLeft = "8px";
-            }
-
-            div.innerHTML = `
-                <span class="${keyClass}">"${key}"</span> 
-                <span class="type">(${typeof value})</span>
-                <span class="val">${displayVal}</span>
-            `;
-            livePanel.appendChild(div);
-        });
-    }
-
-    function formatValue(val) {
-        if (val === null) return "null";
-        if (val === undefined) return "undefined";
-        if (typeof val === 'object') return JSON.stringify(val);
-        return val.toString();
-    }
-
-    function logChange(key, oldVal, newVal) {
-        // Don't log huge inventory updates to keep log clean
-        if(key.includes("inventory") && newVal.length > 100) return;
-
-        const div = document.createElement('div');
-        div.style.marginBottom = "5px";
-        div.style.fontSize = "0.85em";
-        div.innerHTML = `<span style="color:#ffeb3b">⚠ ${key} changed:</span><br>
-                         <span style="color:#666; text-decoration:line-through;">${oldVal ? oldVal.substring(0,20) : 'null'}</span> 
-                         &rarr; <span style="color:#fff;">${newVal ? newVal.substring(0,20) : 'null'}...</span>`;
-        logContent.prepend(div);
-    }
-
-    // --- COPY FUNCTION ---
-    window.copyAll = function() {
-        const text = JSON.stringify(lastDataState, null, 4);
-        const el = document.createElement('textarea');
-        el.value = text;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        
-        const btn = document.querySelector('.btn-copy');
-        const originalText = btn.innerText;
-        btn.innerText = "COPIED!";
-        setTimeout(() => btn.innerText = originalText, 2000);
-    }
-</script>
-</body>
-</html>
+        It cannot automatically inspect
