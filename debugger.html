@@ -580,4 +580,2247 @@
         - Window focus/blur/visibility events
         - Outgoing requests made by this probe
 
-        It cannot automatically inspect
+        It cannot automatically inspect arbitrary Lua client events,
+        TriggerServerEvent calls, or internal functions inside another
+        FiveM resource unless Transport Tycoon explicitly exposes them
+        to the User App.
+    */
+
+    const CONFIG = {
+        idleIntervalMs: 2000,
+        defaultRecordingIntervalMs: 250,
+        preBufferWindowMs: 10000,
+        maxPreBufferEvents: 1000,
+        maxVisibleEvents: 700,
+        maxReportEvents: 20000,
+        maxRawPacketCharacters: 250000,
+        snapshotEveryPacket: false
+    };
+
+    const PROBE_KEYS = [
+        // Player
+        "player",
+        "player_id",
+        "source",
+        "name",
+        "user_id",
+        "health",
+        "armor",
+        "weapon",
+
+        // Inventory
+        "inventory",
+        "weight",
+        "max_weight",
+        "accounts",
+        "money",
+        "wallet",
+        "bank",
+
+        // Vehicle
+        "vehicle",
+        "vehicle_data",
+        "vehicle_plate",
+        "vehicleName",
+        "vehicleMake",
+        "vehicleClass",
+        "vehicleClassName",
+        "plate",
+        "boat",
+        "car",
+        "engine",
+        "fuel",
+        "speed",
+        "rpm",
+
+        // Trunk and storage
+        "chest",
+        "trunk",
+        "trunk_inventory",
+        "trunk_data",
+        "trunkWeight",
+        "trunkCapacity",
+        "boot",
+        "secondary_inventory",
+        "other_inventory",
+        "stash",
+        "storage",
+        "glovebox",
+        "cargo",
+        "trailer",
+        "container",
+
+        // Native menu
+        "menu",
+        "menu_open",
+        "menu_choice",
+        "menu_choices",
+        "prompt",
+        "prompt_title",
+        "prompt_number_only",
+        "request",
+
+        // Job
+        "job",
+        "job_name",
+        "job_label",
+        "job_grade",
+        "job_stage",
+        "job_info",
+        "current_job",
+        "job_title",
+        "subjob",
+        "subjob_name",
+        "duty",
+        "mission",
+        "mission_data",
+        "task",
+        "objective",
+
+        // Navigation
+        "waypoint",
+        "waypoint_x",
+        "waypoint_y",
+        "destination",
+        "dest",
+        "gps",
+        "route",
+        "coords",
+        "blip",
+
+        // Position and camera
+        "pos_x",
+        "pos_y",
+        "pos_z",
+        "pos_h",
+        "cam_x",
+        "cam_y",
+        "cam_z",
+        "cam_heading",
+        "cam_pitch",
+        "cam_roll",
+
+        // Feedback
+        "notification",
+        "data"
+    ];
+
+    const IMPORTANT_CHANGE_KEYS = new Set([
+        "vehicle",
+        "boat",
+        "chest",
+        "menu",
+        "menu_open",
+        "menu_choice",
+        "menu_choices",
+        "prompt",
+        "prompt_title",
+        "prompt_number_only",
+        "request",
+        "weight",
+        "max_weight",
+        "trunkWeight",
+        "trunkCapacity",
+        "notification",
+        "inventory",
+        "vehicleClass",
+        "vehicleClassName",
+        "vehicleName"
+    ]);
+
+    const elements = {
+        livePanel: document.getElementById("live-panel"),
+        logContent: document.getElementById("log-content"),
+        status: document.getElementById("status"),
+        recordingClock: document.getElementById("recording-clock"),
+        recordButton: document.getElementById("record-button"),
+        markerButton: document.getElementById("marker-button"),
+        copyButton: document.getElementById("copy-button"),
+        downloadButton: document.getElementById("download-button"),
+        clearButton: document.getElementById("clear-button"),
+        durationSelect: document.getElementById("duration-select"),
+        customDuration: document.getElementById("custom-duration"),
+        recordIntervalSelect: document.getElementById(
+            "record-interval-select"
+        ),
+        captureRaw: document.getElementById("capture-raw"),
+        captureInput: document.getElementById("capture-input"),
+        includePrebuffer: document.getElementById("include-prebuffer"),
+        idleIntervalLabel: document.getElementById("idle-interval-label"),
+        recordIntervalLabel: document.getElementById(
+            "record-interval-label"
+        ),
+        eventCount: document.getElementById("event-count"),
+        packetCount: document.getElementById("packet-count"),
+        changeCount: document.getElementById("change-count"),
+        inputCount: document.getElementById("input-count"),
+        markerCount: document.getElementById("marker-count"),
+        currentWeight: document.getElementById("current-weight"),
+        currentTrunk: document.getElementById("current-trunk"),
+        currentMenu: document.getElementById("current-menu")
+    };
+
+    const state = {
+        lastDataState: {},
+        changedKeys: new Set(),
+        packetSequence: 0,
+        pingSequence: 0,
+        scanTimer: null,
+        currentScanIntervalMs: CONFIG.idleIntervalMs,
+
+        recording: false,
+        recordingStartEpoch: null,
+        recordingEndEpoch: null,
+        recordingTimer: null,
+        recordingClockTimer: null,
+
+        preBuffer: [],
+        reportEvents: [],
+        visibleEvents: [],
+
+        initialSnapshot: null,
+        finalSnapshot: null,
+
+        counters: {
+            packets: 0,
+            changes: 0,
+            inputs: 0,
+            markers: 0
+        },
+
+        lastAutomaticState: {
+            menuOpen: undefined,
+            menuChoice: undefined,
+            weight: undefined,
+            trunkWeight: undefined,
+            inventory: undefined,
+            trunkContents: undefined
+        }
+    };
+
+    function nowEpoch() {
+        return Date.now();
+    }
+
+    function nowIso() {
+        return new Date().toISOString();
+    }
+
+    function elapsedFromRecording(epoch = nowEpoch()) {
+        if (!state.recordingStartEpoch) {
+            return null;
+        }
+
+        return epoch - state.recordingStartEpoch;
+    }
+
+    function formatElapsed(milliseconds) {
+        if (
+            milliseconds === null ||
+            milliseconds === undefined ||
+            Number.isNaN(milliseconds)
+        ) {
+            return "--:--.---";
+        }
+
+        const total = Math.max(0, milliseconds);
+        const minutes = Math.floor(total / 60000);
+        const seconds = Math.floor((total % 60000) / 1000);
+        const millis = total % 1000;
+
+        return (
+            String(minutes).padStart(2, "0") +
+            ":" +
+            String(seconds).padStart(2, "0") +
+            "." +
+            String(millis).padStart(3, "0")
+        );
+    }
+
+    function safeClone(value) {
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (error) {
+            return String(value);
+        }
+    }
+
+    function stableStringify(value) {
+        try {
+            return JSON.stringify(value, objectKeySorter);
+        } catch (error) {
+            return JSON.stringify(String(value));
+        }
+    }
+
+    function objectKeySorter(key, value) {
+        if (
+            value &&
+            typeof value === "object" &&
+            !Array.isArray(value)
+        ) {
+            return Object.keys(value)
+                .sort()
+                .reduce((sorted, objectKey) => {
+                    sorted[objectKey] = value[objectKey];
+                    return sorted;
+                }, {});
+        }
+
+        return value;
+    }
+
+    function truncate(value, maximumLength = 500) {
+        const text =
+            typeof value === "string"
+                ? value
+                : stableStringify(value);
+
+        if (text.length <= maximumLength) {
+            return text;
+        }
+
+        return (
+            text.substring(0, maximumLength) +
+            `… [${text.length - maximumLength} more characters]`
+        );
+    }
+
+    function parseJsonString(value) {
+        if (typeof value !== "string") {
+            return value;
+        }
+
+        const trimmed = value.trim();
+
+        if (
+            !trimmed.startsWith("{") &&
+            !trimmed.startsWith("[")
+        ) {
+            return value;
+        }
+
+        try {
+            return JSON.parse(trimmed);
+        } catch (error) {
+            return value;
+        }
+    }
+
+    function normaliseValue(value) {
+        const parsed = parseJsonString(value);
+        return safeClone(parsed);
+    }
+
+    function valuesAreEqual(left, right) {
+        return stableStringify(left) === stableStringify(right);
+    }
+
+    function getCurrentRecordingInterval() {
+        const selected = Number(
+            elements.recordIntervalSelect.value
+        );
+
+        if (
+            !Number.isFinite(selected) ||
+            selected < 50
+        ) {
+            return CONFIG.defaultRecordingIntervalMs;
+        }
+
+        return selected;
+    }
+
+    function getSelectedDurationSeconds() {
+        const selected = elements.durationSelect.value;
+
+        if (selected === "custom") {
+            const custom = Number(elements.customDuration.value);
+
+            if (
+                !Number.isFinite(custom) ||
+                custom < 1
+            ) {
+                return 30;
+            }
+
+            return Math.min(custom, 1800);
+        }
+
+        const parsed = Number(selected);
+
+        if (!Number.isFinite(parsed)) {
+            return 30;
+        }
+
+        return parsed;
+    }
+
+    function restartScanTimer(intervalMs) {
+        if (state.scanTimer) {
+            clearInterval(state.scanTimer);
+        }
+
+        state.currentScanIntervalMs = intervalMs;
+        state.scanTimer = setInterval(ping, intervalMs);
+
+        updateScanLabels();
+    }
+
+    function updateScanLabels() {
+        elements.idleIntervalLabel.textContent =
+            `${CONFIG.idleIntervalMs}ms`;
+
+        elements.recordIntervalLabel.textContent =
+            `${getCurrentRecordingInterval()}ms`;
+    }
+
+    function ping() {
+        state.pingSequence += 1;
+
+        const requestTimestamp = nowEpoch();
+
+        try {
+            if (!window.parent) {
+                throw new Error("window.parent is unavailable.");
+            }
+
+            const namedRequest = {
+                type: "getNamedData",
+                keys: PROBE_KEYS
+            };
+
+            const genericRequest = {
+                type: "getData"
+            };
+
+            window.parent.postMessage(namedRequest, "*");
+            window.parent.postMessage(genericRequest, "*");
+
+            addEvent({
+                category: "system",
+                title: "Probe requests sent",
+                details: {
+                    pingSequence: state.pingSequence,
+                    requests: [
+                        namedRequest,
+                        genericRequest
+                    ],
+                    intervalMs: state.currentScanIntervalMs
+                },
+                epoch: requestTimestamp,
+                visible: false,
+                recordOutsideRecording: false
+            });
+
+            elements.status.textContent =
+                state.recording
+                    ? "Deep recording active"
+                    : `Scanning ${new Date().toLocaleTimeString()}`;
+        } catch (error) {
+            elements.status.textContent =
+                `Error: ${error.message}`;
+
+            addEvent({
+                category: "error",
+                title: "Probe request failed",
+                details: {
+                    message: error.message,
+                    stack: error.stack || null
+                }
+            });
+        }
+    }
+
+    function identifyPacketWrapper(payload) {
+        if (!payload || typeof payload !== "object") {
+            return "primitive";
+        }
+
+        if (payload.type === "data" && payload.data) {
+            return "type:data";
+        }
+
+        if (
+            payload.type === "ui_update" &&
+            payload.data
+        ) {
+            return "type:ui_update";
+        }
+
+        if (payload.data && typeof payload.data === "object") {
+            return "generic:data";
+        }
+
+        return "unwrapped";
+    }
+
+    function unwrapPayload(originalPayload) {
+        let payload = originalPayload;
+        let wrapper = identifyPacketWrapper(originalPayload);
+
+        if (
+            payload &&
+            payload.type === "data" &&
+            payload.data
+        ) {
+            payload = payload.data;
+        } else if (
+            payload &&
+            payload.type === "ui_update" &&
+            payload.data
+        ) {
+            payload = payload.data;
+        }
+
+        return {
+            wrapper,
+            payload
+        };
+    }
+
+    window.addEventListener("message", (event) => {
+        const originalPayload = event.data;
+
+        if (
+            originalPayload === null ||
+            originalPayload === undefined
+        ) {
+            return;
+        }
+
+        if (
+            typeof originalPayload === "object" &&
+            !Array.isArray(originalPayload) &&
+            Object.keys(originalPayload).length === 0
+        ) {
+            return;
+        }
+
+        state.packetSequence += 1;
+        state.counters.packets += 1;
+
+        const receivedEpoch = nowEpoch();
+        const unwrapped = unwrapPayload(originalPayload);
+        const payload = unwrapped.payload;
+
+        if (
+            elements.captureRaw.checked &&
+            (
+                state.recording ||
+                shouldStoreInPreBuffer()
+            )
+        ) {
+            let rawPacket = safeClone(originalPayload);
+            let rawText = stableStringify(rawPacket);
+
+            if (
+                rawText.length >
+                CONFIG.maxRawPacketCharacters
+            ) {
+                rawPacket = {
+                    truncated: true,
+                    originalLength: rawText.length,
+                    preview: rawText.substring(
+                        0,
+                        CONFIG.maxRawPacketCharacters
+                    )
+                };
+            }
+
+            addEvent({
+                category: "packet",
+                title: "Incoming postMessage packet",
+                details: {
+                    packetSequence: state.packetSequence,
+                    wrapper: unwrapped.wrapper,
+                    origin: event.origin || "unknown",
+                    sourceIsParent:
+                        event.source === window.parent,
+                    raw: rawPacket
+                },
+                epoch: receivedEpoch,
+                visible: state.recording
+            });
+        }
+
+        if (
+            !payload ||
+            typeof payload !== "object" ||
+            Array.isArray(payload)
+        ) {
+            addEvent({
+                category: "packet",
+                title: "Non-object packet received",
+                details: {
+                    packetSequence: state.packetSequence,
+                    wrapper: unwrapped.wrapper,
+                    value: safeClone(payload)
+                },
+                epoch: receivedEpoch,
+                visible: state.recording
+            });
+
+            updateCounters();
+            return;
+        }
+
+        processData(payload, {
+            packetSequence: state.packetSequence,
+            wrapper: unwrapped.wrapper,
+            origin: event.origin || "unknown",
+            epoch: receivedEpoch
+        });
+
+        updateCounters();
+    });
+
+    function processData(data, packetMeta) {
+        const keys = Object.keys(data).sort();
+
+        if (keys.length === 0) {
+            return;
+        }
+
+        state.changedKeys.clear();
+
+        keys.forEach((key) => {
+            const newValue = normaliseValue(data[key]);
+            const hasPrevious = Object.prototype.hasOwnProperty.call(
+                state.lastDataState,
+                key
+            );
+
+            const previousValue = hasPrevious
+                ? state.lastDataState[key]
+                : undefined;
+
+            const changed =
+                hasPrevious &&
+                !valuesAreEqual(previousValue, newValue);
+
+            state.lastDataState[key] = safeClone(newValue);
+
+            if (changed) {
+                state.changedKeys.add(key);
+                state.counters.changes += 1;
+
+                recordChange(
+                    key,
+                    previousValue,
+                    newValue,
+                    packetMeta
+                );
+            }
+        });
+
+        detectDynamicChestKeys();
+        detectAutomaticMarkers();
+        renderLivePanel();
+        updateSummary();
+    }
+
+    function recordChange(
+        key,
+        previousValue,
+        newValue,
+        packetMeta
+    ) {
+        const isLargeInventory =
+            key.toLowerCase().includes("inventory") ||
+            key.toLowerCase().startsWith("chest_");
+
+        const details = {
+            key,
+            oldValue: safeClone(previousValue),
+            newValue: safeClone(newValue),
+            packetSequence: packetMeta.packetSequence,
+            wrapper: packetMeta.wrapper
+        };
+
+        addEvent({
+            category: "change",
+            title: `${key} changed`,
+            details,
+            epoch: packetMeta.epoch,
+            visible:
+                state.recording ||
+                IMPORTANT_CHANGE_KEYS.has(key) ||
+                !isLargeInventory
+        });
+    }
+
+    function detectDynamicChestKeys() {
+        Object.keys(state.lastDataState).forEach((key) => {
+            if (
+                key.startsWith("chest_") &&
+                !PROBE_KEYS.includes(key)
+            ) {
+                PROBE_KEYS.push(key);
+
+                addEvent({
+                    category: "automatic",
+                    title: "Dynamic chest key discovered",
+                    details: {
+                        key,
+                        reason:
+                            "The key was added to future getNamedData requests."
+                    }
+                });
+            }
+        });
+    }
+
+    function findActiveChestKey() {
+        const keys = Object.keys(state.lastDataState);
+
+        const exactBoatChest = keys.find((key) =>
+            /^chest_u\d+veh_boat_/i.test(key)
+        );
+
+        if (exactBoatChest) {
+            return exactBoatChest;
+        }
+
+        return keys.find((key) =>
+            key.startsWith("chest_") &&
+            key !== "chest"
+        ) || null;
+    }
+
+    function detectAutomaticMarkers() {
+        const current = state.lastDataState;
+
+        const menuOpen = current.menu_open;
+        const menuChoice = current.menu_choice;
+        const weight = toNumberOrNull(current.weight);
+        const trunkWeight = toNumberOrNull(
+            current.trunkWeight
+        );
+
+        const inventorySignature = stableStringify(
+            current.inventory
+        );
+
+        const chestKey = findActiveChestKey();
+
+        const trunkContentsSignature = chestKey
+            ? stableStringify(current[chestKey])
+            : null;
+
+        if (
+            state.lastAutomaticState.menuOpen === false &&
+            menuOpen === true
+        ) {
+            automaticMarker(
+                "Menu opened",
+                {
+                    menu: current.menu,
+                    choice: menuChoice,
+                    chest: current.chest,
+                    vehicle: current.vehicle,
+                    boat: current.boat
+                }
+            );
+        }
+
+        if (
+            menuOpen === true &&
+            typeof menuChoice === "string" &&
+            menuChoice.toLowerCase().includes("put all") &&
+            state.lastAutomaticState.menuChoice !== menuChoice
+        ) {
+            automaticMarker(
+                "Put All selected",
+                {
+                    menu: current.menu,
+                    menuChoice,
+                    menuChoices: current.menu_choices
+                }
+            );
+        }
+
+        if (
+            state.lastAutomaticState.weight !== undefined &&
+            state.lastAutomaticState.weight !== null &&
+            weight !== null &&
+            state.lastAutomaticState.weight !== weight
+        ) {
+            automaticMarker(
+                "Inventory weight changed",
+                {
+                    from: state.lastAutomaticState.weight,
+                    to: weight,
+                    difference:
+                        weight -
+                        state.lastAutomaticState.weight,
+                    maxWeight:
+                        toNumberOrNull(current.max_weight)
+                }
+            );
+        }
+
+        if (
+            state.lastAutomaticState.trunkWeight !== undefined &&
+            state.lastAutomaticState.trunkWeight !== null &&
+            trunkWeight !== null &&
+            state.lastAutomaticState.trunkWeight !== trunkWeight
+        ) {
+            automaticMarker(
+                "Trunk weight changed",
+                {
+                    from:
+                        state.lastAutomaticState.trunkWeight,
+                    to: trunkWeight,
+                    difference:
+                        trunkWeight -
+                        state.lastAutomaticState.trunkWeight,
+                    capacity:
+                        toNumberOrNull(
+                            current.trunkCapacity
+                        )
+                }
+            );
+        }
+
+        if (
+            state.lastAutomaticState.inventory !== undefined &&
+            state.lastAutomaticState.inventory !== inventorySignature
+        ) {
+            automaticMarker(
+                "Inventory contents changed",
+                createInventoryDifferenceSummary(
+                    state.lastAutomaticState.inventory,
+                    inventorySignature
+                )
+            );
+        }
+
+        if (
+            state.lastAutomaticState.trunkContents !== undefined &&
+            state.lastAutomaticState.trunkContents !==
+                trunkContentsSignature
+        ) {
+            automaticMarker(
+                "Boat trunk contents changed",
+                {
+                    chestKey,
+                    beforeSignature:
+                        truncate(
+                            state.lastAutomaticState
+                                .trunkContents,
+                            500
+                        ),
+                    afterSignature:
+                        truncate(
+                            trunkContentsSignature,
+                            500
+                        )
+                }
+            );
+        }
+
+        if (
+            state.lastAutomaticState.menuOpen === true &&
+            menuOpen === false
+        ) {
+            automaticMarker(
+                "Menu closed",
+                {
+                    menu: current.menu,
+                    lastChoice: menuChoice,
+                    weight,
+                    trunkWeight
+                }
+            );
+        }
+
+        state.lastAutomaticState.menuOpen =
+            menuOpen;
+
+        state.lastAutomaticState.menuChoice =
+            menuChoice;
+
+        state.lastAutomaticState.weight =
+            weight;
+
+        state.lastAutomaticState.trunkWeight =
+            trunkWeight;
+
+        state.lastAutomaticState.inventory =
+            inventorySignature;
+
+        state.lastAutomaticState.trunkContents =
+            trunkContentsSignature;
+    }
+
+    function createInventoryDifferenceSummary(
+        oldSignature,
+        newSignature
+    ) {
+        let oldInventory = {};
+        let newInventory = {};
+
+        try {
+            oldInventory = oldSignature
+                ? JSON.parse(oldSignature)
+                : {};
+        } catch (error) {
+            oldInventory = {};
+        }
+
+        try {
+            newInventory = newSignature
+                ? JSON.parse(newSignature)
+                : {};
+        } catch (error) {
+            newInventory = {};
+        }
+
+        const allKeys = new Set([
+            ...Object.keys(oldInventory || {}),
+            ...Object.keys(newInventory || {})
+        ]);
+
+        const differences = [];
+
+        allKeys.forEach((key) => {
+            const oldAmount = extractAmount(
+                oldInventory?.[key]
+            );
+
+            const newAmount = extractAmount(
+                newInventory?.[key]
+            );
+
+            if (oldAmount !== newAmount) {
+                differences.push({
+                    item: key,
+                    from: oldAmount,
+                    to: newAmount,
+                    difference: newAmount - oldAmount
+                });
+            }
+        });
+
+        return {
+            changedItems: differences.slice(0, 100),
+            totalChangedItems: differences.length
+        };
+    }
+
+    function extractAmount(value) {
+        if (
+            value &&
+            typeof value === "object" &&
+            Number.isFinite(Number(value.amount))
+        ) {
+            return Number(value.amount);
+        }
+
+        return 0;
+    }
+
+    function toNumberOrNull(value) {
+        const number = Number(value);
+
+        return Number.isFinite(number)
+            ? number
+            : null;
+    }
+
+    function automaticMarker(title, details) {
+        if (!state.recording) {
+            return;
+        }
+
+        state.counters.markers += 1;
+
+        addEvent({
+            category: "automatic",
+            title,
+            details,
+            visible: true
+        });
+    }
+
+    function addEvent({
+        category = "system",
+        title,
+        details = null,
+        epoch = nowEpoch(),
+        visible = true,
+        recordOutsideRecording = true
+    }) {
+        const eventRecord = {
+            id:
+                `${epoch}-${Math.random()
+                    .toString(36)
+                    .slice(2, 9)}`,
+            epoch,
+            isoTime: new Date(epoch).toISOString(),
+            elapsedMs: elapsedFromRecording(epoch),
+            category,
+            title,
+            details: safeClone(details)
+        };
+
+        if (state.recording) {
+            state.reportEvents.push(eventRecord);
+
+            if (
+                state.reportEvents.length >
+                CONFIG.maxReportEvents
+            ) {
+                state.reportEvents.shift();
+            }
+        } else if (
+            recordOutsideRecording &&
+            shouldStoreInPreBuffer()
+        ) {
+            state.preBuffer.push(eventRecord);
+            trimPreBuffer();
+        }
+
+        if (visible) {
+            state.visibleEvents.unshift(eventRecord);
+
+            if (
+                state.visibleEvents.length >
+                CONFIG.maxVisibleEvents
+            ) {
+                state.visibleEvents.length =
+                    CONFIG.maxVisibleEvents;
+            }
+
+            renderLogEvent(eventRecord, true);
+        }
+
+        updateCounters();
+        return eventRecord;
+    }
+
+    function shouldStoreInPreBuffer() {
+        return elements.includePrebuffer.checked;
+    }
+
+    function trimPreBuffer() {
+        const cutoff =
+            nowEpoch() -
+            CONFIG.preBufferWindowMs;
+
+        state.preBuffer = state.preBuffer
+            .filter((eventRecord) =>
+                eventRecord.epoch >= cutoff
+            )
+            .slice(-CONFIG.maxPreBufferEvents);
+    }
+
+    function renderLogEvent(
+        eventRecord,
+        prepend = true
+    ) {
+        const div = document.createElement("div");
+        div.className =
+            `log-event ${eventRecord.category}`;
+
+        const time = document.createElement("div");
+        time.className = "log-time";
+
+        const elapsed =
+            eventRecord.elapsedMs !== null
+                ? `+${formatElapsed(
+                    eventRecord.elapsedMs
+                )}`
+                : new Date(
+                    eventRecord.epoch
+                ).toLocaleTimeString();
+
+        time.textContent =
+            `${elapsed} | ${eventRecord.isoTime}`;
+
+        const title = document.createElement("div");
+        title.className = "log-title";
+        title.textContent = eventRecord.title;
+
+        div.appendChild(time);
+        div.appendChild(title);
+
+        if (eventRecord.details !== null) {
+            const details = document.createElement("div");
+            details.className = "log-details";
+
+            if (
+                eventRecord.category === "change" &&
+                eventRecord.details &&
+                "oldValue" in eventRecord.details &&
+                "newValue" in eventRecord.details
+            ) {
+                const oldLine =
+                    document.createElement("div");
+
+                const oldLabel =
+                    document.createElement("span");
+
+                oldLabel.textContent = "Old: ";
+                oldLabel.style.color = "#777";
+
+                const oldValue =
+                    document.createElement("span");
+
+                oldValue.className = "old-value";
+                oldValue.textContent = truncate(
+                    eventRecord.details.oldValue,
+                    700
+                );
+
+                oldLine.appendChild(oldLabel);
+                oldLine.appendChild(oldValue);
+
+                const newLine =
+                    document.createElement("div");
+
+                const newLabel =
+                    document.createElement("span");
+
+                newLabel.textContent = "New: ";
+                newLabel.style.color = "#777";
+
+                const newValue =
+                    document.createElement("span");
+
+                newValue.className = "new-value";
+                newValue.textContent = truncate(
+                    eventRecord.details.newValue,
+                    700
+                );
+
+                newLine.appendChild(newLabel);
+                newLine.appendChild(newValue);
+
+                details.appendChild(oldLine);
+                details.appendChild(newLine);
+            } else {
+                details.textContent = truncate(
+                    eventRecord.details,
+                    1600
+                );
+            }
+
+            div.appendChild(details);
+        }
+
+        if (prepend) {
+            elements.logContent.prepend(div);
+        } else {
+            elements.logContent.appendChild(div);
+        }
+
+        while (
+            elements.logContent.children.length >
+            CONFIG.maxVisibleEvents
+        ) {
+            elements.logContent.removeChild(
+                elements.logContent.lastChild
+            );
+        }
+    }
+
+    function renderLivePanel() {
+        elements.livePanel.innerHTML = "";
+
+        const keys = Object.keys(
+            state.lastDataState
+        ).sort();
+
+        if (keys.length === 0) {
+            const empty = document.createElement("div");
+            empty.style.color = "#666";
+            empty.textContent =
+                "Received no readable data yet.";
+
+            elements.livePanel.appendChild(empty);
+            return;
+        }
+
+        keys.forEach((key) => {
+            const value =
+                state.lastDataState[key];
+
+            const div =
+                document.createElement("div");
+
+            div.className = "entry";
+
+            const lowerKey = key.toLowerCase();
+
+            if (
+                lowerKey.includes("trunk") ||
+                lowerKey.includes("inventory") ||
+                lowerKey.includes("cargo") ||
+                lowerKey.startsWith("chest_")
+            ) {
+                div.classList.add("target-entry");
+            }
+
+            if (
+                lowerKey.includes("job") ||
+                lowerKey.includes("waypoint") ||
+                lowerKey.includes("destination")
+            ) {
+                div.classList.add(
+                    "navigation-entry"
+                );
+            }
+
+            if (
+                lowerKey.includes("menu") ||
+                lowerKey.includes("prompt") ||
+                lowerKey.includes("request")
+            ) {
+                div.classList.add("menu-entry");
+            }
+
+            if (
+                lowerKey === "weight" ||
+                lowerKey === "max_weight" ||
+                lowerKey === "trunkweight" ||
+                lowerKey === "trunkcapacity"
+            ) {
+                div.classList.add("metric-entry");
+            }
+
+            const keySpan =
+                document.createElement("span");
+
+            keySpan.className = "key";
+
+            if (state.changedKeys.has(key)) {
+                keySpan.classList.add("changed");
+            }
+
+            keySpan.textContent = `"${key}"`;
+
+            const typeSpan =
+                document.createElement("span");
+
+            typeSpan.className = "type";
+            typeSpan.textContent =
+                ` (${getValueType(value)}) `;
+
+            const valueSpan =
+                document.createElement("span");
+
+            valueSpan.className = "val";
+            valueSpan.textContent =
+                formatDisplayValue(value);
+
+            div.appendChild(keySpan);
+            div.appendChild(typeSpan);
+            div.appendChild(valueSpan);
+
+            if (IMPORTANT_CHANGE_KEYS.has(key)) {
+                const badge =
+                    document.createElement("span");
+
+                badge.className = "badge";
+                badge.textContent = "TRACKED";
+                div.appendChild(badge);
+            }
+
+            elements.livePanel.appendChild(div);
+        });
+    }
+
+    function getValueType(value) {
+        if (value === null) {
+            return "null";
+        }
+
+        if (Array.isArray(value)) {
+            return "array";
+        }
+
+        return typeof value;
+    }
+
+    function formatDisplayValue(value) {
+        if (value === null) {
+            return "null";
+        }
+
+        if (value === undefined) {
+            return "undefined";
+        }
+
+        if (typeof value === "object") {
+            return truncate(value, 3000);
+        }
+
+        return String(value);
+    }
+
+    function updateSummary() {
+        const current = state.lastDataState;
+
+        const weight =
+            toNumberOrNull(current.weight);
+
+        const maxWeight =
+            toNumberOrNull(current.max_weight);
+
+        if (
+            weight !== null &&
+            maxWeight !== null &&
+            maxWeight > 0
+        ) {
+            const percent =
+                (weight / maxWeight) * 100;
+
+            elements.currentWeight.textContent =
+                `${weight}/${maxWeight} (${percent.toFixed(1)}%)`;
+        } else {
+            elements.currentWeight.textContent =
+                weight !== null
+                    ? String(weight)
+                    : "unknown";
+        }
+
+        const trunkWeight =
+            toNumberOrNull(current.trunkWeight);
+
+        const trunkCapacity =
+            toNumberOrNull(
+                current.trunkCapacity
+            );
+
+        if (
+            trunkWeight !== null &&
+            trunkCapacity !== null
+        ) {
+            elements.currentTrunk.textContent =
+                `${trunkWeight}/${trunkCapacity}`;
+        } else {
+            elements.currentTrunk.textContent =
+                "unknown";
+        }
+
+        const menuOpen =
+            current.menu_open === true;
+
+        const menuChoice =
+            current.menu_choice || "none";
+
+        elements.currentMenu.textContent =
+            `${menuOpen ? "OPEN" : "closed"} | ${stripHtml(
+                String(menuChoice)
+            )}`;
+    }
+
+    function stripHtml(value) {
+        const temporary =
+            document.createElement("div");
+
+        temporary.innerHTML = value;
+        return temporary.textContent || "";
+    }
+
+    function updateCounters() {
+        elements.packetCount.textContent =
+            String(state.counters.packets);
+
+        elements.changeCount.textContent =
+            String(state.counters.changes);
+
+        elements.inputCount.textContent =
+            String(state.counters.inputs);
+
+        elements.markerCount.textContent =
+            String(state.counters.markers);
+
+        const totalVisible =
+            state.visibleEvents.length;
+
+        elements.eventCount.textContent =
+            `${totalVisible} event${
+                totalVisible === 1 ? "" : "s"
+            }`;
+    }
+
+    function startRecording() {
+        if (state.recording) {
+            stopRecording("manual");
+            return;
+        }
+
+        const durationSeconds =
+            getSelectedDurationSeconds();
+
+        state.recording = true;
+        state.recordingStartEpoch = nowEpoch();
+        state.recordingEndEpoch =
+            durationSeconds > 0
+                ? state.recordingStartEpoch +
+                    durationSeconds * 1000
+                : null;
+
+        state.reportEvents = [];
+        state.initialSnapshot = safeClone(
+            state.lastDataState
+        );
+
+        state.finalSnapshot = null;
+
+        if (
+            elements.includePrebuffer.checked &&
+            state.preBuffer.length > 0
+        ) {
+            const cutoff =
+                state.recordingStartEpoch -
+                CONFIG.preBufferWindowMs;
+
+            const retained = state.preBuffer
+                .filter((eventRecord) =>
+                    eventRecord.epoch >= cutoff
+                )
+                .map((eventRecord) => ({
+                    ...safeClone(eventRecord),
+                    preBuffer: true,
+                    elapsedMs:
+                        eventRecord.epoch -
+                        state.recordingStartEpoch
+                }));
+
+            state.reportEvents.push(...retained);
+        }
+
+        addEvent({
+            category: "system",
+            title: "Recording started",
+            details: {
+                durationSeconds:
+                    durationSeconds === 0
+                        ? "continuous"
+                        : durationSeconds,
+                deepIntervalMs:
+                    getCurrentRecordingInterval(),
+                preBufferIncluded:
+                    elements.includePrebuffer.checked,
+                rawPacketCapture:
+                    elements.captureRaw.checked,
+                keyboardCapture:
+                    elements.captureInput.checked
+            },
+            visible: true
+        });
+
+        state.counters.markers += 1;
+
+        addEvent({
+            category: "marker",
+            title: "Initial snapshot captured",
+            details: summariseSnapshot(
+                state.initialSnapshot
+            ),
+            visible: true
+        });
+
+        restartScanTimer(
+            getCurrentRecordingInterval()
+        );
+
+        elements.recordButton.textContent =
+            "■ STOP RECORDING";
+
+        elements.recordButton.classList.add(
+            "active"
+        );
+
+        elements.recordingClock.style.display =
+            "inline";
+
+        elements.durationSelect.disabled = true;
+        elements.customDuration.disabled = true;
+        elements.recordIntervalSelect.disabled =
+            true;
+
+        updateRecordingClock();
+
+        state.recordingClockTimer = setInterval(
+            updateRecordingClock,
+            50
+        );
+
+        if (durationSeconds > 0) {
+            state.recordingTimer = setTimeout(
+                () => stopRecording("duration-complete"),
+                durationSeconds * 1000
+            );
+        }
+
+        ping();
+    }
+
+    function stopRecording(reason = "manual") {
+        if (!state.recording) {
+            return;
+        }
+
+        if (state.recordingTimer) {
+            clearTimeout(state.recordingTimer);
+            state.recordingTimer = null;
+        }
+
+        if (state.recordingClockTimer) {
+            clearInterval(
+                state.recordingClockTimer
+            );
+
+            state.recordingClockTimer = null;
+        }
+
+        state.finalSnapshot = safeClone(
+            state.lastDataState
+        );
+
+        addEvent({
+            category: "marker",
+            title: "Final snapshot captured",
+            details: summariseSnapshot(
+                state.finalSnapshot
+            ),
+            visible: true
+        });
+
+        state.counters.markers += 1;
+
+        addEvent({
+            category: "system",
+            title: "Recording stopped",
+            details: {
+                reason,
+                durationMs:
+                    nowEpoch() -
+                    state.recordingStartEpoch,
+                recordedEvents:
+                    state.reportEvents.length
+            },
+            visible: true
+        });
+
+        state.recording = false;
+        state.recordingEndEpoch = nowEpoch();
+
+        restartScanTimer(
+            CONFIG.idleIntervalMs
+        );
+
+        elements.recordButton.textContent =
+            "● START RECORDING";
+
+        elements.recordButton.classList.remove(
+            "active"
+        );
+
+        elements.recordingClock.style.display =
+            "none";
+
+        elements.durationSelect.disabled = false;
+
+        elements.customDuration.disabled =
+            elements.durationSelect.value !==
+            "custom";
+
+        elements.recordIntervalSelect.disabled =
+            false;
+
+        elements.status.textContent =
+            "Recording complete";
+
+        updateCounters();
+    }
+
+    function updateRecordingClock() {
+        if (!state.recording) {
+            return;
+        }
+
+        const elapsed =
+            nowEpoch() -
+            state.recordingStartEpoch;
+
+        let text =
+            `REC ${formatElapsed(elapsed)}`;
+
+        if (state.recordingEndEpoch) {
+            const remaining =
+                Math.max(
+                    0,
+                    state.recordingEndEpoch -
+                    nowEpoch()
+                );
+
+            text +=
+                ` | ${formatElapsed(remaining)} left`;
+        }
+
+        elements.recordingClock.textContent =
+            text;
+    }
+
+    function summariseSnapshot(snapshot) {
+        if (!snapshot) {
+            return null;
+        }
+
+        const chestKey = Object.keys(snapshot)
+            .find((key) =>
+                /^chest_u\d+veh_boat_/i.test(key)
+            ) ||
+            Object.keys(snapshot)
+                .find((key) =>
+                    key.startsWith("chest_")
+                ) ||
+            null;
+
+        return {
+            source: snapshot.source,
+            userId: snapshot.user_id,
+            name: snapshot.name,
+            job: snapshot.job,
+            vehicle: snapshot.vehicle,
+            boat: snapshot.boat,
+            vehicleClass:
+                snapshot.vehicleClass,
+            vehicleClassName:
+                snapshot.vehicleClassName,
+            vehicleName:
+                snapshot.vehicleName,
+            weight: snapshot.weight,
+            maxWeight: snapshot.max_weight,
+            inventoryPercent:
+                calculateInventoryPercent(snapshot),
+            chest: snapshot.chest,
+            dynamicChestKey: chestKey,
+            dynamicChestContents:
+                chestKey
+                    ? snapshot[chestKey]
+                    : null,
+            trunkWeight:
+                snapshot.trunkWeight,
+            trunkCapacity:
+                snapshot.trunkCapacity,
+            menu: snapshot.menu,
+            menuOpen: snapshot.menu_open,
+            menuChoice:
+                snapshot.menu_choice,
+            menuChoices:
+                snapshot.menu_choices,
+            prompt: snapshot.prompt,
+            promptTitle:
+                snapshot.prompt_title,
+            request: snapshot.request,
+            notification:
+                snapshot.notification,
+            focused:
+                snapshot.data?.focused,
+            hidden:
+                snapshot.data?.hidden,
+            pinned:
+                snapshot.data?.pinned
+        };
+    }
+
+    function calculateInventoryPercent(snapshot) {
+        const weight =
+            toNumberOrNull(snapshot.weight);
+
+        const maximum =
+            toNumberOrNull(snapshot.max_weight);
+
+        if (
+            weight === null ||
+            maximum === null ||
+            maximum <= 0
+        ) {
+            return null;
+        }
+
+        return Number(
+            ((weight / maximum) * 100).toFixed(3)
+        );
+    }
+
+    function addManualMarker() {
+        const note = window.prompt(
+            "Marker name or note:",
+            "Opened trunk / selected Put All / pressed Enter"
+        );
+
+        if (note === null) {
+            return;
+        }
+
+        state.counters.markers += 1;
+
+        addEvent({
+            category: "marker",
+            title: note.trim() || "Manual marker",
+            details: {
+                snapshot: summariseSnapshot(
+                    state.lastDataState
+                )
+            },
+            visible: true
+        });
+    }
+
+    function buildReport() {
+        const stoppedAt =
+            state.recording
+                ? nowEpoch()
+                : state.recordingEndEpoch;
+
+        return {
+            reportType:
+                "Transport Tycoon User App Deep Probe",
+            reportVersion: "2.0.0",
+            generatedAt: nowIso(),
+
+            recording: {
+                active: state.recording,
+                startedAt:
+                    state.recordingStartEpoch
+                        ? new Date(
+                            state.recordingStartEpoch
+                        ).toISOString()
+                        : null,
+                stoppedAt:
+                    stoppedAt
+                        ? new Date(
+                            stoppedAt
+                        ).toISOString()
+                        : null,
+                durationMs:
+                    state.recordingStartEpoch &&
+                    stoppedAt
+                        ? stoppedAt -
+                            state.recordingStartEpoch
+                        : null,
+                selectedDurationSeconds:
+                    getSelectedDurationSeconds(),
+                intervalMs:
+                    state.recording
+                        ? state.currentScanIntervalMs
+                        : getCurrentRecordingInterval(),
+                rawPacketCapture:
+                    elements.captureRaw.checked,
+                keyboardCapture:
+                    elements.captureInput.checked,
+                preBufferEnabled:
+                    elements.includePrebuffer.checked,
+                preBufferWindowMs:
+                    CONFIG.preBufferWindowMs
+            },
+
+            limitations: [
+                "This User App can observe postMessage data and browser input.",
+                "It cannot automatically inspect arbitrary internal FiveM Lua events unless the server exposes them to the User App.",
+                "Keyboard events are only guaranteed when this NUI page receives the input.",
+                "The parent page may consume some controls before this iframe receives them."
+            ],
+
+            counters: safeClone(state.counters),
+
+            targetAnalysis: analyseFishingSequence(),
+
+            initialSnapshot:
+                state.initialSnapshot,
+
+            finalSnapshot:
+                state.finalSnapshot ||
+                safeClone(state.lastDataState),
+
+            finalSnapshotSummary:
+                summariseSnapshot(
+                    state.finalSnapshot ||
+                    state.lastDataState
+                ),
+
+            chronologicalEvents:
+                [...state.reportEvents]
+                    .sort(
+                        (left, right) =>
+                            left.epoch -
+                            right.epoch
+                    ),
+
+            currentProbeKeys: [...PROBE_KEYS],
+
+            currentState:
+                safeClone(state.lastDataState)
+        };
+    }
+
+    function analyseFishingSequence() {
+        const chronological =
+            [...state.reportEvents]
+                .sort(
+                    (left, right) =>
+                        left.epoch -
+                        right.epoch
+                );
+
+        const findings = {
+            menuOpened: null,
+            putAllSelected: null,
+            activationInputs: [],
+            weightChanges: [],
+            trunkWeightChanges: [],
+            menuClosed: null,
+            notifications: [],
+            likelySuccessfulDeposit: false
+        };
+
+        chronological.forEach((eventRecord) => {
+            if (
+                eventRecord.title ===
+                "Menu opened"
+            ) {
+                findings.menuOpened = eventRecord;
+            }
+
+            if (
+                eventRecord.title ===
+                "Put All selected"
+            ) {
+                findings.putAllSelected =
+                    eventRecord;
+            }
+
+            if (
+                eventRecord.category === "input" &&
+                eventRecord.details &&
+                ["Enter", "NumpadEnter", " "]
+                    .includes(
+                        eventRecord.details.key
+                    )
+            ) {
+                findings.activationInputs.push(
+                    eventRecord
+                );
+            }
+
+            if (
+                eventRecord.title ===
+                "Inventory weight changed"
+            ) {
+                findings.weightChanges.push(
+                    eventRecord
+                );
+            }
+
+            if (
+                eventRecord.title ===
+                "Trunk weight changed"
+            ) {
+                findings.trunkWeightChanges.push(
+                    eventRecord
+                );
+            }
+
+            if (
+                eventRecord.title ===
+                "Menu closed"
+            ) {
+                findings.menuClosed = eventRecord;
+            }
+
+            if (
+                eventRecord.category === "change" &&
+                eventRecord.details?.key ===
+                    "notification"
+            ) {
+                findings.notifications.push(
+                    eventRecord
+                );
+            }
+        });
+
+        const inventoryDropped =
+            findings.weightChanges.some(
+                (eventRecord) =>
+                    Number(
+                        eventRecord.details?.details
+                            ?.difference ??
+                        eventRecord.details
+                            ?.difference
+                    ) < 0
+            ) ||
+            chronological.some(
+                (eventRecord) =>
+                    eventRecord.title ===
+                        "Inventory weight changed" &&
+                    Number(
+                        eventRecord.details
+                            ?.difference
+                    ) < 0
+            );
+
+        const trunkIncreased =
+            chronological.some(
+                (eventRecord) =>
+                    eventRecord.title ===
+                        "Trunk weight changed" &&
+                    Number(
+                        eventRecord.details
+                            ?.difference
+                    ) > 0
+            );
+
+        findings.likelySuccessfulDeposit =
+            Boolean(
+                inventoryDropped &&
+                trunkIncreased
+            );
+
+        return findings;
+    }
+
+    async function copyReport() {
+        const report =
+            JSON.stringify(
+                buildReport(),
+                null,
+                4
+            );
+
+        try {
+            if (
+                navigator.clipboard &&
+                navigator.clipboard.writeText
+            ) {
+                await navigator.clipboard.writeText(
+                    report
+                );
+            } else {
+                fallbackCopy(report);
+            }
+
+            flashButton(
+                elements.copyButton,
+                "COPIED!"
+            );
+        } catch (error) {
+            fallbackCopy(report);
+
+            flashButton(
+                elements.copyButton,
+                "COPIED!"
+            );
+        }
+    }
+
+    function fallbackCopy(text) {
+        const textArea =
+            document.createElement("textarea");
+
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        textArea.style.pointerEvents = "none";
+
+        document.body.appendChild(textArea);
+        textArea.select();
+
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+    }
+
+    function downloadReport() {
+        const report = buildReport();
+
+        const text =
+            JSON.stringify(report, null, 4);
+
+        const blob = new Blob(
+            [text],
+            {
+                type: "application/json;charset=utf-8"
+            }
+        );
+
+        const url =
+            URL.createObjectURL(blob);
+
+        const link =
+            document.createElement("a");
+
+        const timestamp =
+            new Date()
+                .toISOString()
+                .replace(/[:.]/g, "-");
+
+        link.href = url;
+        link.download =
+            `tt-deep-probe-${timestamp}.json`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+
+        flashButton(
+            elements.downloadButton,
+            "DOWNLOADED!"
+        );
+    }
+
+    function flashButton(button, temporaryText) {
+        const original =
+            button.textContent;
+
+        button.textContent = temporaryText;
+
+        setTimeout(() => {
+            button.textContent = original;
+        }, 1600);
+    }
+
+    function clearProbe() {
+        const shouldClear =
+            window.confirm(
+                "Clear the live timeline, counters and current report?"
+            );
+
+        if (!shouldClear) {
+            return;
+        }
+
+        if (state.recording) {
+            stopRecording("cleared");
+        }
+
+        state.preBuffer = [];
+        state.reportEvents = [];
+        state.visibleEvents = [];
+        state.initialSnapshot = null;
+        state.finalSnapshot = null;
+
+        state.counters = {
+            packets: 0,
+            changes: 0,
+            inputs: 0,
+            markers: 0
+        };
+
+        elements.logContent.innerHTML = "";
+
+        addEvent({
+            category: "system",
+            title: "Probe report cleared",
+            details: null,
+            visible: true
+        });
+
+        updateCounters();
+    }
+
+    function recordKeyboardEvent(event, action) {
+        if (!elements.captureInput.checked) {
+            return;
+        }
+
+        state.counters.inputs += 1;
+
+        addEvent({
+            category: "input",
+            title: `Keyboard ${action}: ${event.code}`,
+            details: {
+                action,
+                key: event.key,
+                code: event.code,
+                keyCode: event.keyCode,
+                repeat: event.repeat,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey,
+                defaultPrevented:
+                    event.defaultPrevented,
+                targetTag:
+                    event.target?.tagName ||
+                    null,
+                activeElement:
+                    document.activeElement
+                        ?.tagName || null,
+                menuOpen:
+                    state.lastDataState
+                        .menu_open,
+                menuChoice:
+                    state.lastDataState
+                        .menu_choice
+            },
+            visible: state.recording
+        });
+    }
+
+    window.addEventListener(
+        "keydown",
+        (event) =>
+            recordKeyboardEvent(
+                event,
+                "keydown"
+            ),
+        true
+    );
+
+    window.addEventListener(
+        "keyup",
+        (event) =>
+            recordKeyboardEvent(
+                event,
+                "keyup"
+            ),
+        true
+    );
+
+    window.addEventListener("focus", () => {
+        addEvent({
+            category: "system",
+            title: "Window focused",
+            details: {
+                visibilityState:
+                    document.visibilityState
+            },
+            visible: state.recording
+        });
+    });
+
+    window.addEventListener("blur", () => {
+        addEvent({
+            category: "system",
+            title: "Window blurred",
+            details: {
+                visibilityState:
+                    document.visibilityState
+            },
+            visible: state.recording
+        });
+    });
+
+    document.addEventListener(
+        "visibilitychange",
+        () => {
+            addEvent({
+                category: "system",
+                title:
+                    "Document visibility changed",
+                details: {
+                    visibilityState:
+                        document.visibilityState,
+                    hidden: document.hidden
+                },
+                visible: state.recording
+            });
+        }
+    );
+
+    window.addEventListener(
+        "beforeunload",
+        () => {
+            if (state.recording) {
+                stopRecording("page-unload");
+            }
+        }
+    );
+
+    elements.recordButton.addEventListener(
+        "click",
+        startRecording
+    );
+
+    elements.markerButton.addEventListener(
+        "click",
+        addManualMarker
+    );
+
+    elements.copyButton.addEventListener(
+        "click",
+        copyReport
+    );
+
+    elements.downloadButton.addEventListener(
+        "click",
+        downloadReport
+    );
+
+    elements.clearButton.addEventListener(
+        "click",
+        clearProbe
+    );
+
+    elements.durationSelect.addEventListener(
+        "change",
+        () => {
+            elements.customDuration.style.display =
+                elements.durationSelect.value ===
+                "custom"
+                    ? "inline-block"
+                    : "none";
+
+            elements.customDuration.disabled =
+                elements.durationSelect.value !==
+                "custom";
+        }
+    );
+
+    elements.recordIntervalSelect.addEventListener(
+        "change",
+        () => {
+            updateScanLabels();
+
+            if (state.recording) {
+                restartScanTimer(
+                    getCurrentRecordingInterval()
+                );
+            }
+        }
+    );
+
+    function initialise() {
+        updateScanLabels();
+
+        elements.status.textContent =
+            "Scanner ready";
+
+        elements.customDuration.disabled = true;
+
+        addEvent({
+            category: "system",
+            title: "Deep probe initialized",
+            details: {
+                idleIntervalMs:
+                    CONFIG.idleIntervalMs,
+                recordingIntervalMs:
+                    getCurrentRecordingInterval(),
+                preBufferWindowMs:
+                    CONFIG.preBufferWindowMs,
+                probeKeyCount:
+                    PROBE_KEYS.length
+            },
+            visible: true
+        });
+
+        restartScanTimer(
+            CONFIG.idleIntervalMs
+        );
+
+        ping();
+    }
+
+    initialise();
+</script>
+</body>
+</html>
