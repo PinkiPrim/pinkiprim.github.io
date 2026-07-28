@@ -434,7 +434,6 @@
         const CONFIG = {
             triggerPercent: 75,
             rearmPercent: 65,
-            requestIntervalMs: 750,
             conditionPollMs: 50,
             menuTimeoutMs: 6000,
             gutCompletionTimeoutMs: 45000,
@@ -537,11 +536,19 @@
         }
 
         function requestData() {
+            // Targeted refresh only. Transport Tycoon continues to push live
+            // updates after the initial subscription, so there is no need to
+            // repeatedly call the noisy generic getData command.
             sendCommand({
                 type: 'getNamedData',
                 keys: DATA_KEYS
             });
+        }
 
+        function requestInitialData() {
+            // One full startup request establishes the initial live data stream.
+            // This runs once when the app loads and is never placed on a timer.
+            requestData();
             sendCommand({ type: 'getData' });
         }
 
@@ -1661,13 +1668,11 @@
         loadSavedPosition();
         updateClock();
         render();
-        requestData();
+        requestInitialData();
 
+        // Live TT messages call maybeStartAutomatically() from processPayload().
+        // Only the clock requires a timer; no getData polling runs in the background.
         setInterval(updateClock, 1000);
-        setInterval(() => {
-            requestData();
-            maybeStartAutomatically();
-        }, CONFIG.requestIntervalMs);
     </script>
 </body>
 </html>
