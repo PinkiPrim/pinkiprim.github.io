@@ -391,6 +391,7 @@
 
         .listing:hover {
             border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.055);
         }
 
         .listing.reserved {
@@ -643,6 +644,43 @@
             pointer-events: none;
         }
 
+        #sync-health {
+            position: absolute;
+            right: 19px;
+            bottom: 5px;
+            z-index: 320;
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 2px;
+            min-width: 25px;
+            padding: 1px 3px;
+            border-radius: 5px;
+            background: rgba(8, 8, 10, 0.72);
+            color: #d4d4d8;
+            font-family: 'Rajdhani', sans-serif;
+            line-height: 1;
+            cursor: help;
+            pointer-events: auto;
+        }
+
+        #sync-health .sync-age {
+            font-size: 0.58em;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        #sync-health .sync-dot {
+            font-size: 0.76em;
+            line-height: 1;
+        }
+
+        #pwyw-app.mini-mode #sync-health {
+            right: 7px;
+            bottom: 5px;
+            background: transparent;
+        }
+
         .toast {
             margin-top: 5px;
             padding: 7px 9px;
@@ -741,6 +779,9 @@
     </footer>
 
     <div id="toast-stack" aria-live="polite"></div>
+    <div id="sync-health" title="Connecting to listings..." aria-label="Listings sync has not connected yet">
+        <span id="sync-age" class="sync-age">0</span><span id="sync-dot" class="sync-dot">🟢</span>
+    </div>
     <div id="resize-handle"></div>
 </div>
 
@@ -748,7 +789,7 @@
 (() => {
     "use strict";
 
-    const APP_VERSION = "1.1.0";
+    const APP_VERSION = "1.3.0";
 
     /*
         After deploying PayWhatYouWant_AppsScript.gs as a Google Apps Script
@@ -784,11 +825,19 @@
         backendState: "syncing",
         requestBusy: new Set(),
         adminBusy: new Set(),
-        expiryRefreshPending: false
+        expiryRefreshPending: false,
+        refreshInFlight: false,
+        lastListingSignature: "",
+        lastIdentityKey: "",
+        appStartedAtMs: Date.now(),
+        lastSuccessfulSyncMs: 0,
+        lastSyncAttemptMs: 0,
+        lastSyncError: ""
     };
 
     const els = {
         app: document.getElementById("pwyw-app"),
+        content: document.getElementById("content"),
         dragHandle: document.getElementById("drag-handle"),
         microView: document.getElementById("micro-view"),
         miniBtn: document.getElementById("mini-btn"),
@@ -808,7 +857,10 @@
         microId: document.getElementById("micro-id"),
         microAvailable: document.getElementById("micro-available"),
         microReserved: document.getElementById("micro-reserved"),
-        microCompleted: document.getElementById("micro-completed")
+        microCompleted: document.getElementById("micro-completed"),
+        syncHealth: document.getElementById("sync-health"),
+        syncAge: document.getElementById("sync-age"),
+        syncDot: document.getElementById("sync-dot")
     };
 
     function backendConfigured() {
@@ -940,19 +992,32 @@
     function updateIdentityUi() {
         const id = LIVE.userId || "Waiting...";
         const name = LIVE.name || "Unknown";
+        const isOwner = LIVE.userId === OWNER_USER_ID;
 
         els.userId.textContent = id;
         els.playerName.textContent = name;
         els.microId.textContent = LIVE.userId || "...";
-
-        const isOwner = LIVE.userId === OWNER_USER_ID;
         els.adminPanel.classList.toggle("visible", isOwner);
 
-        render();
+        // Rebuild listing controls only when identity actually changes.
+        // Normal TT data pushes must not destroy buttons under the mouse.
+        const identityKey = `${LIVE.userId}|${name}|${isOwner}`;
+        if (identityKey !== STATE.lastIdentityKey) {
+            STATE.lastIdentityKey = identityKey;
+            render();
+        }
     }
 
+    let identityRequestAttempts = 0;
+
     function requestIdentity() {
-        // One startup request only. TT's normal pushed data handles later changes.
+        if (LIVE.userId || identityRequestAttempts >= 3) {
+            return;
+        }
+
+        identityRequestAttempts += 1;
+
+        // Targeted identity lookup only: never uses the noisy generic getData call.
         sendTT({
             type: "getNamedData",
             keys: [
@@ -964,6 +1029,12 @@
                 "pinned"
             ]
         });
+
+        // A Chromium User App can load before TT's identity state is ready.
+        // Retry only twice, then rely on normal pushed game data.
+        if (identityRequestAttempts < 3) {
+            setTimeout(requestIdentity, identityRequestAttempts === 1 ? 2500 : 5000);
+        }
     }
 
     function updateClock() {
@@ -974,9 +1045,55 @@
     }
 
     function setBackendState(state) {
-        // Backend state is intentionally silent in the UI.
-        // Errors are surfaced through a one-time toast instead of a flickering status badge.
+        // Sync health is shown only by the tiny bottom-right indicator.
         STATE.backendState = state;
+    }
+
+    function recordSyncSuccess() {
+        STATE.lastSuccessfulSyncMs = Date.now();
+        STATE.lastSyncError = "";
+        updateSyncHealth();
+    }
+
+    function recordSyncFailure(error) {
+        STATE.lastSyncError = safeString(
+            error && error.message ? error.message : error,
+            "Unknown sync error"
+        );
+        updateSyncHealth();
+    }
+
+    function updateSyncHealth() {
+        const now = Date.now();
+        const referenceMs = STATE.lastSuccessfulSyncMs || STATE.appStartedAtMs;
+        const ageSeconds = Math.max(0, Math.floor((now - referenceMs) / 1000));
+
+        let dot = "🟢";
+        let stateText = "Healthy";
+
+        if (ageSeconds >= 60) {
+            dot = "🔴";
+            stateText = "Disconnected";
+        } else if (ageSeconds >= 30) {
+            dot = "🟠";
+            stateText = "Delayed";
+        }
+
+        els.syncAge.textContent = String(ageSeconds);
+        els.syncDot.textContent = dot;
+
+        const hasConnected = STATE.lastSuccessfulSyncMs > 0;
+        const ageDescription = hasConnected
+            ? `Last successful sync was ${ageSeconds} second${ageSeconds === 1 ? "" : "s"} ago.`
+            : `No successful sync yet. Connection attempt began ${ageSeconds} second${ageSeconds === 1 ? "" : "s"} ago.`;
+
+        const errorDescription = STATE.lastSyncError
+            ? ` Last error: ${STATE.lastSyncError}`
+            : "";
+
+        const title = `${stateText}. ${ageDescription}${errorDescription}`;
+        els.syncHealth.title = title;
+        els.syncHealth.setAttribute("aria-label", title);
     }
 
     function apiUrl(action, extra = {}) {
@@ -1060,9 +1177,19 @@
     async function refreshListings() {
         if (!backendConfigured()) {
             setBackendState("error");
-            render();
+            if (!STATE.initialSyncComplete) {
+                render();
+            }
             return;
         }
+
+        // Do not stack Google requests if a previous sync is still running.
+        if (STATE.refreshInFlight) {
+            return;
+        }
+
+        STATE.refreshInFlight = true;
+        STATE.lastSyncAttemptMs = Date.now();
 
         try {
             const data = await apiGet("list", {
@@ -1080,9 +1207,16 @@
                 STATE.reservationMs = Number(data.reservation_ms);
             }
 
-            STATE.listings = Array.isArray(data.listings)
+            const nextListings = Array.isArray(data.listings)
                 ? data.listings.map(normalizeListing)
                 : [];
+
+            const nextSignature = JSON.stringify(nextListings);
+            const listingsChanged =
+                nextSignature !== STATE.lastListingSignature;
+
+            STATE.listings = nextListings;
+            STATE.lastListingSignature = nextSignature;
 
             const incomingEvents = Array.isArray(data.events)
                 ? data.events
@@ -1099,11 +1233,19 @@
             STATE.expiryRefreshPending = false;
 
             setBackendState("live");
-            render();
+            recordSyncSuccess();
+
+            if (listingsChanged) {
+                render();
+            } else {
+                updateReservationCountdowns();
+            }
         } catch (error) {
             console.error("[PWYW] refresh failed", error);
             setBackendState("error");
-            toast(`Could not sync listings: ${error.message}`, "bad");
+            recordSyncFailure(error);
+        } finally {
+            STATE.refreshInFlight = false;
         }
     }
 
@@ -1182,7 +1324,11 @@
         button.className = `action-btn ${className || ""}`.trim();
         button.textContent = text;
         button.disabled = disabled;
-        button.addEventListener("click", onClick);
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            onClick(event);
+        });
         return button;
     }
 
@@ -1195,6 +1341,7 @@
             completed ? "completed" : "",
             hasImage ? "" : "no-image"
         ].filter(Boolean).join(" ");
+        card.dataset.listingId = listing.listing_id;
 
         if (hasImage) {
             const img = document.createElement("img");
@@ -1233,6 +1380,7 @@
         footer.className = "listing-footer";
 
         const status = createTextElement("div", "listing-status", "");
+        status.dataset.listingId = listing.listing_id;
         const buttons = document.createElement("div");
         buttons.className = "button-row";
 
@@ -1256,7 +1404,9 @@
 
             buttons.appendChild(
                 createButton(
-                    busy ? "REQUESTING..." : "REQUEST",
+                    identityMissing
+                        ? "WAITING FOR ID"
+                        : (busy ? "REQUESTING..." : "REQUEST"),
                     "primary",
                     () => requestListing(listing),
                     identityMissing || busy
@@ -1305,6 +1455,8 @@
     }
 
     function render() {
+        const previousScrollTop = els.content ? els.content.scrollTop : 0;
+
         const current = STATE.listings
             .filter(item => item.status === "AVAILABLE" || item.status === "RESERVED")
             .sort(listingSort);
@@ -1349,11 +1501,47 @@
         els.microAvailable.textContent = String(availableCount);
         els.microReserved.textContent = String(reservedCount);
         els.microCompleted.textContent = String(completed.length);
+
+        updateReservationCountdowns();
+
+        if (els.content) {
+            els.content.scrollTop = previousScrollTop;
+        }
+    }
+
+    function updateReservationCountdowns() {
+        const listingById = new Map(
+            STATE.listings.map(listing => [listing.listing_id, listing])
+        );
+
+        document.querySelectorAll(".listing-status[data-listing-id]").forEach(status => {
+            const listing = listingById.get(status.dataset.listingId);
+            if (!listing || listing.status !== "RESERVED") {
+                return;
+            }
+
+            const remaining = reservationRemainingMs(listing);
+            const mine = Boolean(
+                LIVE.userId &&
+                listing.requested_by_id === LIVE.userId
+            );
+
+            status.className = `listing-status ${mine ? "mine" : "reserved"}`;
+            status.textContent = mine
+                ? `Reserved by you • ${formatDuration(remaining)}`
+                : `Reserved by ID ${listing.requested_by_id || "Unknown"} • ${formatDuration(remaining)}`;
+        });
     }
 
     async function requestListing(listing) {
+        if (!backendConfigured()) {
+            toast("The Google Apps Script URL has not been configured.", "bad");
+            return;
+        }
+
         if (!LIVE.userId) {
-            toast("Your Transport Tycoon ID has not loaded yet. Reopen the app if it remains unavailable.", "warn");
+            toast("Your Transport Tycoon ID is still loading. Try again in a moment.", "warn");
+            requestIdentity();
             return;
         }
 
@@ -1363,6 +1551,7 @@
 
         STATE.requestBusy.add(listing.listing_id);
         render();
+        toast(`Sending request for ${listing.title}...`, "");
 
         try {
             const data = await apiPost({
@@ -1462,7 +1651,9 @@
             }
         });
 
-        render();
+        // Update only the countdown text. Never rebuild cards every second;
+        // doing so destroys hover state and can cancel a button click.
+        updateReservationCountdowns();
 
         if (hasExpired && !STATE.expiryRefreshPending) {
             STATE.expiryRefreshPending = true;
@@ -1599,6 +1790,7 @@
     function init() {
         restoreWindowState();
         updateClock();
+        updateSyncHealth();
         requestIdentity();
 
         els.dragHandle.addEventListener("mousedown", startDrag);
@@ -1628,6 +1820,7 @@
         resizeObserver.observe(els.app);
 
         setInterval(updateClock, 1000);
+        setInterval(updateSyncHealth, 1000);
         setInterval(tickReservations, 1000);
 
         if (backendConfigured()) {
@@ -1635,7 +1828,7 @@
             setInterval(refreshListings, REFRESH_MS);
         } else {
             setBackendState("error");
-            toast("Paste your deployed Google Apps Script /exec URL into the HTML.", "warn");
+            recordSyncFailure(new Error("Google Apps Script /exec URL is not configured."));
             render();
         }
     }
