@@ -316,7 +316,7 @@
 
         .identity-row {
             display: grid;
-            grid-template-columns: 1fr 1fr auto;
+            grid-template-columns: 1fr 1fr;
             gap: 6px;
             margin-bottom: 9px;
         }
@@ -347,36 +347,6 @@
 
         .identity-value.id {
             color: var(--blue);
-        }
-
-        .sync-pill {
-            align-self: stretch;
-            min-width: 72px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px 8px;
-            border: 1px solid rgba(255, 255, 255, 0.11);
-            border-radius: 5px;
-            background: var(--panel-strong);
-            color: var(--text-dim);
-            font: 800 0.65em 'Rajdhani', sans-serif;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-        }
-
-        .sync-pill.live {
-            color: var(--green);
-            border-color: rgba(0, 230, 118, 0.34);
-        }
-
-        .sync-pill.syncing {
-            color: var(--yellow);
-        }
-
-        .sync-pill.error {
-            color: var(--red);
-            border-color: rgba(255, 82, 82, 0.34);
         }
 
         .section-heading {
@@ -709,7 +679,6 @@
             <div class="micro-stat"><span class="micro-label">Available</span><span id="micro-available" class="micro-value available">0</span></div>
             <div class="micro-stat"><span class="micro-label">Reserved</span><span id="micro-reserved" class="micro-value reserved">0</span></div>
             <div class="micro-stat"><span class="micro-label">Completed</span><span id="micro-completed" class="micro-value completed">0</span></div>
-            <div class="micro-stat"><span class="micro-label">Backend</span><span id="micro-backend" class="micro-value">SYNCING</span></div>
         </div>
     </div>
 
@@ -741,7 +710,6 @@
                 <div class="identity-label">Player</div>
                 <div id="player-name" class="identity-value">Unknown</div>
             </div>
-            <div id="sync-pill" class="sync-pill syncing">SYNCING</div>
         </div>
 
         <section id="admin-panel">
@@ -780,7 +748,7 @@
 (() => {
     "use strict";
 
-    const APP_VERSION = "1.0.0";
+    const APP_VERSION = "1.1.0";
 
     /*
         After deploying PayWhatYouWant_AppsScript.gs as a Google Apps Script
@@ -828,7 +796,6 @@
         clock: document.getElementById("clock"),
         userId: document.getElementById("user-id"),
         playerName: document.getElementById("player-name"),
-        syncPill: document.getElementById("sync-pill"),
         currentList: document.getElementById("current-list"),
         completedList: document.getElementById("completed-list"),
         currentCount: document.getElementById("current-count"),
@@ -841,8 +808,7 @@
         microId: document.getElementById("micro-id"),
         microAvailable: document.getElementById("micro-available"),
         microReserved: document.getElementById("micro-reserved"),
-        microCompleted: document.getElementById("micro-completed"),
-        microBackend: document.getElementById("micro-backend")
+        microCompleted: document.getElementById("micro-completed")
     };
 
     function backendConfigured() {
@@ -986,6 +952,7 @@
     }
 
     function requestIdentity() {
+        // One startup request only. TT's normal pushed data handles later changes.
         sendTT({
             type: "getNamedData",
             keys: [
@@ -1006,17 +973,10 @@
         });
     }
 
-    function setBackendState(state, label) {
+    function setBackendState(state) {
+        // Backend state is intentionally silent in the UI.
+        // Errors are surfaced through a one-time toast instead of a flickering status badge.
         STATE.backendState = state;
-        els.syncPill.className = `sync-pill ${state}`;
-        els.syncPill.textContent = label;
-        els.microBackend.textContent = label;
-        els.microBackend.style.color =
-            state === "live"
-                ? "var(--green)"
-                : state === "error"
-                    ? "var(--red)"
-                    : "var(--yellow)";
     }
 
     function apiUrl(action, extra = {}) {
@@ -1099,12 +1059,10 @@
 
     async function refreshListings() {
         if (!backendConfigured()) {
-            setBackendState("error", "SET URL");
+            setBackendState("error");
             render();
             return;
         }
-
-        setBackendState("syncing", "SYNCING");
 
         try {
             const data = await apiGet("list", {
@@ -1140,11 +1098,11 @@
             STATE.initialSyncComplete = true;
             STATE.expiryRefreshPending = false;
 
-            setBackendState("live", "LIVE");
+            setBackendState("live");
             render();
         } catch (error) {
             console.error("[PWYW] refresh failed", error);
-            setBackendState("error", "OFFLINE");
+            setBackendState("error");
             toast(`Could not sync listings: ${error.message}`, "bad");
         }
     }
@@ -1395,8 +1353,7 @@
 
     async function requestListing(listing) {
         if (!LIVE.userId) {
-            toast("Your Transport Tycoon ID has not loaded yet.", "warn");
-            requestIdentity();
+            toast("Your Transport Tycoon ID has not loaded yet. Reopen the app if it remains unavailable.", "warn");
             return;
         }
 
@@ -1673,22 +1630,11 @@
         setInterval(updateClock, 1000);
         setInterval(tickReservations, 1000);
 
-        let identityAttempts = 0;
-        const identityTimer = setInterval(() => {
-            if (LIVE.userId || identityAttempts >= 12) {
-                clearInterval(identityTimer);
-                return;
-            }
-
-            identityAttempts += 1;
-            requestIdentity();
-        }, 3000);
-
         if (backendConfigured()) {
             refreshListings();
             setInterval(refreshListings, REFRESH_MS);
         } else {
-            setBackendState("error", "SET URL");
+            setBackendState("error");
             toast("Paste your deployed Google Apps Script /exec URL into the HTML.", "warn");
             render();
         }
