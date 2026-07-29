@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pay What You Want - PinkiApps</title>
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --primary: #ff4081;
+            --primary-dark: #8e1646;
+            --primary-soft: rgba(255, 64, 129, 0.16);
+            --secondary: #ba68c8;
+            --bg-glass: rgba(15, 15, 18, 0.97);
+            --panel: rgba(255, 255, 255, 0.045);
+            --panel-strong: rgba(0, 0, 0, 0.34);
+            --text-main: #ffffff;
+            --text-dim: #a7a7ad;
+            --border: 1px solid rgba(255, 64, 129, 0.42);
+            --green: #00e676;
+            --yellow: #ffd54f;
+            --red: #ff5252;
+            --blue: #40c4ff;
+            --heart-color: #ff4081;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: transparent !important;
+            color: var(--text-main);
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+        }
+
+        button, input {
+            font: inherit;
+        }
+
+        #pwyw-app {
+            position: absolute;
+            top: 48px;
+            left: 48px;
+            width: 400px;
+            height: 610px;
+            min-width: 340px;
+            min-height: 360px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            resize: both;
+            background: var(--bg-glass);
+            border: var(--border);
+            border-radius: 9px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.92);
+        }
+
+        #pwyw-app.mini-mode {
+            width: 480px !important;
+            height: auto !important;
+            min-width: 480px;
+            min-height: 78px;
+            resize: none;
+            border-radius: 12px;
+            background: rgba(10, 10, 12, 0.99);
+            border: 1px solid var(--primary);
+        }
+
+        #pwyw-app.mini-mode header,
+        #pwyw-app.mini-mode #content,
+        #pwyw-app.mini-mode .support-footer,
+        #pwyw-app.mini-mode #resize-handle,
+        #pwyw-app.mini-mode #toast-stack {
+            display: none !important;
+        }
+
+        #micro-view {
+            display: none;
+            min-height: 78px;
+            padding: 7px 12px;
+            flex-direction: column;
+            justify-content: center;
+            cursor: move;
+            font-family: 'Rajdhani', sans-serif;
+            position: relative;
+        }
+
+        #pwyw-app.mini-mode #micro-view {
+            display: flex;
+        }
+
+        .micro-top,
+        .micro-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .micro-top {
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .micro-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--primary);
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .micro-stat {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .micro-label {
+            color: var(--text-dim);
+            font-size: 0.68em;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .micro-value {
+            color: #fff;
+            font-size: 0.86em;
+            font-weight: 800;
+        }
+
+        .micro-value.available { color: var(--green); }
+        .micro-value.reserved { color: var(--yellow); }
+        .micro-value.completed { color: var(--text-dim); }
+        .micro-value.identity { color: var(--blue); }
+
+        .micro-expand {
+            position: absolute;
+            top: 4px;
+            right: 5px;
+            padding: 1px 5px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #aaa;
+            font: 700 0.62em 'Rajdhani', sans-serif;
+            cursor: pointer;
+        }
+
+        .micro-expand:hover {
+            color: #fff;
+            border-color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        header {
+            height: 66px;
+            min-height: 66px;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 7px 10px 0;
+            overflow: hidden;
+            cursor: move;
+            background: linear-gradient(180deg, var(--primary-dark), rgba(255, 64, 129, 0.16));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .header-title {
+            position: absolute;
+            left: 50%;
+            top: 8px;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+            white-space: nowrap;
+            font: 900 1.15em 'Rajdhani', sans-serif;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+        }
+
+        .header-controls {
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-icon {
+            color: #ddd;
+            text-decoration: none;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        .nav-icon:hover {
+            color: #fff;
+        }
+
+        #mini-btn {
+            padding: 2px 6px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #ddd;
+            font: 700 0.74em 'Rajdhani', sans-serif;
+            cursor: pointer;
+        }
+
+        #mini-btn:hover {
+            color: #fff;
+            border-color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        #clock {
+            z-index: 20;
+            margin-top: 4px;
+            font: 700 0.86em 'Rajdhani', sans-serif;
+        }
+
+        #header-animation {
+            position: absolute;
+            inset: 25px 0 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        #gift-icon {
+            position: absolute;
+            left: -60px;
+            bottom: 1px;
+            font-size: 2.1em;
+            filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+            animation: giftTravel 13s ease-in-out infinite;
+        }
+
+        #header-message {
+            position: absolute;
+            left: 50%;
+            bottom: 8px;
+            transform: translateX(-50%);
+            opacity: 0;
+            white-space: nowrap;
+            font: 900 0.95em 'Rajdhani', sans-serif;
+            color: #fff;
+            animation: messagePulse 13s linear infinite;
+        }
+
+        @keyframes giftTravel {
+            0% { left: -60px; transform: rotate(-7deg); }
+            18% { left: 43%; transform: rotate(4deg); }
+            37% { left: 43%; transform: rotate(-4deg); }
+            52% { left: 112%; transform: rotate(8deg); }
+            100% { left: 112%; }
+        }
+
+        @keyframes messagePulse {
+            0%, 34% { opacity: 0; }
+            38% { opacity: 1; color: #fff; }
+            43% { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+            50% { color: #fff; text-shadow: none; }
+            58% { color: var(--secondary); text-shadow: 0 0 10px var(--secondary); }
+            67% { opacity: 1; }
+            73%, 100% { opacity: 0; }
+        }
+
+        #content {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 11px;
+            scrollbar-width: thin;
+            scrollbar-color: #444 #111;
+        }
+
+        #content::-webkit-scrollbar {
+            width: 7px;
+        }
+
+        #content::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        #content::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+
+        .notice {
+            margin-bottom: 9px;
+            padding: 8px 9px;
+            border: 1px solid rgba(255, 213, 79, 0.38);
+            border-left: 3px solid var(--yellow);
+            border-radius: 5px;
+            background: rgba(255, 213, 79, 0.08);
+            color: #f4e9b1;
+            font-size: 0.76em;
+            line-height: 1.35;
+        }
+
+        .identity-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 6px;
+            margin-bottom: 9px;
+        }
+
+        .identity-box {
+            min-width: 0;
+            padding: 6px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 5px;
+            background: var(--panel-strong);
+        }
+
+        .identity-label {
+            color: var(--text-dim);
+            font: 700 0.62em 'Rajdhani', sans-serif;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .identity-value {
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #fff;
+            font: 800 0.85em 'Rajdhani', sans-serif;
+        }
+
+        .identity-value.id {
+            color: var(--blue);
+        }
+
+        .sync-pill {
+            align-self: stretch;
+            min-width: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            border-radius: 5px;
+            background: var(--panel-strong);
+            color: var(--text-dim);
+            font: 800 0.65em 'Rajdhani', sans-serif;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        .sync-pill.live {
+            color: var(--green);
+            border-color: rgba(0, 230, 118, 0.34);
+        }
+
+        .sync-pill.syncing {
+            color: var(--yellow);
+        }
+
+        .sync-pill.error {
+            color: var(--red);
+            border-color: rgba(255, 82, 82, 0.34);
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 11px 0 7px;
+            color: #ddd;
+            font: 800 0.78em 'Rajdhani', sans-serif;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
+        }
+
+        .section-heading::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .section-count {
+            padding: 1px 6px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-dim);
+            font-size: 0.82em;
+        }
+
+        .listing {
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr);
+            gap: 8px;
+            margin-bottom: 7px;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--green);
+            border-radius: 6px;
+            background: var(--panel);
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .listing:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .listing.reserved {
+            opacity: 0.66;
+            border-left-color: var(--yellow);
+            background: rgba(255, 213, 79, 0.055);
+        }
+
+        .listing.completed {
+            opacity: 0.55;
+            border-left-color: #666;
+            background: rgba(255, 255, 255, 0.025);
+            filter: grayscale(0.35);
+        }
+
+        .listing.no-image {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .listing-image {
+            width: 58px;
+            height: 58px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #111;
+        }
+
+        .listing-main {
+            min-width: 0;
+        }
+
+        .listing-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .listing-title {
+            color: #fff;
+            font: 900 0.94em 'Rajdhani', sans-serif;
+            letter-spacing: 0.4px;
+        }
+
+        .listing-category {
+            flex: 0 0 auto;
+            padding: 1px 5px;
+            border: 1px solid rgba(255, 64, 129, 0.25);
+            border-radius: 8px;
+            background: var(--primary-soft);
+            color: #ffc1d5;
+            font: 700 0.58em 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+        }
+
+        .listing-description,
+        .listing-details {
+            margin-top: 3px;
+            color: #c8c8cc;
+            font-size: 0.72em;
+            line-height: 1.35;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .listing-details {
+            color: var(--text-dim);
+            font-size: 0.67em;
+        }
+
+        .listing-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 7px;
+            margin-top: 7px;
+        }
+
+        .listing-status {
+            min-width: 0;
+            color: var(--text-dim);
+            font: 700 0.67em 'Rajdhani', sans-serif;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .listing-status.available { color: var(--green); }
+        .listing-status.mine { color: var(--blue); }
+        .listing-status.reserved { color: var(--yellow); }
+
+        .button-row {
+            display: flex;
+            gap: 5px;
+            flex: 0 0 auto;
+        }
+
+        .action-btn {
+            padding: 4px 7px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.07);
+            color: #ddd;
+            font: 800 0.67em 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            color: #fff;
+            border-color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .action-btn.primary {
+            color: #fff;
+            border-color: rgba(255, 64, 129, 0.5);
+            background: rgba(255, 64, 129, 0.22);
+        }
+
+        .action-btn.good {
+            color: #b9ffd7;
+            border-color: rgba(0, 230, 118, 0.42);
+            background: rgba(0, 230, 118, 0.12);
+        }
+
+        .action-btn.danger {
+            color: #ffd0d0;
+            border-color: rgba(255, 82, 82, 0.42);
+            background: rgba(255, 82, 82, 0.1);
+        }
+
+        .action-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.42;
+        }
+
+        .empty-state {
+            padding: 15px 10px;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            color: var(--text-dim);
+            text-align: center;
+            font: 700 0.75em 'Rajdhani', sans-serif;
+        }
+
+        #admin-panel {
+            display: none;
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid rgba(186, 104, 200, 0.3);
+            border-left: 3px solid var(--secondary);
+            border-radius: 6px;
+            background: rgba(186, 104, 200, 0.07);
+        }
+
+        #admin-panel.visible {
+            display: block;
+        }
+
+        .admin-title {
+            margin-bottom: 5px;
+            color: #efb7f7;
+            font: 900 0.76em 'Rajdhani', sans-serif;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .admin-key-row {
+            display: flex;
+            gap: 5px;
+        }
+
+        #admin-key {
+            min-width: 0;
+            flex: 1;
+            padding: 5px 7px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            outline: none;
+            background: rgba(0, 0, 0, 0.38);
+            color: #fff;
+            font: 700 0.78em 'Rajdhani', sans-serif;
+            user-select: text;
+        }
+
+        #admin-key:focus {
+            border-color: var(--secondary);
+        }
+
+        .admin-help {
+            margin-top: 5px;
+            color: var(--text-dim);
+            font-size: 0.65em;
+            line-height: 1.3;
+        }
+
+        .support-footer {
+            width: 100%;
+            padding: 4px 0;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .support-link {
+            color: var(--text-dim);
+            font: 600 0.65em 'Rajdhani', sans-serif;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            cursor: pointer;
+            transition: opacity 0.2s ease, color 0.2s ease;
+        }
+
+        .support-link:hover {
+            opacity: 1;
+            color: #fff;
+        }
+
+        .heart-spin {
+            display: inline-block;
+            margin-left: 2px;
+            color: var(--heart-color);
+            font-size: 1.1em;
+            animation: spinHeart 2.5s infinite linear;
+        }
+
+        @keyframes spinHeart {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+
+        #resize-handle {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            z-index: 100;
+            width: 15px;
+            height: 15px;
+            cursor: nwse-resize;
+        }
+
+        #toast-stack {
+            position: absolute;
+            right: 8px;
+            bottom: 27px;
+            z-index: 300;
+            width: min(280px, calc(100% - 16px));
+            pointer-events: none;
+        }
+
+        .toast {
+            margin-top: 5px;
+            padding: 7px 9px;
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            border-left: 3px solid var(--primary);
+            border-radius: 5px;
+            background: rgba(10, 10, 12, 0.96);
+            color: #eee;
+            font-size: 0.72em;
+            line-height: 1.3;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.7);
+            animation: toastIn 0.18s ease-out;
+        }
+
+        .toast.good { border-left-color: var(--green); }
+        .toast.bad { border-left-color: var(--red); }
+        .toast.warn { border-left-color: var(--yellow); }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<div id="pwyw-app">
+    <div id="micro-view">
+        <button id="micro-expand" class="micro-expand" type="button">EXPAND</button>
+        <div class="micro-top">
+            <div class="micro-title"><span>🎁</span><span>Pay What You Want</span></div>
+            <div class="micro-stat"><span class="micro-label">ID</span><span id="micro-id" class="micro-value identity">...</span></div>
+        </div>
+        <div class="micro-bottom">
+            <div class="micro-stat"><span class="micro-label">Available</span><span id="micro-available" class="micro-value available">0</span></div>
+            <div class="micro-stat"><span class="micro-label">Reserved</span><span id="micro-reserved" class="micro-value reserved">0</span></div>
+            <div class="micro-stat"><span class="micro-label">Completed</span><span id="micro-completed" class="micro-value completed">0</span></div>
+            <div class="micro-stat"><span class="micro-label">Backend</span><span id="micro-backend" class="micro-value">SYNCING</span></div>
+        </div>
+    </div>
+
+    <header id="drag-handle">
+        <div class="header-controls">
+            <a class="nav-icon" href="https://pinkiprim.github.io/pinkiapps.html" title="PinkiApps Home">🏠</a>
+            <button id="mini-btn" type="button">MINI</button>
+        </div>
+        <div class="header-title">Pay What You Want</div>
+        <div id="header-animation">
+            <div id="gift-icon">🎁</div>
+            <div id="header-message">PinkiPrim's Listings</div>
+        </div>
+        <div id="clock">--:--</div>
+    </header>
+
+    <main id="content">
+        <div class="notice">
+            Ensure <b>PinkiPrim is online before requesting</b> so they get an alert in-game of your request.
+            A request reserves the listing for 20 minutes. If it is not marked <b>Granted &amp; Sold</b>, it becomes available again.
+        </div>
+
+        <div class="identity-row">
+            <div class="identity-box">
+                <div class="identity-label">Your ID</div>
+                <div id="user-id" class="identity-value id">Waiting...</div>
+            </div>
+            <div class="identity-box">
+                <div class="identity-label">Player</div>
+                <div id="player-name" class="identity-value">Unknown</div>
+            </div>
+            <div id="sync-pill" class="sync-pill syncing">SYNCING</div>
+        </div>
+
+        <section id="admin-panel">
+            <div class="admin-title">PinkiPrim Controls</div>
+            <div class="admin-key-row">
+                <input id="admin-key" type="password" autocomplete="off" placeholder="Private admin key">
+                <button id="save-admin-key" class="action-btn" type="button">SAVE</button>
+            </div>
+            <div class="admin-help">
+                The private key must match <b>ADMIN_KEY</b> in the Google Apps Script. It is saved only in this Chromium app's local storage.
+            </div>
+        </section>
+
+        <div class="section-heading">
+            <span>Available Resources</span>
+            <span id="current-count" class="section-count">0</span>
+        </div>
+        <div id="current-list"></div>
+
+        <div class="section-heading">
+            <span>Recently Completed</span>
+            <span id="completed-count" class="section-count">0</span>
+        </div>
+        <div id="completed-list"></div>
+    </main>
+
+    <footer class="support-footer">
+        <span id="support-link" class="support-link">Support PinkiPrim <span class="heart-spin">❤</span></span>
+    </footer>
+
+    <div id="toast-stack" aria-live="polite"></div>
+    <div id="resize-handle"></div>
+</div>
+
+<script>
+(() => {
+    "use strict";
+
+    const APP_VERSION = "1.0.0";
+
+    /*
+        After deploying PayWhatYouWant_AppsScript.gs as a Google Apps Script
+        Web App, paste the deployed /exec URL between these quotes.
+    */
+    const GOOGLE_SCRIPT_URL = "PASTE_YOUR_DEPLOYED_GOOGLE_APPS_SCRIPT_EXEC_URL_HERE";
+
+    const OWNER_USER_ID = "757858";
+    const OWNER_NAME = "PinkiPrim";
+    const REFRESH_MS = 5000;
+
+    const STORAGE = {
+        POS: "pwyw_position_v1",
+        SIZE: "pwyw_size_v1",
+        MINI: "pwyw_mini_v1",
+        ADMIN_KEY: "pwyw_admin_key_v1"
+    };
+
+    const LIVE = {
+        userId: "",
+        source: "",
+        name: "Unknown",
+        players: null
+    };
+
+    const STATE = {
+        listings: [],
+        events: [],
+        serverOffsetMs: 0,
+        reservationMs: 20 * 60 * 1000,
+        latestEventId: 0,
+        initialSyncComplete: false,
+        backendState: "syncing",
+        requestBusy: new Set(),
+        adminBusy: new Set(),
+        expiryRefreshPending: false
+    };
+
+    const els = {
+        app: document.getElementById("pwyw-app"),
+        dragHandle: document.getElementById("drag-handle"),
+        microView: document.getElementById("micro-view"),
+        miniBtn: document.getElementById("mini-btn"),
+        microExpand: document.getElementById("micro-expand"),
+        clock: document.getElementById("clock"),
+        userId: document.getElementById("user-id"),
+        playerName: document.getElementById("player-name"),
+        syncPill: document.getElementById("sync-pill"),
+        currentList: document.getElementById("current-list"),
+        completedList: document.getElementById("completed-list"),
+        currentCount: document.getElementById("current-count"),
+        completedCount: document.getElementById("completed-count"),
+        adminPanel: document.getElementById("admin-panel"),
+        adminKey: document.getElementById("admin-key"),
+        saveAdminKey: document.getElementById("save-admin-key"),
+        supportLink: document.getElementById("support-link"),
+        toastStack: document.getElementById("toast-stack"),
+        microId: document.getElementById("micro-id"),
+        microAvailable: document.getElementById("micro-available"),
+        microReserved: document.getElementById("micro-reserved"),
+        microCompleted: document.getElementById("micro-completed"),
+        microBackend: document.getElementById("micro-backend")
+    };
+
+    function backendConfigured() {
+        return Boolean(
+            GOOGLE_SCRIPT_URL &&
+            !GOOGLE_SCRIPT_URL.includes("PASTE_YOUR")
+        );
+    }
+
+    function sendTT(command) {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage(command, "*");
+        } else {
+            console.log("[PWYW MOCK]", command);
+        }
+    }
+
+    function notifyTT(message, kind = "info") {
+        const colours = {
+            good: "~g~",
+            bad: "~r~",
+            warn: "~y~",
+            info: "~b~"
+        };
+
+        sendTT({
+            type: "notification",
+            text: `~d~[PWYW]~s~ ${colours[kind] || colours.info}${message}`
+        });
+    }
+
+    function toast(message, kind = "") {
+        const div = document.createElement("div");
+        div.className = `toast ${kind}`.trim();
+        div.textContent = message;
+        els.toastStack.appendChild(div);
+
+        setTimeout(() => {
+            div.remove();
+        }, 4300);
+    }
+
+    function openExternal(url) {
+        try {
+            window.invokeNative("openUrl", url);
+        } catch (error) {
+            window.open(url, "_blank");
+        }
+    }
+
+    function safeString(value, fallback = "") {
+        if (value === null || value === undefined) {
+            return fallback;
+        }
+        return String(value);
+    }
+
+    function parsePossibleJson(value) {
+        if (typeof value !== "string") {
+            return value;
+        }
+
+        const trimmed = value.trim();
+        if (!trimmed || !["{", "["].includes(trimmed[0])) {
+            return value;
+        }
+
+        try {
+            return JSON.parse(trimmed);
+        } catch (error) {
+            return value;
+        }
+    }
+
+    function normalizeDataObject(data) {
+        if (!data || typeof data !== "object") {
+            return {};
+        }
+
+        const output = {};
+        Object.keys(data).forEach(key => {
+            output[key] = parsePossibleJson(data[key]);
+        });
+        return output;
+    }
+
+    function deriveName(data) {
+        const direct = safeString(data.name).trim();
+        if (direct && direct.toLowerCase() !== "unknown") {
+            return direct;
+        }
+
+        const players = parsePossibleJson(data.players || LIVE.players);
+        const source = safeString(data.source || LIVE.source);
+
+        if (
+            players &&
+            typeof players === "object" &&
+            source &&
+            players[source] &&
+            players[source].name
+        ) {
+            return safeString(players[source].name, "Unknown");
+        }
+
+        return LIVE.name || "Unknown";
+    }
+
+    function handleGameData(rawData) {
+        const data = normalizeDataObject(rawData);
+
+        if (data.user_id !== undefined && data.user_id !== null) {
+            LIVE.userId = safeString(data.user_id).trim();
+        }
+
+        if (data.source !== undefined && data.source !== null) {
+            LIVE.source = safeString(data.source).trim();
+        }
+
+        if (data.players !== undefined) {
+            LIVE.players = data.players;
+        }
+
+        LIVE.name = deriveName(data);
+
+        updateIdentityUi();
+    }
+
+    function updateIdentityUi() {
+        const id = LIVE.userId || "Waiting...";
+        const name = LIVE.name || "Unknown";
+
+        els.userId.textContent = id;
+        els.playerName.textContent = name;
+        els.microId.textContent = LIVE.userId || "...";
+
+        const isOwner = LIVE.userId === OWNER_USER_ID;
+        els.adminPanel.classList.toggle("visible", isOwner);
+
+        render();
+    }
+
+    function requestIdentity() {
+        sendTT({
+            type: "getNamedData",
+            keys: [
+                "user_id",
+                "source",
+                "name",
+                "players",
+                "focused",
+                "pinned"
+            ]
+        });
+    }
+
+    function updateClock() {
+        els.clock.textContent = new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
+
+    function setBackendState(state, label) {
+        STATE.backendState = state;
+        els.syncPill.className = `sync-pill ${state}`;
+        els.syncPill.textContent = label;
+        els.microBackend.textContent = label;
+        els.microBackend.style.color =
+            state === "live"
+                ? "var(--green)"
+                : state === "error"
+                    ? "var(--red)"
+                    : "var(--yellow)";
+    }
+
+    function apiUrl(action, extra = {}) {
+        const url = new URL(GOOGLE_SCRIPT_URL);
+        url.searchParams.set("action", action);
+        url.searchParams.set("_", Date.now().toString());
+
+        Object.entries(extra).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                url.searchParams.set(key, String(value));
+            }
+        });
+
+        return url.toString();
+    }
+
+    async function apiGet(action, extra = {}) {
+        const response = await fetch(apiUrl(action, extra), {
+            method: "GET",
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data || data.ok === false) {
+            throw new Error(data && data.error ? data.error : "Backend rejected the request.");
+        }
+
+        return data;
+    }
+
+    async function apiPost(payload) {
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data || data.ok === false) {
+            throw new Error(data && data.error ? data.error : "Backend rejected the request.");
+        }
+
+        return data;
+    }
+
+    function currentServerMs() {
+        return Date.now() + STATE.serverOffsetMs;
+    }
+
+    function normalizeListing(listing) {
+        return {
+            listing_id: safeString(listing.listing_id),
+            title: safeString(listing.title, "Untitled Listing"),
+            description: safeString(listing.description),
+            category: safeString(listing.category),
+            image_url: safeString(listing.image_url),
+            details: safeString(listing.details),
+            status: safeString(listing.status, "AVAILABLE").toUpperCase(),
+            requested_by_id: safeString(listing.requested_by_id),
+            requested_by_name: safeString(listing.requested_by_name, "Unknown"),
+            requested_by_source: safeString(listing.requested_by_source),
+            requested_at_utc: safeString(listing.requested_at_utc),
+            reservation_expires_at_utc: safeString(listing.reservation_expires_at_utc),
+            completed_at_utc: safeString(listing.completed_at_utc),
+            sort_order: Number(listing.sort_order) || 0
+        };
+    }
+
+    async function refreshListings() {
+        if (!backendConfigured()) {
+            setBackendState("error", "SET URL");
+            render();
+            return;
+        }
+
+        setBackendState("syncing", "SYNCING");
+
+        try {
+            const data = await apiGet("list", {
+                afterEventId: STATE.initialSyncComplete
+                    ? STATE.latestEventId
+                    : ""
+            });
+
+            const serverMs = Number(data.server_time_ms);
+            if (Number.isFinite(serverMs)) {
+                STATE.serverOffsetMs = serverMs - Date.now();
+            }
+
+            if (Number.isFinite(Number(data.reservation_ms))) {
+                STATE.reservationMs = Number(data.reservation_ms);
+            }
+
+            STATE.listings = Array.isArray(data.listings)
+                ? data.listings.map(normalizeListing)
+                : [];
+
+            const incomingEvents = Array.isArray(data.events)
+                ? data.events
+                : [];
+
+            const latestEventId = Number(data.latest_event_id) || 0;
+
+            if (STATE.initialSyncComplete) {
+                processOwnerEvents(incomingEvents);
+            }
+
+            STATE.latestEventId = latestEventId;
+            STATE.initialSyncComplete = true;
+            STATE.expiryRefreshPending = false;
+
+            setBackendState("live", "LIVE");
+            render();
+        } catch (error) {
+            console.error("[PWYW] refresh failed", error);
+            setBackendState("error", "OFFLINE");
+            toast(`Could not sync listings: ${error.message}`, "bad");
+        }
+    }
+
+    function processOwnerEvents(events) {
+        if (LIVE.userId !== OWNER_USER_ID) {
+            return;
+        }
+
+        events
+            .filter(event => safeString(event.type).toUpperCase() === "REQUEST")
+            .forEach(event => {
+                const requesterId = safeString(event.user_id, "Unknown");
+                const title = safeString(event.title, "Listing");
+                notifyTT(`New request: ${title} by ID ${requesterId}.`, "warn");
+                toast(`New request: ${title} — ID ${requesterId}`, "warn");
+            });
+    }
+
+    function reservationRemainingMs(listing) {
+        if (!listing.reservation_expires_at_utc) {
+            return 0;
+        }
+
+        const expires = Date.parse(listing.reservation_expires_at_utc);
+        if (!Number.isFinite(expires)) {
+            return 0;
+        }
+
+        return Math.max(0, expires - currentServerMs());
+    }
+
+    function formatDuration(ms) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    function formatDate(iso) {
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) {
+            return "";
+        }
+
+        return date.toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
+
+    function listingSort(a, b) {
+        const aAvailable = a.status === "AVAILABLE" ? 0 : 1;
+        const bAvailable = b.status === "AVAILABLE" ? 0 : 1;
+
+        return (
+            aAvailable - bAvailable ||
+            a.sort_order - b.sort_order ||
+            a.title.localeCompare(b.title)
+        );
+    }
+
+    function createTextElement(tag, className, text) {
+        const element = document.createElement(tag);
+        if (className) {
+            element.className = className;
+        }
+        element.textContent = text;
+        return element;
+    }
+
+    function createButton(text, className, onClick, disabled = false) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `action-btn ${className || ""}`.trim();
+        button.textContent = text;
+        button.disabled = disabled;
+        button.addEventListener("click", onClick);
+        return button;
+    }
+
+    function createListingCard(listing, completed = false) {
+        const hasImage = Boolean(listing.image_url);
+        const card = document.createElement("article");
+        card.className = [
+            "listing",
+            listing.status.toLowerCase(),
+            completed ? "completed" : "",
+            hasImage ? "" : "no-image"
+        ].filter(Boolean).join(" ");
+
+        if (hasImage) {
+            const img = document.createElement("img");
+            img.className = "listing-image";
+            img.src = listing.image_url;
+            img.alt = listing.title;
+            img.addEventListener("error", () => {
+                img.remove();
+                card.classList.add("no-image");
+            });
+            card.appendChild(img);
+        }
+
+        const main = document.createElement("div");
+        main.className = "listing-main";
+
+        const top = document.createElement("div");
+        top.className = "listing-top";
+        top.appendChild(createTextElement("div", "listing-title", listing.title));
+
+        if (listing.category) {
+            top.appendChild(createTextElement("div", "listing-category", listing.category));
+        }
+
+        main.appendChild(top);
+
+        if (listing.description) {
+            main.appendChild(createTextElement("div", "listing-description", listing.description));
+        }
+
+        if (listing.details) {
+            main.appendChild(createTextElement("div", "listing-details", listing.details));
+        }
+
+        const footer = document.createElement("div");
+        footer.className = "listing-footer";
+
+        const status = createTextElement("div", "listing-status", "");
+        const buttons = document.createElement("div");
+        buttons.className = "button-row";
+
+        if (completed) {
+            status.textContent =
+                `Taken by ID ${listing.requested_by_id || "Unknown"}` +
+                (listing.completed_at_utc ? ` • ${formatDate(listing.completed_at_utc)}` : "");
+
+            if (LIVE.userId === OWNER_USER_ID) {
+                const busy = STATE.adminBusy.has(listing.listing_id);
+                buttons.appendChild(
+                    createButton("REOPEN", "", () => runAdminAction("reopenListing", listing), busy)
+                );
+            }
+        } else if (listing.status === "AVAILABLE") {
+            status.className = "listing-status available";
+            status.textContent = "Available • Pay what you want";
+
+            const identityMissing = !LIVE.userId;
+            const busy = STATE.requestBusy.has(listing.listing_id);
+
+            buttons.appendChild(
+                createButton(
+                    busy ? "REQUESTING..." : "REQUEST",
+                    "primary",
+                    () => requestListing(listing),
+                    identityMissing || busy
+                )
+            );
+        } else if (listing.status === "RESERVED") {
+            const remaining = reservationRemainingMs(listing);
+            const mine = LIVE.userId && listing.requested_by_id === LIVE.userId;
+
+            status.className = `listing-status ${mine ? "mine" : "reserved"}`;
+            status.textContent = mine
+                ? `Reserved by you • ${formatDuration(remaining)}`
+                : `Reserved by ID ${listing.requested_by_id || "Unknown"} • ${formatDuration(remaining)}`;
+
+            if (LIVE.userId === OWNER_USER_ID) {
+                const busy = STATE.adminBusy.has(listing.listing_id);
+                buttons.appendChild(
+                    createButton(
+                        "GRANTED & SOLD",
+                        "good",
+                        () => runAdminAction("grantAndSell", listing),
+                        busy
+                    )
+                );
+                buttons.appendChild(
+                    createButton(
+                        "RELEASE",
+                        "danger",
+                        () => runAdminAction("releaseListing", listing),
+                        busy
+                    )
+                );
+            } else {
+                buttons.appendChild(
+                    createButton(mine ? "RESERVED BY YOU" : "RESERVED", "", () => {}, true)
+                );
+            }
+        }
+
+        footer.appendChild(status);
+        footer.appendChild(buttons);
+        main.appendChild(footer);
+        card.appendChild(main);
+
+        return card;
+    }
+
+    function render() {
+        const current = STATE.listings
+            .filter(item => item.status === "AVAILABLE" || item.status === "RESERVED")
+            .sort(listingSort);
+
+        const completed = STATE.listings
+            .filter(item => item.status === "COMPLETED")
+            .sort((a, b) => {
+                const aTime = Date.parse(a.completed_at_utc) || 0;
+                const bTime = Date.parse(b.completed_at_utc) || 0;
+                return bTime - aTime;
+            });
+
+        els.currentList.innerHTML = "";
+        els.completedList.innerHTML = "";
+
+        if (current.length === 0) {
+            els.currentList.appendChild(
+                createTextElement("div", "empty-state", "No available listings have been added yet.")
+            );
+        } else {
+            current.forEach(item => {
+                els.currentList.appendChild(createListingCard(item, false));
+            });
+        }
+
+        if (completed.length === 0) {
+            els.completedList.appendChild(
+                createTextElement("div", "empty-state", "No completed orders yet.")
+            );
+        } else {
+            completed.forEach(item => {
+                els.completedList.appendChild(createListingCard(item, true));
+            });
+        }
+
+        els.currentCount.textContent = String(current.length);
+        els.completedCount.textContent = String(completed.length);
+
+        const availableCount = current.filter(item => item.status === "AVAILABLE").length;
+        const reservedCount = current.filter(item => item.status === "RESERVED").length;
+
+        els.microAvailable.textContent = String(availableCount);
+        els.microReserved.textContent = String(reservedCount);
+        els.microCompleted.textContent = String(completed.length);
+    }
+
+    async function requestListing(listing) {
+        if (!LIVE.userId) {
+            toast("Your Transport Tycoon ID has not loaded yet.", "warn");
+            requestIdentity();
+            return;
+        }
+
+        if (STATE.requestBusy.has(listing.listing_id)) {
+            return;
+        }
+
+        STATE.requestBusy.add(listing.listing_id);
+        render();
+
+        try {
+            const data = await apiPost({
+                action: "requestListing",
+                listingId: listing.listing_id,
+                userId: LIVE.userId,
+                playerName: LIVE.name || "Unknown",
+                source: LIVE.source || "",
+                clientVersion: APP_VERSION
+            });
+
+            notifyTT(`Requested: ${listing.title}. Reserved for 20 minutes.`, "good");
+            toast(`${listing.title} is reserved for you for 20 minutes.`, "good");
+
+            if (data.listing) {
+                const updated = normalizeListing(data.listing);
+                STATE.listings = STATE.listings.map(item =>
+                    item.listing_id === updated.listing_id ? updated : item
+                );
+            }
+
+            await refreshListings();
+        } catch (error) {
+            toast(error.message, "bad");
+            notifyTT(`Request failed: ${error.message}`, "bad");
+        } finally {
+            STATE.requestBusy.delete(listing.listing_id);
+            render();
+        }
+    }
+
+    function savedAdminKey() {
+        return els.adminKey.value.trim();
+    }
+
+    async function runAdminAction(action, listing) {
+        if (LIVE.userId !== OWNER_USER_ID) {
+            toast("Only PinkiPrim can use this control.", "bad");
+            return;
+        }
+
+        const adminKey = savedAdminKey();
+        if (!adminKey) {
+            toast("Enter your private admin key first.", "warn");
+            els.adminKey.focus();
+            return;
+        }
+
+        if (STATE.adminBusy.has(listing.listing_id)) {
+            return;
+        }
+
+        STATE.adminBusy.add(listing.listing_id);
+        render();
+
+        try {
+            await apiPost({
+                action,
+                listingId: listing.listing_id,
+                adminUserId: LIVE.userId,
+                adminKey,
+                clientVersion: APP_VERSION
+            });
+
+            const labels = {
+                grantAndSell: "Marked Granted & Sold.",
+                releaseListing: "Reservation released.",
+                reopenListing: "Listing reopened."
+            };
+
+            toast(labels[action] || "Admin action completed.", "good");
+            notifyTT(`${listing.title}: ${labels[action] || "Updated"}`, "good");
+            await refreshListings();
+        } catch (error) {
+            toast(error.message, "bad");
+            notifyTT(`Admin action failed: ${error.message}`, "bad");
+        } finally {
+            STATE.adminBusy.delete(listing.listing_id);
+            render();
+        }
+    }
+
+    function saveAdminKey() {
+        localStorage.setItem(STORAGE.ADMIN_KEY, els.adminKey.value);
+        toast("Admin key saved locally.", "good");
+    }
+
+    function tickReservations() {
+        let hasExpired = false;
+
+        STATE.listings.forEach(listing => {
+            if (
+                listing.status === "RESERVED" &&
+                reservationRemainingMs(listing) <= 0
+            ) {
+                hasExpired = true;
+            }
+        });
+
+        render();
+
+        if (hasExpired && !STATE.expiryRefreshPending) {
+            STATE.expiryRefreshPending = true;
+            refreshListings();
+        }
+    }
+
+    function toggleMini(forceValue) {
+        const next =
+            typeof forceValue === "boolean"
+                ? forceValue
+                : !els.app.classList.contains("mini-mode");
+
+        els.app.classList.toggle("mini-mode", next);
+        els.miniBtn.textContent = next ? "FULL" : "MINI";
+        localStorage.setItem(STORAGE.MINI, String(next));
+    }
+
+    function restoreWindowState() {
+        try {
+            const pos = JSON.parse(localStorage.getItem(STORAGE.POS) || "null");
+            if (pos && Number.isFinite(pos.left) && Number.isFinite(pos.top)) {
+                els.app.style.left = `${Math.max(0, pos.left)}px`;
+                els.app.style.top = `${Math.max(0, pos.top)}px`;
+            }
+        } catch (error) {
+            console.warn("[PWYW] Could not restore position", error);
+        }
+
+        try {
+            const size = JSON.parse(localStorage.getItem(STORAGE.SIZE) || "null");
+            if (
+                size &&
+                Number.isFinite(size.width) &&
+                Number.isFinite(size.height)
+            ) {
+                els.app.style.width = `${Math.max(340, size.width)}px`;
+                els.app.style.height = `${Math.max(360, size.height)}px`;
+            }
+        } catch (error) {
+            console.warn("[PWYW] Could not restore size", error);
+        }
+
+        toggleMini(localStorage.getItem(STORAGE.MINI) === "true");
+        els.adminKey.value = localStorage.getItem(STORAGE.ADMIN_KEY) || "";
+    }
+
+    let dragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragLeft = 0;
+    let dragTop = 0;
+
+    function startDrag(event) {
+        if (
+            event.target.closest("button") ||
+            event.target.closest("a") ||
+            event.target.closest("input")
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        dragging = true;
+        dragStartX = event.clientX;
+        dragStartY = event.clientY;
+
+        const rect = els.app.getBoundingClientRect();
+        dragLeft = rect.left;
+        dragTop = rect.top;
+
+        document.addEventListener("mousemove", dragMove);
+        document.addEventListener("mouseup", stopDrag);
+    }
+
+    function dragMove(event) {
+        if (!dragging) {
+            return;
+        }
+
+        const nextLeft = Math.max(0, dragLeft + event.clientX - dragStartX);
+        const nextTop = Math.max(0, dragTop + event.clientY - dragStartY);
+
+        els.app.style.left = `${nextLeft}px`;
+        els.app.style.top = `${nextTop}px`;
+    }
+
+    function stopDrag() {
+        if (!dragging) {
+            return;
+        }
+
+        dragging = false;
+        document.removeEventListener("mousemove", dragMove);
+        document.removeEventListener("mouseup", stopDrag);
+
+        localStorage.setItem(
+            STORAGE.POS,
+            JSON.stringify({
+                left: els.app.offsetLeft,
+                top: els.app.offsetTop
+            })
+        );
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+        if (!els.app.classList.contains("mini-mode")) {
+            localStorage.setItem(
+                STORAGE.SIZE,
+                JSON.stringify({
+                    width: els.app.offsetWidth,
+                    height: els.app.offsetHeight
+                })
+            );
+        }
+    });
+
+    function handleMessage(event) {
+        if (!event.data) {
+            return;
+        }
+
+        if (event.data.data && typeof event.data.data === "object") {
+            handleGameData(event.data.data);
+        } else if (
+            event.data.type === "data" &&
+            event.data.data &&
+            typeof event.data.data === "object"
+        ) {
+            handleGameData(event.data.data);
+        }
+    }
+
+    function init() {
+        restoreWindowState();
+        updateClock();
+        requestIdentity();
+
+        els.dragHandle.addEventListener("mousedown", startDrag);
+        els.microView.addEventListener("mousedown", startDrag);
+        els.miniBtn.addEventListener("click", () => toggleMini());
+        els.microExpand.addEventListener("click", () => toggleMini(false));
+        els.saveAdminKey.addEventListener("click", saveAdminKey);
+        els.supportLink.addEventListener("click", () => {
+            openExternal("https://www.paypal.com/paypalme/pinkiprim");
+        });
+
+        window.addEventListener("message", handleMessage);
+
+        window.addEventListener("keydown", event => {
+            if (event.key === "Escape" || event.keyCode === 27) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (document.activeElement) {
+                    document.activeElement.blur();
+                }
+
+                sendTT({ type: "pin" });
+            }
+        });
+
+        resizeObserver.observe(els.app);
+
+        setInterval(updateClock, 1000);
+        setInterval(tickReservations, 1000);
+
+        let identityAttempts = 0;
+        const identityTimer = setInterval(() => {
+            if (LIVE.userId || identityAttempts >= 12) {
+                clearInterval(identityTimer);
+                return;
+            }
+
+            identityAttempts += 1;
+            requestIdentity();
+        }, 3000);
+
+        if (backendConfigured()) {
+            refreshListings();
+            setInterval(refreshListings, REFRESH_MS);
+        } else {
+            setBackendState("error", "SET URL");
+            toast("Paste your deployed Google Apps Script /exec URL into the HTML.", "warn");
+            render();
+        }
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
