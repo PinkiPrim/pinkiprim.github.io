@@ -405,6 +405,7 @@ window.addEventListener('keydown', function(e) {
 const JOB_EXP_KEY = "exp_train_train"; 
 const JOB_BXP_KEY = "exp_token_a|train|train";
 const STORAGE_KEY_CALC = "target_xp_train";
+const STORAGE_KEY_POS = "train_app_pos";
 
 const STATE = {
     currentXP: 0, 
@@ -414,6 +415,18 @@ const STATE = {
 };
 
 // --- INIT ---
+// Restore the last saved app position
+try {
+    const savedPos = JSON.parse(localStorage.getItem(STORAGE_KEY_POS));
+    if (savedPos && Number.isFinite(savedPos.left) && Number.isFinite(savedPos.top)) {
+        const app = document.getElementById('tracker-app');
+        app.style.left = savedPos.left + 'px';
+        app.style.top = savedPos.top + 'px';
+    }
+} catch (e) {
+    localStorage.removeItem(STORAGE_KEY_POS);
+}
+
 const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
 if (savedTarget) document.getElementById('target-input').value = savedTarget;
 
@@ -604,9 +617,17 @@ function dragMove(e) {
 }
 
 function dragEnd() {
+    if (!isDragging) return;
+
     isDragging = false;
     document.onmouseup = null;
     document.onmousemove = null;
+
+    const rect = elmnt.getBoundingClientRect();
+    localStorage.setItem(STORAGE_KEY_POS, JSON.stringify({
+        left: rect.left,
+        top: rect.top
+    }));
 }
 
 const rh = document.getElementById('resize-handle');
