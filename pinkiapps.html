@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PinkiApps v6.2</title>
+    <title>PinkiApps v6.3</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Roboto:wght@400;700&display=swap');
 
@@ -174,6 +174,26 @@
         .nav-btn.rts:hover     { border-left: 4px solid #ef6c00; }
         .nav-btn.cabbie:hover  { border-left: 4px solid #fbc02d; }
         .nav-btn.fish:hover    { border-left: 4px solid #00bcd4; }
+        .nav-btn.pwyw:hover    { border-left: 4px solid #ff4081; }
+
+        .featured-app {
+            grid-template-columns: 1fr;
+            margin-bottom: 4px;
+        }
+
+        .featured-app .nav-btn {
+            justify-content: center;
+            padding: 14px 18px;
+            border-color: rgba(255, 64, 129, 0.28);
+            background: rgba(255, 64, 129, 0.08);
+            color: #fff;
+            letter-spacing: 0.8px;
+        }
+
+        .featured-app .nav-btn:hover {
+            background: rgba(255, 64, 129, 0.16);
+            border-color: rgba(255, 64, 129, 0.55);
+        }
 
         /* --- OTHER APPS SPECIFIC --- */
         .nav-btn.exp:hover     { border-left: 4px solid #7c4dff; }
@@ -246,6 +266,12 @@
 
     <div id="menu-container">
         <h1>PinkiApps</h1>
+
+        <div class="grid-wrapper featured-app">
+            <a href="https://pinkiprim.github.io/pwyw.html" class="nav-btn pwyw">
+                <span class="icon">🎁</span> NEW APP: Pay What You Want
+            </a>
+        </div>
 
         <div class="section-label">Job Apps</div>
         
