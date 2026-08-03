@@ -789,7 +789,7 @@
 (() => {
     "use strict";
 
-    const APP_VERSION = "1.3.0";
+    const APP_VERSION = "1.4.0";
 
     /*
         After deploying PayWhatYouWant_AppsScript.gs as a Google Apps Script
@@ -799,13 +799,20 @@
 
     const OWNER_USER_ID = "757858";
     const OWNER_NAME = "PinkiPrim";
-    const REFRESH_MS = 5000;
+    const OWNER_REFRESH_MS = 8000;
+    const USER_REFRESH_MS = 15000;
+    const GET_TIMEOUT_MS = 12000;
+    const POST_TIMEOUT_MS = 20000;
+    const RETRY_BASE_MS = 3000;
+    const RETRY_MAX_MS = 30000;
 
     const STORAGE = {
         POS: "pwyw_position_v1",
         SIZE: "pwyw_size_v1",
         MINI: "pwyw_mini_v1",
-        ADMIN_KEY: "pwyw_admin_key_v1"
+        ADMIN_KEY: "pwyw_admin_key_v1",
+        LISTINGS_CACHE: "pwyw_listings_cache_v1",
+        LISTINGS_CACHE_AT: "pwyw_listings_cache_at_v1"
     };
 
     const LIVE = {
@@ -827,6 +834,10 @@
         adminBusy: new Set(),
         expiryRefreshPending: false,
         refreshInFlight: false,
+        syncAgainRequested: false,
+        syncTimer: null,
+        consecutiveSyncFailures: 0,
+        lastSyncDurationMs: 0,
         lastListingSignature: "",
         lastIdentityKey: "",
         appStartedAtMs: Date.now(),
@@ -1005,6 +1016,12 @@
         if (identityKey !== STATE.lastIdentityKey) {
             STATE.lastIdentityKey = identityKey;
             render();
+
+            // Owner identity changes whether request events are included.
+            // Refresh once immediately, but never start a generic TT data poll.
+            if (backendConfigured()) {
+                scheduleSync(250);
+            }
         }
     }
 
@@ -1087,11 +1104,15 @@
             ? `Last successful sync was ${ageSeconds} second${ageSeconds === 1 ? "" : "s"} ago.`
             : `No successful sync yet. Connection attempt began ${ageSeconds} second${ageSeconds === 1 ? "" : "s"} ago.`;
 
+        const durationDescription = STATE.lastSyncDurationMs > 0
+            ? ` Last response took ${(STATE.lastSyncDurationMs / 1000).toFixed(1)}s.`
+            : "";
+
         const errorDescription = STATE.lastSyncError
             ? ` Last error: ${STATE.lastSyncError}`
             : "";
 
-        const title = `${stateText}. ${ageDescription}${errorDescription}`;
+        const title = `${stateText}. ${ageDescription}${durationDescription}${errorDescription}`;
         els.syncHealth.title = title;
         els.syncHealth.setAttribute("aria-label", title);
     }
@@ -1110,45 +1131,111 @@
         return url.toString();
     }
 
+    async function fetchJsonWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const startedAt = Date.now();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal,
+                cache: "no-store",
+                redirect: "follow"
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const text = await response.text();
+            let data;
+
+            try {
+                data = JSON.parse(text);
+            } catch (error) {
+                throw new Error("Backend returned an invalid response.");
+            }
+
+            if (!data || data.ok === false) {
+                throw new Error(
+                    data && data.error
+                        ? data.error
+                        : "Backend rejected the request."
+                );
+            }
+
+            STATE.lastSyncDurationMs = Date.now() - startedAt;
+            return data;
+        } catch (error) {
+            if (error && error.name === "AbortError") {
+                throw new Error(
+                    `Backend timed out after ${Math.round(timeoutMs / 1000)} seconds.`
+                );
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
     async function apiGet(action, extra = {}) {
-        const response = await fetch(apiUrl(action, extra), {
-            method: "GET",
-            cache: "no-store"
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (!data || data.ok === false) {
-            throw new Error(data && data.error ? data.error : "Backend rejected the request.");
-        }
-
-        return data;
+        return fetchJsonWithTimeout(
+            apiUrl(action, {
+                ...extra,
+                clientVersion: APP_VERSION
+            }),
+            { method: "GET" },
+            GET_TIMEOUT_MS
+        );
     }
 
     async function apiPost(payload) {
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8"
+        return fetchJsonWithTimeout(
+            GOOGLE_SCRIPT_URL,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify(payload)
             },
-            body: JSON.stringify(payload)
-        });
+            POST_TIMEOUT_MS
+        );
+    }
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+    function normalRefreshDelay() {
+        return LIVE.userId === OWNER_USER_ID
+            ? OWNER_REFRESH_MS
+            : USER_REFRESH_MS;
+    }
+
+    function scheduleSync(delayMs = normalRefreshDelay()) {
+        if (!backendConfigured()) {
+            return;
         }
 
-        const data = await response.json();
-
-        if (!data || data.ok === false) {
-            throw new Error(data && data.error ? data.error : "Backend rejected the request.");
+        if (STATE.syncTimer) {
+            clearTimeout(STATE.syncTimer);
         }
 
-        return data;
+        const baseDelay = Math.max(0, Number(delayMs) || 0);
+        const jitter = baseDelay >= 1000
+            ? Math.floor(Math.random() * 2000)
+            : 0;
+
+        STATE.syncTimer = setTimeout(() => {
+            STATE.syncTimer = null;
+            refreshListings();
+        }, baseDelay + jitter);
+    }
+
+    function failedRefreshDelay() {
+        const exponent = Math.max(0, STATE.consecutiveSyncFailures - 1);
+        return Math.min(
+            RETRY_MAX_MS,
+            RETRY_BASE_MS * Math.pow(2, exponent)
+        );
     }
 
     function currentServerMs() {
@@ -1177,25 +1264,39 @@
     async function refreshListings() {
         if (!backendConfigured()) {
             setBackendState("error");
+            recordSyncFailure(
+                new Error("Google Apps Script /exec URL is not configured.")
+            );
             if (!STATE.initialSyncComplete) {
                 render();
             }
-            return;
+            return false;
         }
 
-        // Do not stack Google requests if a previous sync is still running.
+        // If a request is already running, remember that another refresh was
+        // requested. The follow-up is scheduled as soon as the current one ends.
         if (STATE.refreshInFlight) {
-            return;
+            STATE.syncAgainRequested = true;
+            return false;
+        }
+
+        if (STATE.syncTimer) {
+            clearTimeout(STATE.syncTimer);
+            STATE.syncTimer = null;
         }
 
         STATE.refreshInFlight = true;
         STATE.lastSyncAttemptMs = Date.now();
+        let succeeded = false;
 
         try {
+            const isOwner = LIVE.userId === OWNER_USER_ID;
             const data = await apiGet("list", {
-                afterEventId: STATE.initialSyncComplete
-                    ? STATE.latestEventId
-                    : ""
+                afterEventId:
+                    isOwner && STATE.initialSyncComplete
+                        ? STATE.latestEventId
+                        : "",
+                includeEvents: isOwner ? 1 : 0
             });
 
             const serverMs = Number(data.server_time_ms);
@@ -1218,22 +1319,37 @@
             STATE.listings = nextListings;
             STATE.lastListingSignature = nextSignature;
 
+            try {
+                localStorage.setItem(
+                    STORAGE.LISTINGS_CACHE,
+                    JSON.stringify(nextListings)
+                );
+                localStorage.setItem(
+                    STORAGE.LISTINGS_CACHE_AT,
+                    String(Date.now())
+                );
+            } catch (error) {
+                console.warn("[PWYW] Could not cache listings", error);
+            }
+
             const incomingEvents = Array.isArray(data.events)
                 ? data.events
                 : [];
 
             const latestEventId = Number(data.latest_event_id) || 0;
 
-            if (STATE.initialSyncComplete) {
+            if (STATE.initialSyncComplete && isOwner) {
                 processOwnerEvents(incomingEvents);
             }
 
             STATE.latestEventId = latestEventId;
             STATE.initialSyncComplete = true;
             STATE.expiryRefreshPending = false;
+            STATE.consecutiveSyncFailures = 0;
 
             setBackendState("live");
             recordSyncSuccess();
+            succeeded = true;
 
             if (listingsChanged) {
                 render();
@@ -1241,12 +1357,26 @@
                 updateReservationCountdowns();
             }
         } catch (error) {
-            console.error("[PWYW] refresh failed", error);
+            console.warn("[PWYW] refresh failed", error);
+            STATE.consecutiveSyncFailures += 1;
             setBackendState("error");
             recordSyncFailure(error);
         } finally {
             STATE.refreshInFlight = false;
+
+            const runAgain = STATE.syncAgainRequested;
+            STATE.syncAgainRequested = false;
+
+            scheduleSync(
+                runAgain
+                    ? 250
+                    : (succeeded
+                        ? normalRefreshDelay()
+                        : failedRefreshDelay())
+            );
         }
+
+        return succeeded;
     }
 
     function processOwnerEvents(events) {
@@ -1573,7 +1703,7 @@
                 );
             }
 
-            await refreshListings();
+            scheduleSync(250);
         } catch (error) {
             toast(error.message, "bad");
             notifyTT(`Request failed: ${error.message}`, "bad");
@@ -1624,7 +1754,7 @@
 
             toast(labels[action] || "Admin action completed.", "good");
             notifyTT(`${listing.title}: ${labels[action] || "Updated"}`, "good");
-            await refreshListings();
+            scheduleSync(250);
         } catch (error) {
             toast(error.message, "bad");
             notifyTT(`Admin action failed: ${error.message}`, "bad");
@@ -1640,24 +1770,35 @@
     }
 
     function tickReservations() {
-        let hasExpired = false;
+        let changed = false;
 
-        STATE.listings.forEach(listing => {
+        STATE.listings = STATE.listings.map(listing => {
             if (
-                listing.status === "RESERVED" &&
-                reservationRemainingMs(listing) <= 0
+                listing.status !== "RESERVED" ||
+                reservationRemainingMs(listing) > 0
             ) {
-                hasExpired = true;
+                return listing;
             }
+
+            changed = true;
+            return {
+                ...listing,
+                status: "AVAILABLE",
+                requested_by_id: "",
+                requested_by_name: "Unknown",
+                requested_by_source: "",
+                requested_at_utc: "",
+                reservation_expires_at_utc: ""
+            };
         });
 
-        // Update only the countdown text. Never rebuild cards every second;
-        // doing so destroys hover state and can cancel a button click.
-        updateReservationCountdowns();
-
-        if (hasExpired && !STATE.expiryRefreshPending) {
-            STATE.expiryRefreshPending = true;
-            refreshListings();
+        if (changed) {
+            STATE.lastListingSignature = JSON.stringify(STATE.listings);
+            render();
+            scheduleSync(250);
+        } else {
+            // Update only the countdown text. Never rebuild cards every second.
+            updateReservationCountdowns();
         }
     }
 
@@ -1670,6 +1811,24 @@
         els.app.classList.toggle("mini-mode", next);
         els.miniBtn.textContent = next ? "FULL" : "MINI";
         localStorage.setItem(STORAGE.MINI, String(next));
+    }
+
+    function restoreCachedListings() {
+        try {
+            const cached = JSON.parse(
+                localStorage.getItem(STORAGE.LISTINGS_CACHE) || "[]"
+            );
+
+            if (!Array.isArray(cached) || !cached.length) {
+                return;
+            }
+
+            STATE.listings = cached.map(normalizeListing);
+            STATE.lastListingSignature = JSON.stringify(STATE.listings);
+            render();
+        } catch (error) {
+            console.warn("[PWYW] Could not restore cached listings", error);
+        }
     }
 
     function restoreWindowState() {
@@ -1789,6 +1948,7 @@
 
     function init() {
         restoreWindowState();
+        restoreCachedListings();
         updateClock();
         updateSyncHealth();
         requestIdentity();
@@ -1825,7 +1985,6 @@
 
         if (backendConfigured()) {
             refreshListings();
-            setInterval(refreshListings, REFRESH_MS);
         } else {
             setBackendState("error");
             recordSyncFailure(new Error("Google Apps Script /exec URL is not configured."));
