@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Garage Watch Probe v0.1</title>
+    <title>Garage Watch Probe v0.2</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -168,7 +168,7 @@
 
     <div id="content">
         <div class="notice">
-            This first build probes the live garage and dealership pages through Google Apps Script. If the website markup needs a custom parser, the Diagnostics tab will show us exactly what Google received.
+            Probe v0.2 rejects JavaScript template text and scans ttycoon.eu’s page modules for the real garage and dealership data requests. Until genuine records are found, it will show zero rather than fake vehicles.
         </div>
 
         <div class="identity-row">
@@ -220,7 +220,7 @@
 </div>
 
 <script>
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.2.0";
 
 /* Paste the deployed Google Apps Script /exec URL here. */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADDKzZ2viYDWt7a0Bt0CBHNSqogP-2BNj70SgUHRZj1oNuedfG5akNWw6/exec";
@@ -351,8 +351,10 @@ async function runCheck(force) {
         state.result = result;
         renderResult(result);
 
-        if (result.ok) {
+        if (result.ok && result.parser_ready) {
             setStatus("LIVE • " + Number(result.elapsed_ms || 0).toLocaleString() + "MS", "live");
+        } else if (result.ok) {
+            setStatus("DISCOVERING DATA SOURCE • " + Number(result.elapsed_ms || 0).toLocaleString() + "MS", "busy");
         } else {
             setStatus("PROBE RETURNED WARNINGS", "error");
         }
@@ -374,9 +376,9 @@ function renderResult(result) {
     setText("mini-missing", counts.available_not_owned ?? 0);
     setText("mini-garage", counts.garage ?? 0);
 
-    renderVehicles("missing-list", result.available_not_owned || [], false, "No dealership vehicles were identified as missing.");
-    renderVehicles("owned-list", result.available_owned || [], true, "No dealership vehicles were matched as already owned.");
-    renderVehicles("garage-list", result.garage || [], false, "No garage vehicles were extracted.");
+    renderVehicles("missing-list", result.available_not_owned || [], false, "No genuine dealership records detected yet.");
+    renderVehicles("owned-list", result.available_owned || [], true, "No genuine dealership ownership matches detected yet.");
+    renderVehicles("garage-list", result.garage || [], false, "No genuine garage records detected yet.");
 
     const warnings = Array.isArray(result.warnings) ? result.warnings : [];
     document.getElementById("warnings").innerHTML = warnings
