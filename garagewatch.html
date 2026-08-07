@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Garage Watch Probe v0.3</title>
+    <title>Garage Watch v1.0</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -31,7 +31,7 @@
 
         #app {
             position: absolute; top: 50px; left: 50px;
-            width: 460px; height: 650px; min-width: 360px; min-height: 260px;
+            width: 470px; height: 660px; min-width: 390px; min-height: 300px;
             display: flex; flex-direction: column; overflow: hidden; resize: both;
             background: var(--bg); border: 1px solid var(--border); border-radius: 9px;
             box-shadow: 0 6px 22px rgba(0,0,0,.9);
@@ -66,17 +66,25 @@
         .header-btn:hover { background: var(--primary); color: #fff; }
 
         #content { flex: 1; overflow-y: auto; padding: 10px; scrollbar-width: thin; }
-        .notice {
-            padding: 8px; margin-bottom: 8px; border-left: 3px solid var(--primary);
-            background: rgba(0,188,212,.08); color: #dffbff; font-size: .76em; line-height: 1.35;
+        #content::-webkit-scrollbar { width: 8px; }
+        #content::-webkit-scrollbar-track { background: #08080a; }
+        #content::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }
+
+        .identity-label {
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            margin-bottom: 5px; color: var(--dim); font: 700 .68em 'Rajdhani', sans-serif;
+            letter-spacing: .8px; text-transform: uppercase;
         }
-        .identity-row { display: grid; grid-template-columns: 1fr auto; gap: 7px; margin-bottom: 8px; }
-        input {
+        #viewing-label { color: #dffbff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #self-label { color: var(--primary); white-space: nowrap; }
+        .identity-row { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; margin-bottom: 8px; }
+        input, select {
             width: 100%; border: 1px solid #444; background: rgba(0,0,0,.45); color: #fff;
             padding: 7px 8px; border-radius: 4px; font-family: 'Rajdhani', sans-serif;
             font-weight: 700;
         }
-        input:focus { outline: 1px solid var(--primary); }
+        input:focus, select:focus { outline: 1px solid var(--primary); }
+        select option { background: #151519; color: #fff; }
         button {
             border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.07);
             color: #ddd; border-radius: 4px; padding: 6px 9px; cursor: pointer;
@@ -84,6 +92,7 @@
         }
         button:hover:not(:disabled) { background: var(--primary); color: #fff; border-color: var(--primary); }
         button:disabled { opacity: .45; cursor: not-allowed; }
+        #my-garage-btn { white-space: nowrap; }
 
         .sync-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .status { font: 800 .72em 'Rajdhani', sans-serif; letter-spacing: .8px; color: var(--dim); }
@@ -93,38 +102,63 @@
 
         .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin-bottom: 9px; }
         .stat { background: var(--panel); border: 1px solid rgba(255,255,255,.08); border-radius: 5px; padding: 6px; text-align: center; }
-        .stat-label { font-size: .58em; color: var(--dim); text-transform: uppercase; }
+        .stat-label { font-size: .55em; color: var(--dim); text-transform: uppercase; line-height: 1.15; }
         .stat-value { font: 900 1.2em 'Rajdhani', sans-serif; color: var(--primary); }
 
-        .tabs { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; margin-bottom: 8px; }
+        .tabs { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-bottom: 8px; }
+        .tab { padding-left: 4px; padding-right: 4px; }
         .tab.active { background: var(--primary-dim); color: #fff; border-color: var(--primary); }
-        .pane { display: none; }
-        .pane.active { display: block; }
+
+        .filters {
+            display: grid; grid-template-columns: minmax(0,1fr) minmax(125px,.75fr); gap: 6px;
+            margin-bottom: 7px;
+        }
+        .result-summary {
+            margin-bottom: 5px; color: var(--dim); font: 700 .67em 'Rajdhani', sans-serif;
+            letter-spacing: .5px;
+        }
         .section-title {
-            margin: 8px 0 5px; color: var(--dim); font: 800 .74em 'Rajdhani', sans-serif;
-            text-transform: uppercase; letter-spacing: 1.4px; display: flex; align-items: center; gap: 7px;
+            margin: 7px 0 6px; color: var(--dim); font: 800 .74em 'Rajdhani', sans-serif;
+            text-transform: uppercase; letter-spacing: 1.35px; display: flex; align-items: center; gap: 7px;
         }
         .section-title::after { content: ''; height: 1px; flex: 1; background: rgba(255,255,255,.1); }
+
+        .category-group {
+            margin: 0 0 7px; border: 1px solid rgba(255,255,255,.08); border-radius: 6px;
+            background: rgba(255,255,255,.018); overflow: hidden;
+        }
+        .category-group > summary {
+            list-style: none; cursor: pointer; padding: 7px 9px;
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            background: rgba(0,188,212,.075); border-left: 3px solid var(--primary);
+            font: 900 .76em 'Rajdhani', sans-serif; letter-spacing: 1px; text-transform: uppercase;
+        }
+        .category-group > summary::-webkit-details-marker { display: none; }
+        .category-group > summary::before { content: '▾'; color: var(--primary); margin-right: 4px; }
+        .category-group:not([open]) > summary::before { content: '▸'; }
+        .category-count {
+            min-width: 24px; text-align: center; border-radius: 10px; padding: 1px 6px;
+            background: rgba(0,0,0,.35); color: var(--primary); font-size: .9em;
+        }
+        .category-vehicles { padding: 6px; }
 
         .vehicle {
             display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
             padding: 7px 8px; margin-bottom: 5px; border-radius: 5px;
             background: rgba(255,255,255,.045); border-left: 3px solid var(--primary);
         }
-        .vehicle.owned { opacity: .58; border-left-color: #777; }
+        .vehicle:last-child { margin-bottom: 0; }
+        .vehicle.owned { border-left-color: #777; }
+        .vehicle.garage { border-left-color: #607d8b; }
         .vehicle-name { font-size: .82em; font-weight: 700; }
         .vehicle-meta { margin-top: 2px; color: var(--dim); font-size: .63em; line-height: 1.25; }
-        .badge { font: 800 .64em 'Rajdhani', sans-serif; color: var(--green); text-transform: uppercase; }
-        .owned .badge { color: #aaa; }
-        .empty { padding: 16px 8px; text-align: center; color: var(--dim); font-size: .75em; }
-
-        pre {
-            white-space: pre-wrap; word-break: break-word; user-select: text;
-            font: .67em/1.35 Consolas, monospace; color: #d5faff; background: rgba(0,0,0,.35);
-            border: 1px solid rgba(255,255,255,.1); border-radius: 5px; padding: 8px;
+        .badge {
+            max-width: 82px; text-align: right; font: 800 .62em 'Rajdhani', sans-serif;
+            color: var(--green); text-transform: uppercase; line-height: 1.1;
         }
-        .warning { color: var(--amber); font-size: .72em; margin: 4px 0; }
-        .error-text { color: var(--red); }
+        .owned .badge, .garage .badge { color: #aaa; }
+        .empty { padding: 18px 8px; text-align: center; color: var(--dim); font-size: .75em; }
+        .error-note { color: var(--red); font-size: .72em; margin: 5px 0; }
 
         .support-footer {
             text-align: center; padding: 4px 0; background: rgba(0,0,0,.3);
@@ -137,22 +171,28 @@
         #resize-handle { position: absolute; width: 15px; height: 15px; right: 0; bottom: 0; cursor: nwse-resize; }
 
         #mini { display: none; cursor: move; padding: 7px 10px; align-items: center; justify-content: space-between; gap: 8px; }
-        #app.mini-mode { width: 590px !important; height: auto !important; min-height: 50px; resize: none; border-color: var(--primary); }
+        #app.mini-mode { width: 610px !important; height: auto !important; min-height: 50px; resize: none; border-color: var(--primary); }
         #app.mini-mode header, #app.mini-mode #content, #app.mini-mode .support-footer, #app.mini-mode #resize-handle { display: none; }
         #app.mini-mode #mini { display: flex; }
         .mini-title { font: 900 .88em 'Rajdhani', sans-serif; color: var(--primary); letter-spacing: 1px; }
         .mini-group { display: flex; align-items: center; gap: 5px; }
         .mini-label { color: var(--dim); font-size: .62em; text-transform: uppercase; }
         .mini-value { font: 800 .78em 'Rajdhani', sans-serif; }
+
+        @media (max-width: 425px) {
+            .identity-row { grid-template-columns: 1fr auto; }
+            #my-garage-btn { grid-column: 1 / -1; }
+            .filters { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 <div id="app">
     <div id="mini">
         <span class="mini-title">🚘 GARAGE WATCH</span>
-        <span class="mini-group"><span class="mini-label">Missing:</span><span class="mini-value" id="mini-missing">--</span></span>
+        <span class="mini-group"><span class="mini-label">Not owned:</span><span class="mini-value" id="mini-missing">--</span></span>
         <span class="mini-group"><span class="mini-label">Garage:</span><span class="mini-value" id="mini-garage">--</span></span>
-        <span class="mini-group"><span class="mini-label">Status:</span><span class="mini-value" id="mini-status">WAITING</span></span>
+        <span class="mini-group"><span class="mini-label">ID:</span><span class="mini-value" id="mini-id">--</span></span>
         <button id="expand-btn">EXPAND</button>
     </div>
 
@@ -167,52 +207,43 @@
     </header>
 
     <div id="content">
-        <div class="notice">
-            Probe v0.3 calls ttycoon.eu’s real public JSON data routes. It compares the player garage against vehicles currently available in the dealership using the model/spawn identifier.
+        <div class="identity-label">
+            <span id="viewing-label">Reading your Transport Tycoon ID…</span>
+            <span id="self-label">YOUR ID: --</span>
         </div>
 
         <div class="identity-row">
-            <input id="user-id" inputmode="numeric" placeholder="Transport Tycoon user ID">
-            <button id="refresh-btn">RUN CHECK</button>
+            <input id="user-id" inputmode="numeric" autocomplete="off" placeholder="Transport Tycoon user ID">
+            <button id="refresh-btn">CHECK ID</button>
+            <button id="my-garage-btn" disabled>MY GARAGE</button>
         </div>
 
         <div class="sync-row">
-            <span class="status" id="status">WAITING FOR USER ID</span>
+            <span class="status" id="status">READING YOUR TT ID…</span>
             <button id="force-btn">FORCE FRESH</button>
         </div>
 
         <div class="stats">
-            <div class="stat"><div class="stat-label">Not Owned</div><div class="stat-value" id="count-missing">--</div></div>
-            <div class="stat"><div class="stat-label">Dealer</div><div class="stat-value" id="count-dealer">--</div></div>
-            <div class="stat"><div class="stat-label">Garage</div><div class="stat-value" id="count-garage">--</div></div>
+            <div class="stat"><div class="stat-label">Not Owned<br>Available Now</div><div class="stat-value" id="count-missing">--</div></div>
+            <div class="stat"><div class="stat-label">Already Owned<br>Available Now</div><div class="stat-value" id="count-owned">--</div></div>
+            <div class="stat"><div class="stat-label">Full<br>Garage</div><div class="stat-value" id="count-garage">--</div></div>
         </div>
 
         <div class="tabs">
-            <button class="tab active" data-tab="missing">AVAILABLE</button>
-            <button class="tab" data-tab="owned">OWNED</button>
-            <button class="tab" data-tab="garage">GARAGE</button>
-            <button class="tab" data-tab="diagnostics">DIAGNOSTICS</button>
+            <button class="tab active" data-tab="missing">NOT OWNED</button>
+            <button class="tab" data-tab="owned">OWNED &amp; AVAILABLE</button>
+            <button class="tab" data-tab="garage">FULL GARAGE</button>
         </div>
 
-        <div class="pane active" id="pane-missing">
-            <div class="section-title">Available now — not owned</div>
-            <div id="missing-list"><div class="empty">Run the first check.</div></div>
+        <div class="filters">
+            <input id="vehicle-search" autocomplete="off" placeholder="Search vehicle, make or model…">
+            <select id="category-filter" aria-label="Vehicle category">
+                <option value="">All categories</option>
+            </select>
         </div>
 
-        <div class="pane" id="pane-owned">
-            <div class="section-title">Available now — already owned</div>
-            <div id="owned-list"><div class="empty">Run the first check.</div></div>
-        </div>
-
-        <div class="pane" id="pane-garage">
-            <div class="section-title">Player garage</div>
-            <div id="garage-list"><div class="empty">Run the first check.</div></div>
-        </div>
-
-        <div class="pane" id="pane-diagnostics">
-            <div id="warnings"></div>
-            <pre id="diagnostics">No probe has run yet.</pre>
-        </div>
+        <div class="result-summary" id="result-summary">Waiting for garage data.</div>
+        <div id="vehicle-list"><div class="empty">Reading your Transport Tycoon ID…</div></div>
     </div>
 
     <div class="support-footer"><span class="support-link" id="support">Support PinkiPrim <span class="heart">❤</span></span></div>
@@ -220,7 +251,7 @@
 </div>
 
 <script>
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "1.0.0";
 
 /* Paste the deployed Google Apps Script /exec URL here. */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADDKzZ2viYDWt7a0Bt0CBHNSqogP-2BNj70SgUHRZj1oNuedfG5akNWw6/exec";
@@ -228,32 +259,61 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADD
 const STORAGE = {
     POS: "garage_watch_pos_v1",
     SIZE: "garage_watch_size_v1",
-    MINI: "garage_watch_mini_v1",
-    LAST_ID: "garage_watch_last_id_v1"
+    MINI: "garage_watch_mini_v1"
+};
+
+const VIEW_CONFIG = {
+    missing: {
+        source: "available_not_owned",
+        empty: "No dealership vehicles are currently available that this garage does not own.",
+        badge: "NOT OWNED",
+        summary: "Available to buy now, but not owned by this player."
+    },
+    owned: {
+        source: "available_owned",
+        empty: "No currently available dealership vehicles are already owned by this player.",
+        badge: "OWNED",
+        summary: "Available to buy now, but this player already owns them."
+    },
+    garage: {
+        source: "garage",
+        empty: "No vehicles were returned for this player garage.",
+        badge: "IN GARAGE",
+        summary: "Every vehicle currently recorded in this player garage."
+    }
 };
 
 const state = {
     loading: false,
     result: null,
-    userId: "",
+    selfId: "",
+    viewedId: "",
+    activeView: "missing",
     callbackCounter: 0,
     jsonpNode: null,
-    timeout: null
+    timeout: null,
+    manualLookupActive: false,
+    filters: {
+        missing: { query: "", category: "" },
+        owned: { query: "", category: "" },
+        garage: { query: "", category: "" }
+    }
 };
 
 const app = document.getElementById("app");
 const userInput = document.getElementById("user-id");
 const statusEl = document.getElementById("status");
+const searchInput = document.getElementById("vehicle-search");
+const categorySelect = document.getElementById("category-filter");
 
 function setStatus(text, kind = "") {
     statusEl.textContent = text;
     statusEl.className = "status" + (kind ? " " + kind : "");
-    document.getElementById("mini-status").textContent = text;
 }
 
 function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
 }
 
 function isBackendConfigured() {
@@ -272,15 +332,21 @@ window.addEventListener("message", event => {
     if (!data) return;
 
     const id = data.user_id ?? data.player_id;
-    if (id !== undefined && id !== null && /^\d+$/.test(String(id))) {
-        state.userId = String(id);
-        userInput.value = state.userId;
-        localStorage.setItem(STORAGE.LAST_ID, state.userId);
+    if (id === undefined || id === null || !/^\d+$/.test(String(id))) return;
+
+    state.selfId = String(id);
+    setText("self-label", "YOUR ID: " + state.selfId);
+    document.getElementById("my-garage-btn").disabled = false;
+
+    if (!state.manualLookupActive) {
+        userInput.value = state.selfId;
+        state.viewedId = state.selfId;
+        updateViewingLabel();
         if (!state.result && isBackendConfigured()) runCheck(false);
     }
 });
 
-function jsonp(url, timeoutMs = 70000) {
+function jsonp(url, timeoutMs = 30000) {
     return new Promise((resolve, reject) => {
         const callbackName = "__garageWatchCallback" + (++state.callbackCounter);
         const script = document.createElement("script");
@@ -307,7 +373,7 @@ function jsonp(url, timeoutMs = 70000) {
 
         const timer = setTimeout(() => {
             cleanup();
-            reject(new Error("The probe timed out after " + Math.round(timeoutMs / 1000) + " seconds."));
+            reject(new Error("The garage check timed out after " + Math.round(timeoutMs / 1000) + " seconds."));
         }, timeoutMs);
 
         script.src = url + (url.includes("?") ? "&" : "?") +
@@ -330,16 +396,21 @@ async function runCheck(force) {
 
     if (!isBackendConfigured()) {
         setStatus("SET APPS SCRIPT URL", "error");
-        showDiagnostics({ error: "Paste the deployed /exec URL into GOOGLE_SCRIPT_URL first." });
+        renderError("Paste the deployed Google Apps Script /exec URL into GOOGLE_SCRIPT_URL first.");
         return;
     }
 
+    const previousViewedId = state.viewedId;
     state.loading = true;
-    state.userId = userId;
-    localStorage.setItem(STORAGE.LAST_ID, userId);
-    document.getElementById("refresh-btn").disabled = true;
-    document.getElementById("force-btn").disabled = true;
-    setStatus(force ? "FETCHING FRESH PAGES…" : "CHECKING GARAGE…", "busy");
+    state.manualLookupActive = Boolean(state.selfId && userId !== state.selfId);
+    setText(
+        "viewing-label",
+        state.selfId && userId === state.selfId
+            ? "Checking your garage…"
+            : "Checking player ID " + userId + "…"
+    );
+    setControlsDisabled(true);
+    setStatus(force ? "FETCHING FRESH DATA…" : "CHECKING GARAGE…", "busy");
 
     try {
         const url = GOOGLE_SCRIPT_URL +
@@ -348,88 +419,193 @@ async function runCheck(force) {
             "&force=" + (force ? "1" : "0");
 
         const result = await jsonp(url);
-        state.result = result;
-        renderResult(result);
-
-        if (result.ok && result.parser_ready) {
-            setStatus("LIVE • " + Number(result.elapsed_ms || 0).toLocaleString() + "MS", "live");
-        } else if (result.ok) {
-            setStatus("CONNECTING TO VEHICLE DATA • " + Number(result.elapsed_ms || 0).toLocaleString() + "MS", "busy");
-        } else {
-            setStatus("PROBE RETURNED WARNINGS", "error");
+        if (!result || !result.ok || !result.parser_ready) {
+            throw new Error((result && result.error) || "The vehicle data response was incomplete.");
         }
+
+        state.viewedId = userId;
+        state.result = result;
+        renderResult();
+        setStatus("LIVE • " + Number(result.elapsed_ms || 0).toLocaleString() + "MS", "live");
     } catch (error) {
+        state.viewedId = previousViewedId;
+        updateViewingLabel();
         setStatus("CHECK FAILED", "error");
-        showDiagnostics({ error: error.message, user_id: userId });
+        renderError(error.message);
     } finally {
         state.loading = false;
-        document.getElementById("refresh-btn").disabled = false;
-        document.getElementById("force-btn").disabled = false;
+        setControlsDisabled(false);
     }
 }
 
-function renderResult(result) {
+function setControlsDisabled(disabled) {
+    document.getElementById("refresh-btn").disabled = disabled;
+    document.getElementById("force-btn").disabled = disabled;
+    document.getElementById("my-garage-btn").disabled = disabled || !state.selfId;
+}
+
+function renderResult() {
+    const result = state.result || {};
     const counts = result.counts || {};
+
     setText("count-missing", counts.available_not_owned ?? 0);
-    setText("count-dealer", counts.dealership ?? 0);
+    setText("count-owned", counts.available_owned ?? 0);
     setText("count-garage", counts.garage ?? 0);
     setText("mini-missing", counts.available_not_owned ?? 0);
     setText("mini-garage", counts.garage ?? 0);
+    setText("mini-id", state.viewedId || "--");
 
-    renderVehicles("missing-list", result.available_not_owned || [], "available", "No currently available dealership vehicles were found that are missing from this garage.");
-    renderVehicles("owned-list", result.available_owned || [], "owned", "No currently available dealership vehicles were matched as already owned.");
-    renderVehicles("garage-list", result.garage || [], "garage", "No vehicles were returned by this player garage.");
-
-    const warnings = Array.isArray(result.warnings) ? result.warnings : [];
-    document.getElementById("warnings").innerHTML = warnings
-        .map(warning => '<div class="warning">⚠ ' + escapeHtml(warning) + '</div>')
-        .join("");
-
-    showDiagnostics(result);
+    updateViewingLabel();
+    updateFilterControls();
+    renderActiveView();
 }
 
-function renderVehicles(containerId, vehicles, mode, emptyText) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = "";
+function getActiveVehicles() {
+    const config = VIEW_CONFIG[state.activeView];
+    const source = state.result && Array.isArray(state.result[config.source])
+        ? state.result[config.source]
+        : [];
+    return source.slice();
+}
 
-    if (!vehicles.length) {
-        container.innerHTML = '<div class="empty">' + escapeHtml(emptyText) + '</div>';
+function getCategory(vehicle) {
+    const value = String(vehicle && vehicle.class_name || "").trim();
+    return value && value.toUpperCase() !== "NULL" ? value : "Uncategorised";
+}
+
+function updateFilterControls() {
+    const filters = state.filters[state.activeView];
+    const vehicles = getActiveVehicles();
+    const counts = new Map();
+
+    vehicles.forEach(vehicle => {
+        const category = getCategory(vehicle);
+        counts.set(category, (counts.get(category) || 0) + 1);
+    });
+
+    const categories = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b));
+    if (filters.category && !counts.has(filters.category)) filters.category = "";
+
+    categorySelect.innerHTML = "";
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = "All categories (" + vehicles.length + ")";
+    categorySelect.appendChild(allOption);
+
+    categories.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category + " (" + counts.get(category) + ")";
+        categorySelect.appendChild(option);
+    });
+
+    searchInput.value = filters.query;
+    categorySelect.value = filters.category;
+}
+
+function renderActiveView() {
+    const container = document.getElementById("vehicle-list");
+    const config = VIEW_CONFIG[state.activeView];
+    const filters = state.filters[state.activeView];
+    const allVehicles = getActiveVehicles();
+    const query = filters.query.trim().toLowerCase();
+
+    const filtered = allVehicles.filter(vehicle => {
+        const category = getCategory(vehicle);
+        if (filters.category && category !== filters.category) return false;
+        if (!query) return true;
+
+        const haystack = [
+            vehicle.name,
+            vehicle.make,
+            vehicle.model,
+            category
+        ].map(value => String(value || "").toLowerCase()).join(" ");
+        return haystack.includes(query);
+    });
+
+    setText(
+        "result-summary",
+        config.summary + " Showing " + filtered.length.toLocaleString() + " of " + allVehicles.length.toLocaleString() + "."
+    );
+
+    container.innerHTML = "";
+    if (!filtered.length) {
+        container.innerHTML = '<div class="empty">' + escapeHtml(query || filters.category ? "No vehicles match the current filters." : config.empty) + '</div>';
         return;
     }
 
+    const grouped = new Map();
+    filtered.forEach(vehicle => {
+        const category = getCategory(vehicle);
+        if (!grouped.has(category)) grouped.set(category, []);
+        grouped.get(category).push(vehicle);
+    });
+
+    const sortedCategories = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
     const fragment = document.createDocumentFragment();
-    vehicles.forEach(vehicle => {
-        const isOwned = mode === "owned" || mode === "garage";
-        const row = document.createElement("div");
-        row.className = "vehicle" + (isOwned ? " owned" : "");
 
-        const info = document.createElement("div");
-        const name = document.createElement("div");
-        name.className = "vehicle-name";
-        name.textContent = vehicle.name || vehicle.model || "Unknown vehicle";
+    sortedCategories.forEach(category => {
+        const vehicles = grouped.get(category).sort(compareVehicles);
+        const details = document.createElement("details");
+        details.className = "category-group";
+        details.open = true;
 
-        const meta = document.createElement("div");
-        meta.className = "vehicle-meta";
-        const parts = [];
-        if (vehicle.make) parts.push(vehicle.make);
-        if (vehicle.class_name) parts.push(vehicle.class_name);
-        if (vehicle.model) parts.push("Model: " + vehicle.model);
-        if (vehicle.price !== null && vehicle.price !== undefined && vehicle.price !== "") {
-            parts.push("Price: " + formatPrice(vehicle.price));
-        }
-        if (Number(vehicle.quantity || 1) > 1) parts.push("Owned ×" + Number(vehicle.quantity));
-        meta.textContent = parts.join(" • ");
+        const summary = document.createElement("summary");
+        const title = document.createElement("span");
+        title.textContent = category;
+        const count = document.createElement("span");
+        count.className = "category-count";
+        count.textContent = vehicles.length;
+        summary.append(title, count);
 
-        const badge = document.createElement("div");
-        badge.className = "badge";
-        badge.textContent = mode === "available" ? "AVAILABLE" : "OWNED";
+        const list = document.createElement("div");
+        list.className = "category-vehicles";
+        vehicles.forEach(vehicle => list.appendChild(createVehicleRow(vehicle, state.activeView, config.badge)));
 
-        info.append(name, meta);
-        row.append(info, badge);
-        fragment.appendChild(row);
+        details.append(summary, list);
+        fragment.appendChild(details);
     });
 
     container.appendChild(fragment);
+}
+
+function compareVehicles(a, b) {
+    const nameA = String(a.name || a.model || "");
+    const nameB = String(b.name || b.model || "");
+    const nameComparison = nameA.localeCompare(nameB);
+    if (nameComparison !== 0) return nameComparison;
+    return String(a.model || "").localeCompare(String(b.model || ""));
+}
+
+function createVehicleRow(vehicle, mode, badgeText) {
+    const row = document.createElement("div");
+    row.className = "vehicle" + (mode === "owned" ? " owned" : mode === "garage" ? " garage" : "");
+
+    const info = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "vehicle-name";
+    name.textContent = vehicle.name || vehicle.model || "Unknown vehicle";
+
+    const meta = document.createElement("div");
+    meta.className = "vehicle-meta";
+    const parts = [];
+    const make = String(vehicle.make || "").trim();
+    if (make && make.toUpperCase() !== "NULL" && make.toLowerCase() !== "unknown") parts.push(make);
+    if (vehicle.model) parts.push("Model: " + vehicle.model);
+    if (vehicle.price !== null && vehicle.price !== undefined && vehicle.price !== "") {
+        parts.push("Price: " + formatPrice(vehicle.price));
+    }
+    if (Number(vehicle.quantity || 1) > 1) parts.push("Owned ×" + Number(vehicle.quantity));
+    meta.textContent = parts.join(" • ");
+
+    const badge = document.createElement("div");
+    badge.className = "badge";
+    badge.textContent = badgeText;
+
+    info.append(name, meta);
+    row.append(info, badge);
+    return row;
 }
 
 function formatPrice(value) {
@@ -438,8 +614,16 @@ function formatPrice(value) {
     return String(value);
 }
 
-function showDiagnostics(value) {
-    document.getElementById("diagnostics").textContent = JSON.stringify(value, null, 2);
+function renderError(message) {
+    const text = message || "Unknown error";
+    if (state.result) {
+        setText("result-summary", "Refresh failed: " + text + " Last successful results remain displayed.");
+        return;
+    }
+
+    document.getElementById("vehicle-list").innerHTML =
+        '<div class="error-note">' + escapeHtml(text) + '</div>';
+    setText("result-summary", "No garage data has loaded yet.");
 }
 
 function escapeHtml(value) {
@@ -451,23 +635,67 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
+function updateViewingLabel() {
+    if (!state.viewedId) {
+        setText("viewing-label", "Reading your Transport Tycoon ID…");
+        return;
+    }
+
+    const ownGarage = Boolean(state.selfId && state.viewedId === state.selfId);
+    setText("viewing-label", ownGarage ? "Viewing your garage" : "Viewing player ID " + state.viewedId);
+    setText("mini-id", state.viewedId);
+}
+
 function selectTab(name) {
+    if (!VIEW_CONFIG[name]) return;
+    state.activeView = name;
+
     document.querySelectorAll(".tab").forEach(button => {
         button.classList.toggle("active", button.dataset.tab === name);
     });
-    document.querySelectorAll(".pane").forEach(pane => {
-        pane.classList.toggle("active", pane.id === "pane-" + name);
-    });
+
+    updateFilterControls();
+    renderActiveView();
 }
 
 document.querySelectorAll(".tab").forEach(button => {
     button.addEventListener("click", () => selectTab(button.dataset.tab));
 });
 
-document.getElementById("refresh-btn").addEventListener("click", () => runCheck(false));
+document.getElementById("refresh-btn").addEventListener("click", () => {
+    state.manualLookupActive = Boolean(state.selfId && String(userInput.value).trim() !== state.selfId);
+    runCheck(false);
+});
+
 document.getElementById("force-btn").addEventListener("click", () => runCheck(true));
+
+document.getElementById("my-garage-btn").addEventListener("click", () => {
+    if (!state.selfId || state.loading) return;
+    state.manualLookupActive = false;
+    userInput.value = state.selfId;
+    runCheck(false);
+});
+
+userInput.addEventListener("input", () => {
+    state.manualLookupActive = true;
+});
+
 userInput.addEventListener("keydown", event => {
-    if (event.key === "Enter") runCheck(false);
+    if (event.key === "Enter") {
+        state.manualLookupActive = Boolean(state.selfId && String(userInput.value).trim() !== state.selfId);
+        runCheck(false);
+    }
+});
+
+searchInput.addEventListener("input", () => {
+    state.filters[state.activeView].query = searchInput.value;
+    renderActiveView();
+});
+
+categorySelect.addEventListener("change", () => {
+    state.filters[state.activeView].category = categorySelect.value;
+    renderActiveView();
+    document.getElementById("content").scrollTop = 0;
 });
 
 function toggleMini() {
@@ -499,7 +727,7 @@ let startLeft = 0;
 let startTop = 0;
 
 function beginDrag(event) {
-    if (event.target.closest("button, a, input")) return;
+    if (event.target.closest("button, a, input, select, summary")) return;
     event.preventDefault();
     dragging = true;
     startX = event.clientX;
@@ -544,29 +772,29 @@ function restoreGeometry() {
         }
         const size = JSON.parse(localStorage.getItem(STORAGE.SIZE) || "null");
         if (size) {
-            app.style.width = Math.max(360, Number(size.width) || 460) + "px";
-            app.style.height = Math.max(260, Number(size.height) || 650) + "px";
+            app.style.width = Math.max(390, Number(size.width) || 470) + "px";
+            app.style.height = Math.max(300, Number(size.height) || 660) + "px";
         }
         if (localStorage.getItem(STORAGE.MINI) === "1") app.classList.add("mini-mode");
     } catch (_) {}
 }
 
 function updateClock() {
-    document.getElementById("clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    document.getElementById("clock").textContent = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 }
 
 restoreGeometry();
 updateClock();
 setInterval(updateClock, 1000);
 
-const rememberedId = localStorage.getItem(STORAGE.LAST_ID) || "";
-if (rememberedId) userInput.value = rememberedId;
 requestIdentity();
 
 if (!isBackendConfigured()) {
     setStatus("SET APPS SCRIPT URL", "error");
-} else if (rememberedId) {
-    setTimeout(() => runCheck(false), 600);
+    renderError("Paste the deployed Google Apps Script /exec URL into GOOGLE_SCRIPT_URL first.");
 }
 </script>
 </body>
