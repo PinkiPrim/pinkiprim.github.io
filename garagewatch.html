@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Garage Watch Probe v0.2</title>
+    <title>Garage Watch Probe v0.3</title>
     <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
@@ -162,13 +162,13 @@
             <button class="header-btn" id="mini-btn">MINI</button>
         </div>
         <div class="header-title">Garage Watch</div>
-        <div class="header-sub">Dealership ownership comparison probe</div>
+        <div class="header-sub">Live dealership ownership comparison</div>
         <div id="clock">--:--</div>
     </header>
 
     <div id="content">
         <div class="notice">
-            Probe v0.2 rejects JavaScript template text and scans ttycoon.eu’s page modules for the real garage and dealership data requests. Until genuine records are found, it will show zero rather than fake vehicles.
+            Probe v0.3 calls ttycoon.eu’s real public JSON data routes. It compares the player garage against vehicles currently available in the dealership using the model/spawn identifier.
         </div>
 
         <div class="identity-row">
@@ -220,7 +220,7 @@
 </div>
 
 <script>
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.3.0";
 
 /* Paste the deployed Google Apps Script /exec URL here. */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADDKzZ2viYDWt7a0Bt0CBHNSqogP-2BNj70SgUHRZj1oNuedfG5akNWw6/exec";
@@ -354,7 +354,7 @@ async function runCheck(force) {
         if (result.ok && result.parser_ready) {
             setStatus("LIVE • " + Number(result.elapsed_ms || 0).toLocaleString() + "MS", "live");
         } else if (result.ok) {
-            setStatus("DISCOVERING DATA SOURCE • " + Number(result.elapsed_ms || 0).toLocaleString() + "MS", "busy");
+            setStatus("CONNECTING TO VEHICLE DATA • " + Number(result.elapsed_ms || 0).toLocaleString() + "MS", "busy");
         } else {
             setStatus("PROBE RETURNED WARNINGS", "error");
         }
@@ -376,9 +376,9 @@ function renderResult(result) {
     setText("mini-missing", counts.available_not_owned ?? 0);
     setText("mini-garage", counts.garage ?? 0);
 
-    renderVehicles("missing-list", result.available_not_owned || [], false, "No genuine dealership records detected yet.");
-    renderVehicles("owned-list", result.available_owned || [], true, "No genuine dealership ownership matches detected yet.");
-    renderVehicles("garage-list", result.garage || [], false, "No genuine garage records detected yet.");
+    renderVehicles("missing-list", result.available_not_owned || [], "available", "No currently available dealership vehicles were found that are missing from this garage.");
+    renderVehicles("owned-list", result.available_owned || [], "owned", "No currently available dealership vehicles were matched as already owned.");
+    renderVehicles("garage-list", result.garage || [], "garage", "No vehicles were returned by this player garage.");
 
     const warnings = Array.isArray(result.warnings) ? result.warnings : [];
     document.getElementById("warnings").innerHTML = warnings
@@ -388,7 +388,7 @@ function renderResult(result) {
     showDiagnostics(result);
 }
 
-function renderVehicles(containerId, vehicles, owned, emptyText) {
+function renderVehicles(containerId, vehicles, mode, emptyText) {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
 
@@ -399,8 +399,9 @@ function renderVehicles(containerId, vehicles, owned, emptyText) {
 
     const fragment = document.createDocumentFragment();
     vehicles.forEach(vehicle => {
+        const isOwned = mode === "owned" || mode === "garage";
         const row = document.createElement("div");
-        row.className = "vehicle" + (owned ? " owned" : "");
+        row.className = "vehicle" + (isOwned ? " owned" : "");
 
         const info = document.createElement("div");
         const name = document.createElement("div");
@@ -411,14 +412,17 @@ function renderVehicles(containerId, vehicles, owned, emptyText) {
         meta.className = "vehicle-meta";
         const parts = [];
         if (vehicle.make) parts.push(vehicle.make);
+        if (vehicle.class_name) parts.push(vehicle.class_name);
         if (vehicle.model) parts.push("Model: " + vehicle.model);
-        if (vehicle.price) parts.push("Price: " + vehicle.price);
-        parts.push("Found via " + (vehicle.source_method || "unknown"));
+        if (vehicle.price !== null && vehicle.price !== undefined && vehicle.price !== "") {
+            parts.push("Price: " + formatPrice(vehicle.price));
+        }
+        if (Number(vehicle.quantity || 1) > 1) parts.push("Owned ×" + Number(vehicle.quantity));
         meta.textContent = parts.join(" • ");
 
         const badge = document.createElement("div");
         badge.className = "badge";
-        badge.textContent = owned ? "OWNED" : "AVAILABLE";
+        badge.textContent = mode === "available" ? "AVAILABLE" : "OWNED";
 
         info.append(name, meta);
         row.append(info, badge);
@@ -426,6 +430,12 @@ function renderVehicles(containerId, vehicles, owned, emptyText) {
     });
 
     container.appendChild(fragment);
+}
+
+function formatPrice(value) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric.toLocaleString();
+    return String(value);
 }
 
 function showDiagnostics(value) {
