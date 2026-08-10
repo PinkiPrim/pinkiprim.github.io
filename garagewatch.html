@@ -167,6 +167,7 @@
         .dealership-timer.urgent { color: #ff7043; }
         .dealership-timer.expired { color: #ef5350; }
         .dealership-timer.no-timer { color: #90caf9; }
+        .dealership-timer.out-of-rotation { color: #ef5350; font-weight: 800; letter-spacing: .3px; }
         .badge {
             max-width: 82px; text-align: right; font: 800 .62em 'Rajdhani', sans-serif;
             color: var(--green); text-transform: uppercase; line-height: 1.1;
@@ -266,7 +267,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.2.1";
+const APP_VERSION = "1.2.2";
 
 /* Paste the deployed Google Apps Script /exec URL here. */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADDKzZ2viYDWt7a0Bt0CBHNSqogP-2BNj70SgUHRZj1oNuedfG5akNWw6/exec";
@@ -634,13 +635,17 @@ function createVehicleRow(vehicle, mode, badgeText) {
 
     let dealerTimer = null;
     if (mode !== "garage") {
-        const expiry = dealershipExpiryFor(vehicle);
+        const dealershipState = dealershipStatusFor(vehicle);
         dealerTimer = document.createElement("div");
         dealerTimer.className = "dealership-timer";
 
-        if (expiry > 0) {
-            dealerTimer.dataset.dealerExpiry = String(expiry);
+        if (dealershipState.type === "countdown") {
+            dealerTimer.dataset.dealerExpiry = String(dealershipState.expiry);
+            dealerTimer.dataset.rotationVehicle = "true";
             updateDealershipTimerElement(dealerTimer);
+        } else if (dealershipState.type === "out-of-rotation") {
+            dealerTimer.classList.add("out-of-rotation");
+            dealerTimer.textContent = "⛔ OUT OF ROTATION";
         } else {
             dealerTimer.classList.add("no-timer");
             dealerTimer.textContent = "∞ No Timer · Likely permanent dealership stock";
@@ -658,26 +663,56 @@ function createVehicleRow(vehicle, mode, badgeText) {
     return row;
 }
 
-function dealershipExpiryFor(vehicle) {
-    if (!vehicle) return 0;
+function dealershipStatusFor(vehicle) {
+    if (!vehicle) return { type: "no-timer", expiry: 0 };
+
+    const rotationFlag = vehicle.is_rotation_vehicle;
+    const isRotationVehicle =
+        rotationFlag === true ||
+        rotationFlag === 1 ||
+        String(rotationFlag).toLowerCase() === "true" ||
+        String(rotationFlag) === "1";
 
     const directRaw = vehicle.dealership_expires_at_ms;
+    let expiry = 0;
+
     if (directRaw !== null && directRaw !== undefined && directRaw !== "") {
         const direct = Number(directRaw);
-        if (Number.isFinite(direct) && direct > 0) return direct;
+        if (Number.isFinite(direct) && direct > 0) expiry = direct;
     }
 
     const daysRaw = vehicle.dealership_days_remaining;
-    if (daysRaw === null || daysRaw === undefined || daysRaw === "") {
-        return 0;
+    const hasTimerValue =
+        daysRaw !== null &&
+        daysRaw !== undefined &&
+        daysRaw !== "";
+
+    if (!expiry && hasTimerValue) {
+        const days = Number(daysRaw);
+        if (Number.isFinite(days) && days > 0) {
+            const generated = Date.parse(state.result && state.result.generated_at_utc || "");
+            const anchor = Number.isFinite(generated) ? generated : Date.now();
+            expiry = Math.round(anchor + (days * 86400000));
+        }
     }
 
-    const days = Number(daysRaw);
-    if (!Number.isFinite(days) || days < 0) return 0;
+    // Permanent/non-rotation stock can legitimately have no timer or a zero value.
+    if (!isRotationVehicle) {
+        return { type: "no-timer", expiry: 0 };
+    }
 
-    const generated = Date.parse(state.result && state.result.generated_at_utc || "");
-    const anchor = Number.isFinite(generated) ? generated : Date.now();
-    return Math.round(anchor + (days * 86400000));
+    // Rotation stock with a live expiry gets the countdown.
+    if (expiry > Date.now()) {
+        return { type: "countdown", expiry: expiry };
+    }
+
+    // A rotation vehicle whose timer is zero/missing/elapsed is no longer in rotation.
+    return { type: "out-of-rotation", expiry: expiry };
+}
+
+function dealershipExpiryFor(vehicle) {
+    const status = dealershipStatusFor(vehicle);
+    return status.type === "countdown" ? status.expiry : 0;
 }
 
 function formatDealershipCountdown(milliseconds) {
@@ -706,8 +741,10 @@ function updateDealershipTimerElement(element) {
     element.classList.remove("soon", "urgent", "expired");
 
     if (remaining <= 0) {
-        element.classList.add("expired");
-        element.textContent = "⏳ Dealership timer ended";
+        element.classList.remove("soon", "urgent", "expired", "no-timer");
+        element.classList.add("out-of-rotation");
+        element.removeAttribute("data-dealer-expiry");
+        element.textContent = "⛔ OUT OF ROTATION";
         return;
     }
 
