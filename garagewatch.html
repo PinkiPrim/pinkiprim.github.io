@@ -166,6 +166,7 @@
         .dealership-timer.soon { color: #ffca28; }
         .dealership-timer.urgent { color: #ff7043; }
         .dealership-timer.expired { color: #ef5350; }
+        .dealership-timer.no-timer { color: #90caf9; }
         .badge {
             max-width: 82px; text-align: right; font: 800 .62em 'Rajdhani', sans-serif;
             color: var(--green); text-transform: uppercase; line-height: 1.1;
@@ -265,7 +266,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.2.1";
 
 /* Paste the deployed Google Apps Script /exec URL here. */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADDKzZ2viYDWt7a0Bt0CBHNSqogP-2BNj70SgUHRZj1oNuedfG5akNWw6/exec";
@@ -634,11 +635,15 @@ function createVehicleRow(vehicle, mode, badgeText) {
     let dealerTimer = null;
     if (mode !== "garage") {
         const expiry = dealershipExpiryFor(vehicle);
+        dealerTimer = document.createElement("div");
+        dealerTimer.className = "dealership-timer";
+
         if (expiry > 0) {
-            dealerTimer = document.createElement("div");
-            dealerTimer.className = "dealership-timer";
             dealerTimer.dataset.dealerExpiry = String(expiry);
             updateDealershipTimerElement(dealerTimer);
+        } else {
+            dealerTimer.classList.add("no-timer");
+            dealerTimer.textContent = "∞ No Timer · Likely permanent dealership stock";
         }
     }
 
@@ -654,10 +659,20 @@ function createVehicleRow(vehicle, mode, badgeText) {
 }
 
 function dealershipExpiryFor(vehicle) {
-    const direct = Number(vehicle && vehicle.dealership_expires_at_ms);
-    if (Number.isFinite(direct) && direct > 0) return direct;
+    if (!vehicle) return 0;
 
-    const days = Number(vehicle && vehicle.dealership_days_remaining);
+    const directRaw = vehicle.dealership_expires_at_ms;
+    if (directRaw !== null && directRaw !== undefined && directRaw !== "") {
+        const direct = Number(directRaw);
+        if (Number.isFinite(direct) && direct > 0) return direct;
+    }
+
+    const daysRaw = vehicle.dealership_days_remaining;
+    if (daysRaw === null || daysRaw === undefined || daysRaw === "") {
+        return 0;
+    }
+
+    const days = Number(daysRaw);
     if (!Number.isFinite(days) || days < 0) return 0;
 
     const generated = Date.parse(state.result && state.result.generated_at_utc || "");
@@ -692,7 +707,7 @@ function updateDealershipTimerElement(element) {
 
     if (remaining <= 0) {
         element.classList.add("expired");
-        element.textContent = "⏳ Dealership timer ended — FORCE FRESH to re-check";
+        element.textContent = "⏳ Dealership timer ended";
         return;
     }
 
