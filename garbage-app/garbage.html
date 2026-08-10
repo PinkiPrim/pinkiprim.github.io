@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Garbage Ops v5.1</title>
+    <title>TT Garbage Ops v5.2 — No Polling</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -354,7 +354,7 @@
             </div>
 
             <div class="stat-grid">
-                <div class="stat-box"><div class="label">Garbage Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Garbage BXP</div><div class="value bxp" id="disp-bxp">0</div></div>
                 <div class="stat-box"><div class="label">Avg XP / Route</div><div class="value" id="disp-avg">0</div></div>
                 <div class="stat-box"><div class="label">Routes</div><div class="value" id="disp-routes">0</div></div>
             </div>
@@ -402,7 +402,8 @@ function openExternal(url) {
 
 // --- STATE ---
 const JOB_EXP_KEY = "exp_trucking_garbage";
-const TOKEN_KEY_GARBAGE = "exp_token_a|trucking|garbage"; 
+const TOKEN_KEY_GARBAGE = "exp_token_a|trucking|garbage";
+const DATA_KEYS = [JOB_EXP_KEY, "status", "inventory"];
 
 const STORAGE_KEY_CALC = "target_xp_garbage";
 const STORAGE_KEY_MINI = "mini_mode_garbage";
@@ -463,19 +464,34 @@ setInterval(() => {
 }, 1000);
 
 // --- ENGINE ---
-function requestData() {
-    if(window.parent) {
-        try { 
-            let keys = [
-                JOB_EXP_KEY, TOKEN_KEY_GARBAGE, 
-                "status", "inventory"
-            ];
-            window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
-            window.parent.postMessage({ type: "getData" }, "*"); 
-        } catch(e) {}
-    }
+function postTT(message) {
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage(message, "*");
+        }
+    } catch (_) {}
 }
-setInterval(requestData, 1000); 
+
+function subscribeToGarbageData() {
+    /*
+        ONE request on app load.
+
+        No generic getData.
+        No getNamedData interval.
+        No recurring inventory refresh.
+
+        TT continues pushing updates for these subscribed fields.
+        Garbage BXP is read from:
+            inventory["exp_token_a|trucking|garbage"].amount
+    */
+    postTT({
+        type: "getNamedData",
+        keys: DATA_KEYS
+    });
+}
+
+// Exactly one TT data request for this page load.
+subscribeToGarbageData();
 
 window.addEventListener('message', (event) => {
     let payload = event.data;
@@ -563,26 +579,78 @@ function processPayload(data) {
         renderStats();
     }
 
-    // 3. TOKEN LOGIC (ANTI-FLICKER)
-    let bxp = data[TOKEN_KEY_GARBAGE];
-    
-    if (!bxp && data.inventory) {
-        try {
-            let inv = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory;
-            bxp = inv[TOKEN_KEY_GARBAGE];
-        } catch(e){}
+    // 3. GARBAGE BXP
+    // Garbage BXP lives inside TT's inventory payload:
+    // inventory["exp_token_a|trucking|garbage"].amount
+    if (Object.prototype.hasOwnProperty.call(data, "inventory")) {
+        const inv = parseInventory(data.inventory);
+
+        if (inv) {
+            if (Object.prototype.hasOwnProperty.call(inv, TOKEN_KEY_GARBAGE)) {
+                const val = numberFromValue(inv[TOKEN_KEY_GARBAGE]);
+
+                if (val !== null) {
+                    STATE.tokenCache = Math.max(0, Math.floor(val));
+                }
+            } else {
+                // A valid inventory with no Garbage BXP item means zero.
+                STATE.tokenCache = 0;
+            }
+
+            const txt = formatNumber(STATE.tokenCache);
+            document.getElementById('disp-bxp').innerText = txt;
+            document.getElementById('micro-tokens').innerText = txt;
+        }
+    }
+}
+
+function parseInventory(value) {
+    if (!value) return null;
+
+    if (typeof value === 'object') {
+        return value;
     }
 
-    // Only update cache if we found a valid positive number
-    if (bxp) {
-        let val = (typeof bxp === 'object') ? bxp.amount : bxp;
-        if(val > 0) STATE.tokenCache = val;
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (_) {
+            return null;
+        }
     }
-    
-    // Display from cache (prevents 0-flicker)
-    let txt = formatNumber(STATE.tokenCache);
-    document.getElementById('disp-bxp').innerText = txt;
-    document.getElementById('micro-tokens').innerText = txt;
+
+    return null;
+}
+
+function numberFromValue(value) {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        const numeric = Number(trimmed);
+        if (Number.isFinite(numeric)) return numeric;
+
+        try {
+            return numberFromValue(JSON.parse(trimmed));
+        } catch (_) {
+            return null;
+        }
+    }
+
+    if (value && typeof value === 'object') {
+        for (const key of ['amount', 'value', 'count', 'qty', 'quantity']) {
+            if (Object.prototype.hasOwnProperty.call(value, key)) {
+                return numberFromValue(value[key]);
+            }
+        }
+    }
+
+    return null;
 }
 
 function cleanString(str) {
