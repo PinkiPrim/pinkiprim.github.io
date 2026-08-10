@@ -157,6 +157,15 @@
             display: flex; align-items: center; gap: 5px;
         }
         .vehicle-usage.none { color: #74797c; }
+        .dealership-timer {
+            margin-top: 4px;
+            color: #8bc34a;
+            font: 800 .74em 'Rajdhani', sans-serif;
+            letter-spacing: .2px;
+        }
+        .dealership-timer.soon { color: #ffca28; }
+        .dealership-timer.urgent { color: #ff7043; }
+        .dealership-timer.expired { color: #ef5350; }
         .badge {
             max-width: 82px; text-align: right; font: 800 .62em 'Rajdhani', sans-serif;
             color: var(--green); text-transform: uppercase; line-height: 1.1;
@@ -256,7 +265,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.2.0";
 
 /* Paste the deployed Google Apps Script /exec URL here. */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADDKzZ2viYDWt7a0Bt0CBHNSqogP-2BNj70SgUHRZj1oNuedfG5akNWw6/exec";
@@ -622,14 +631,79 @@ function createVehicleRow(vehicle, mode, badgeText) {
         }
     }
 
+    let dealerTimer = null;
+    if (mode !== "garage") {
+        const expiry = dealershipExpiryFor(vehicle);
+        if (expiry > 0) {
+            dealerTimer = document.createElement("div");
+            dealerTimer.className = "dealership-timer";
+            dealerTimer.dataset.dealerExpiry = String(expiry);
+            updateDealershipTimerElement(dealerTimer);
+        }
+    }
+
     const badge = document.createElement("div");
     badge.className = "badge";
     badge.textContent = badgeText;
 
     info.append(name, meta);
+    if (dealerTimer) info.appendChild(dealerTimer);
     if (usage) info.appendChild(usage);
     row.append(info, badge);
     return row;
+}
+
+function dealershipExpiryFor(vehicle) {
+    const direct = Number(vehicle && vehicle.dealership_expires_at_ms);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+
+    const days = Number(vehicle && vehicle.dealership_days_remaining);
+    if (!Number.isFinite(days) || days < 0) return 0;
+
+    const generated = Date.parse(state.result && state.result.generated_at_utc || "");
+    const anchor = Number.isFinite(generated) ? generated : Date.now();
+    return Math.round(anchor + (days * 86400000));
+}
+
+function formatDealershipCountdown(milliseconds) {
+    let total = Math.max(0, Math.floor(Number(milliseconds || 0) / 1000));
+    const days = Math.floor(total / 86400);
+    total %= 86400;
+    const hours = Math.floor(total / 3600);
+    total %= 3600;
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+
+    if (days > 0) return days + "d " + hours + "h " + minutes + "m";
+    if (hours > 0) return hours + "h " + minutes + "m " + seconds + "s";
+    return minutes + "m " + seconds + "s";
+}
+
+function updateDealershipTimerElement(element) {
+    if (!element) return;
+    const expiry = Number(element.dataset.dealerExpiry || 0);
+    if (!Number.isFinite(expiry) || expiry <= 0) {
+        element.style.display = "none";
+        return;
+    }
+
+    const remaining = expiry - Date.now();
+    element.classList.remove("soon", "urgent", "expired");
+
+    if (remaining <= 0) {
+        element.classList.add("expired");
+        element.textContent = "⏳ Dealership timer ended — FORCE FRESH to re-check";
+        return;
+    }
+
+    if (remaining < 60 * 60 * 1000) element.classList.add("urgent");
+    else if (remaining < 6 * 60 * 60 * 1000) element.classList.add("soon");
+
+    element.textContent = "⏳ Leaves dealership in " + formatDealershipCountdown(remaining);
+}
+
+function updateDealershipTimers() {
+    document.querySelectorAll(".dealership-timer[data-dealer-expiry]").forEach(updateDealershipTimerElement);
 }
 
 function formatPrice(value) {
@@ -828,6 +902,7 @@ function updateClock() {
 restoreGeometry();
 updateClock();
 setInterval(updateClock, 1000);
+setInterval(updateDealershipTimers, 1000);
 
 requestIdentity();
 
