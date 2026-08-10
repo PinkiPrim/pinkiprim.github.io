@@ -21,7 +21,7 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
   <header id="drag-handle" class="header">
     <a class="home" href="https://pinkiprim.github.io/pinkiapps.html" title="PinkiApps">🏠</a>
     <button class="mini-btn" onclick="toggleMini()">MINI</button>
-    <div class="title"><h1>XP BOOST TRACKER</h1><div>STRAIGHT-LINE LOCAL ROUTING</div></div>
+    <div class="title"><h1>XP BOOST TRACKER</h1><div>DISTRICT-LOCKED ROAD ROUTING</div></div>
     <div id="clock" class="clock">--:--</div>
     <div class="mini-summary"><span>Next <b id="mini-distance">--</b></span><span>Done <b id="mini-progress">0/0</b></span><span id="mini-auto">AUTO</span></div>
   </header>
@@ -45,7 +45,7 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
         <button class="btn danger" onclick="resetVisited()">RESET RUN</button>
       </div>
       <div class="controls route-controls">
-        <button id="route-mode-btn" class="btn sweep" onclick="toggleRouteMode()">MODE: STRAIGHT RUN</button>
+        <button id="route-mode-btn" class="btn sweep" onclick="toggleRouteMode()">MODE: ZONE LOCK</button>
         <button id="rebuild-sweep-btn" class="btn" onclick="rebuildRoadSweep(true)">REBUILD ROUTE</button>
       </div>
 
@@ -56,7 +56,7 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
     </div>
 
     <div class="list-head">
-      <div id="list-title" class="section-title">Upcoming straight-run stops</div>
+      <div id="list-title" class="section-title">Upcoming zone-locked stops</div>
       <label class="arrival">Arrival <input id="arrival-radius" type="number" min="10" max="150" step="5" value="50" onchange="saveArrivalRadius()"> m</label>
     </div>
     <div id="nearest-list" class="list"><div class="empty">Loading XP boost locations…</div></div>
@@ -70,21 +70,47 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
 <script>
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7hYQsBnic0BofHlVJ_82THepjANi8MYa2JF87HY7LNKpZbh-WY07hejfYtbFeszE2ug/exec';
 const HOME_URL = 'https://pinkiprim.github.io/pinkiapps.html';
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const LEGACY_BLIP_ID = 'pinki_xpboost_target';
 const DATA_KEYS = ['pos_x','pos_y','pos_z','zone','zoneName','street','vehicle','vehicleName'];
 const STORAGE = {
   POS:'pinki_xpboost_pos_v1', SIZE:'pinki_xpboost_size_v1', MINI:'pinki_xpboost_mini_v1',
   AUTO:'pinki_xpboost_auto_v1', RADIUS:'pinki_xpboost_radius_v2',
-  ROUTE_MODE:'pinki_xpboost_route_mode_v1'
+  ROUTE_MODE:'pinki_xpboost_route_mode_v1',
+  ZONES:'pinki_xpboost_zones_v1'
 };
+
+const FALLBACK_ZONES = [
+  // Critical south-port fallback so Banning/Elysian/Terminal never get mixed
+  // even if the full zone-map request fails.
+  {n:'Banning',d:'Banning',b:[
+    [-139.737,-2168.95,123.732,-2022.57],
+    [-277.511,-2362.95,505.032,-2168.95]
+  ]},
+  {n:'Elysian',d:'Elysian Island',b:[
+    [505.032,-3410.48,690.462,-2718.48],
+    [-460.886,-3410.48,505.032,-2362.95],
+    [-578.74,-2953.59,-460.886,-2754.95],
+    [-460.886,-2362.95,-277.511,-2126.75],
+    [-460.886,-2902.96,-276.634,-2759.8]
+  ]},
+  {n:'Termina',d:'Terminal',b:[
+    [690.462,-3410.48,1366.35,-2718.48]
+  ]},
+  {n:'AirP',d:'Los Santos International Airport',b:[
+    [-756.41,-2754.95,-460.886,-2135.08],
+    [-1972.45,-3556.38,-756.41,-1968.6]
+  ]}
+];
 
 const LIVE = {pos_x:null,pos_y:null,pos_z:null,zone:'',zoneName:'',street:'',vehicle:'',vehicleName:''};
 const STATE = {
   locations:[], visited:new Set(), skipped:new Set(), currentId:null,
   auto:localStorage.getItem(STORAGE.AUTO)!=='false',
   routeMode:localStorage.getItem(STORAGE.ROUTE_MODE)==='nearest'?'nearest':'sweep',
-  sweepOrder:[], sweepRevision:0, sweepLabel:'Local Chain', proximityHits:new Map(),
+  sweepOrder:[], sweepRevision:0, sweepLabel:'Zone Lock', proximityHits:new Map(),
+  zones:FALLBACK_ZONES.slice(), zonesReady:false, zonesSource:'fallback', zoneFetchInFlight:false,
+  routeZones:[], activeRouteZone:'',
   lastLocationSync:0,lastSyncError:'',
   locationFetchInFlight:false, arrivalHits:0, lastRenderAt:0
 };
@@ -103,6 +129,168 @@ function dist3D(a,b){return Math.hypot(Number(a.x)-Number(b.x),Number(a.y)-Numbe
 function fmtDist(m){if(!Number.isFinite(m))return'--';if(m>=1000)return`${(m/1000).toFixed(m>=10000?0:1)} km`;return`${Math.round(m)} m`}
 function coordText(p){return`${Number(p.x).toFixed(1)}, ${Number(p.y).toFixed(1)}, ${Number(p.z||0).toFixed(1)}`}
 
+
+function normaliseZoneKey(value){
+  return String(value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+}
+
+function zoneArea(bound){
+  return Math.max(0,Number(bound[2])-Number(bound[0]))*
+         Math.max(0,Number(bound[3])-Number(bound[1]));
+}
+
+function zoneForPoint(point){
+  if(!point||!STATE.zones.length)return null;
+
+  const x=Number(point.x),y=Number(point.y);
+  if(!Number.isFinite(x)||!Number.isFinite(y))return null;
+
+  let best=null;
+  for(const zone of STATE.zones){
+    for(const bound of zone.b||[]){
+      if(
+        x>=Number(bound[0]) &&
+        y>=Number(bound[1]) &&
+        x<=Number(bound[2]) &&
+        y<=Number(bound[3])
+      ){
+        const area=zoneArea(bound);
+        if(!best||area<best.area){
+          best={
+            key:normaliseZoneKey(zone.n),
+            name:String(zone.d||zone.n||'Unknown Zone'),
+            raw:String(zone.n||''),
+            area
+          };
+        }
+      }
+    }
+  }
+  return best;
+}
+
+function decorateLocationZones(){
+  STATE.locations.forEach(point=>{
+    const zone=zoneForPoint(point);
+    point.zoneKey=zone?zone.key:'UNKNOWN';
+    point.zoneName=zone?zone.name:'Unknown Zone';
+  });
+}
+
+function currentPlayerZone(){
+  const pos=livePos();
+  const fromCoordinates=pos?zoneForPoint(pos):null;
+  if(fromCoordinates)return fromCoordinates;
+
+  const liveKey=normaliseZoneKey(LIVE.zone);
+  if(liveKey){
+    const match=STATE.zones.find(zone=>
+      normaliseZoneKey(zone.n)===liveKey ||
+      normaliseZoneKey(zone.d)===liveKey
+    );
+    return {
+      key:liveKey,
+      name:match?String(match.d||match.n):String(LIVE.zoneName||LIVE.zone||'Current Zone'),
+      raw:String(LIVE.zone||''),
+      area:Infinity
+    };
+  }
+  return null;
+}
+
+function saveZoneCache(zones){
+  try{
+    localStorage.setItem(STORAGE.ZONES,JSON.stringify({
+      savedAt:Date.now(),
+      zones
+    }));
+  }catch(_){}
+}
+
+function readZoneCache(){
+  try{
+    const parsed=JSON.parse(localStorage.getItem(STORAGE.ZONES)||'null');
+    if(!parsed||!Array.isArray(parsed.zones)||!parsed.zones.length)return null;
+    return parsed.zones;
+  }catch(_){
+    return null;
+  }
+}
+
+function loadZones(done){
+  const cached=readZoneCache();
+  if(cached){
+    STATE.zones=cached;
+    STATE.zonesReady=true;
+    STATE.zonesSource='cache';
+  }
+
+  if(STATE.zoneFetchInFlight){
+    if(typeof done==='function')done();
+    return;
+  }
+
+  if(!GOOGLE_SCRIPT_URL||GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')){
+    if(typeof done==='function')done();
+    return;
+  }
+
+  STATE.zoneFetchInFlight=true;
+  const callback='pinkiZones_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  const script=document.createElement('script');
+  let settled=false;
+
+  const finish=(err,payload)=>{
+    if(settled)return;
+    settled=true;
+    clearTimeout(timeout);
+    STATE.zoneFetchInFlight=false;
+
+    if(!err&&payload&&payload.ok===true&&Array.isArray(payload.zones)&&payload.zones.length){
+      const zones=payload.zones
+        .map(zone=>({
+          n:String(zone.n||''),
+          d:String(zone.d||zone.n||''),
+          b:Array.isArray(zone.b)?zone.b.filter(bound=>
+            Array.isArray(bound)&&
+            bound.length>=4&&
+            bound.every(value=>Number.isFinite(Number(value)))
+          ).map(bound=>bound.slice(0,4).map(Number)):[]
+        }))
+        .filter(zone=>zone.n&&zone.b.length);
+
+      if(zones.length){
+        STATE.zones=zones;
+        STATE.zonesReady=true;
+        STATE.zonesSource='backend';
+        saveZoneCache(zones);
+      }
+    }
+
+    if(err&&!cached){
+      // FALLBACK_ZONES stays active. Do not throw a blocking UI error.
+      STATE.zonesReady=false;
+      STATE.zonesSource='fallback';
+    }
+
+    try{delete window[callback]}catch(_){}
+    script.remove();
+    if(typeof done==='function')done();
+  };
+
+  const timeout=setTimeout(
+    ()=>finish(new Error('Zone map request timed out')),
+    12000
+  );
+
+  window[callback]=payload=>finish(null,payload);
+  script.onerror=()=>finish(new Error('Could not contact zone-map backend'));
+
+  const sep=GOOGLE_SCRIPT_URL.includes('?')?'&':'?';
+  script.src=`${GOOGLE_SCRIPT_URL}${sep}action=zones&callback=${encodeURIComponent(callback)}&_=${Date.now()}`;
+  document.head.appendChild(script);
+}
+
 function loadLocations(force=false){
   if(STATE.locationFetchInFlight)return;
   if(!GOOGLE_SCRIPT_URL||GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')){STATE.lastSyncError='Google Apps Script URL not configured';renderHealth();return}
@@ -115,6 +303,7 @@ function loadLocations(force=false){
       if(!payload||payload.ok!==true)throw new Error(payload&&payload.error?payload.error:'Location backend returned an error');
       const rows=Array.isArray(payload.locations)?payload.locations:[];
       STATE.locations=rows.map((p,i)=>({id:String(p.id||i+1),label:String(p.label||`XP Boost #${i+1}`),x:Number(p.x),y:Number(p.y),z:Number(p.z||0)})).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
+      decorateLocationZones();
       STATE.lastLocationSync=Date.now();STATE.lastSyncError='';
       pruneVisited();
       if(STATE.routeMode==='sweep')rebuildRoadSweep(false);
@@ -336,20 +525,103 @@ function buildStraightRoute(origin,points){
   return route;
 }
 
+
+function zoneGroups(points){
+  const groups=new Map();
+  points.forEach(point=>{
+    const key=String(point.zoneKey||'UNKNOWN');
+    if(!groups.has(key)){
+      groups.set(key,{
+        key,
+        name:String(point.zoneName||'Unknown Zone'),
+        points:[]
+      });
+    }
+    groups.get(key).points.push(point);
+  });
+  return groups;
+}
+
+function distanceToGroup(origin,group){
+  let best=Infinity;
+  for(const point of group.points){
+    best=Math.min(best,dist2D(origin,point));
+  }
+  return best;
+}
+
+function chooseNextZoneGroup(cursor,groups,preferredKey=''){
+  if(preferredKey&&groups.has(preferredKey)){
+    return groups.get(preferredKey);
+  }
+
+  let best=null,bestDistance=Infinity;
+  for(const group of groups.values()){
+    const distance=distanceToGroup(cursor,group);
+    if(distance<bestDistance){
+      bestDistance=distance;
+      best=group;
+    }
+  }
+  return best;
+}
+
+function buildZoneLockedRoute(origin,points){
+  const groups=zoneGroups(points);
+  const route=[];
+  const routeZones=[];
+  let cursor=origin;
+
+  const playerZone=currentPlayerZone();
+  let preferredKey=playerZone&&groups.has(playerZone.key)?playerZone.key:'';
+
+  while(groups.size){
+    const group=chooseNextZoneGroup(cursor,groups,preferredKey);
+    preferredKey='';
+
+    if(!group)break;
+
+    // HARD DISTRICT LOCK:
+    // build a route using ONLY points from this zone and append the entire
+    // block before any coordinate from another zone can be considered.
+    const ordered=buildStraightRoute(cursor,group.points);
+
+    if(ordered.length){
+      route.push(...ordered);
+      routeZones.push({
+        key:group.key,
+        name:group.name,
+        count:ordered.length
+      });
+      cursor=ordered[ordered.length-1];
+    }
+
+    groups.delete(group.key);
+  }
+
+  return {route,routeZones};
+}
+
 function rebuildRoadSweep(routeNow=false){
   const pos=livePos();
   if(!pos||!STATE.locations.length)return;
 
+  decorateLocationZones();
   const points=remainingLocations();
+
   if(!points.length){
     STATE.sweepOrder=[];
-    STATE.sweepLabel='Straight Run';
+    STATE.routeZones=[];
+    STATE.activeRouteZone='';
+    STATE.sweepLabel='Zone Lock';
     return;
   }
 
-  const route=buildStraightRoute(pos,points);
-  STATE.sweepOrder=route.map(point=>point.id);
-  STATE.sweepLabel='Definitive straight run';
+  const plan=buildZoneLockedRoute(pos,points);
+  STATE.sweepOrder=plan.route.map(point=>point.id);
+  STATE.routeZones=plan.routeZones;
+  STATE.activeRouteZone=plan.routeZones.length?plan.routeZones[0].key:'';
+  STATE.sweepLabel='Zone locked';
   STATE.sweepRevision++;
 
   if(routeNow&&STATE.routeMode==='sweep'){
@@ -378,6 +650,9 @@ function sweepTarget(){
 
 function removeFromSweep(id){
   STATE.sweepOrder=STATE.sweepOrder.filter(value=>value!==id);
+
+  const next=sweepPoints()[0]||null;
+  STATE.activeRouteZone=next?String(next.zoneKey||''):'';
 }
 
 function sweepPosition(id){
@@ -453,8 +728,20 @@ function checkArrival(){
   // waypoint. This stops the route from bringing us back later for something
   // we already drove right beside.
   const coveredNow=[];
+  const playerZone=currentPlayerZone();
+  const targetZone=target?String(target.zoneKey||''):'';
+  const allowedZone=targetZone||(playerZone?playerZone.key:'');
+
   for(const point of STATE.locations){
     if(isExcluded(point.id))continue;
+
+    // Never mark a point across a district/water boundary as "passed".
+    if(
+      allowedZone &&
+      point.zoneKey &&
+      point.zoneKey!=='UNKNOWN' &&
+      point.zoneKey!==allowedZone
+    )continue;
 
     const d=dist3D(pos,point);
     if(d<=radius){
@@ -506,7 +793,7 @@ function checkArrival(){
 }
 function completeTarget(target){
   STATE.visited.add(target.id);STATE.skipped.delete(target.id);removeFromSweep(target.id);STATE.currentId=null;STATE.arrivalHits=0;
-  ttNotify(`${target.label} reached. Routing next ${STATE.routeMode==='sweep'?'straight-run boost':'nearest boost'}.`);
+  ttNotify(`${target.label} reached. Routing next ${STATE.routeMode==='sweep'?'boost in the locked district route':'nearest boost'}.`);
   toast(`${target.label} marked visited.`,'good');
   clearTargetBlip();recalculateNow(true);render();
 }
@@ -524,7 +811,7 @@ function toggleRouteMode(){
 
   if(STATE.routeMode==='sweep'){
     rebuildRoadSweep(false);
-    toast('Straight Run enabled. Named road runs are locked end-to-end and local U-turns are blocked.','good');
+    toast('Zone Lock enabled. Each GTA district is fully cleared before the route can leave it.','good');
   }else{
     toast('Nearest Boost mode enabled.','good');
   }
@@ -564,15 +851,15 @@ function render(){
 
   const modeBtn=document.getElementById('route-mode-btn');
   const sweepMode=STATE.routeMode==='sweep';
-  modeBtn.textContent=sweepMode?'MODE: STRAIGHT RUN':'MODE: NEAREST';
+  modeBtn.textContent=sweepMode?'MODE: ZONE LOCK':'MODE: NEAREST';
   modeBtn.classList.toggle('sweep',sweepMode);
   document.getElementById('rebuild-sweep-btn').disabled=!sweepMode;
   document.getElementById('rebuild-sweep-btn').style.opacity=sweepMode?'1':'.45';
 
-  document.getElementById('mini-auto').textContent=STATE.auto?(sweepMode?'SWEEP':'NEAR'):'PAUSED';
+  document.getElementById('mini-auto').textContent=STATE.auto?(sweepMode?'ZONE':'NEAR'):'PAUSED';
   document.getElementById('mini-auto').style.color=STATE.auto?'var(--green)':'var(--amber)';
 
-  document.getElementById('list-title').textContent=sweepMode?'Upcoming straight-run stops':'Nearest unvisited boosts';
+  document.getElementById('list-title').textContent=sweepMode?'Upcoming zone-locked stops':'Nearest unvisited boosts';
 
   const fill=total?Math.min(100,(visited/total)*100):0;
   document.getElementById('progress-fill').style.width=`${fill}%`;
@@ -584,9 +871,10 @@ function render(){
     if(sweepMode){
       const sequence=sweepPosition(target.id);
       const estimate=sweepEstimate();
-      const routeMeta=sequence?`${STATE.sweepLabel} • Stop ${sequence.index}/${sequence.total}`:'Straight Run';
+      const zoneText=target.zoneName&&target.zoneName!=='Unknown Zone'?target.zoneName:'Unknown Zone';
+      const routeMeta=sequence?`${STATE.sweepLabel}: ${zoneText} • Stop ${sequence.index}/${sequence.total}`:`Zone Lock: ${zoneText}`;
       document.getElementById('target-meta').textContent=
-        `${routeMeta} • ${coordText(target)}${estimate?` • Sweep ~${fmtDist(estimate)}`:''}${LIVE.street?` • ${LIVE.street}`:''}`;
+        `${routeMeta} • ${coordText(target)}${estimate?` • Remaining ~${fmtDist(estimate)}`:''}${LIVE.street?` • ${LIVE.street}`:''}`;
     }else{
       document.getElementById('target-meta').textContent=
         `Nearest Boost • ${coordText(target)}${LIVE.street?` • ${LIVE.street}`:''}`;
@@ -620,16 +908,29 @@ function render(){
   list.innerHTML=displayRows.slice(0,8).map((p,i)=>{
     const rank=sweepMode?`#${p.routeIndex}`:`#${i+1}`;
     const distance=sweepMode?p.legDistance:p.distance;
-    const sub=sweepMode?`Next leg ${fmtDist(distance)} • ${coordText(p)}`:coordText(p);
+    const sub=sweepMode?`${p.zoneName||'Unknown Zone'} • Next leg ${fmtDist(distance)} • ${coordText(p)}`:coordText(p);
     return `<div class="row ${p.id===STATE.currentId?'current':''}" onclick="chooseTarget('${escapeAttr(p.id)}')"><div class="rank">${rank}</div><div><div class="row-name">${escapeHtml(p.label)}</div><div class="row-coord">${escapeHtml(sub)}</div></div><div class="row-dist">${fmtDist(p.distance)}</div></div>`;
   }).join('');
 }
 function chooseTarget(id){
   const p=STATE.locations.find(x=>x.id===String(id));
   if(!p)return;
+
   if(STATE.routeMode==='sweep'){
-    STATE.sweepOrder=[p.id,...STATE.sweepOrder.filter(value=>value!==p.id)];
+    // Keep district integrity even after a manual click: move the whole
+    // selected district block to the front, not just one coordinate.
+    const sameZone=STATE.sweepOrder.filter(routeId=>{
+      const point=STATE.locations.find(item=>item.id===routeId);
+      return point&&String(point.zoneKey||'')===String(p.zoneKey||'');
+    });
+    const otherZones=STATE.sweepOrder.filter(routeId=>!sameZone.includes(routeId));
+    STATE.sweepOrder=[...sameZone,...otherZones];
+
+    const next=sweepTarget();
+    if(next)setTarget(next,true);
+    return;
   }
+
   setTarget(p,true)
 }
 function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -657,7 +958,11 @@ window.addEventListener('load',()=>{
   try{const s=JSON.parse(localStorage.getItem(STORAGE.SIZE)||'null');if(s){appEl.style.width=`${Math.max(350,Number(s.width)||430)}px`;appEl.style.height=`${Math.max(360,Number(s.height)||600)}px`}}catch(e){}
   if(localStorage.getItem(STORAGE.MINI)==='true')appEl.classList.add('mini');
   const r=Number(localStorage.getItem(STORAGE.RADIUS));if(Number.isFinite(r)&&r>=10&&r<=150)document.getElementById('arrival-radius').value=r;
-  postTT({type:'removeBlip',id:LEGACY_BLIP_ID});requestPosition();loadLocations(false);render();renderHealth();
+  postTT({type:'removeBlip',id:LEGACY_BLIP_ID});
+  requestPosition();
+  loadZones(()=>loadLocations(false));
+  render();
+  renderHealth();
 });
 
 // Position polling is deliberately targeted and modest: no generic getData calls.
