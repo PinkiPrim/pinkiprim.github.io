@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Firefighting Helper v1.1 (Persistence)</title>
+    <title>TT Firefighting Helper v1.2 (Targeted Data + Firefighter BXP)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Roboto:wght@400;700&display=swap');
 
@@ -305,7 +305,7 @@
             <div class="fires-remaining-text" id="fires-to-level">Complete a fire to calculate remaining...</div>
 
             <div class="stat-grid">
-                <div class="stat-box"><div class="label">BXP Tokens</div><div class="value bxp" id="disp-bxp">0</div></div>
+                <div class="stat-box"><div class="label">Firefighter BXP</div><div class="value bxp" id="disp-bxp">0</div></div>
                 <div class="stat-box"><div class="label">Avg XP</div><div class="value" id="disp-avg-xp">0</div></div>
                 <div class="stat-box"><div class="label">Fires Done</div><div class="value" id="disp-session-fires">0</div></div>
             </div>
@@ -329,15 +329,33 @@
 
 <script>
     // --- STATE ---
-    const KEYS = { XP: "exp_ems_fire", BXP: "exp_token_a|ems|fire" };
+    // Confirmed TT keys:
+    // Firefighter XP: exp_ems_fire
+    // Firefighter Bonus EXP inventory item: exp_token_a|ems|fire
+    const KEYS = {
+        XP: "exp_ems_fire",
+        BXP: "exp_token_a|ems|fire",
+        INVENTORY: "inventory",
+        NAME: "name"
+    };
+
+    const CORE_POLL_MS = 1500;
+    const INVENTORY_RECONCILE_MS = 30000;
+
     const STORAGE_KEY_CALC = "target_xp_fire";
     const STORAGE_KEY_MINI = "mini_mode_fire";
-    const STORAGE_KEY_POS = "fire_app_pos"; // Added positional memory
+    const STORAGE_KEY_POS = "fire_app_pos";
 
     const STATE = {
-        currentXP: 0, currentBXP: 0, 
-        startXP: null, lastKnownXP: -1,
-        sessionFires: 0, sessionXP: 0, avgXP: 0
+        currentXP: 0,
+        currentBXP: 0,
+        startXP: null,
+        lastKnownXP: -1,
+        sessionFires: 0,
+        sessionXP: 0,
+        avgXP: 0,
+        directBXPSeen: false,
+        lastInventoryRequest: 0
     };
 
     // --- INIT ---
@@ -366,52 +384,127 @@
     }
 
     // --- COMMS ---
-    function requestData() {
-        if(window.parent) {
-            try { window.parent.postMessage({ type: "getNamedData", keys: [KEYS.XP, KEYS.BXP, "inventory", "name"] }, "*"); } catch(e) {}
-        }
+    function postTT(message) {
+        if (!window.parent) return;
+        try { window.parent.postMessage(message, "*"); } catch (_) {}
     }
-    requestData();
-    setInterval(requestData, 1000);
+
+    function requestNamed(keys) {
+        postTT({ type: "getNamedData", keys });
+    }
+
+    function requestCoreData() {
+        // Small targeted poll only. No generic getData and no full inventory here.
+        requestNamed([KEYS.XP, KEYS.BXP, KEYS.NAME]);
+    }
+
+    function requestInventoryForBXP(force = false) {
+        const now = Date.now();
+        if (!force && now - STATE.lastInventoryRequest < INVENTORY_RECONCILE_MS) return;
+        STATE.lastInventoryRequest = now;
+
+        // Full inventory is isolated to this fallback path only.
+        requestNamed([KEYS.INVENTORY]);
+    }
+
+    requestCoreData();
+    setInterval(requestCoreData, CORE_POLL_MS);
+
+    // First give the exact BXP key a chance to answer directly.
+    setTimeout(() => {
+        if (!STATE.directBXPSeen) requestInventoryForBXP(true);
+    }, 2500);
+
+    // If direct BXP is unsupported, reconcile only occasionally.
+    setInterval(() => {
+        if (!STATE.directBXPSeen) requestInventoryForBXP(false);
+    }, INVENTORY_RECONCILE_MS);
 
     // --- LISTENER ---
     window.addEventListener('message', (event) => {
         let payload = event.data;
         if (payload && payload.type === 'data' && payload.data) payload = payload.data;
-        if (!payload) return;
-        
-        if(payload.name) document.getElementById('user-name-fire').innerText = "Firefighter " + payload.name;
+        if (!payload || typeof payload !== 'object') return;
 
-        // XP
-        if (typeof payload[KEYS.XP] === 'number') updateXP(payload[KEYS.XP]);
-        else if (payload.inventory) {
-            try { 
-                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
-                if(inv[KEYS.XP]) updateXP(inv[KEYS.XP]);
-            } catch(e){}
+        if (payload.name) {
+            document.getElementById('user-name-fire').innerText = "Firefighter " + payload.name;
         }
 
-        // BXP
-        let bxpFound = -1;
-        if (payload[KEYS.BXP]) bxpFound = extractBXP(payload[KEYS.BXP]);
-        else if (payload.inventory) {
-            try { 
-                const inv = typeof payload.inventory === 'string' ? JSON.parse(payload.inventory) : payload.inventory;
-                if (inv && inv[KEYS.BXP]) bxpFound = extractBXP(inv[KEYS.BXP]);
-            } catch(e){}
+        if (Object.prototype.hasOwnProperty.call(payload, KEYS.XP)) {
+            const xp = extractNumber(payload[KEYS.XP]);
+            if (xp >= 0) updateXP(xp);
         }
-        if (bxpFound >= 0) {
-            STATE.currentBXP = bxpFound;
-            let txt = formatNum(STATE.currentBXP);
-            document.getElementById('disp-bxp').innerText = txt;
-            document.getElementById('micro-tokens').innerText = txt;
+
+        // Preferred path: exact Firefighter BXP key via targeted named data.
+        if (Object.prototype.hasOwnProperty.call(payload, KEYS.BXP)) {
+            const bxp = extractBXP(payload[KEYS.BXP]);
+            if (bxp >= 0) {
+                STATE.directBXPSeen = true;
+                updateBXP(bxp);
+            }
+        }
+
+        // Fallback: when inventory was deliberately requested, inspect only the
+        // confirmed exp_token_a|ems|fire entry.
+        if (Object.prototype.hasOwnProperty.call(payload, KEYS.INVENTORY)) {
+            const inv = parseInventory(payload[KEYS.INVENTORY]);
+            if (inv) {
+                if (Object.prototype.hasOwnProperty.call(inv, KEYS.BXP)) {
+                    const bxp = extractBXP(inv[KEYS.BXP]);
+                    if (bxp >= 0) updateBXP(bxp);
+                } else {
+                    updateBXP(0);
+                }
+            }
         }
     });
 
-    function extractBXP(val) {
-        if (typeof val === 'number') return val;
-        if (typeof val === 'object' && val.amount) return val.amount;
+    function parseInventory(value) {
+        if (!value) return null;
+        if (typeof value === 'object') return value;
+        if (typeof value === 'string') {
+            try {
+                const parsed = JSON.parse(value);
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            } catch (_) { return null; }
+        }
+        return null;
+    }
+
+    function extractNumber(value) {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : -1;
+
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) return -1;
+            const direct = Number(trimmed);
+            if (Number.isFinite(direct)) return direct;
+            try { return extractNumber(JSON.parse(trimmed)); } catch (_) { return -1; }
+        }
+
+        if (value && typeof value === 'object') {
+            for (const key of ['amount', 'value', 'count', 'qty', 'quantity']) {
+                if (Object.prototype.hasOwnProperty.call(value, key)) {
+                    const parsed = extractNumber(value[key]);
+                    if (parsed >= 0) return parsed;
+                }
+            }
+        }
+
         return -1;
+    }
+
+    function extractBXP(value) {
+        const parsed = extractNumber(value);
+        return parsed >= 0 ? Math.max(0, Math.floor(parsed)) : -1;
+    }
+
+    function updateBXP(newBXP) {
+        if (!Number.isFinite(newBXP) || newBXP < 0) return;
+        STATE.currentBXP = Math.floor(newBXP);
+        const txt = formatNum(STATE.currentBXP);
+        document.getElementById('disp-bxp').innerText = txt;
+        document.getElementById('micro-tokens').innerText = txt;
     }
 
     function updateXP(newXP) {
@@ -431,6 +524,12 @@
                 STATE.sessionFires++;
                 STATE.avgXP = STATE.sessionXP / STATE.sessionFires;
                 triggerSplash(); // Fire Out!
+
+                // If direct BXP is not available, refresh it once after the fire
+                // instead of polling the whole inventory continuously.
+                if (!STATE.directBXPSeen) {
+                    setTimeout(() => requestInventoryForBXP(true), 1200);
+                }
             }
             STATE.lastKnownXP = newXP;
         }
