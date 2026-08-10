@@ -21,7 +21,7 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
   <header id="drag-handle" class="header">
     <a class="home" href="https://pinkiprim.github.io/pinkiapps.html" title="PinkiApps">🏠</a>
     <button class="mini-btn" onclick="toggleMini()">MINI</button>
-    <div class="title"><h1>XP BOOST TRACKER</h1><div>SENSIBLE LOCAL BOOST ROUTING</div></div>
+    <div class="title"><h1>XP BOOST TRACKER</h1><div>STRAIGHT-LINE LOCAL ROUTING</div></div>
     <div id="clock" class="clock">--:--</div>
     <div class="mini-summary"><span>Next <b id="mini-distance">--</b></span><span>Done <b id="mini-progress">0/0</b></span><span id="mini-auto">AUTO</span></div>
   </header>
@@ -45,7 +45,7 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
         <button class="btn danger" onclick="resetVisited()">RESET RUN</button>
       </div>
       <div class="controls route-controls">
-        <button id="route-mode-btn" class="btn sweep" onclick="toggleRouteMode()">MODE: LOCAL CHAIN</button>
+        <button id="route-mode-btn" class="btn sweep" onclick="toggleRouteMode()">MODE: STRAIGHT RUN</button>
         <button id="rebuild-sweep-btn" class="btn" onclick="rebuildRoadSweep(true)">REBUILD ROUTE</button>
       </div>
 
@@ -56,7 +56,7 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
     </div>
 
     <div class="list-head">
-      <div id="list-title" class="section-title">Upcoming local route stops</div>
+      <div id="list-title" class="section-title">Upcoming straight-run stops</div>
       <label class="arrival">Arrival <input id="arrival-radius" type="number" min="10" max="150" step="5" value="50" onchange="saveArrivalRadius()"> m</label>
     </div>
     <div id="nearest-list" class="list"><div class="empty">Loading XP boost locations…</div></div>
@@ -70,7 +70,7 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
 <script>
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7hYQsBnic0BofHlVJ_82THepjANi8MYa2JF87HY7LNKpZbh-WY07hejfYtbFeszE2ug/exec';
 const HOME_URL = 'https://pinkiprim.github.io/pinkiapps.html';
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const LEGACY_BLIP_ID = 'pinki_xpboost_target';
 const DATA_KEYS = ['pos_x','pos_y','pos_z','zone','zoneName','street','vehicle','vehicleName'];
 const STORAGE = {
@@ -152,8 +152,53 @@ function pathLength(origin,order){
   return total;
 }
 
-function vectorAnglePenalty(previous,current,candidate){
-  if(!previous||!current||!candidate)return 0;
+function meaningfulRouteLabel(point){
+  const label=String(point&&point.label||'').trim();
+  if(!label)return '';
+  if(/^xp\s*boost(?:\s*#?\d+)?$/i.test(label))return '';
+  if(/^boost(?:\s*#?\d+)?$/i.test(label))return '';
+  return label.toLowerCase();
+}
+
+function principalLineOrder(points,origin){
+  if(points.length<=1)return points.slice();
+
+  const cx=points.reduce((sum,p)=>sum+Number(p.x),0)/points.length;
+  const cy=points.reduce((sum,p)=>sum+Number(p.y),0)/points.length;
+
+  let xx=0,xy=0,yy=0;
+  points.forEach(point=>{
+    const dx=Number(point.x)-cx;
+    const dy=Number(point.y)-cy;
+    xx+=dx*dx;
+    xy+=dx*dy;
+    yy+=dy*dy;
+  });
+
+  // Principal axis of the coordinate cluster. For several boosts along one
+  // road, this gives us one definitive end-to-end line through that run.
+  const angle=.5*Math.atan2(2*xy,xx-yy);
+  const ax=Math.cos(angle);
+  const ay=Math.sin(angle);
+
+  const ordered=points.slice().sort((a,b)=>{
+    const pa=(Number(a.x)-cx)*ax+(Number(a.y)-cy)*ay;
+    const pb=(Number(b.x)-cx)*ax+(Number(b.y)-cy)*ay;
+    return pa-pb;
+  });
+
+  // Enter the road/run from the end physically closest to where the previous
+  // run finished, then continue all the way through. No leaving halfway and
+  // returning later.
+  const firstDistance=dist2D(origin,ordered[0]);
+  const lastDistance=dist2D(origin,ordered[ordered.length-1]);
+  if(lastDistance<firstDistance)ordered.reverse();
+
+  return ordered;
+}
+
+function cosineFromDirection(previous,current,candidate){
+  if(!previous||!current||!candidate)return 1;
 
   const ax=Number(current.x)-Number(previous.x);
   const ay=Number(current.y)-Number(previous.y);
@@ -162,110 +207,130 @@ function vectorAnglePenalty(previous,current,candidate){
 
   const aLen=Math.hypot(ax,ay);
   const bLen=Math.hypot(bx,by);
-  if(aLen<1||bLen<1)return 0;
+  if(aLen<1||bLen<1)return 1;
 
-  const cosine=Math.max(-1,Math.min(1,(ax*bx+ay*by)/(aLen*bLen)));
-  const angle=Math.acos(cosine)*180/Math.PI;
-
-  // Gentle bends are basically free. A genuine U-turn is expensive.
-  if(angle<=55)return 0;
-  if(angle<=90)return bLen*.12;
-  if(angle<=120)return bLen*.35;
-  if(angle<=150)return 180+bLen*.75;
-  return 420+bLen*1.35;
+  return Math.max(-1,Math.min(1,(ax*bx+ay*by)/(aLen*bLen)));
 }
 
-function nearestFutureDistance(candidate,remaining){
-  let best=Infinity;
-  for(const other of remaining){
-    if(other.id===candidate.id)continue;
-    const d=dist2D(candidate,other);
-    if(d<best)best=d;
-  }
-  return Number.isFinite(best)?best:0;
-}
-
-function chooseLocalNext(previous,current,remaining){
+function chooseStraightNext(previous,current,remaining){
   if(!remaining.length)return null;
 
-  const byDistance=remaining
-    .map(point=>({point,distance:dist2D(current,point)}))
+  const sorted=remaining
+    .map(point=>({
+      point,
+      distance:dist2D(current,point),
+      cosine:cosineFromDirection(previous,current,point)
+    }))
     .sort((a,b)=>a.distance-b.distance);
 
-  const nearestDistance=byDistance[0].distance;
+  if(!previous)return sorted[0].point;
 
-  // Stay local. Allow a slightly farther candidate if it forms a much better
-  // chain of neighbouring boosts, but never jump across the map while local
-  // points are still available.
-  const localLimit=Math.max(
-    325,
-    Math.min(900,nearestDistance*1.85+175)
+  const nearest=sorted[0].distance;
+  const localLimit=Math.max(550,Math.min(1100,nearest*1.8+150));
+
+  // HARD RULE: if there is anything reasonably local in front of us, a point
+  // behind us is not eligible. This is deliberately not a soft score.
+  let candidates=sorted.filter(item=>
+    item.distance<=localLimit &&
+    item.cosine>=0.10
   );
 
-  let candidates=byDistance
-    .filter(item=>item.distance<=localLimit)
-    .slice(0,10);
+  // Prefer an even straighter continuation when one exists.
+  const straight=candidates.filter(item=>item.cosine>=0.55);
+  if(straight.length)candidates=straight;
 
-  if(!candidates.length)candidates=byDistance.slice(0,6);
+  if(!candidates.length)return null;
 
-  let best=null;
-  for(const item of candidates){
-    const candidate=item.point;
-    const nextDistance=nearestFutureDistance(
-      candidate,
-      remaining.filter(point=>point.id!==candidate.id)
-    );
-
-    // Main priority is still "what is close to where I am now".
-    let score=item.distance;
-
-    // Prefer a point that naturally leads into another nearby point instead
-    // of a tempting dead-end that immediately sends us back.
-    score+=nextDistance*.34;
-
-    // Once a real route direction exists, heavily discourage doubling back.
-    // We intentionally do NOT use the player's approach into the first point
-    // as the route direction; direction begins after the first route leg.
-    score+=vectorAnglePenalty(previous,current,candidate);
-
-    if(!best||score<best.score){
-      best={point:candidate,score};
-    }
-  }
-
-  return best?best.point:byDistance[0].point;
+  // Inside the permitted forward cone, closest wins. No look-ahead weighting.
+  return candidates[0].point;
 }
 
-function buildLocalChain(origin,points){
-  const remaining=points.slice();
+function buildUnlabelledStraightRun(origin,remaining){
+  if(!remaining.length)return [];
+
   const route=[];
+  const pool=remaining.slice();
+
+  // Literal closest first.
+  let firstIndex=0,firstDistance=Infinity;
+  for(let i=0;i<pool.length;i++){
+    const d=dist2D(origin,pool[i]);
+    if(d<firstDistance){firstDistance=d;firstIndex=i}
+  }
+
+  let current=pool.splice(firstIndex,1)[0];
+  route.push(current);
   let previous=null;
-  let current=origin;
 
-  while(remaining.length){
-    let next;
+  while(pool.length){
+    const next=chooseStraightNext(previous,current,pool);
+    if(!next)break;
 
-    if(route.length===0){
-      // First stop is literal nearest to the player.
-      let bestIndex=0,bestDistance=Infinity;
-      for(let i=0;i<remaining.length;i++){
-        const d=dist2D(current,remaining[i]);
-        if(d<bestDistance){bestDistance=d;bestIndex=i}
-      }
-      next=remaining.splice(bestIndex,1)[0];
-    }else{
-      next=chooseLocalNext(
-        route.length>=2?route[route.length-2]:null,
-        current,
-        remaining
-      );
-      const index=remaining.findIndex(point=>point.id===next.id);
-      remaining.splice(index,1);
-    }
+    const index=pool.findIndex(point=>point.id===next.id);
+    pool.splice(index,1);
 
-    route.push(next);
     previous=current;
     current=next;
+    route.push(next);
+  }
+
+  return route;
+}
+
+function buildStraightRoute(origin,points){
+  const remaining=points.slice();
+  const route=[];
+  let cursor=origin;
+  let safety=0;
+
+  while(remaining.length&&safety<points.length+10){
+    safety++;
+
+    // Pick the closest remaining coordinate only to decide WHICH local run
+    // we're entering next.
+    let seedIndex=0,seedDistance=Infinity;
+    for(let i=0;i<remaining.length;i++){
+      const d=dist2D(cursor,remaining[i]);
+      if(d<seedDistance){seedDistance=d;seedIndex=i}
+    }
+
+    const seed=remaining[seedIndex];
+    const labelKey=meaningfulRouteLabel(seed);
+
+    if(labelKey){
+      const sameRun=remaining.filter(point=>meaningfulRouteLabel(point)===labelKey);
+
+      if(sameRun.length>=2){
+        // Same named road/location = one indivisible straight run.
+        const orderedRun=principalLineOrder(sameRun,cursor);
+        route.push(...orderedRun);
+
+        const ids=new Set(orderedRun.map(point=>point.id));
+        for(let i=remaining.length-1;i>=0;i--){
+          if(ids.has(remaining[i].id))remaining.splice(i,1);
+        }
+
+        cursor=orderedRun[orderedRun.length-1];
+        continue;
+      }
+    }
+
+    // For unnamed/singleton points, build a forward-only local run. When there
+    // is no sensible point ahead, stop that run rather than taking a U-turn.
+    const run=buildUnlabelledStraightRun(cursor,remaining);
+    if(!run.length){
+      route.push(seed);
+      remaining.splice(seedIndex,1);
+      cursor=seed;
+      continue;
+    }
+
+    route.push(...run);
+    const ids=new Set(run.map(point=>point.id));
+    for(let i=remaining.length-1;i>=0;i--){
+      if(ids.has(remaining[i].id))remaining.splice(i,1);
+    }
+    cursor=run[run.length-1];
   }
 
   return route;
@@ -278,13 +343,13 @@ function rebuildRoadSweep(routeNow=false){
   const points=remainingLocations();
   if(!points.length){
     STATE.sweepOrder=[];
-    STATE.sweepLabel='Local Chain';
+    STATE.sweepLabel='Straight Run';
     return;
   }
 
-  const route=buildLocalChain(pos,points);
+  const route=buildStraightRoute(pos,points);
   STATE.sweepOrder=route.map(point=>point.id);
-  STATE.sweepLabel='Closest sensible chain';
+  STATE.sweepLabel='Definitive straight run';
   STATE.sweepRevision++;
 
   if(routeNow&&STATE.routeMode==='sweep'){
@@ -441,7 +506,7 @@ function checkArrival(){
 }
 function completeTarget(target){
   STATE.visited.add(target.id);STATE.skipped.delete(target.id);removeFromSweep(target.id);STATE.currentId=null;STATE.arrivalHits=0;
-  ttNotify(`${target.label} reached. Routing next ${STATE.routeMode==='sweep'?'local boost':'nearest boost'}.`);
+  ttNotify(`${target.label} reached. Routing next ${STATE.routeMode==='sweep'?'straight-run boost':'nearest boost'}.`);
   toast(`${target.label} marked visited.`,'good');
   clearTargetBlip();recalculateNow(true);render();
 }
@@ -459,7 +524,7 @@ function toggleRouteMode(){
 
   if(STATE.routeMode==='sweep'){
     rebuildRoadSweep(false);
-    toast('Local Chain enabled. Nearby boosts are chained together with a backtrack penalty.','good');
+    toast('Straight Run enabled. Named road runs are locked end-to-end and local U-turns are blocked.','good');
   }else{
     toast('Nearest Boost mode enabled.','good');
   }
@@ -499,7 +564,7 @@ function render(){
 
   const modeBtn=document.getElementById('route-mode-btn');
   const sweepMode=STATE.routeMode==='sweep';
-  modeBtn.textContent=sweepMode?'MODE: LOCAL CHAIN':'MODE: NEAREST';
+  modeBtn.textContent=sweepMode?'MODE: STRAIGHT RUN':'MODE: NEAREST';
   modeBtn.classList.toggle('sweep',sweepMode);
   document.getElementById('rebuild-sweep-btn').disabled=!sweepMode;
   document.getElementById('rebuild-sweep-btn').style.opacity=sweepMode?'1':'.45';
@@ -507,7 +572,7 @@ function render(){
   document.getElementById('mini-auto').textContent=STATE.auto?(sweepMode?'SWEEP':'NEAR'):'PAUSED';
   document.getElementById('mini-auto').style.color=STATE.auto?'var(--green)':'var(--amber)';
 
-  document.getElementById('list-title').textContent=sweepMode?'Upcoming local route stops':'Nearest unvisited boosts';
+  document.getElementById('list-title').textContent=sweepMode?'Upcoming straight-run stops':'Nearest unvisited boosts';
 
   const fill=total?Math.min(100,(visited/total)*100):0;
   document.getElementById('progress-fill').style.width=`${fill}%`;
@@ -519,7 +584,7 @@ function render(){
     if(sweepMode){
       const sequence=sweepPosition(target.id);
       const estimate=sweepEstimate();
-      const routeMeta=sequence?`${STATE.sweepLabel} • Stop ${sequence.index}/${sequence.total}`:'Local Chain';
+      const routeMeta=sequence?`${STATE.sweepLabel} • Stop ${sequence.index}/${sequence.total}`:'Straight Run';
       document.getElementById('target-meta').textContent=
         `${routeMeta} • ${coordText(target)}${estimate?` • Sweep ~${fmtDist(estimate)}`:''}${LIVE.street?` • ${LIVE.street}`:''}`;
     }else{
