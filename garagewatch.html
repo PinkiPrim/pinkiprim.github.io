@@ -140,6 +140,19 @@
             min-width: 24px; text-align: center; border-radius: 10px; padding: 1px 6px;
             background: rgba(0,0,0,.35); color: var(--primary); font-size: .9em;
         }
+        .category-group.tracked-group {
+            border-color: rgba(255, 202, 40, .28);
+            box-shadow: 0 0 12px rgba(255, 202, 40, .06);
+        }
+        .category-group.tracked-group > summary {
+            background: rgba(255, 202, 40, .105);
+            border-left-color: #ffca28;
+            color: #fff4c2;
+        }
+        .category-group.tracked-group > summary::before,
+        .category-group.tracked-group .category-count {
+            color: #ffca28;
+        }
         .category-vehicles { padding: 6px; }
 
         .vehicle {
@@ -168,6 +181,29 @@
         .dealership-timer.expired { color: #ef5350; }
         .dealership-timer.no-timer { color: #90caf9; }
         .dealership-timer.out-of-rotation { color: #ef5350; font-weight: 800; letter-spacing: .3px; }
+        .vehicle-actions {
+            display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+        }
+        .track-star {
+            width: 29px; height: 29px; min-width: 29px; padding: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 50%; border: 1px solid rgba(255,255,255,.15);
+            background: rgba(0,0,0,.28); color: #7b7f82;
+            font-size: 1.12em; line-height: 1; transition: .16s ease;
+        }
+        .track-star:hover {
+            color: #ffca28 !important; border-color: rgba(255,202,40,.55) !important;
+            background: rgba(255,202,40,.10) !important;
+            transform: scale(1.06);
+        }
+        .track-star.tracked {
+            color: #ffca28; border-color: rgba(255,202,40,.48);
+            background: rgba(255,202,40,.10);
+            text-shadow: 0 0 8px rgba(255,202,40,.45);
+        }
+        .vehicle.tracked-vehicle {
+            box-shadow: inset 0 0 0 1px rgba(255,202,40,.08);
+        }
         .badge {
             max-width: 82px; text-align: right; font: 800 .62em 'Rajdhani', sans-serif;
             color: var(--green); text-transform: uppercase; line-height: 1.1;
@@ -267,7 +303,7 @@
 </div>
 
 <script>
-const APP_VERSION = "1.2.2";
+const APP_VERSION = "1.3.0";
 
 /* Paste the deployed Google Apps Script /exec URL here. */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADDKzZ2viYDWt7a0Bt0CBHNSqogP-2BNj70SgUHRZj1oNuedfG5akNWw6/exec";
@@ -275,7 +311,12 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK5VL4AUtADD
 const STORAGE = {
     POS: "garage_watch_pos_v1",
     SIZE: "garage_watch_size_v1",
-    MINI: "garage_watch_mini_v1"
+    MINI: "garage_watch_mini_v1",
+
+    // Persistent client-local "KVP" namespace for starred vehicles.
+    // Hosted TT Chromium apps do not have direct Lua SetResourceKvp access,
+    // so localStorage is the durable local cache available to the app.
+    TRACKED_PREFIX: "garage_watch_tracked_v1_"
 };
 
 const VIEW_CONFIG = {
@@ -309,6 +350,8 @@ const state = {
     jsonpNode: null,
     timeout: null,
     manualLookupActive: false,
+    trackedModels: new Set(),
+    trackingOwnerId: "",
     filters: {
         missing: { query: "", category: "" },
         owned: { query: "", category: "" },
@@ -336,6 +379,101 @@ function isBackendConfigured() {
     return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/i.test(GOOGLE_SCRIPT_URL);
 }
 
+function trackingStorageKey(userId = state.selfId) {
+    const id = String(userId || "").trim();
+    return id ? STORAGE.TRACKED_PREFIX + id : "";
+}
+
+function vehicleTrackingKey(vehicle) {
+    if (!vehicle) return "";
+
+    const model = String(vehicle.model || "").trim().toLowerCase();
+    if (model) return "model:" + model;
+
+    const matchKey = String(vehicle.match_key || "").trim().toLowerCase();
+    if (matchKey) return matchKey;
+
+    const name = String(vehicle.name || "").trim().toLowerCase();
+    return name ? "name:" + name : "";
+}
+
+function loadTrackedVehicles() {
+    const ownerId = String(state.selfId || "").trim();
+    if (!ownerId) {
+        state.trackedModels = new Set();
+        state.trackingOwnerId = "";
+        return;
+    }
+
+    if (state.trackingOwnerId === ownerId) return;
+
+    let values = [];
+    try {
+        const raw = localStorage.getItem(trackingStorageKey(ownerId));
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(parsed)) values = parsed;
+    } catch (_) {
+        values = [];
+    }
+
+    state.trackedModels = new Set(
+        values
+            .map(value => String(value || "").trim().toLowerCase())
+            .filter(Boolean)
+    );
+    state.trackingOwnerId = ownerId;
+}
+
+function saveTrackedVehicles() {
+    const key = trackingStorageKey();
+    if (!key) return false;
+
+    try {
+        localStorage.setItem(
+            key,
+            JSON.stringify(Array.from(state.trackedModels).sort())
+        );
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+function isVehicleTracked(vehicle) {
+    const key = vehicleTrackingKey(vehicle);
+    return Boolean(key && state.trackedModels.has(key));
+}
+
+function trackedNotOwnedVehicles() {
+    const source = state.result && Array.isArray(state.result.available_not_owned)
+        ? state.result.available_not_owned
+        : [];
+
+    return source.filter(isVehicleTracked);
+}
+
+function toggleVehicleTracked(vehicle) {
+    if (!state.selfId) {
+        setStatus("WAITING FOR YOUR TT ID", "busy");
+        return;
+    }
+
+    loadTrackedVehicles();
+
+    const key = vehicleTrackingKey(vehicle);
+    if (!key) return;
+
+    if (state.trackedModels.has(key)) {
+        state.trackedModels.delete(key);
+    } else {
+        state.trackedModels.add(key);
+    }
+
+    saveTrackedVehicles();
+    updateFilterControls();
+    renderActiveView();
+}
+
 function requestIdentity() {
     window.parent.postMessage({
         type: "getNamedData",
@@ -350,7 +488,19 @@ window.addEventListener("message", event => {
     const id = data.user_id ?? data.player_id;
     if (id === undefined || id === null || !/^\d+$/.test(String(id))) return;
 
-    state.selfId = String(id);
+    const nextSelfId = String(id);
+    const selfChanged = state.selfId !== nextSelfId;
+    state.selfId = nextSelfId;
+
+    if (selfChanged || state.trackingOwnerId !== state.selfId) {
+        state.trackingOwnerId = "";
+        loadTrackedVehicles();
+        if (state.result) {
+            updateFilterControls();
+            renderActiveView();
+        }
+    }
+
     setText("self-label", "YOUR ID: " + state.selfId);
     document.getElementById("my-garage-btn").disabled = false;
 
@@ -500,13 +650,32 @@ function updateFilterControls() {
     });
 
     const categories = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b));
-    if (filters.category && !counts.has(filters.category)) filters.category = "";
+    const trackedFilterActive =
+        state.activeView === "missing" &&
+        filters.category === "__tracked__";
+
+    if (
+        filters.category &&
+        !trackedFilterActive &&
+        !counts.has(filters.category)
+    ) {
+        filters.category = "";
+    }
 
     categorySelect.innerHTML = "";
+
     const allOption = document.createElement("option");
     allOption.value = "";
     allOption.textContent = "All categories (" + vehicles.length + ")";
     categorySelect.appendChild(allOption);
+
+    if (state.activeView === "missing") {
+        const trackedOption = document.createElement("option");
+        const trackedCount = trackedNotOwnedVehicles().length;
+        trackedOption.value = "__tracked__";
+        trackedOption.textContent = "★ Tracked (" + trackedCount + ")";
+        categorySelect.appendChild(trackedOption);
+    }
 
     categories.forEach(category => {
         const option = document.createElement("option");
@@ -525,10 +694,19 @@ function renderActiveView() {
     const filters = state.filters[state.activeView];
     const allVehicles = getActiveVehicles();
     const query = filters.query.trim().toLowerCase();
+    const trackedOnly =
+        state.activeView === "missing" &&
+        filters.category === "__tracked__";
 
     const filtered = allVehicles.filter(vehicle => {
         const category = getCategory(vehicle);
-        if (filters.category && category !== filters.category) return false;
+
+        if (trackedOnly) {
+            if (!isVehicleTracked(vehicle)) return false;
+        } else if (filters.category && category !== filters.category) {
+            return false;
+        }
+
         if (!query) return true;
 
         const haystack = [
@@ -537,50 +715,114 @@ function renderActiveView() {
             vehicle.model,
             category
         ].map(value => String(value || "").toLowerCase()).join(" ");
+
         return haystack.includes(query);
     });
 
-    setText(
-        "result-summary",
-        config.summary + " Showing " + filtered.length.toLocaleString() + " of " + allVehicles.length.toLocaleString() + "."
-    );
+    const trackedCount =
+        state.activeView === "missing"
+            ? trackedNotOwnedVehicles().length
+            : 0;
+
+    let summary =
+        config.summary +
+        " Showing " +
+        filtered.length.toLocaleString() +
+        " of " +
+        allVehicles.length.toLocaleString() +
+        ".";
+
+    if (state.activeView === "missing") {
+        summary += " Tracked: " + trackedCount.toLocaleString() + ".";
+    }
+
+    setText("result-summary", summary);
 
     container.innerHTML = "";
+
     if (!filtered.length) {
-        container.innerHTML = '<div class="empty">' + escapeHtml(query || filters.category ? "No vehicles match the current filters." : config.empty) + '</div>';
+        let emptyText = config.empty;
+
+        if (trackedOnly) {
+            emptyText = "No tracked vehicles are currently in this player's Not Owned dealership list.";
+        } else if (query || filters.category) {
+            emptyText = "No vehicles match the current filters.";
+        }
+
+        container.innerHTML =
+            '<div class="empty">' + escapeHtml(emptyText) + '</div>';
         return;
     }
 
+    const fragment = document.createDocumentFragment();
+
+    function appendGroup(titleText, vehicles, trackedGroup = false) {
+        if (!vehicles.length) return;
+
+        const details = document.createElement("details");
+        details.className =
+            "category-group" + (trackedGroup ? " tracked-group" : "");
+        details.open = true;
+
+        const summary = document.createElement("summary");
+        const title = document.createElement("span");
+        title.textContent = trackedGroup ? "★ TRACKED" : titleText;
+
+        const count = document.createElement("span");
+        count.className = "category-count";
+        count.textContent = vehicles.length;
+
+        summary.append(title, count);
+
+        const list = document.createElement("div");
+        list.className = "category-vehicles";
+
+        vehicles
+            .slice()
+            .sort(compareVehicles)
+            .forEach(vehicle => {
+                list.appendChild(
+                    createVehicleRow(
+                        vehicle,
+                        state.activeView,
+                        config.badge
+                    )
+                );
+            });
+
+        details.append(summary, list);
+        fragment.appendChild(details);
+    }
+
+    // When showing all Not Owned vehicles, duplicate starred vehicles into a
+    // special TRACKED group at the very top while leaving them in their normal
+    // vehicle-class category below.
+    if (
+        state.activeView === "missing" &&
+        (filters.category === "" || trackedOnly)
+    ) {
+        const trackedVisible = filtered.filter(isVehicleTracked);
+        appendGroup("Tracked", trackedVisible, true);
+
+        if (trackedOnly) {
+            container.appendChild(fragment);
+            return;
+        }
+    }
+
     const grouped = new Map();
+
     filtered.forEach(vehicle => {
         const category = getCategory(vehicle);
         if (!grouped.has(category)) grouped.set(category, []);
         grouped.get(category).push(vehicle);
     });
 
-    const sortedCategories = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
-    const fragment = document.createDocumentFragment();
+    const sortedCategories =
+        Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
 
     sortedCategories.forEach(category => {
-        const vehicles = grouped.get(category).sort(compareVehicles);
-        const details = document.createElement("details");
-        details.className = "category-group";
-        details.open = true;
-
-        const summary = document.createElement("summary");
-        const title = document.createElement("span");
-        title.textContent = category;
-        const count = document.createElement("span");
-        count.className = "category-count";
-        count.textContent = vehicles.length;
-        summary.append(title, count);
-
-        const list = document.createElement("div");
-        list.className = "category-vehicles";
-        vehicles.forEach(vehicle => list.appendChild(createVehicleRow(vehicle, state.activeView, config.badge)));
-
-        details.append(summary, list);
-        fragment.appendChild(details);
+        appendGroup(category, grouped.get(category), false);
     });
 
     container.appendChild(fragment);
@@ -597,6 +839,10 @@ function compareVehicles(a, b) {
 function createVehicleRow(vehicle, mode, badgeText) {
     const row = document.createElement("div");
     row.className = "vehicle" + (mode === "owned" ? " owned" : mode === "garage" ? " garage" : "");
+
+    if (mode === "missing" && isVehicleTracked(vehicle)) {
+        row.classList.add("tracked-vehicle");
+    }
 
     const info = document.createElement("div");
     const name = document.createElement("div");
@@ -656,10 +902,40 @@ function createVehicleRow(vehicle, mode, badgeText) {
     badge.className = "badge";
     badge.textContent = badgeText;
 
+    const actions = document.createElement("div");
+    actions.className = "vehicle-actions";
+
+    if (mode === "missing") {
+        const tracked = isVehicleTracked(vehicle);
+        const star = document.createElement("button");
+        star.type = "button";
+        star.className = "track-star" + (tracked ? " tracked" : "");
+        star.textContent = tracked ? "★" : "☆";
+        star.title = tracked
+            ? "Stop tracking this vehicle"
+            : "Track this vehicle";
+        star.setAttribute(
+            "aria-label",
+            tracked
+                ? "Stop tracking " + (vehicle.name || vehicle.model || "vehicle")
+                : "Track " + (vehicle.name || vehicle.model || "vehicle")
+        );
+
+        star.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleVehicleTracked(vehicle);
+        });
+
+        actions.appendChild(star);
+    }
+
+    actions.appendChild(badge);
+
     info.append(name, meta);
     if (dealerTimer) info.appendChild(dealerTimer);
     if (usage) info.appendChild(usage);
-    row.append(info, badge);
+    row.append(info, actions);
     return row;
 }
 
