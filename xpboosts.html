@@ -68,10 +68,10 @@ button,input,select{font:inherit}.app{position:absolute;left:38px;top:38px;width
 </div>
 
 <script>
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7hYQsBnic0BofHlVJ_82THepjANi8MYa2JF87HY7LNKpZbh-WY07hejfYtbFeszE2ug/exec';
+const GOOGLE_SCRIPT_URL = 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_EXEC_URL_HERE';
 const HOME_URL = 'https://pinkiprim.github.io/pinkiapps.html';
-const APP_VERSION = '1.1.0';
-const BLIP_ID = 'pinki_xpboost_target';
+const APP_VERSION = '1.2.0';
+const LEGACY_BLIP_ID = 'pinki_xpboost_target';
 const DATA_KEYS = ['pos_x','pos_y','pos_z','zone','zoneName','street','vehicle','vehicleName'];
 const STORAGE = {
   POS:'pinki_xpboost_pos_v1', SIZE:'pinki_xpboost_size_v1', MINI:'pinki_xpboost_mini_v1',
@@ -84,7 +84,7 @@ const STATE = {
   locations:[], visited:new Set(), skipped:new Set(), currentId:null,
   auto:localStorage.getItem(STORAGE.AUTO)!=='false',
   routeMode:localStorage.getItem(STORAGE.ROUTE_MODE)==='nearest'?'nearest':'sweep',
-  sweepOrder:[], sweepRevision:0,
+  sweepOrder:[], sweepRevision:0, sweepLabel:'Road Sweep',
   lastLocationSync:0,lastSyncError:'',
   locationFetchInFlight:false, arrivalHits:0, lastRenderAt:0
 };
@@ -152,51 +152,90 @@ function pathLength(origin,order){
   return total;
 }
 
-function greedySweep(origin,points){
-  const pool=points.slice();
+function chooseSweepPlan(origin,points){
+  if(!points.length){
+    return {order:[],label:'Road Sweep'};
+  }
+
+  const xs=points.map(p=>Number(p.x));
+  const ys=points.map(p=>Number(p.y));
+  const minX=Math.min(...xs),maxX=Math.max(...xs);
+  const minY=Math.min(...ys),maxY=Math.max(...ys);
+  const spanX=Math.max(1,maxX-minX);
+  const spanY=Math.max(1,maxY-minY);
+
+  // Progress along the map's longer dimension. Within each strip we move
+  // across the shorter dimension, then reverse direction for the next strip.
+  // This creates a lawnmower/serpentine sweep rather than a chain of nearest
+  // neighbours that can fold back over already-covered areas.
+  const primary=spanY>=spanX?'y':'x';
+  const secondary=primary==='y'?'x':'y';
+  const minPrimary=primary==='y'?minY:minX;
+  const maxPrimary=primary==='y'?maxY:maxX;
+  const minSecondary=secondary==='x'?minX:minY;
+  const maxSecondary=secondary==='x'?maxX:maxY;
+  const primarySpan=Math.max(1,maxPrimary-minPrimary);
+
+  // Keep strips narrow enough to stop large geographic reversals, but avoid
+  // creating dozens of tiny bands for dense datasets.
+  const targetBands=Math.max(5,Math.min(12,Math.round(Math.sqrt(points.length))));
+  const bandSize=Math.max(650,Math.min(1400,primarySpan/targetBands));
+  const bandCount=Math.max(1,Math.floor(primarySpan/bandSize)+1);
+
+  const distanceToLow=Math.abs(Number(origin[primary])-minPrimary);
+  const distanceToHigh=Math.abs(Number(origin[primary])-maxPrimary);
+  const primaryAscending=distanceToLow<=distanceToHigh;
+
+  const bands=new Map();
+  points.forEach(point=>{
+    let band=Math.floor((Number(point[primary])-minPrimary)/bandSize);
+    band=Math.max(0,Math.min(bandCount-1,band));
+    if(!bands.has(band))bands.set(band,[]);
+    bands.get(band).push(point);
+  });
+
+  const bandIds=Array.from(bands.keys()).sort((a,b)=>primaryAscending?a-b:b-a);
+
+  // Start the first strip from whichever side is closer to the player, then
+  // alternate side-to-side for every following strip.
+  const firstBand=bands.get(bandIds[0])||[];
+  let secondaryAscending=true;
+  if(firstBand.length){
+    const lowPoint=firstBand.reduce((best,p)=>Number(p[secondary])<Number(best[secondary])?p:best,firstBand[0]);
+    const highPoint=firstBand.reduce((best,p)=>Number(p[secondary])>Number(best[secondary])?p:best,firstBand[0]);
+    secondaryAscending=
+      dist2D(origin,lowPoint)<=dist2D(origin,highPoint);
+  }
+
   const route=[];
-  let cursor=origin;
-  while(pool.length){
-    let bestIndex=0,bestDistance=Infinity;
-    for(let i=0;i<pool.length;i++){
-      const d=dist2D(cursor,pool[i]);
-      if(d<bestDistance){bestDistance=d;bestIndex=i}
-    }
-    const next=pool.splice(bestIndex,1)[0];
-    route.push(next);
-    cursor=next;
-  }
-  return route;
-}
+  bandIds.forEach((bandId,index)=>{
+    const band=(bands.get(bandId)||[]).slice();
+    const ascending=index%2===0?secondaryAscending:!secondaryAscending;
 
-function optimiseSweep2Opt(origin,route,maxPasses=4){
-  const order=route.slice();
-  const n=order.length;
-  if(n<4)return order;
+    band.sort((a,b)=>{
+      const sa=Number(a[secondary]);
+      const sb=Number(b[secondary]);
+      if(sa!==sb)return ascending?sa-sb:sb-sa;
 
-  let improved=true,pass=0;
-  while(improved&&pass<maxPasses){
-    improved=false;
-    pass++;
-    for(let i=0;i<n-1;i++){
-      const prev=i===0?origin:order[i-1];
-      for(let j=i+1;j<n;j++){
-        const first=order[i];
-        const last=order[j];
-        const after=j+1<n?order[j+1]:null;
+      // Tie-break along the sweep direction so identical/largely identical
+      // cross-strip coordinates still progress consistently.
+      const pa=Number(a[primary]);
+      const pb=Number(b[primary]);
+      return primaryAscending?pa-pb:pb-pa;
+    });
 
-        const oldCost=dist2D(prev,first)+(after?dist2D(last,after):0);
-        const newCost=dist2D(prev,last)+(after?dist2D(first,after):0);
+    route.push(...band);
+  });
 
-        if(newCost+10<oldCost){
-          const reversed=order.slice(i,j+1).reverse();
-          order.splice(i,j-i+1,...reversed);
-          improved=true;
-        }
-      }
-    }
-  }
-  return order;
+  const direction =
+    primary==='y'
+      ? (primaryAscending?'South → North':'North → South')
+      : (primaryAscending?'West → East':'East → West');
+
+  return {
+    order:route,
+    label:`${direction} serpentine`
+  };
 }
 
 function rebuildRoadSweep(routeNow=false){
@@ -206,12 +245,13 @@ function rebuildRoadSweep(routeNow=false){
   const points=remainingLocations();
   if(!points.length){
     STATE.sweepOrder=[];
+    STATE.sweepLabel='Road Sweep';
     return;
   }
 
-  const greedy=greedySweep(pos,points);
-  const optimised=optimiseSweep2Opt(pos,greedy,4);
-  STATE.sweepOrder=optimised.map(p=>p.id);
+  const plan=chooseSweepPlan(pos,points);
+  STATE.sweepOrder=plan.order.map(p=>p.id);
+  STATE.sweepLabel=plan.label;
   STATE.sweepRevision++;
 
   if(routeNow&&STATE.routeMode==='sweep'){
@@ -294,15 +334,13 @@ function setTarget(target,route=true){
   render();
 }
 function routeTarget(target){
-  postTT({type:'removeBlip',id:BLIP_ID});
-  postTT({type:'addBlip',id:BLIP_ID,x:target.x,y:target.y});
-  const routeLabel=STATE.routeMode==='sweep'?'Road Sweep':'Nearest';
-  postTT({type:'setBlipName',id:BLIP_ID,name:`${target.label} - XP Boost (${routeLabel})`});
-  postTT({type:'setBlipRoute',id:BLIP_ID,route:true});
+  // Clean up the custom marker used by v1.0/v1.1, then use only GTA's normal
+  // waypoint from this version onward. No addBlip / setBlipRoute is sent.
+  postTT({type:'removeBlip',id:LEGACY_BLIP_ID});
   postTT({type:'setWaypoint',x:target.x,y:target.y});
 }
 function rerouteCurrent(){const target=currentTarget();if(!target){recalculateNow(true);return}routeTarget(target);toast('Waypoint refreshed.','good')}
-function clearTargetBlip(){postTT({type:'removeBlip',id:BLIP_ID})}
+function clearTargetBlip(){postTT({type:'removeBlip',id:LEGACY_BLIP_ID})}
 
 function arrivalRadius(){const v=Math.max(10,Math.min(100,Number(document.getElementById('arrival-radius').value)||30));return v}
 function saveArrivalRadius(){const v=arrivalRadius();document.getElementById('arrival-radius').value=v;localStorage.setItem(STORAGE.RADIUS,String(v))}
@@ -332,7 +370,7 @@ function toggleRouteMode(){
 
   if(STATE.routeMode==='sweep'){
     rebuildRoadSweep(false);
-    toast('Road Sweep mode enabled. Route rebuilt from your current position.','good');
+    toast('Road Sweep enabled. A consistent serpentine route was built from your current position.','good');
   }else{
     toast('Nearest Boost mode enabled.','good');
   }
@@ -392,7 +430,7 @@ function render(){
     if(sweepMode){
       const sequence=sweepPosition(target.id);
       const estimate=sweepEstimate();
-      const routeMeta=sequence?`Road Sweep • Stop ${sequence.index}/${sequence.total}`:'Road Sweep';
+      const routeMeta=sequence?`${STATE.sweepLabel} • Stop ${sequence.index}/${sequence.total}`:'Road Sweep';
       document.getElementById('target-meta').textContent=
         `${routeMeta} • ${coordText(target)}${estimate?` • Sweep ~${fmtDist(estimate)}`:''}${LIVE.street?` • ${LIVE.street}`:''}`;
     }else{
@@ -465,7 +503,7 @@ window.addEventListener('load',()=>{
   try{const s=JSON.parse(localStorage.getItem(STORAGE.SIZE)||'null');if(s){appEl.style.width=`${Math.max(350,Number(s.width)||430)}px`;appEl.style.height=`${Math.max(360,Number(s.height)||600)}px`}}catch(e){}
   if(localStorage.getItem(STORAGE.MINI)==='true')appEl.classList.add('mini');
   const r=Number(localStorage.getItem(STORAGE.RADIUS));if(Number.isFinite(r)&&r>=10&&r<=100)document.getElementById('arrival-radius').value=r;
-  requestPosition();loadLocations(false);render();renderHealth();
+  postTT({type:'removeBlip',id:LEGACY_BLIP_ID});requestPosition();loadLocations(false);render();renderHealth();
 });
 
 // Position polling is deliberately targeted and modest: no generic getData calls.
