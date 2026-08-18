@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TT Cargo Pilot Helper</title>
+    <title>TT Cargo Pilot Helper v4</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap');
 
@@ -295,7 +295,7 @@
             <div class="dest-label">Next Destination</div>
             <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
             <div id="multi-warning" class="multi-warning">⚠ Multiple Cargo Types ⚠</div>
-            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO: waiting for airport menu</div>
+            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v4: waiting for airport menu</div>
         </div>
 
         <div class="section">
@@ -436,6 +436,7 @@ const AUTO_CARGO = {
     enabled: true,
     menuOpen: false,
     choices: [],
+    menuTitle: "",
     stage: "idle",
     airportCode: null,
     pendingDeliveryCode: null,
@@ -494,7 +495,8 @@ function requestData() {
                 "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
                 "inventory", "vehicle", "plate", 
                 "chest", "trunkCapacity", "trunkWeight",
-                "menu_open", "menu_choice", "menu_choices", "menu"
+                "menu_open", "menu_choice", "menu_choices", "menu",
+                "pos_x", "pos_y", "pos_z"
             ];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
@@ -517,14 +519,24 @@ window.addEventListener('message', (event) => {
 
 function processPayload(data) {
     // 0. NATIVE TT MENU STATE
-    if (data.menu_open !== undefined) {
+    // TT sends menu_choices as [[rawName, description], ...]. Preserve the raw
+    // HTML name because forceMenuChoice must receive that exact value.
+    const menuOpenWasExplicit = data.menu_open !== undefined;
+    if (menuOpenWasExplicit) {
         AUTO_CARGO.menuOpen = parseTTBoolean(data.menu_open);
         if (!AUTO_CARGO.menuOpen) AUTO_CARGO.choices = [];
     }
+    if (data.menu !== undefined) {
+        AUTO_CARGO.menuTitle = String(data.menu || '');
+    }
     if (data.menu_choices !== undefined) {
-        AUTO_CARGO.choices = parseTTMenuChoices(data.menu_choices);
-        // Some TT payloads do not reliably send menu_open alongside every choices update.
-        if (AUTO_CARGO.choices.length > 0) AUTO_CARGO.menuOpen = true;
+        const parsedChoices = parseTTMenuChoices(data.menu_choices);
+        // Do NOT resurrect a menu from stale choices when TT explicitly says
+        // menu_open=false in the same payload.
+        if (!menuOpenWasExplicit || AUTO_CARGO.menuOpen) {
+            AUTO_CARGO.choices = parsedChoices;
+            if (!menuOpenWasExplicit && parsedChoices.length > 0) AUTO_CARGO.menuOpen = true;
+        }
     }
 
     // 1. SMART VEHICLE DETECTION
@@ -645,31 +657,39 @@ function parseMaybeJSON(value) {
 
 function parseTTMenuChoices(raw) {
     const parsed = parseMaybeJSON(raw);
-    const found = [];
-    const seen = new Set();
+    if (!Array.isArray(parsed)) return [];
 
-    const walk = (node) => {
-        if (!node) return;
-        if (Array.isArray(node)) {
-            node.forEach(walk);
-            return;
+    // Proven TT shape: [ [raw HTML name, description], ... ]
+    // Keep both rawName (for forceMenuChoice) and cleanName (for matching).
+    return parsed.map((entry, index) => {
+        if (Array.isArray(entry)) {
+            const rawName = typeof entry[0] === 'string' ? entry[0] : '';
+            const description = typeof entry[1] === 'string' ? entry[1] : '';
+            return {
+                index,
+                name: rawName,
+                rawName,
+                cleanName: cleanMenuText(rawName),
+                description
+            };
         }
-        if (typeof node !== 'object') return;
 
-        if (typeof node.name === 'string' && !seen.has(node.name)) {
-            seen.add(node.name);
-            found.push(node);
+        // Compatibility fallback if TT ever supplies object records.
+        if (entry && typeof entry === 'object') {
+            const rawName = typeof entry.rawName === 'string'
+                ? entry.rawName
+                : (typeof entry.name === 'string' ? entry.name : '');
+            return {
+                ...entry,
+                index,
+                name: rawName,
+                rawName,
+                cleanName: cleanMenuText(rawName)
+            };
         }
 
-        for (const key in node) {
-            if (key === 'name') continue;
-            const child = node[key];
-            if (child && (typeof child === 'object' || Array.isArray(child))) walk(child);
-        }
-    };
-
-    walk(parsed);
-    return found;
+        return null;
+    }).filter(choice => choice && choice.rawName);
 }
 
 function cleanMenuText(html) {
@@ -691,7 +711,8 @@ function cleanMenuText(html) {
 }
 
 function choiceText(choice) {
-    return cleanMenuText(choice && choice.name ? choice.name : '');
+    if (!choice) return '';
+    return choice.cleanName || cleanMenuText(choice.rawName || choice.name || '');
 }
 
 function findMenuChoiceExact(label) {
@@ -738,39 +759,20 @@ function postTT(message) {
     }
 }
 
-// IMPORTANT: TT's native menu controls are not ordinary parent postMessages in
-// every User App build. Our earlier working TT probe used the exposed
-// sendCommand(message) bridge. Use that exact bridge when it exists, then fall
-// back to parent.postMessage for compatibility with wrappers that proxy it.
-function sendTTNative(message) {
-    try {
-        if (typeof window.sendCommand === 'function') {
-            window.sendCommand(message);
-            return true;
-        }
-    } catch(e) {}
-
-    try {
-        if (typeof sendCommand === 'function') {
-            sendCommand(message);
-            return true;
-        }
-    } catch(e) {}
-
-    return postTT(message);
-}
-
+// TT User Apps send menu commands directly to the parent wrapper.
+// This matches the working Fisher automation used elsewhere in this setup.
 function nativeChoose(choice, actionName, lockMs = 650) {
-    if (!choice || typeof choice.name !== 'string') return false;
+    const rawName = choice && (choice.rawName || choice.name);
+    if (typeof rawName !== 'string' || !rawName) return false;
     if (Date.now() < AUTO_CARGO.lockUntil) return false;
 
     AUTO_CARGO.lastAction = actionName || choiceText(choice);
     AUTO_CARGO.lockUntil = Date.now() + lockMs;
-    sendTTNative({ type: 'forceMenuChoice', choice: choice.name, mod: 0 });
+    postTT({ type: 'forceMenuChoice', choice: rawName, mod: 0 });
 
-    // Pull fresh menu/inventory state quickly after the native action.
-    setTimeout(requestData, 150);
-    setTimeout(requestData, 400);
+    setTimeout(requestData, 120);
+    setTimeout(requestData, 300);
+    setTimeout(requestData, 650);
     return true;
 }
 
@@ -778,8 +780,9 @@ function nativeBack(actionName = 'Menu Back') {
     if (Date.now() < AUTO_CARGO.lockUntil) return false;
     AUTO_CARGO.lastAction = actionName;
     AUTO_CARGO.lockUntil = Date.now() + 500;
-    sendTTNative({ type: 'forceMenuBack' });
-    setTimeout(requestData, 200);
+    postTT({ type: 'forceMenuBack' });
+    setTimeout(requestData, 150);
+    setTimeout(requestData, 400);
     return true;
 }
 
@@ -787,9 +790,10 @@ function nativeOpenTrunk() {
     if (Date.now() < AUTO_CARGO.lockUntil) return false;
     AUTO_CARGO.lastAction = 'Open Trunk';
     AUTO_CARGO.lockUntil = Date.now() + 650;
-    sendTTNative({ type: 'sendCommand', command: 'rm_trunk' });
-    setTimeout(requestData, 150);
-    setTimeout(requestData, 450);
+    postTT({ type: 'sendCommand', command: 'rm_trunk' });
+    setTimeout(requestData, 120);
+    setTimeout(requestData, 350);
+    setTimeout(requestData, 700);
     return true;
 }
 
@@ -858,7 +862,7 @@ function cargoTotal(counts) {
 function setAutoStatus(text, color) {
     const el = document.getElementById('auto-status');
     if (!el) return;
-    el.innerText = 'AUTO: ' + text;
+    el.innerText = 'AUTO v4: ' + text;
     if (color) el.style.color = color;
 }
 
@@ -911,34 +915,31 @@ function runNativeCargoAutomation() {
 
         // Debounce zero so one stale/partial payload cannot kick us out early.
         if (!AUTO_CARGO.cargoZeroSince) AUTO_CARGO.cargoZeroSince = now;
-        setAutoStatus(`${code} cleared - returning to airport menu`, '#8bc34a');
+        setAutoStatus(`${code} cleared - closing trunk`, '#8bc34a');
 
         if (now - AUTO_CARGO.cargoZeroSince >= 900 && now >= AUTO_CARGO.lockUntil) {
             clearDeliveryState();
             beginStage('delivery-return-airport');
+            AUTO_CARGO.postBackSince = now;
 
-            // This is the documented/native Back operation. In the exact flow
-            // shown in the user's clip, backing out of the trunk returns to the
-            // airport's cargo menu while still inside the airport trigger.
-            if (AUTO_CARGO.menuOpen) {
-                nativeBack('Back From Trunk To Airport');
-            } else {
-                AUTO_CARGO.postBackSince = now;
+            // Back closes the trunk. TT does not expose a proven User-App command
+            // for re-triggering the airport proximity interaction, so we wait for
+            // the airport menu to become visible again instead of inventing one.
+            if (AUTO_CARGO.menuOpen && isTrunkMenu()) {
+                nativeBack('Close Trunk After Delivery');
             }
         }
         return;
     }
 
     if (AUTO_CARGO.stage === 'delivery-return-airport') {
-        // As soon as the airport menu is back, normal top-level logic below
-        // selects the next route. There is no E-key simulation here.
         const airportCode = inferCurrentAirportFromMenu();
         if (airportCode) {
             AUTO_CARGO.airportCode = airportCode;
             beginStage('idle');
-            // fall through and let top-level logic select the pickup immediately
+            // fall through and select the next destination immediately.
         } else {
-            setAutoStatus('cargo cleared - waiting for airport menu to return', '#ffca28');
+            setAutoStatus('cargo cleared - reopen airport menu; automation resumes instantly', '#ffca28');
             return;
         }
     }
@@ -1081,7 +1082,8 @@ function runNativeCargoAutomation() {
     const airportCode = inferCurrentAirportFromMenu();
     if (!airportCode || !CARGO_ROUTE[airportCode]) {
         // Ignore unrelated native menus (ATC, inventory, vehicle, etc.).
-        setAutoStatus('non-airport menu ignored', '#888');
+        const preview = AUTO_CARGO.choices.slice(0, 4).map(choiceText).filter(Boolean).join(' | ');
+        setAutoStatus(`menu not recognised (${AUTO_CARGO.choices.length} choices${preview ? ': ' + preview : ''})`, '#ff9800');
         return;
     }
 
