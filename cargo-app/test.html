@@ -295,7 +295,7 @@
             <div class="dest-label">Next Destination</div>
             <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
             <div id="multi-warning" class="multi-warning">⚠ Multiple Cargo Types ⚠</div>
-            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v7: waiting for airport menu</div>
+            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v8: waiting for airport menu</div>
         </div>
 
         <div class="section">
@@ -523,33 +523,46 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
-    // 0. NATIVE TT MENU STATE
-    // TT sends menu_choices as [[rawName, description], ...]. Preserve the raw
-    // HTML name because forceMenuChoice must receive that exact value.
-    const menuOpenWasExplicit = data.menu_open !== undefined;
-    if (menuOpenWasExplicit) {
-        AUTO_CARGO.menuOpen = parseTTBoolean(data.menu_open);
-        if (!AUTO_CARGO.menuOpen) AUTO_CARGO.choices = [];
-    }
-    if (data.menu !== undefined) {
-        AUTO_CARGO.menuTitle = String(data.menu || '');
-    }
-    if (data.menu_choices !== undefined) {
-        const parsedChoices = parseTTMenuChoices(data.menu_choices);
-        // Do NOT resurrect a menu from stale choices when TT explicitly says
-        // menu_open=false in the same payload.
-        if (!menuOpenWasExplicit || AUTO_CARGO.menuOpen) {
-            AUTO_CARGO.choices = parsedChoices;
-            if (!menuOpenWasExplicit && parsedChoices.length > 0) AUTO_CARGO.menuOpen = true;
-        }
-    }
-
-    // POSITION CACHE
-    // Route-airport recognition uses this as a fallback so we are not dependent
-    // on every airport exposing the exact same destination-menu choices.
+    // POSITION CACHE FIRST
+    // We use proximity as a safety check when TT's menu_open flag gets out of
+    // sync with a visibly-open airport menu after native menu transitions.
     if (data.pos_x !== undefined) MEMORY.posX = Number(data.pos_x);
     if (data.pos_y !== undefined) MEMORY.posY = Number(data.pos_y);
     if (data.pos_z !== undefined) MEMORY.posZ = Number(data.pos_z);
+
+    // 0. NATIVE TT MENU STATE
+    // TT sends menu_choices as [[rawName, description], ...]. Preserve the raw
+    // HTML name because forceMenuChoice must receive that exact value.
+    //
+    // IMPORTANT: TT can report menu_open=false even while an airport cargo menu
+    // is visibly open after Re-open / forceMenuBack transitions. V7 trusted that
+    // flag too much, discarded the live choices, and then sat at "waiting for
+    // airport trigger". V8 trusts recognised cargo-menu choices while physically
+    // near a route airport, which is exactly the state shown at Mount Gordo.
+    const menuOpenWasExplicit = data.menu_open !== undefined;
+    const reportedMenuOpen = menuOpenWasExplicit ? parseTTBoolean(data.menu_open) : null;
+
+    if (data.menu !== undefined) {
+        AUTO_CARGO.menuTitle = String(data.menu || '');
+    }
+
+    if (data.menu_choices !== undefined) {
+        const parsedChoices = parseTTMenuChoices(data.menu_choices);
+        const nearRouteAirport = !!nearestRouteAirportFromPosition(1200);
+        const cargoChoicesVisible = recordsLookLikeCargoAutomationMenu(parsedChoices);
+        const recoverVisibleCargoMenu = parsedChoices.length > 0 && nearRouteAirport && cargoChoicesVisible;
+
+        if (!menuOpenWasExplicit || reportedMenuOpen || recoverVisibleCargoMenu) {
+            AUTO_CARGO.choices = parsedChoices;
+            AUTO_CARGO.menuOpen = parsedChoices.length > 0 || reportedMenuOpen === true;
+        } else {
+            AUTO_CARGO.menuOpen = false;
+            AUTO_CARGO.choices = [];
+        }
+    } else if (menuOpenWasExplicit) {
+        AUTO_CARGO.menuOpen = reportedMenuOpen;
+        if (!reportedMenuOpen) AUTO_CARGO.choices = [];
+    }
 
     // 1. SMART VEHICLE DETECTION
     let incomingPlate = data.plate || data.vehicle;
@@ -702,6 +715,23 @@ function parseTTMenuChoices(raw) {
 
         return null;
     }).filter(choice => choice && choice.rawName);
+}
+
+function recordsLookLikeCargoAutomationMenu(records) {
+    if (!Array.isArray(records) || records.length === 0) return false;
+
+    const texts = records
+        .map(choice => choiceText(choice).toLowerCase())
+        .filter(Boolean);
+
+    return texts.some(text => (
+        text.startsWith('deliver cargo') ||
+        text.startsWith('mt. gordo') ||
+        text.startsWith('mount gordo') ||
+        text.startsWith('san chianski') ||
+        text.startsWith('sandy shores') ||
+        text.startsWith('re-open ')
+    ));
 }
 
 function cleanMenuText(html) {
@@ -973,7 +1003,7 @@ function cargoTotal(counts) {
 function setAutoStatus(text, color) {
     const el = document.getElementById('auto-status');
     if (!el) return;
-    el.innerText = 'AUTO v7: ' + text;
+    el.innerText = 'AUTO v8: ' + text;
     if (color) el.style.color = color;
 }
 
