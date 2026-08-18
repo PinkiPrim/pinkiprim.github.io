@@ -671,14 +671,14 @@ function processPayload(data) {
     }
 
     // 8. NATIVE CARGO ROUTE AUTOMATION
-    // Everything except Mount Gordo -> San Chianski already works, so V9 uses a
+    // Everything except Mount Gordo -> San Chianski already works, so V10 uses a
     // deliberately narrow fast-path for that one pickup and leaves all other logic alone.
     if (!runMountGordoSanChianskiFastPath()) {
         runNativeCargoAutomation();
     }
 }
 
-// --- V9: MOUNT GORDO -> SAN CHIANSKI FAST PATH ---
+// --- V10: MOUNT GORDO -> SAN CHIANSKI FAST PATH ---
 function runMountGordoSanChianskiFastPath() {
     const now = Date.now();
     if (!AUTO_CARGO.enabled || now < AUTO_CARGO.lockUntil) return false;
@@ -722,7 +722,7 @@ function runMountGordoSanChianskiFastPath() {
 
     const allowedStages = new Set([
         'idle', 'flight-ready', 'delivery-return-airport',
-        'delivery-find-reopen', 'delivery-wait-reopened'
+        'delivery-find-reopen', 'delivery-wait-airport-menu'
     ]);
     if (!allowedStages.has(AUTO_CARGO.stage)) return false;
 
@@ -1076,7 +1076,7 @@ function cargoTotal(counts) {
 function setAutoStatus(text, color) {
     const el = document.getElementById('auto-status');
     if (!el) return;
-    el.innerText = 'AUTO v9: ' + text;
+    el.innerText = 'AUTO v10: ' + text;
     if (color) el.style.color = color;
 }
 
