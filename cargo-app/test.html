@@ -295,7 +295,7 @@
             <div class="dest-label">Next Destination</div>
             <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
             <div id="multi-warning" class="multi-warning">⚠ Multiple Cargo Types ⚠</div>
-            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v4: waiting for airport menu</div>
+            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v6: waiting for airport menu</div>
         </div>
 
         <div class="section">
@@ -403,7 +403,10 @@ let MEMORY = {
     trunk: {},
     weight: 0,
     capacity: 0,
-    lastTrunkUpdate: 0
+    lastTrunkUpdate: 0,
+    posX: null,
+    posY: null,
+    posZ: null
 };
 
 const JOB_EXP_KEY = "exp_piloting_cargos";
@@ -448,6 +451,8 @@ const AUTO_CARGO = {
     cargoZeroSince: 0,
     pickupFullSince: 0,
     postBackSince: 0,
+    interactAttempts: 0,
+    lastInteractAt: 0,
     expectedBatchKg: 100
 };
 
@@ -538,6 +543,13 @@ function processPayload(data) {
             if (!menuOpenWasExplicit && parsedChoices.length > 0) AUTO_CARGO.menuOpen = true;
         }
     }
+
+    // POSITION CACHE
+    // Route-airport recognition uses this as a fallback so we are not dependent
+    // on every airport exposing the exact same destination-menu choices.
+    if (data.pos_x !== undefined) MEMORY.posX = Number(data.pos_x);
+    if (data.pos_y !== undefined) MEMORY.posY = Number(data.pos_y);
+    if (data.pos_z !== undefined) MEMORY.posZ = Number(data.pos_z);
 
     // 1. SMART VEHICLE DETECTION
     let incomingPlate = data.plate || data.vehicle;
@@ -734,9 +746,84 @@ function hasMenuChoiceStarts(label) {
     return !!findMenuChoiceStarts(label);
 }
 
+function menuLooksLikeRouteAirport() {
+    // Do not use position alone: trunk / inventory / M menus can also be open
+    // while the player happens to be parked at an airport.
+    return !!(
+        findMenuChoiceStarts('Deliver Cargo') ||
+        findMenuChoiceStarts('Mt. Gordo') ||
+        findMenuChoiceStarts('Mount Gordo') ||
+        findMenuChoiceStarts('San Chianski') ||
+        findMenuChoiceStarts('Sandy Shores')
+    );
+}
+
+function nearestRouteAirportFromPosition(maxDistance = 1200) {
+    const x = Number(MEMORY.posX);
+    const y = Number(MEMORY.posY);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+
+    let bestCode = null;
+    let bestDistance = Infinity;
+
+    for (const code of Object.keys(CARGO_ROUTE)) {
+        const pos = AIRPORT_COORDS[code];
+        if (!pos) continue;
+        const dx = x - Number(pos.x);
+        const dy = y - Number(pos.y);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            bestCode = code;
+        }
+    }
+
+    return bestDistance <= maxDistance ? bestCode : null;
+}
+
 function inferCurrentAirportFromMenu() {
-    // Identify the three route airports by the unique destination choices shown in
-    // each airport's top-level cargo menu. This avoids needing player coordinates.
+    if (!AUTO_CARGO.menuOpen || !menuLooksLikeRouteAirport()) return null;
+
+    // BEST SIGNAL ON ARRIVAL:
+    // the cargo code itself is the destination airport. If we are carrying one
+    // route cargo type and the newly-opened airport menu exposes Deliver Cargo,
+    // use that code directly. This makes MGA/SCA arrival independent of the list
+    // of other destinations shown by that airport.
+    const carried = getCargoCounts(MEMORY.inventory, MEMORY.trunk);
+    const carriedRouteCodes = Object.keys(CARGO_ROUTE).filter(code => (carried[code] || 0) > 0);
+    if (carriedRouteCodes.length === 1 && findMenuChoiceStarts('Deliver Cargo')) {
+        return carriedRouteCodes[0];
+    }
+
+    // checkForCargo already tracks the active destination; use that too when TT
+    // has temporarily hidden trunk contents but the airport menu is visible.
+    if (
+        window.currentWaypointDest &&
+        CARGO_ROUTE[window.currentWaypointDest] &&
+        findMenuChoiceStarts('Deliver Cargo')
+    ) {
+        return window.currentWaypointDest;
+    }
+
+    // POSITION FALLBACK:
+    // SSIA, Mount Gordo and San Chianski are thousands of metres apart, so this
+    // is much safer than requiring arbitrary menu pairs such as
+    // "San Chianski + Roxwood" to identify Mount Gordo.
+    const byPosition = nearestRouteAirportFromPosition();
+    if (byPosition) return byPosition;
+
+    // LAST-KNOWN AIRPORT FALLBACK:
+    // after a delivery the cargo is gone, but we are still physically at the same
+    // airport. If the reopened menu contains that airport's next route choice,
+    // retain the airport we just delivered at.
+    if (AUTO_CARGO.airportCode && CARGO_ROUTE[AUTO_CARGO.airportCode]) {
+        const route = CARGO_ROUTE[AUTO_CARGO.airportCode];
+        if (findMenuChoiceStarts(route.pickupLabel)) {
+            return AUTO_CARGO.airportCode;
+        }
+    }
+
+    // Legacy menu signatures kept only as a final fallback.
     if (hasMenuChoiceStarts('Mt. Gordo') && hasMenuChoiceStarts('Chumash') && hasMenuChoiceStarts('Los Santos')) {
         return 'SSIA';
     }
@@ -746,6 +833,7 @@ function inferCurrentAirportFromMenu() {
     if (hasMenuChoiceStarts('Sandy Shores') && hasMenuChoiceStarts('Pacific Ocean')) {
         return 'SCA';
     }
+
     return null;
 }
 
@@ -791,6 +879,23 @@ function nativeOpenTrunk() {
     AUTO_CARGO.lastAction = 'Open Trunk';
     AUTO_CARGO.lockUntil = Date.now() + 650;
     postTT({ type: 'sendCommand', command: 'rm_trunk' });
+    setTimeout(requestData, 120);
+    setTimeout(requestData, 350);
+    setTimeout(requestData, 700);
+    return true;
+}
+
+// TT documents an interactButton User-App command. Although the old docs label
+// it "Unused", it is the only exposed interaction command and is the correct
+// thing to try for re-triggering a proximity interaction after the trunk menu
+// has been closed while the aircraft is still inside the airport trigger.
+function nativeInteract(actionName = 'Interact') {
+    if (Date.now() < AUTO_CARGO.lockUntil) return false;
+    AUTO_CARGO.lastAction = actionName;
+    AUTO_CARGO.lockUntil = Date.now() + 500;
+    AUTO_CARGO.lastInteractAt = Date.now();
+    AUTO_CARGO.interactAttempts += 1;
+    postTT({ type: 'interactButton' });
     setTimeout(requestData, 120);
     setTimeout(requestData, 350);
     setTimeout(requestData, 700);
@@ -862,7 +967,7 @@ function cargoTotal(counts) {
 function setAutoStatus(text, color) {
     const el = document.getElementById('auto-status');
     if (!el) return;
-    el.innerText = 'AUTO v4: ' + text;
+    el.innerText = 'AUTO v6: ' + text;
     if (color) el.style.color = color;
 }
 
@@ -921,10 +1026,11 @@ function runNativeCargoAutomation() {
             clearDeliveryState();
             beginStage('delivery-return-airport');
             AUTO_CARGO.postBackSince = now;
+            AUTO_CARGO.interactAttempts = 0;
+            AUTO_CARGO.lastInteractAt = 0;
 
-            // Back closes the trunk. TT does not expose a proven User-App command
-            // for re-triggering the airport proximity interaction, so we wait for
-            // the airport menu to become visible again instead of inventing one.
+            // First close the trunk. Once it is actually gone, the next stage
+            // uses TT's interactButton command to re-trigger the airport marker.
             if (AUTO_CARGO.menuOpen && isTrunkMenu()) {
                 nativeBack('Close Trunk After Delivery');
             }
@@ -936,10 +1042,36 @@ function runNativeCargoAutomation() {
         const airportCode = inferCurrentAirportFromMenu();
         if (airportCode) {
             AUTO_CARGO.airportCode = airportCode;
+            AUTO_CARGO.interactAttempts = 0;
             beginStage('idle');
             // fall through and select the next destination immediately.
         } else {
-            setAutoStatus('cargo cleared - reopen airport menu; automation resumes instantly', '#ffca28');
+            // Do not fire interactButton while the trunk is still visibly open.
+            // Wait for forceMenuBack to settle, then re-trigger the airport E action.
+            if (AUTO_CARGO.menuOpen) {
+                setAutoStatus('cargo cleared - waiting for trunk menu to close', '#8bc34a');
+                return;
+            }
+
+            if (now < AUTO_CARGO.lockUntil) {
+                setAutoStatus('cargo cleared - preparing airport interaction', '#8bc34a');
+                return;
+            }
+
+            // Retry a few times because proximity interactions can be swallowed on
+            // the exact frame a menu closes. Stop rather than spamming indefinitely.
+            const canRetry = AUTO_CARGO.interactAttempts < 4;
+            const enoughTime = !AUTO_CARGO.lastInteractAt || (now - AUTO_CARGO.lastInteractAt >= 850);
+
+            if (canRetry && enoughTime) {
+                setAutoStatus(`reopening airport menu (attempt ${AUTO_CARGO.interactAttempts + 1})`, '#00e676');
+                nativeInteract('Reopen Airport Interaction');
+                return;
+            }
+
+            if (AUTO_CARGO.interactAttempts >= 4 && now - AUTO_CARGO.lastInteractAt >= 850) {
+                setAutoStatus('interactButton did not reopen airport menu - press E once', '#ff9800');
+            }
             return;
         }
     }
