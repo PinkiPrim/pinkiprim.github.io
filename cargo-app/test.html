@@ -295,6 +295,7 @@
             <div class="dest-label">Next Destination</div>
             <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
             <div id="multi-warning" class="multi-warning">⚠ Multiple Cargo Types ⚠</div>
+            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO: waiting for airport menu</div>
         </div>
 
         <div class="section">
@@ -718,8 +719,35 @@ function inferCurrentAirportFromMenu() {
 }
 
 function postTT(message) {
-    if (!window.parent) return;
-    try { window.parent.postMessage(message, '*'); } catch(e) {}
+    if (!window.parent) return false;
+    try {
+        window.parent.postMessage(message, '*');
+        return true;
+    } catch(e) {
+        return false;
+    }
+}
+
+// IMPORTANT: TT's native menu controls are not ordinary parent postMessages in
+// every User App build. Our earlier working TT probe used the exposed
+// sendCommand(message) bridge. Use that exact bridge when it exists, then fall
+// back to parent.postMessage for compatibility with wrappers that proxy it.
+function sendTTNative(message) {
+    try {
+        if (typeof window.sendCommand === 'function') {
+            window.sendCommand(message);
+            return true;
+        }
+    } catch(e) {}
+
+    try {
+        if (typeof sendCommand === 'function') {
+            sendCommand(message);
+            return true;
+        }
+    } catch(e) {}
+
+    return postTT(message);
 }
 
 function nativeChoose(choice, actionName, lockMs = 650) {
@@ -728,7 +756,7 @@ function nativeChoose(choice, actionName, lockMs = 650) {
 
     AUTO_CARGO.lastAction = actionName || choiceText(choice);
     AUTO_CARGO.lockUntil = Date.now() + lockMs;
-    postTT({ type: 'forceMenuChoice', choice: choice.name, mod: 0 });
+    sendTTNative({ type: 'forceMenuChoice', choice: choice.name, mod: 0 });
 
     // Pull fresh menu/inventory state quickly after the native action.
     setTimeout(requestData, 150);
@@ -740,7 +768,7 @@ function nativeBack(actionName = 'Menu Back') {
     if (Date.now() < AUTO_CARGO.lockUntil) return false;
     AUTO_CARGO.lastAction = actionName;
     AUTO_CARGO.lockUntil = Date.now() + 500;
-    postTT({ type: 'forceMenuBack' });
+    sendTTNative({ type: 'forceMenuBack' });
     setTimeout(requestData, 200);
     return true;
 }
@@ -749,7 +777,7 @@ function nativeOpenTrunk() {
     if (Date.now() < AUTO_CARGO.lockUntil) return false;
     AUTO_CARGO.lastAction = 'Open Trunk';
     AUTO_CARGO.lockUntil = Date.now() + 650;
-    postTT({ type: 'sendCommand', command: 'rm_trunk' });
+    sendTTNative({ type: 'sendCommand', command: 'rm_trunk' });
     setTimeout(requestData, 150);
     setTimeout(requestData, 450);
     return true;
@@ -787,8 +815,15 @@ function cargoTotal(counts) {
     return Object.values(counts).reduce((sum, qty) => sum + Number(qty || 0), 0);
 }
 
+function setAutoStatus(text, color) {
+    const el = document.getElementById('auto-status');
+    if (!el) return;
+    el.innerText = 'AUTO: ' + text;
+    if (color) el.style.color = color;
+}
+
 function runNativeCargoAutomation() {
-    if (!AUTO_CARGO.enabled) return;
+    if (!AUTO_CARGO.enabled) { setAutoStatus('disabled', '#ff9800'); return; }
     if (Date.now() < AUTO_CARGO.lockUntil) return;
 
     const pocketCounts = getCargoCounts(MEMORY.inventory, null);
@@ -851,13 +886,14 @@ function runNativeCargoAutomation() {
         return;
     }
 
-    if (!AUTO_CARGO.menuOpen || AUTO_CARGO.choices.length === 0) return;
+    if (!AUTO_CARGO.menuOpen || AUTO_CARGO.choices.length === 0) { setAutoStatus('press E / open airport cargo menu', '#ffca28'); return; }
 
     // C. We have already entered a submenu: choose the x4 option only.
     if (AUTO_CARGO.stage === 'deliver-submenu') {
         const x4 = findMenuChoiceExact('Deliver Cargo x4');
         if (x4) {
             const code = AUTO_CARGO.airportCode;
+            setAutoStatus(`clicking Deliver Cargo x4 (${code})`, '#00e676');
             AUTO_CARGO.pendingDeliveryCode = code;
             AUTO_CARGO.stage = 'wait-delivery-complete';
             nativeChoose(x4, `Deliver ${code} x4`, 800);
@@ -868,6 +904,7 @@ function runNativeCargoAutomation() {
     if (AUTO_CARGO.stage === 'pickup-submenu') {
         const x4 = findMenuChoiceExact(`${AUTO_CARGO.pendingPickupLabel} x4`);
         if (x4) {
+            setAutoStatus(`clicking ${AUTO_CARGO.pendingPickupLabel} x4`, '#00e676');
             AUTO_CARGO.stage = 'wait-pickup-inventory';
             nativeChoose(x4, `Collect ${AUTO_CARGO.pendingPickupCode} x4`, 800);
         }
@@ -876,8 +913,9 @@ function runNativeCargoAutomation() {
 
     // D. Top-level airport menu.
     const airportCode = inferCurrentAirportFromMenu();
-    if (!airportCode || !CARGO_ROUTE[airportCode]) return;
+    if (!airportCode || !CARGO_ROUTE[airportCode]) { setAutoStatus('menu detected, but airport not recognised', '#ff9800'); return; }
     AUTO_CARGO.airportCode = airportCode;
+    setAutoStatus(`${airportCode} menu detected`, '#8bc34a');
 
     const airportCargoQty = allCounts[airportCode] || 0;
     const totalCargoQty = cargoTotal(allCounts);
@@ -886,6 +924,7 @@ function runNativeCargoAutomation() {
     if (airportCargoQty > 0) {
         const deliver = findMenuChoiceExact('Deliver Cargo') || findMenuChoiceStarts('Deliver Cargo');
         if (deliver) {
+            setAutoStatus(`opening ${airportCode} Deliver Cargo`, '#00e676');
             AUTO_CARGO.stage = 'deliver-submenu';
             nativeChoose(deliver, `Open ${airportCode} Deliver Cargo`, 650);
         }
@@ -898,6 +937,7 @@ function runNativeCargoAutomation() {
         const route = CARGO_ROUTE[airportCode];
         const pickup = findMenuChoiceStarts(route.pickupLabel);
         if (pickup) {
+            setAutoStatus(`selecting ${route.pickupLabel}`, '#00e676');
             AUTO_CARGO.pendingPickupCode = route.pickupCode;
             AUTO_CARGO.pendingPickupLabel = route.pickupLabel;
             AUTO_CARGO.stage = 'pickup-submenu';
