@@ -372,7 +372,7 @@
 const AIRPORTS = {
     "LSIA": "Los Santos INTL.", "SSIA": "Sandy Sh. INTL. Airport", "ZMA": "Zancudo Military Airport",
     "RAM": "Arroyo Muerto Municipal", "PBA": "Arroyo Muerto Municipal", 
-    "POA": "Pacific Ocean Airport", "MGA": "Mount Gorgo Airport",
+    "POA": "Pacific Ocean Airport", "MGA": "Mount Gordo Airport",
     "CIA": "Chumash Island Airport", "SCA": "San Chianski Airport", "POP": "PostOp Airport",
     "SAN": "Sandy Shores Airfield", "MKA": "McKenzie Airfield", "CPA": "Cayo Perico Airfield",
     "TVH": "Tongva Hills Airfield", "CV": "Carrier", "ROX": "Roxwood"
@@ -417,6 +417,29 @@ const STATE = {
     avgRunXP: 0
 };
 
+// --- NATIVE TT CARGO ROUTE AUTOMATION ---
+// Route: SSIA -> Mount Gordo -> San Chianski -> Sandy Shores -> repeat.
+// Uses the native TT User App actions already proven to work:
+//   forceMenuChoice / forceMenuBack / sendCommand("rm_trunk")
+const CARGO_ROUTE = {
+    SSIA: { pickupLabel: "Mt. Gordo",      pickupCode: "MGA"  },
+    MGA:  { pickupLabel: "San Chianski",  pickupCode: "SCA"  },
+    SCA:  { pickupLabel: "Sandy Shores",  pickupCode: "SSIA" }
+};
+
+const AUTO_CARGO = {
+    enabled: true,
+    menuOpen: false,
+    choices: [],
+    stage: "idle",
+    airportCode: null,
+    pendingDeliveryCode: null,
+    pendingPickupCode: null,
+    pendingPickupLabel: null,
+    lastAction: "",
+    lockUntil: 0
+};
+
 // --- INIT ---
 const savedTarget = localStorage.getItem(STORAGE_KEY_CALC);
 if (savedTarget) document.getElementById('target-input').value = savedTarget;
@@ -435,6 +458,19 @@ function toggleMini() {
     localStorage.setItem(STORAGE_KEY_MINI, isMini);
 }
 
+// --- ESCAPE KEY PIN FEATURE ---
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Posts the pin command to the Transport Tycoon parent client
+        if (window.parent) {
+            window.parent.postMessage({ type: 'pin' }, '*');
+        }
+    }
+});
+
 // --- CLOCK ---
 setInterval(() => {
     document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -447,7 +483,8 @@ function requestData() {
             let keys = [
                 "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
                 "inventory", "vehicle", "plate", 
-                "chest", "trunkCapacity", "trunkWeight"
+                "chest", "trunkCapacity", "trunkWeight",
+                "menu_open", "menu_choice", "menu_choices"
             ];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
@@ -455,7 +492,10 @@ function requestData() {
         } catch(e) {}
     }
 }
-setInterval(requestData, 5000); 
+// Faster polling is used only so native menu/cargo changes are caught quickly enough
+// for the route automation to feel immediate.
+setInterval(requestData, 750);
+requestData();
 
 window.addEventListener('message', (event) => {
     let payload = event.data;
@@ -466,6 +506,17 @@ window.addEventListener('message', (event) => {
 });
 
 function processPayload(data) {
+    // 0. NATIVE TT MENU STATE
+    if (data.menu_open !== undefined) {
+        AUTO_CARGO.menuOpen = parseTTBoolean(data.menu_open);
+        if (!AUTO_CARGO.menuOpen) AUTO_CARGO.choices = [];
+    }
+    if (data.menu_choices !== undefined) {
+        AUTO_CARGO.choices = parseTTMenuChoices(data.menu_choices);
+        // Some TT payloads do not reliably send menu_open alongside every choices update.
+        if (AUTO_CARGO.choices.length > 0) AUTO_CARGO.menuOpen = true;
+    }
+
     // 1. SMART VEHICLE DETECTION
     let incomingPlate = data.plate || data.vehicle;
     if (incomingPlate) {
@@ -558,42 +609,308 @@ function processPayload(data) {
         document.getElementById('disp-bxp').innerText = txt;
         document.getElementById('micro-tokens').innerText = txt;
     }
+
+    // 8. NATIVE CARGO ROUTE AUTOMATION
+    runNativeCargoAutomation();
 }
 
-// --- FLIGHT SESSION LOGIC ---
+// --- NATIVE TT MENU / CARGO AUTOMATION HELPERS ---
+function parseTTBoolean(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+        const v = value.trim().toLowerCase();
+        return v === 'true' || v === '1' || v === 'yes' || v === 'open';
+    }
+    return !!value;
+}
 
-function checkForCargo(pockets, trunk) {
-    let cargoCounts = {}; // { "LSIA": 5, "SCA": 100 }
-    let cargoFound = false;
+function parseMaybeJSON(value) {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    try { return JSON.parse(trimmed); } catch(e) { return value; }
+}
 
-    // Helper: Scans an inventory object and counts cargo types
+function parseTTMenuChoices(raw) {
+    const parsed = parseMaybeJSON(raw);
+    const found = [];
+    const seen = new Set();
+
+    const walk = (node) => {
+        if (!node) return;
+        if (Array.isArray(node)) {
+            node.forEach(walk);
+            return;
+        }
+        if (typeof node !== 'object') return;
+
+        if (typeof node.name === 'string' && !seen.has(node.name)) {
+            seen.add(node.name);
+            found.push(node);
+        }
+
+        for (const key in node) {
+            if (key === 'name') continue;
+            const child = node[key];
+            if (child && (typeof child === 'object' || Array.isArray(child))) walk(child);
+        }
+    };
+
+    walk(parsed);
+    return found;
+}
+
+function cleanMenuText(html) {
+    let text = String(html || '');
+    try {
+        const holder = document.createElement('div');
+        holder.innerHTML = text;
+        text = holder.textContent || holder.innerText || text;
+    } catch(e) {
+        text = text.replace(/<[^>]*>/g, ' ');
+    }
+    return text
+        .replace(/\u00a0/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/^\s*-\s*/, '')
+        .replace(/\s*-\s*$/, '')
+        .trim();
+}
+
+function choiceText(choice) {
+    return cleanMenuText(choice && choice.name ? choice.name : '');
+}
+
+function findMenuChoiceExact(label) {
+    const wanted = label.toLowerCase().trim();
+    return AUTO_CARGO.choices.find(c => choiceText(c).toLowerCase() === wanted) || null;
+}
+
+function findMenuChoiceStarts(label) {
+    const wanted = label.toLowerCase().trim();
+    return AUTO_CARGO.choices.find(c => choiceText(c).toLowerCase().startsWith(wanted)) || null;
+}
+
+function findMenuChoiceContains(label) {
+    const wanted = label.toLowerCase().trim();
+    return AUTO_CARGO.choices.find(c => choiceText(c).toLowerCase().includes(wanted)) || null;
+}
+
+function hasMenuChoiceStarts(label) {
+    return !!findMenuChoiceStarts(label);
+}
+
+function inferCurrentAirportFromMenu() {
+    // Identify the three route airports by the unique destination choices shown in
+    // each airport's top-level cargo menu. This avoids needing player coordinates.
+    if (hasMenuChoiceStarts('Mt. Gordo') && hasMenuChoiceStarts('Chumash') && hasMenuChoiceStarts('Los Santos')) {
+        return 'SSIA';
+    }
+    if (hasMenuChoiceStarts('San Chianski') && hasMenuChoiceStarts('Roxwood')) {
+        return 'MGA';
+    }
+    if (hasMenuChoiceStarts('Sandy Shores') && hasMenuChoiceStarts('Pacific Ocean')) {
+        return 'SCA';
+    }
+    return null;
+}
+
+function postTT(message) {
+    if (!window.parent) return;
+    try { window.parent.postMessage(message, '*'); } catch(e) {}
+}
+
+function nativeChoose(choice, actionName, lockMs = 650) {
+    if (!choice || typeof choice.name !== 'string') return false;
+    if (Date.now() < AUTO_CARGO.lockUntil) return false;
+
+    AUTO_CARGO.lastAction = actionName || choiceText(choice);
+    AUTO_CARGO.lockUntil = Date.now() + lockMs;
+    postTT({ type: 'forceMenuChoice', choice: choice.name, mod: 0 });
+
+    // Pull fresh menu/inventory state quickly after the native action.
+    setTimeout(requestData, 150);
+    setTimeout(requestData, 400);
+    return true;
+}
+
+function nativeBack(actionName = 'Menu Back') {
+    if (Date.now() < AUTO_CARGO.lockUntil) return false;
+    AUTO_CARGO.lastAction = actionName;
+    AUTO_CARGO.lockUntil = Date.now() + 500;
+    postTT({ type: 'forceMenuBack' });
+    setTimeout(requestData, 200);
+    return true;
+}
+
+function nativeOpenTrunk() {
+    if (Date.now() < AUTO_CARGO.lockUntil) return false;
+    AUTO_CARGO.lastAction = 'Open Trunk';
+    AUTO_CARGO.lockUntil = Date.now() + 650;
+    postTT({ type: 'sendCommand', command: 'rm_trunk' });
+    setTimeout(requestData, 150);
+    setTimeout(requestData, 450);
+    return true;
+}
+
+function getCargoCounts(pockets, trunk) {
+    const counts = {};
+
     const scan = (inv) => {
-        if(!inv) return;
+        if (!inv) return;
         for (const key in inv) {
             const item = inv[key];
-            
-            // Normalize quantity (handle different data structures)
             let qty = 0;
             if (typeof item === 'number') qty = item;
-            else if (typeof item === 'object') qty = item.amount || item.count || 0;
-            
+            else if (item && typeof item === 'object') qty = item.amount || item.count || 0;
             if (qty <= 0) continue;
 
             const upperKey = key.toUpperCase();
-            if(upperKey.includes("CARGO")) {
-                for(const code in AIRPORTS) {
-                    if (upperKey.includes(code)) {
-                        if (!cargoCounts[code]) cargoCounts[code] = 0;
-                        cargoCounts[code] += qty;
-                        cargoFound = true;
-                    }
+            if (!upperKey.includes('CARGO')) continue;
+
+            for (const code in AIRPORTS) {
+                if (upperKey.includes(code)) {
+                    counts[code] = (counts[code] || 0) + qty;
                 }
             }
         }
     };
 
-    scan(trunk);
     scan(pockets);
+    scan(trunk);
+    return counts;
+}
+
+function cargoTotal(counts) {
+    return Object.values(counts).reduce((sum, qty) => sum + Number(qty || 0), 0);
+}
+
+function runNativeCargoAutomation() {
+    if (!AUTO_CARGO.enabled) return;
+    if (Date.now() < AUTO_CARGO.lockUntil) return;
+
+    const pocketCounts = getCargoCounts(MEMORY.inventory, null);
+    const trunkCounts = getCargoCounts(null, MEMORY.trunk);
+    const allCounts = getCargoCounts(MEMORY.inventory, MEMORY.trunk);
+
+    // A. A pickup x4 was selected. Wait until the new cargo ACTUALLY appears in
+    // the player inventory before opening the trunk, so rm_trunk never fires early.
+    if (AUTO_CARGO.pendingPickupCode) {
+        const code = AUTO_CARGO.pendingPickupCode;
+        const pocketQty = pocketCounts[code] || 0;
+        const trunkQty = trunkCounts[code] || 0;
+
+        if (AUTO_CARGO.stage === 'wait-pickup-inventory') {
+            if (pocketQty > 0) {
+                AUTO_CARGO.stage = 'open-trunk';
+                nativeOpenTrunk();
+            }
+            return;
+        }
+
+        if (AUTO_CARGO.stage === 'open-trunk' || AUTO_CARGO.stage === 'wait-put-all') {
+            const putAll = findMenuChoiceContains('put all');
+            if (putAll && AUTO_CARGO.menuOpen) {
+                AUTO_CARGO.stage = 'wait-store-complete';
+                nativeChoose(putAll, 'Put All', 700);
+            } else {
+                AUTO_CARGO.stage = 'wait-put-all';
+            }
+            return;
+        }
+
+        if (AUTO_CARGO.stage === 'wait-store-complete') {
+            // Once the cargo has left pockets and is present in the trunk, close
+            // the trunk menu and hand control back to the flight portion.
+            if (pocketQty === 0 && trunkQty > 0) {
+                if (AUTO_CARGO.menuOpen) nativeBack('Close Trunk');
+                AUTO_CARGO.pendingPickupCode = null;
+                AUTO_CARGO.pendingPickupLabel = null;
+                AUTO_CARGO.stage = 'idle';
+            }
+            return;
+        }
+    }
+
+    // B. A delivery x4 was selected. Do not start the next pickup until that
+    // airport's cargo is genuinely gone from BOTH pockets and trunk.
+    if (AUTO_CARGO.pendingDeliveryCode) {
+        const code = AUTO_CARGO.pendingDeliveryCode;
+        if ((allCounts[code] || 0) === 0) {
+            AUTO_CARGO.pendingDeliveryCode = null;
+            AUTO_CARGO.stage = 'idle';
+
+            // If TT leaves the delivery submenu open, go straight back to the
+            // airport's main menu so the next destination can be selected.
+            if (AUTO_CARGO.menuOpen && findMenuChoiceExact('Deliver Cargo x4')) {
+                nativeBack('Back After Delivery');
+            }
+        }
+        return;
+    }
+
+    if (!AUTO_CARGO.menuOpen || AUTO_CARGO.choices.length === 0) return;
+
+    // C. We have already entered a submenu: choose the x4 option only.
+    if (AUTO_CARGO.stage === 'deliver-submenu') {
+        const x4 = findMenuChoiceExact('Deliver Cargo x4');
+        if (x4) {
+            const code = AUTO_CARGO.airportCode;
+            AUTO_CARGO.pendingDeliveryCode = code;
+            AUTO_CARGO.stage = 'wait-delivery-complete';
+            nativeChoose(x4, `Deliver ${code} x4`, 800);
+        }
+        return;
+    }
+
+    if (AUTO_CARGO.stage === 'pickup-submenu') {
+        const x4 = findMenuChoiceExact(`${AUTO_CARGO.pendingPickupLabel} x4`);
+        if (x4) {
+            AUTO_CARGO.stage = 'wait-pickup-inventory';
+            nativeChoose(x4, `Collect ${AUTO_CARGO.pendingPickupCode} x4`, 800);
+        }
+        return;
+    }
+
+    // D. Top-level airport menu.
+    const airportCode = inferCurrentAirportFromMenu();
+    if (!airportCode || !CARGO_ROUTE[airportCode]) return;
+    AUTO_CARGO.airportCode = airportCode;
+
+    const airportCargoQty = allCounts[airportCode] || 0;
+    const totalCargoQty = cargoTotal(allCounts);
+
+    // Delivery has priority, but ONLY when cargo for THIS airport is detected.
+    if (airportCargoQty > 0) {
+        const deliver = findMenuChoiceExact('Deliver Cargo') || findMenuChoiceStarts('Deliver Cargo');
+        if (deliver) {
+            AUTO_CARGO.stage = 'deliver-submenu';
+            nativeChoose(deliver, `Open ${airportCode} Deliver Cargo`, 650);
+        }
+        return;
+    }
+
+    // Pickup only when there is NO cargo at all. This is the safety gate the
+    // user requested: never click a new destination while another cargo type exists.
+    if (totalCargoQty === 0) {
+        const route = CARGO_ROUTE[airportCode];
+        const pickup = findMenuChoiceStarts(route.pickupLabel);
+        if (pickup) {
+            AUTO_CARGO.pendingPickupCode = route.pickupCode;
+            AUTO_CARGO.pendingPickupLabel = route.pickupLabel;
+            AUTO_CARGO.stage = 'pickup-submenu';
+            nativeChoose(pickup, `Open ${route.pickupLabel}`, 650);
+        }
+    }
+}
+
+// --- FLIGHT SESSION LOGIC ---
+
+function checkForCargo(pockets, trunk) {
+    let cargoCounts = getCargoCounts(pockets, trunk); // { "LSIA": 5, "SCA": 100 }
+    let cargoFound = Object.keys(cargoCounts).length > 0;
     
     const box = document.getElementById('dest-box');
     const txt = document.getElementById('disp-destination');
