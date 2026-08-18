@@ -295,7 +295,7 @@
             <div class="dest-label">Next Destination</div>
             <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
             <div id="multi-warning" class="multi-warning">⚠ Multiple Cargo Types ⚠</div>
-            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v6: waiting for airport menu</div>
+            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v7: waiting for airport menu</div>
         </div>
 
         <div class="section">
@@ -426,9 +426,9 @@ const STATE = {
 // Route: SSIA -> Mount Gordo -> San Chianski -> Sandy Shores -> repeat.
 // TT opens the airport menu on arrival. We then:
 //   Deliver Cargo -> x4 -> open trunk and let the repeating x4 action drain it.
-//   Back from trunk -> airport menu -> next destination -> x4 -> open trunk and fill it.
+//   Close trunk -> open M menu -> Re-open Airport -> next destination -> x4 -> open trunk and fill it.
 // Uses the native TT User App actions already proven to work:
-//   forceMenuChoice / forceMenuBack / sendCommand("rm_trunk")
+//   forceMenuChoice / forceMenuBack / openMainMenu / sendCommand("rm_trunk")
 const CARGO_ROUTE = {
     SSIA: { pickupLabel: "Mt. Gordo",      pickupCode: "MGA"  },
     MGA:  { pickupLabel: "San Chianski",  pickupCode: "SCA"  },
@@ -451,8 +451,8 @@ const AUTO_CARGO = {
     cargoZeroSince: 0,
     pickupFullSince: 0,
     postBackSince: 0,
-    interactAttempts: 0,
-    lastInteractAt: 0,
+    reopenAttempts: 0,
+    lastReopenAt: 0,
     expectedBatchKg: 100
 };
 
@@ -885,21 +885,27 @@ function nativeOpenTrunk() {
     return true;
 }
 
-// TT documents an interactButton User-App command. Although the old docs label
-// it "Unused", it is the only exposed interaction command and is the correct
-// thing to try for re-triggering a proximity interaction after the trunk menu
-// has been closed while the aircraft is still inside the airport trigger.
-function nativeInteract(actionName = 'Interact') {
+// Reliable airport re-open path: open the normal M menu, then submit the
+// single "Re-open <Airport>" entry TT adds while we are still in that airport
+// interaction zone. This is much more dependable than trying to emulate E.
+function nativeOpenMainMenu(actionName = 'Open Main Menu') {
     if (Date.now() < AUTO_CARGO.lockUntil) return false;
     AUTO_CARGO.lastAction = actionName;
-    AUTO_CARGO.lockUntil = Date.now() + 500;
-    AUTO_CARGO.lastInteractAt = Date.now();
-    AUTO_CARGO.interactAttempts += 1;
-    postTT({ type: 'interactButton' });
+    AUTO_CARGO.lockUntil = Date.now() + 550;
+    AUTO_CARGO.lastReopenAt = Date.now();
+    AUTO_CARGO.reopenAttempts += 1;
+    postTT({ type: 'openMainMenu' });
     setTimeout(requestData, 120);
     setTimeout(requestData, 350);
     setTimeout(requestData, 700);
     return true;
+}
+
+function findReopenAirportChoice() {
+    return AUTO_CARGO.choices.find(choice => {
+        const text = choiceText(choice).toLowerCase().trim();
+        return text.startsWith('re-open ') || text.startsWith('reopen ') || text.includes('re-open ');
+    }) || null;
 }
 
 function isTrunkMenu() {
@@ -967,7 +973,7 @@ function cargoTotal(counts) {
 function setAutoStatus(text, color) {
     const el = document.getElementById('auto-status');
     if (!el) return;
-    el.innerText = 'AUTO v6: ' + text;
+    el.innerText = 'AUTO v7: ' + text;
     if (color) el.style.color = color;
 }
 
@@ -1024,13 +1030,13 @@ function runNativeCargoAutomation() {
 
         if (now - AUTO_CARGO.cargoZeroSince >= 900 && now >= AUTO_CARGO.lockUntil) {
             clearDeliveryState();
-            beginStage('delivery-return-airport');
+            beginStage('delivery-open-main-menu');
             AUTO_CARGO.postBackSince = now;
-            AUTO_CARGO.interactAttempts = 0;
-            AUTO_CARGO.lastInteractAt = 0;
+            AUTO_CARGO.reopenAttempts = 0;
+            AUTO_CARGO.lastReopenAt = 0;
 
-            // First close the trunk. Once it is actually gone, the next stage
-            // uses TT's interactButton command to re-trigger the airport marker.
+            // Close the trunk first. Once it is actually closed, V7 opens the M
+            // menu and clicks its "Re-open <Airport>" entry.
             if (AUTO_CARGO.menuOpen && isTrunkMenu()) {
                 nativeBack('Close Trunk After Delivery');
             }
@@ -1038,40 +1044,81 @@ function runNativeCargoAutomation() {
         return;
     }
 
-    if (AUTO_CARGO.stage === 'delivery-return-airport') {
+    if (AUTO_CARGO.stage === 'delivery-open-main-menu') {
+        // Do not open M on top of the trunk. Wait until forceMenuBack has settled.
+        if (AUTO_CARGO.menuOpen && isTrunkMenu()) {
+            setAutoStatus('cargo cleared - waiting for trunk to close', '#8bc34a');
+            if (now >= AUTO_CARGO.lockUntil) nativeBack('Close Trunk After Delivery');
+            return;
+        }
+
+        // If the M menu is already open (including if the player opened it), use it.
+        const existingReopen = findReopenAirportChoice();
+        if (AUTO_CARGO.menuOpen && existingReopen) {
+            setAutoStatus(`M menu: clicking ${choiceText(existingReopen)}`, '#00e676');
+            beginStage('delivery-wait-airport-menu');
+            nativeChoose(existingReopen, `Re-open ${AUTO_CARGO.airportCode || 'Airport'}`, 700);
+            return;
+        }
+
+        if (AUTO_CARGO.menuOpen) {
+            setAutoStatus('cargo cleared - waiting for M menu state', '#8bc34a');
+            return;
+        }
+
+        if (now < AUTO_CARGO.lockUntil) {
+            setAutoStatus('cargo cleared - preparing M menu', '#8bc34a');
+            return;
+        }
+
+        setAutoStatus('cargo cleared - opening M menu', '#00e676');
+        beginStage('delivery-find-reopen');
+        nativeOpenMainMenu('Open M Menu For Airport Re-open');
+        return;
+    }
+
+    if (AUTO_CARGO.stage === 'delivery-find-reopen') {
+        const reopen = findReopenAirportChoice();
+        if (AUTO_CARGO.menuOpen && reopen && now >= AUTO_CARGO.lockUntil) {
+            setAutoStatus(`M menu: clicking ${choiceText(reopen)}`, '#00e676');
+            beginStage('delivery-wait-airport-menu');
+            nativeChoose(reopen, `Re-open ${AUTO_CARGO.airportCode || 'Airport'}`, 700);
+            return;
+        }
+
+        if (AUTO_CARGO.menuOpen) {
+            setAutoStatus('M menu open - finding Re-open airport option', '#8bc34a');
+            return;
+        }
+
+        // If opening M was swallowed, retry a couple of times instead of stalling.
+        const canRetry = AUTO_CARGO.reopenAttempts < 3;
+        const enoughTime = !AUTO_CARGO.lastReopenAt || (now - AUTO_CARGO.lastReopenAt >= 1000);
+        if (canRetry && enoughTime && now >= AUTO_CARGO.lockUntil) {
+            setAutoStatus(`opening M menu (attempt ${AUTO_CARGO.reopenAttempts + 1})`, '#00e676');
+            nativeOpenMainMenu('Retry M Menu For Airport Re-open');
+            return;
+        }
+
+        if (!canRetry && enoughTime) {
+            setAutoStatus('could not open M menu automatically', '#ff9800');
+        }
+        return;
+    }
+
+    if (AUTO_CARGO.stage === 'delivery-wait-airport-menu') {
         const airportCode = inferCurrentAirportFromMenu();
         if (airportCode) {
             AUTO_CARGO.airportCode = airportCode;
-            AUTO_CARGO.interactAttempts = 0;
+            AUTO_CARGO.reopenAttempts = 0;
+            AUTO_CARGO.lastReopenAt = 0;
             beginStage('idle');
-            // fall through and select the next destination immediately.
+            setAutoStatus(`${airportCode} airport re-opened - selecting next cargo`, '#00e676');
+            // fall through to the normal top-level airport logic below. That logic
+            // explicitly maps MGA -> San Chianski -> SCA, so Mount Gordo now
+            // collects San Chianski x4 automatically.
         } else {
-            // Do not fire interactButton while the trunk is still visibly open.
-            // Wait for forceMenuBack to settle, then re-trigger the airport E action.
-            if (AUTO_CARGO.menuOpen) {
-                setAutoStatus('cargo cleared - waiting for trunk menu to close', '#8bc34a');
-                return;
-            }
-
-            if (now < AUTO_CARGO.lockUntil) {
-                setAutoStatus('cargo cleared - preparing airport interaction', '#8bc34a');
-                return;
-            }
-
-            // Retry a few times because proximity interactions can be swallowed on
-            // the exact frame a menu closes. Stop rather than spamming indefinitely.
-            const canRetry = AUTO_CARGO.interactAttempts < 4;
-            const enoughTime = !AUTO_CARGO.lastInteractAt || (now - AUTO_CARGO.lastInteractAt >= 850);
-
-            if (canRetry && enoughTime) {
-                setAutoStatus(`reopening airport menu (attempt ${AUTO_CARGO.interactAttempts + 1})`, '#00e676');
-                nativeInteract('Reopen Airport Interaction');
-                return;
-            }
-
-            if (AUTO_CARGO.interactAttempts >= 4 && now - AUTO_CARGO.lastInteractAt >= 850) {
-                setAutoStatus('interactButton did not reopen airport menu - press E once', '#ff9800');
-            }
+            setAutoStatus('Re-open selected - waiting for airport cargo menu', '#8bc34a');
             return;
         }
     }
