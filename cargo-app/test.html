@@ -295,7 +295,7 @@
             <div class="dest-label">Next Destination</div>
             <div class="dest-value" id="disp-destination">Waiting for cargo...</div>
             <div id="multi-warning" class="multi-warning">⚠ Multiple Cargo Types ⚠</div>
-            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v8: waiting for airport menu</div>
+            <div id="auto-status" style="margin-top:6px;font-size:0.68em;color:#8bc34a;letter-spacing:.4px;">AUTO v9: waiting for airport menu</div>
         </div>
 
         <div class="section">
@@ -453,7 +453,11 @@ const AUTO_CARGO = {
     postBackSince: 0,
     reopenAttempts: 0,
     lastReopenAt: 0,
-    expectedBatchKg: 100
+    expectedBatchKg: 100,
+    // V9: keep the freshest native menu records even when TT lies about menu_open.
+    // Used only for the Mount Gordo -> San Chianski pickup fast-path.
+    lastSeenChoices: [],
+    lastSeenChoicesAt: 0
 };
 
 // --- INIT ---
@@ -548,6 +552,14 @@ function processPayload(data) {
 
     if (data.menu_choices !== undefined) {
         const parsedChoices = parseTTMenuChoices(data.menu_choices);
+
+        // Keep the actual choices TT sent even when menu_open is false. Mount Gordo
+        // is visibly open in-game while occasionally reporting that false flag.
+        if (parsedChoices.length > 0) {
+            AUTO_CARGO.lastSeenChoices = parsedChoices;
+            AUTO_CARGO.lastSeenChoicesAt = Date.now();
+        }
+
         const nearRouteAirport = !!nearestRouteAirportFromPosition(1200);
         const cargoChoicesVisible = recordsLookLikeCargoAutomationMenu(parsedChoices);
         const recoverVisibleCargoMenu = parsedChoices.length > 0 && nearRouteAirport && cargoChoicesVisible;
@@ -659,7 +671,68 @@ function processPayload(data) {
     }
 
     // 8. NATIVE CARGO ROUTE AUTOMATION
-    runNativeCargoAutomation();
+    // Everything except Mount Gordo -> San Chianski already works, so V9 uses a
+    // deliberately narrow fast-path for that one pickup and leaves all other logic alone.
+    if (!runMountGordoSanChianskiFastPath()) {
+        runNativeCargoAutomation();
+    }
+}
+
+// --- V9: MOUNT GORDO -> SAN CHIANSKI FAST PATH ---
+function runMountGordoSanChianskiFastPath() {
+    const now = Date.now();
+    if (!AUTO_CARGO.enabled || now < AUTO_CARGO.lockUntil) return false;
+    if (!AUTO_CARGO.lastSeenChoicesAt || now - AUTO_CARGO.lastSeenChoicesAt > 5000) return false;
+
+    const records = AUTO_CARGO.lastSeenChoices || [];
+    const textOf = (record) => cleanMenuText(record && (record.rawName || record.name || '')).toLowerCase();
+    const findExact = (label) => {
+        const wanted = String(label).toLowerCase();
+        return records.find(r => textOf(r) === wanted) || null;
+    };
+    const findStarts = (label) => {
+        const wanted = String(label).toLowerCase();
+        return records.find(r => textOf(r).startsWith(wanted)) || null;
+    };
+
+    // Second half of the one broken pickup: San Chianski x4 submenu.
+    if (AUTO_CARGO.stage === 'pickup-submenu' && AUTO_CARGO.pendingPickupLabel === 'San Chianski') {
+        const x4 = findExact('San Chianski x4');
+        if (!x4) return false;
+
+        AUTO_CARGO.airportCode = 'MGA';
+        AUTO_CARGO.pendingPickupCode = 'SCA';
+        AUTO_CARGO.pickupFullSince = 0;
+        setAutoStatus('MGA: starting San Chianski x4', '#00e676');
+        beginStage('pickup-open-trunk');
+        nativeChoose(x4, 'Collect SCA x4', 700);
+        return true;
+    }
+
+    // Exact Mount Gordo top menu shown in the screenshot:
+    // Deliver Cargo / Roxwood / San Chianski.
+    const deliver = findStarts('Deliver Cargo');
+    const roxwood = findStarts('Roxwood');
+    const sanChianski = findStarts('San Chianski');
+    if (!deliver || !roxwood || !sanChianski) return false;
+
+    // Only collect when the aircraft is empty.
+    const allCounts = getCargoCounts(MEMORY.inventory, MEMORY.trunk);
+    if (cargoTotal(allCounts) > 0) return false;
+
+    const allowedStages = new Set([
+        'idle', 'flight-ready', 'delivery-return-airport',
+        'delivery-find-reopen', 'delivery-wait-reopened'
+    ]);
+    if (!allowedStages.has(AUTO_CARGO.stage)) return false;
+
+    AUTO_CARGO.airportCode = 'MGA';
+    AUTO_CARGO.pendingPickupCode = 'SCA';
+    AUTO_CARGO.pendingPickupLabel = 'San Chianski';
+    setAutoStatus('MGA: selecting San Chianski', '#00e676');
+    beginStage('pickup-submenu');
+    nativeChoose(sanChianski, 'Open San Chianski', 550);
+    return true;
 }
 
 // --- NATIVE TT MENU / CARGO AUTOMATION HELPERS ---
@@ -1003,7 +1076,7 @@ function cargoTotal(counts) {
 function setAutoStatus(text, color) {
     const el = document.getElementById('auto-status');
     if (!el) return;
-    el.innerText = 'AUTO v8: ' + text;
+    el.innerText = 'AUTO v9: ' + text;
     if (color) el.style.color = color;
 }
 
