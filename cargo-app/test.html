@@ -402,6 +402,7 @@ let MEMORY = {
     inventory: {},
     trunk: {},
     weight: 0,
+    capacity: 0,
     lastTrunkUpdate: 0
 };
 
@@ -420,6 +421,9 @@ const STATE = {
 
 // --- NATIVE TT CARGO ROUTE AUTOMATION ---
 // Route: SSIA -> Mount Gordo -> San Chianski -> Sandy Shores -> repeat.
+// TT opens the airport menu on arrival. We then:
+//   Deliver Cargo -> x4 -> open trunk and let the repeating x4 action drain it.
+//   Back from trunk -> airport menu -> next destination -> x4 -> open trunk and fill it.
 // Uses the native TT User App actions already proven to work:
 //   forceMenuChoice / forceMenuBack / sendCommand("rm_trunk")
 const CARGO_ROUTE = {
@@ -438,7 +442,12 @@ const AUTO_CARGO = {
     pendingPickupCode: null,
     pendingPickupLabel: null,
     lastAction: "",
-    lockUntil: 0
+    lockUntil: 0,
+    stageStartedAt: 0,
+    cargoZeroSince: 0,
+    pickupFullSince: 0,
+    postBackSince: 0,
+    expectedBatchKg: 100
 };
 
 // --- INIT ---
@@ -485,7 +494,7 @@ function requestData() {
                 "exp_piloting_cargos", "exp_token_a|piloting|cargos", 
                 "inventory", "vehicle", "plate", 
                 "chest", "trunkCapacity", "trunkWeight",
-                "menu_open", "menu_choice", "menu_choices"
+                "menu_open", "menu_choice", "menu_choices", "menu"
             ];
             if(TRUNK_KEY) keys.push(TRUNK_KEY);
             window.parent.postMessage({ type: "getNamedData", keys: keys }, "*");
@@ -549,8 +558,9 @@ function processPayload(data) {
         try { MEMORY.inventory = (typeof data.inventory === 'string') ? JSON.parse(data.inventory) : data.inventory; } catch(e){}
     }
     
-    // UPDATE WEIGHT
-    if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(data.trunkWeight);
+    // UPDATE TRUNK WEIGHT / CAPACITY
+    if(data.trunkWeight !== undefined) MEMORY.weight = Math.round(Number(data.trunkWeight) || 0);
+    if(data.trunkCapacity !== undefined) MEMORY.capacity = Math.round(Number(data.trunkCapacity) || 0);
     
     // TRUNK PARSING LOGIC
     let incomingTrunk = null;
@@ -783,6 +793,36 @@ function nativeOpenTrunk() {
     return true;
 }
 
+function isTrunkMenu() {
+    // The TT trunk menu always exposes Put/Put All and Take-style choices.
+    return !!(
+        findMenuChoiceContains('put all') &&
+        (findMenuChoiceExact('Take') || findMenuChoiceContains('repeat take') || findMenuChoiceContains('take weightless'))
+    );
+}
+
+function beginStage(stage) {
+    AUTO_CARGO.stage = stage;
+    AUTO_CARGO.stageStartedAt = Date.now();
+}
+
+function clearDeliveryState() {
+    AUTO_CARGO.pendingDeliveryCode = null;
+    AUTO_CARGO.cargoZeroSince = 0;
+}
+
+function clearPickupState() {
+    AUTO_CARGO.pendingPickupCode = null;
+    AUTO_CARGO.pendingPickupLabel = null;
+    AUTO_CARGO.pickupFullSince = 0;
+}
+
+function pickupBatchCannotFit() {
+    if (!MEMORY.capacity || MEMORY.capacity <= 0) return false;
+    const remaining = MEMORY.capacity - MEMORY.weight;
+    return remaining < AUTO_CARGO.expectedBatchKg;
+}
+
 function getCargoCounts(pockets, trunk) {
     const counts = {};
 
@@ -823,80 +863,196 @@ function setAutoStatus(text, color) {
 }
 
 function runNativeCargoAutomation() {
-    if (!AUTO_CARGO.enabled) { setAutoStatus('disabled', '#ff9800'); return; }
-    if (Date.now() < AUTO_CARGO.lockUntil) return;
+    if (!AUTO_CARGO.enabled) {
+        setAutoStatus('disabled', '#ff9800');
+        return;
+    }
 
+    const now = Date.now();
     const pocketCounts = getCargoCounts(MEMORY.inventory, null);
     const trunkCounts = getCargoCounts(null, MEMORY.trunk);
     const allCounts = getCargoCounts(MEMORY.inventory, MEMORY.trunk);
+    const totalCargoQty = cargoTotal(allCounts);
 
-    // A. A pickup x4 was selected. Wait until the new cargo ACTUALLY appears in
-    // the player inventory before opening the trunk, so rm_trunk never fires early.
-    if (AUTO_CARGO.pendingPickupCode) {
-        const code = AUTO_CARGO.pendingPickupCode;
-        const pocketQty = pocketCounts[code] || 0;
-        const trunkQty = trunkCounts[code] || 0;
-
-        if (AUTO_CARGO.stage === 'wait-pickup-inventory') {
-            if (pocketQty > 0) {
-                AUTO_CARGO.stage = 'open-trunk';
-                nativeOpenTrunk();
-            }
-            return;
+    // ------------------------------------------------------------
+    // 1) DELIVERY LOOP
+    // TT's Deliver Cargo x4 action repeats by itself. The important bit is to
+    // open the trunk immediately so its contents stay live while TT drains the
+    // destination cargo in 4x / 100kg batches.
+    // ------------------------------------------------------------
+    if (AUTO_CARGO.stage === 'delivery-open-trunk') {
+        const code = AUTO_CARGO.pendingDeliveryCode;
+        setAutoStatus(`delivery started (${code}) - opening trunk`, '#00e676');
+        if (now >= AUTO_CARGO.lockUntil) {
+            beginStage('delivery-draining');
+            nativeOpenTrunk();
         }
-
-        if (AUTO_CARGO.stage === 'open-trunk' || AUTO_CARGO.stage === 'wait-put-all') {
-            const putAll = findMenuChoiceContains('put all');
-            if (putAll && AUTO_CARGO.menuOpen) {
-                AUTO_CARGO.stage = 'wait-store-complete';
-                nativeChoose(putAll, 'Put All', 700);
-            } else {
-                AUTO_CARGO.stage = 'wait-put-all';
-            }
-            return;
-        }
-
-        if (AUTO_CARGO.stage === 'wait-store-complete') {
-            // Once the cargo has left pockets and is present in the trunk, close
-            // the trunk menu and hand control back to the flight portion.
-            if (pocketQty === 0 && trunkQty > 0) {
-                if (AUTO_CARGO.menuOpen) nativeBack('Close Trunk');
-                AUTO_CARGO.pendingPickupCode = null;
-                AUTO_CARGO.pendingPickupLabel = null;
-                AUTO_CARGO.stage = 'idle';
-            }
-            return;
-        }
+        return;
     }
 
-    // B. A delivery x4 was selected. Do not start the next pickup until that
-    // airport's cargo is genuinely gone from BOTH pockets and trunk.
-    if (AUTO_CARGO.pendingDeliveryCode) {
+    if (AUTO_CARGO.stage === 'delivery-draining') {
         const code = AUTO_CARGO.pendingDeliveryCode;
-        if ((allCounts[code] || 0) === 0) {
-            AUTO_CARGO.pendingDeliveryCode = null;
-            AUTO_CARGO.stage = 'idle';
+        const qtyLeft = code ? (allCounts[code] || 0) : 0;
 
-            // If TT leaves the delivery submenu open, go straight back to the
-            // airport's main menu so the next destination can be selected.
-            if (AUTO_CARGO.menuOpen && findMenuChoiceExact('Deliver Cargo x4')) {
-                nativeBack('Back After Delivery');
+        // If rm_trunk was swallowed for any reason, retry it once the lock is
+        // free. We specifically want the trunk menu open during the repeating
+        // delivery so TT keeps publishing the changing trunk contents.
+        if (!AUTO_CARGO.menuOpen && now >= AUTO_CARGO.lockUntil) {
+            setAutoStatus(`delivering ${code} - reopening trunk sync`, '#8bc34a');
+            nativeOpenTrunk();
+            return;
+        }
+
+        if (qtyLeft > 0) {
+            AUTO_CARGO.cargoZeroSince = 0;
+            setAutoStatus(`delivering ${code}: ${qtyLeft} cargo left`, '#00e676');
+            return;
+        }
+
+        // Debounce zero so one stale/partial payload cannot kick us out early.
+        if (!AUTO_CARGO.cargoZeroSince) AUTO_CARGO.cargoZeroSince = now;
+        setAutoStatus(`${code} cleared - returning to airport menu`, '#8bc34a');
+
+        if (now - AUTO_CARGO.cargoZeroSince >= 900 && now >= AUTO_CARGO.lockUntil) {
+            clearDeliveryState();
+            beginStage('delivery-return-airport');
+
+            // This is the documented/native Back operation. In the exact flow
+            // shown in the user's clip, backing out of the trunk returns to the
+            // airport's cargo menu while still inside the airport trigger.
+            if (AUTO_CARGO.menuOpen) {
+                nativeBack('Back From Trunk To Airport');
+            } else {
+                AUTO_CARGO.postBackSince = now;
             }
         }
         return;
     }
 
-    if (!AUTO_CARGO.menuOpen || AUTO_CARGO.choices.length === 0) { setAutoStatus('press E / open airport cargo menu', '#ffca28'); return; }
+    if (AUTO_CARGO.stage === 'delivery-return-airport') {
+        // As soon as the airport menu is back, normal top-level logic below
+        // selects the next route. There is no E-key simulation here.
+        const airportCode = inferCurrentAirportFromMenu();
+        if (airportCode) {
+            AUTO_CARGO.airportCode = airportCode;
+            beginStage('idle');
+            // fall through and let top-level logic select the pickup immediately
+        } else {
+            setAutoStatus('cargo cleared - waiting for airport menu to return', '#ffca28');
+            return;
+        }
+    }
 
-    // C. We have already entered a submenu: choose the x4 option only.
+    // ------------------------------------------------------------
+    // 2) PICKUP LOOP
+    // TT's destination x4 action also repeats. Open the trunk immediately and
+    // leave it open while x4 batches fill it. A 4x batch is 4 * 25kg = 100kg,
+    // so "full" means another 100kg batch will no longer fit.
+    // ------------------------------------------------------------
+    if (AUTO_CARGO.stage === 'pickup-open-trunk') {
+        const code = AUTO_CARGO.pendingPickupCode;
+        setAutoStatus(`loading ${code} x4 - opening trunk`, '#00e676');
+        if (now >= AUTO_CARGO.lockUntil) {
+            beginStage('pickup-filling');
+            nativeOpenTrunk();
+        }
+        return;
+    }
+
+    if (AUTO_CARGO.stage === 'pickup-filling') {
+        const code = AUTO_CARGO.pendingPickupCode;
+        const qty = code ? (allCounts[code] || 0) : 0;
+
+        if (!AUTO_CARGO.menuOpen && now >= AUTO_CARGO.lockUntil) {
+            setAutoStatus(`loading ${code} - reopening trunk`, '#8bc34a');
+            nativeOpenTrunk();
+            return;
+        }
+
+        const fullForNextBatch = pickupBatchCannotFit();
+        const loadText = MEMORY.capacity > 0
+            ? `${MEMORY.weight}/${MEMORY.capacity}kg`
+            : `${MEMORY.weight}kg`;
+
+        if (!fullForNextBatch) {
+            AUTO_CARGO.pickupFullSince = 0;
+            setAutoStatus(`loading ${code}: ${qty} cargo • ${loadText}`, '#00e676');
+            return;
+        }
+
+        if (!AUTO_CARGO.pickupFullSince) AUTO_CARGO.pickupFullSince = now;
+        setAutoStatus(`${code} hold full for x4 • ${loadText}`, '#8bc34a');
+
+        // Give the final received batch a moment to settle before closing the
+        // trunk. Then back once from trunk and, if the airport menu is revealed
+        // underneath, back once more so the pilot gets a clean screen for flight.
+        if (now - AUTO_CARGO.pickupFullSince >= 900 && now >= AUTO_CARGO.lockUntil) {
+            beginStage('pickup-close-trunk');
+            AUTO_CARGO.postBackSince = now;
+            if (AUTO_CARGO.menuOpen) nativeBack('Close Full Trunk');
+        }
+        return;
+    }
+
+    if (AUTO_CARGO.stage === 'pickup-close-trunk') {
+        const routeCode = AUTO_CARGO.pendingPickupCode;
+        const airportCode = inferCurrentAirportFromMenu();
+
+        if (airportCode && now >= AUTO_CARGO.lockUntil) {
+            // Closing the trunk can reveal the airport menu underneath. We do
+            // not want it covering the screen once loading is finished.
+            beginStage('pickup-close-airport');
+            nativeBack('Close Airport Menu For Flight');
+            return;
+        }
+
+        // If there is no menu after the trunk back, that is already the desired
+        // flight-ready state. Wait briefly for TT's menu state to settle.
+        if (!AUTO_CARGO.menuOpen && now - AUTO_CARGO.postBackSince >= 700) {
+            clearPickupState();
+            beginStage('flight-ready');
+            setAutoStatus(`${routeCode} loaded - fly to destination`, '#00e676');
+        }
+        return;
+    }
+
+    if (AUTO_CARGO.stage === 'pickup-close-airport') {
+        const routeCode = AUTO_CARGO.pendingPickupCode;
+        if (now >= AUTO_CARGO.lockUntil) {
+            clearPickupState();
+            beginStage('flight-ready');
+            setAutoStatus(`${routeCode} loaded - fly to destination`, '#00e676');
+        }
+        return;
+    }
+
+    if (AUTO_CARGO.stage === 'flight-ready') {
+        // While carrying route cargo, do absolutely nothing until a route airport
+        // menu opens on arrival. This prevents the app from touching menus mid-flight.
+        if (!AUTO_CARGO.menuOpen || AUTO_CARGO.choices.length === 0) {
+            const carrying = Object.keys(allCounts)[0];
+            setAutoStatus(carrying ? `carrying ${carrying} - flying` : 'waiting for airport', '#8bc34a');
+            return;
+        }
+        beginStage('idle');
+        // fall through: if this is an airport menu the cargo-delivery logic below
+        // will immediately recognise it.
+    }
+
+    if (now < AUTO_CARGO.lockUntil) return;
+
+    // ------------------------------------------------------------
+    // 3) SUBMENUS
+    // ------------------------------------------------------------
     if (AUTO_CARGO.stage === 'deliver-submenu') {
         const x4 = findMenuChoiceExact('Deliver Cargo x4');
         if (x4) {
             const code = AUTO_CARGO.airportCode;
-            setAutoStatus(`clicking Deliver Cargo x4 (${code})`, '#00e676');
             AUTO_CARGO.pendingDeliveryCode = code;
-            AUTO_CARGO.stage = 'wait-delivery-complete';
-            nativeChoose(x4, `Deliver ${code} x4`, 800);
+            AUTO_CARGO.cargoZeroSince = 0;
+            setAutoStatus(`starting ${code} Deliver Cargo x4`, '#00e676');
+            beginStage('delivery-open-trunk');
+            nativeChoose(x4, `Deliver ${code} x4`, 700);
         }
         return;
     }
@@ -904,45 +1060,64 @@ function runNativeCargoAutomation() {
     if (AUTO_CARGO.stage === 'pickup-submenu') {
         const x4 = findMenuChoiceExact(`${AUTO_CARGO.pendingPickupLabel} x4`);
         if (x4) {
-            setAutoStatus(`clicking ${AUTO_CARGO.pendingPickupLabel} x4`, '#00e676');
-            AUTO_CARGO.stage = 'wait-pickup-inventory';
-            nativeChoose(x4, `Collect ${AUTO_CARGO.pendingPickupCode} x4`, 800);
+            const code = AUTO_CARGO.pendingPickupCode;
+            AUTO_CARGO.pickupFullSince = 0;
+            setAutoStatus(`starting ${AUTO_CARGO.pendingPickupLabel} x4`, '#00e676');
+            beginStage('pickup-open-trunk');
+            nativeChoose(x4, `Collect ${code} x4`, 700);
         }
         return;
     }
 
-    // D. Top-level airport menu.
+    // ------------------------------------------------------------
+    // 4) TOP-LEVEL AIRPORT MENU
+    // Arrival itself opens this menu in TT. We only react once TT exposes it.
+    // ------------------------------------------------------------
+    if (!AUTO_CARGO.menuOpen || AUTO_CARGO.choices.length === 0) {
+        setAutoStatus(totalCargoQty > 0 ? 'flying / waiting for destination airport' : 'waiting for airport trigger', '#8bc34a');
+        return;
+    }
+
     const airportCode = inferCurrentAirportFromMenu();
-    if (!airportCode || !CARGO_ROUTE[airportCode]) { setAutoStatus('menu detected, but airport not recognised', '#ff9800'); return; }
+    if (!airportCode || !CARGO_ROUTE[airportCode]) {
+        // Ignore unrelated native menus (ATC, inventory, vehicle, etc.).
+        setAutoStatus('non-airport menu ignored', '#888');
+        return;
+    }
+
     AUTO_CARGO.airportCode = airportCode;
-    setAutoStatus(`${airportCode} menu detected`, '#8bc34a');
-
     const airportCargoQty = allCounts[airportCode] || 0;
-    const totalCargoQty = cargoTotal(allCounts);
 
-    // Delivery has priority, but ONLY when cargo for THIS airport is detected.
+    // A) If this airport's cargo exists, delivery always has priority.
     if (airportCargoQty > 0) {
         const deliver = findMenuChoiceExact('Deliver Cargo') || findMenuChoiceStarts('Deliver Cargo');
         if (deliver) {
-            setAutoStatus(`opening ${airportCode} Deliver Cargo`, '#00e676');
-            AUTO_CARGO.stage = 'deliver-submenu';
-            nativeChoose(deliver, `Open ${airportCode} Deliver Cargo`, 650);
+            setAutoStatus(`${airportCode}: opening Deliver Cargo`, '#00e676');
+            beginStage('deliver-submenu');
+            nativeChoose(deliver, `Open ${airportCode} Deliver Cargo`, 550);
         }
         return;
     }
 
-    // Pickup only when there is NO cargo at all. This is the safety gate the
-    // user requested: never click a new destination while another cargo type exists.
-    if (totalCargoQty === 0) {
-        const route = CARGO_ROUTE[airportCode];
-        const pickup = findMenuChoiceStarts(route.pickupLabel);
-        if (pickup) {
-            setAutoStatus(`selecting ${route.pickupLabel}`, '#00e676');
-            AUTO_CARGO.pendingPickupCode = route.pickupCode;
-            AUTO_CARGO.pendingPickupLabel = route.pickupLabel;
-            AUTO_CARGO.stage = 'pickup-submenu';
-            nativeChoose(pickup, `Open ${route.pickupLabel}`, 650);
-        }
+    // B) Only start the next pickup when there is no cargo of ANY destination.
+    // If some other cargo is present, leave the airport menu untouched.
+    if (totalCargoQty > 0) {
+        const carrying = Object.entries(allCounts)
+            .filter(([, qty]) => qty > 0)
+            .map(([code]) => code)
+            .join(', ');
+        setAutoStatus(`${airportCode}: carrying ${carrying} - no pickup`, '#ffca28');
+        return;
+    }
+
+    const route = CARGO_ROUTE[airportCode];
+    const pickup = findMenuChoiceStarts(route.pickupLabel);
+    if (pickup) {
+        AUTO_CARGO.pendingPickupCode = route.pickupCode;
+        AUTO_CARGO.pendingPickupLabel = route.pickupLabel;
+        setAutoStatus(`${airportCode}: selecting ${route.pickupLabel}`, '#00e676');
+        beginStage('pickup-submenu');
+        nativeChoose(pickup, `Open ${route.pickupLabel}`, 550);
     }
 }
 
